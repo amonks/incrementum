@@ -86,6 +86,16 @@ var todoReopenCmd = &cobra.Command{
 
 var todoReopenReason string
 
+// todo delete
+var todoDeleteCmd = &cobra.Command{
+	Use:   "delete <id>...",
+	Short: "Delete one or more todos",
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  runTodoDelete,
+}
+
+var todoDeleteReason string
+
 // todo show
 var todoShowCmd = &cobra.Command{
 	Use:   "show <id>...",
@@ -153,7 +163,7 @@ var todoDepTreeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(todoCmd)
 	todoCmd.AddCommand(todoCreateCmd, todoUpdateCmd, todoCloseCmd, todoReopenCmd,
-		todoShowCmd, todoListCmd, todoReadyCmd, todoDepCmd)
+		todoDeleteCmd, todoShowCmd, todoListCmd, todoReadyCmd, todoDepCmd)
 	todoDepCmd.AddCommand(todoDepAddCmd, todoDepTreeCmd)
 
 	// todo create flags
@@ -180,6 +190,9 @@ func init() {
 
 	// todo reopen flags
 	todoReopenCmd.Flags().StringVar(&todoReopenReason, "reason", "", "Reason for reopening")
+
+	// todo delete flags
+	todoDeleteCmd.Flags().StringVar(&todoDeleteReason, "reason", "", "Reason for deletion")
 
 	// todo show flags
 	todoShowCmd.Flags().BoolVar(&todoShowJSON, "json", false, "Output as JSON")
@@ -413,6 +426,24 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 
 	for _, t := range reopened {
 		fmt.Printf("Reopened %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
+	}
+	return nil
+}
+
+func runTodoDelete(cmd *cobra.Command, args []string) error {
+	store, err := openTodoStore()
+	if err != nil {
+		return err
+	}
+	defer store.Release()
+
+	deleted, err := store.Delete(args, todoDeleteReason)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range deleted {
+		fmt.Printf("Deleted %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
 	}
 	return nil
 }

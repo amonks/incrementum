@@ -44,6 +44,21 @@ var (
 
 	// ErrNotClosedTodoHasClosedAt is returned when a non-closed todo has a closed_at timestamp.
 	ErrNotClosedTodoHasClosedAt = errors.New("non-closed todo cannot have closed_at timestamp")
+
+	// ErrDeleteReasonRequiresDeletedAt is returned when a delete reason is provided without deleted_at.
+	ErrDeleteReasonRequiresDeletedAt = errors.New("delete reason requires deleted_at timestamp")
+
+	// ErrTombstoneMissingDeletedAt is returned when a tombstone todo has no deleted_at timestamp.
+	ErrTombstoneMissingDeletedAt = errors.New("tombstone todo must have deleted_at timestamp")
+
+	// ErrDeletedAtRequiresTombstoneStatus is returned when deleted_at is set without tombstone status.
+	ErrDeletedAtRequiresTombstoneStatus = errors.New("deleted_at requires tombstone status")
+
+	// ErrDeleteReasonRequiresTombstoneStatus is returned when delete reason is set without tombstone status.
+	ErrDeleteReasonRequiresTombstoneStatus = errors.New("delete reason requires tombstone status")
+
+	// ErrTombstoneHasClosedAt is returned when a tombstone todo has a closed_at timestamp.
+	ErrTombstoneHasClosedAt = errors.New("tombstone todo cannot have closed_at timestamp")
 )
 
 // ValidateTitle checks if the title is valid.
@@ -88,10 +103,31 @@ func ValidateTodo(t *Todo) error {
 		if t.Status == StatusClosed && t.ClosedAt == nil {
 			return ErrClosedTodoMissingClosedAt
 		}
+		if t.Status == StatusTombstone && t.ClosedAt != nil {
+			return ErrTombstoneHasClosedAt
+		}
 	} else {
 		if t.ClosedAt != nil {
 			return ErrNotClosedTodoHasClosedAt
 		}
+	}
+
+	// Check deleted_at consistency
+	if t.Status == StatusTombstone {
+		if t.DeletedAt == nil {
+			return ErrTombstoneMissingDeletedAt
+		}
+	} else {
+		if t.DeletedAt != nil {
+			return ErrDeletedAtRequiresTombstoneStatus
+		}
+		if t.DeleteReason != "" {
+			return ErrDeleteReasonRequiresTombstoneStatus
+		}
+	}
+
+	if t.DeletedAt == nil && t.DeleteReason != "" {
+		return ErrDeleteReasonRequiresDeletedAt
 	}
 
 	return nil

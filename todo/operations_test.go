@@ -290,6 +290,133 @@ func TestStore_Reopen(t *testing.T) {
 	}
 }
 
+func TestStore_Delete(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	todo, err := store.Create("Remove old endpoint", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	deleted, err := store.Delete([]string{todo.ID}, "No longer needed")
+	if err != nil {
+		t.Fatalf("failed to delete: %v", err)
+	}
+
+	if len(deleted) != 1 {
+		t.Fatalf("expected 1 deleted todo, got %d", len(deleted))
+	}
+	if deleted[0].Status != StatusTombstone {
+		t.Errorf("expected status 'tombstone', got %q", deleted[0].Status)
+	}
+	if deleted[0].DeletedAt == nil {
+		t.Error("expected DeletedAt to be set")
+	}
+	if deleted[0].DeleteReason != "No longer needed" {
+		t.Errorf("expected delete reason to be set, got %q", deleted[0].DeleteReason)
+	}
+	if deleted[0].ClosedAt != nil {
+		t.Error("expected ClosedAt to be nil")
+	}
+
+	shown, err := store.Show([]string{todo.ID})
+	if err != nil {
+		t.Fatalf("failed to show: %v", err)
+	}
+	if shown[0].Status != StatusTombstone {
+		t.Errorf("expected tombstone status in show, got %q", shown[0].Status)
+	}
+}
+
+func TestStore_Delete_ClearsClosedAt(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Old task", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	_, err = store.Close([]string{created.ID}, "")
+	if err != nil {
+		t.Fatalf("failed to close todo: %v", err)
+	}
+
+	deleted, err := store.Delete([]string{created.ID}, "Superseded")
+	if err != nil {
+		t.Fatalf("failed to delete: %v", err)
+	}
+	if deleted[0].ClosedAt != nil {
+		t.Error("expected ClosedAt to be cleared for tombstone")
+	}
+}
+
+func TestStore_Delete_NotFound(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	_, err = store.Delete([]string{"nonexistent"}, "No longer needed")
+	if err == nil {
+		t.Fatal("expected error for nonexistent todo")
+	}
+	if !errors.Is(err, ErrTodoNotFound) {
+		t.Errorf("expected ErrTodoNotFound, got %v", err)
+	}
+}
+
+func TestStore_Delete_ListExcludesTombstones(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	first, _ := store.Create("First", CreateOptions{})
+	store.Create("Second", CreateOptions{})
+
+	_, err = store.Delete([]string{first.ID}, "No longer needed")
+	if err != nil {
+		t.Fatalf("failed to delete: %v", err)
+	}
+
+	listed, err := store.List(ListFilter{})
+	if err != nil {
+		t.Fatalf("failed to list: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("expected 1 todo after delete, got %d", len(listed))
+	}
+	if listed[0].Title != "Second" {
+		t.Errorf("expected remaining todo 'Second', got %q", listed[0].Title)
+	}
+
+	listed, err = store.List(ListFilter{IncludeTombstones: true})
+	if err != nil {
+		t.Fatalf("failed to list with tombstones: %v", err)
+	}
+	if len(listed) != 2 {
+		t.Fatalf("expected 2 todos including tombstone, got %d", len(listed))
+	}
+}
+
 func TestStore_Show(t *testing.T) {
 	repoPath := setupTestRepo(t)
 

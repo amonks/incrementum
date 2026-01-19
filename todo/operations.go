@@ -128,11 +128,13 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 // UpdateOptions configures fields to update on todos.
 // Nil pointers mean "don't update this field".
 type UpdateOptions struct {
-	Title       *string
-	Description *string
-	Status      *Status
-	Priority    *int
-	Type        *TodoType
+	Title        *string
+	Description  *string
+	Status       *Status
+	Priority     *int
+	Type         *TodoType
+	DeletedAt    *time.Time
+	DeleteReason *string
 }
 
 // Update updates one or more todos with the given options.
@@ -159,6 +161,9 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 	}
 	if opts.Type != nil && !opts.Type.IsValid() {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidType, *opts.Type)
+	}
+	if opts.DeleteReason != nil && opts.DeletedAt == nil {
+		return nil, ErrDeleteReasonRequiresDeletedAt
 	}
 
 	todos, err := s.readTodos()
@@ -190,11 +195,17 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		}
 		if opts.Status != nil {
 			todos[i].Status = *opts.Status
-			// Handle closed_at based on status
-			if *opts.Status == StatusClosed {
+			switch *opts.Status {
+			case StatusClosed:
 				todos[i].ClosedAt = &now
-			} else {
+				todos[i].DeletedAt = nil
+				todos[i].DeleteReason = ""
+			case StatusTombstone:
 				todos[i].ClosedAt = nil
+			case StatusOpen, StatusInProgress:
+				todos[i].ClosedAt = nil
+				todos[i].DeletedAt = nil
+				todos[i].DeleteReason = ""
 			}
 		}
 		if opts.Priority != nil {
@@ -202,6 +213,15 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		}
 		if opts.Type != nil {
 			todos[i].Type = *opts.Type
+		}
+		if opts.DeletedAt != nil {
+			todos[i].DeletedAt = opts.DeletedAt
+		}
+		if opts.DeleteReason != nil {
+			todos[i].DeleteReason = *opts.DeleteReason
+		}
+		if opts.DeletedAt != nil && opts.DeleteReason == nil {
+			todos[i].DeleteReason = ""
 		}
 		todos[i].UpdatedAt = now
 
@@ -240,6 +260,20 @@ func (s *Store) Reopen(ids []string, reason string) ([]Todo, error) {
 	status := StatusOpen
 	opts := UpdateOptions{
 		Status: &status,
+	}
+	return s.Update(ids, opts)
+}
+
+// Delete tombstones one or more todos with an optional reason.
+func (s *Store) Delete(ids []string, reason string) ([]Todo, error) {
+	status := StatusTombstone
+	now := time.Now()
+	opts := UpdateOptions{
+		Status:    &status,
+		DeletedAt: &now,
+	}
+	if reason != "" {
+		opts.DeleteReason = &reason
 	}
 	return s.Update(ids, opts)
 }
