@@ -196,7 +196,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		if opts.Status != nil {
 			todos[i].Status = *opts.Status
 			switch *opts.Status {
-			case StatusClosed:
+			case StatusClosed, StatusDone:
 				todos[i].ClosedAt = &now
 				todos[i].DeletedAt = nil
 				todos[i].DeleteReason = ""
@@ -423,7 +423,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		hasOpenBlocker := false
 		for _, blockerID := range blockers[todo.ID] {
 			blocker, ok := todoMap[blockerID]
-			if ok && blocker.Status != StatusClosed {
+			if ok && blocker.Status != StatusClosed && blocker.Status != StatusDone {
 				hasOpenBlocker = true
 				break
 			}

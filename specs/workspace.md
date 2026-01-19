@@ -1,0 +1,58 @@
+# Workspace Pool
+
+## Overview
+The workspace pool manages a shared set of jujutsu workspaces for a repository. It hands out leases to callers, reuses released workspaces, and persists workspace state so multiple processes can coordinate safely.
+
+## Architecture
+- `workspace.Pool` is the public API for acquiring, releasing, renewing, listing, and destroying workspaces.
+- State is persisted in a JSON file managed by `stateStore` with an advisory file lock to serialize updates.
+- Workspaces live under a shared base directory (`~/.local/share/incr/workspaces` by default). State lives under `~/.local/state/incr` by default.
+- Jujutsu operations are delegated to `internal/jj` (workspace add/forget, edit, and new change).
+- Configuration hooks are loaded from `.incr.toml` via `internal/config` and executed on each acquire.
+
+## State Model
+- State file is `state.json` with two maps:
+  - `repos`: maps repo names to their source paths.
+  - `workspaces`: maps `repoName/workspaceName` to workspace info.
+- A repo name is a sanitized version of the source path, lowercased, with path separators converted to hyphens. Collisions add a numeric suffix.
+- Workspace names are sequential `ws-###` values allocated per repo.
+- Workspace info tracks: path, repo name, status, acquisition PID/time, TTL seconds, and provisioning status.
+
+## Workspace Lifecycle
+### Acquire
+- Defaults: `Rev` defaults to `@`, `TTL` defaults to `DefaultTTL` (1h).
+- On acquire, the state store does the following under a lock:
+  - Expire any acquired workspaces whose TTL has elapsed and mark them available.
+  - Reuse the first available workspace for the repo when possible.
+  - Otherwise allocate a new `ws-###` name and mark it acquired.
+- If a new workspace is allocated, `jj workspace add` is executed and the workspace directory is created.
+- The workspace is checked out to the requested revision with `jj edit`.
+- A new change is created and the workspace is edited back to the requested revision to ensure a clean release change.
+- `.incr.toml` is loaded from the source repo and the workspace `on-create` hook runs for every acquire (including reuse).
+- A workspace is marked `Provisioned` once the hooks run successfully.
+
+### Release
+- Release creates a new change at `root()` to reset the workspace state.
+- The workspace remains on disk, but its status is marked `available`, and TTL/acquisition metadata is cleared.
+
+### Renew
+- Renew only applies to acquired workspaces and resets `AcquiredAt` to extend the TTL window.
+
+### List
+- Listing returns every workspace for a repo, with TTL remaining for acquired workspaces.
+- If the TTL has elapsed, list marks the workspace as `stale` (state is not mutated on list).
+
+### Destroy All
+- Destroy-all removes workspaces for a repo from state, forgets each workspace from jj (best-effort), deletes the workspace directories, and removes the repo workspaces directory if empty.
+
+## Repo Resolution
+- `RepoRoot(path)` returns the jj root for any path.
+- `RepoRootFromPath(path)` resolves a workspace path back to the source repo using state when possible.
+- If the path is inside the workspace pool directory but no repo mapping exists, `ErrRepoPathNotFound` is returned.
+
+## CLI Commands
+- `incr workspace acquire [--rev <rev>] [--ttl <duration>]`: acquire or create a workspace; prints the workspace path.
+- `incr workspace release [name]`: release the named workspace (or current workspace when omitted).
+- `incr workspace renew [name]`: renew TTL for the named workspace (or current workspace when omitted).
+- `incr workspace list [--json]`: list workspaces for the current repo.
+- `incr workspace destroy-all`: remove all workspaces for the current repo.

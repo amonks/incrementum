@@ -23,13 +23,16 @@ const (
 	// StatusClosed indicates the todo has been completed.
 	StatusClosed Status = "closed"
 
+	// StatusDone indicates the todo is finished without closing it.
+	StatusDone Status = "done"
+
 	// StatusTombstone indicates the todo has been soft-deleted.
 	StatusTombstone Status = "tombstone"
 )
 
 // ValidStatuses returns all valid status values.
 func ValidStatuses() []Status {
-	return []Status{StatusOpen, StatusInProgress, StatusClosed, StatusTombstone}
+	return []Status{StatusOpen, StatusInProgress, StatusClosed, StatusDone, StatusTombstone}
 }
 
 // IsValid returns true if the status is a known valid value.

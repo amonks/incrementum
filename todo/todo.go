@@ -28,7 +28,7 @@ type Todo struct {
 	// UpdatedAt is when the todo was last modified.
 	UpdatedAt time.Time `json:"updated_at"`
 
-	// ClosedAt is when the todo was closed (nil if not closed).
+	// ClosedAt is when the todo was closed or marked done (nil if not closed/done).
 	ClosedAt *time.Time `json:"closed_at,omitempty"`
 
 	// DeletedAt is when the todo was soft-deleted (nil if not deleted).

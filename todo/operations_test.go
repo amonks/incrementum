@@ -258,6 +258,19 @@ func TestStore_Close(t *testing.T) {
 	if closed[0].ClosedAt == nil {
 		t.Error("expected ClosedAt to be set")
 	}
+
+	// Mark as done
+	doneStatus := StatusDone
+	done, err := store.Update([]string{todo.ID}, UpdateOptions{Status: &doneStatus})
+	if err != nil {
+		t.Fatalf("failed to mark done: %v", err)
+	}
+	if done[0].Status != StatusDone {
+		t.Errorf("expected status 'done', got %q", done[0].Status)
+	}
+	if done[0].ClosedAt == nil {
+		t.Error("expected ClosedAt to be set for done")
+	}
 }
 
 func TestStore_Reopen(t *testing.T) {

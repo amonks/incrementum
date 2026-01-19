@@ -1,1 +1,2 @@
-always do tdd
+- first, consult the specifications in `specs/README.md`
+- always do tdd

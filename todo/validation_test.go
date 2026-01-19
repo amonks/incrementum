@@ -102,6 +102,20 @@ func TestValidateTodo(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "valid done todo",
+			todo: Todo{
+				ID:        "abc12345",
+				Title:     "Fix bug",
+				Status:    StatusDone,
+				Priority:  2,
+				Type:      TypeTask,
+				CreatedAt: now,
+				UpdatedAt: now,
+				ClosedAt:  &now,
+			},
+			wantErr: nil,
+		},
+		{
 			name: "empty title",
 			todo: Todo{
 				ID:        "abc12345",

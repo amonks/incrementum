@@ -179,7 +179,7 @@ func init() {
 	todoUpdateCmd.Flags().StringVar(&todoUpdateTitle, "title", "", "New title")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "description", "", "New description (use '-' to read from stdin)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "desc", "", "New description (use '-' to read from stdin)")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, in_progress, closed)")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, in_progress, closed, done)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
 	todoUpdateCmd.Flags().BoolVarP(&todoUpdateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
@@ -804,6 +804,8 @@ func statusIcon(s todo.Status) string {
 		return "[~]"
 	case todo.StatusClosed:
 		return "[x]"
+	case todo.StatusDone:
+		return "[d]"
 	case todo.StatusTombstone:
 		return "[-]"
 	default:

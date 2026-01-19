@@ -83,7 +83,7 @@ func TestParseTodoTOML(t *testing.T) {
  title = "My Todo"
  type = "bug"
  priority = 0
- status = "open"
+ status = "done"
  ---
  This is a description
  with multiple lines
@@ -103,8 +103,8 @@ func TestParseTodoTOML(t *testing.T) {
 	if parsed.Priority != 0 {
 		t.Errorf("expected priority 0, got %d", parsed.Priority)
 	}
-	if parsed.Status == nil || *parsed.Status != "open" {
-		t.Errorf("expected status 'open', got %v", parsed.Status)
+	if parsed.Status == nil || *parsed.Status != "done" {
+		t.Errorf("expected status 'done', got %v", parsed.Status)
 	}
 	if strings.Contains(parsed.Description, "description =") {
 		t.Errorf("expected description body without key, got %q", parsed.Description)

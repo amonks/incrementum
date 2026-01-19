@@ -10,6 +10,7 @@ func TestStatus_IsValid(t *testing.T) {
 		{StatusOpen, true},
 		{StatusInProgress, true},
 		{StatusClosed, true},
+		{StatusDone, true},
 		{StatusTombstone, true},
 		{Status("invalid"), false},
 		{Status(""), false},

@@ -64,7 +64,7 @@ var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
  type = {{ printf "%q" .Type }} # task, bug, feature
  priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 {{- if .IsUpdate }}
- status = {{ printf "%q" .Status }} # open, in_progress, closed
+ status = {{ printf "%q" .Status }} # open, in_progress, closed, done
 {{- end }}
 ---
 {{ description .Description }}
@@ -109,7 +109,7 @@ func ParseTodoTOML(content string) (*ParsedTodo, error) {
 		return nil, err
 	}
 	if parsed.Status != nil && !todo.Status(*parsed.Status).IsValid() {
-		return nil, fmt.Errorf("invalid status %q: must be open, in_progress, or closed", *parsed.Status)
+		return nil, fmt.Errorf("invalid status %q: must be open, in_progress, closed, or done", *parsed.Status)
 	}
 
 	return &parsed, nil

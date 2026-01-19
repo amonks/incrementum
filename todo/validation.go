@@ -39,8 +39,8 @@ var (
 	// ErrNoTaskStore is returned when the task store bookmark doesn't exist.
 	ErrNoTaskStore = errors.New("no task store found (bookmark incr/tasks does not exist)")
 
-	// ErrClosedTodoMissingClosedAt is returned when a closed todo has no closed_at timestamp.
-	ErrClosedTodoMissingClosedAt = errors.New("closed todo must have closed_at timestamp")
+	// ErrClosedTodoMissingClosedAt is returned when a closed or done todo has no closed_at timestamp.
+	ErrClosedTodoMissingClosedAt = errors.New("closed or done todo must have closed_at timestamp")
 
 	// ErrNotClosedTodoHasClosedAt is returned when a non-closed todo has a closed_at timestamp.
 	ErrNotClosedTodoHasClosedAt = errors.New("non-closed todo cannot have closed_at timestamp")
@@ -99,8 +99,8 @@ func ValidateTodo(t *Todo) error {
 	}
 
 	// Check closed_at consistency
-	if t.Status == StatusClosed || t.Status == StatusTombstone {
-		if t.Status == StatusClosed && t.ClosedAt == nil {
+	if t.Status == StatusClosed || t.Status == StatusDone || t.Status == StatusTombstone {
+		if (t.Status == StatusClosed || t.Status == StatusDone) && t.ClosedAt == nil {
 			return ErrClosedTodoMissingClosedAt
 		}
 		if t.Status == StatusTombstone && t.ClosedAt != nil {
