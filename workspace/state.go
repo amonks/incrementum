@@ -158,6 +158,31 @@ func (s *stateStore) update(fn func(st *state) error) error {
 	return s.save(st)
 }
 
+// ErrRepoPathNotFound indicates a workspace is tracked but missing repo info.
+var ErrRepoPathNotFound = fmt.Errorf("repo source path not found")
+
+// repoPathForWorkspace returns the source repo path for a workspace path.
+func (s *stateStore) repoPathForWorkspace(wsPath string) (string, bool, error) {
+	st, err := s.load()
+	if err != nil {
+		return "", false, err
+	}
+
+	wsPath = filepath.Clean(wsPath)
+	for _, ws := range st.Workspaces {
+		if filepath.Clean(ws.Path) != wsPath {
+			continue
+		}
+		repo, ok := st.Repos[ws.Repo]
+		if !ok || repo.SourcePath == "" {
+			return "", true, ErrRepoPathNotFound
+		}
+		return repo.SourcePath, true, nil
+	}
+
+	return "", false, nil
+}
+
 // getOrCreateRepoName returns the repo name for the given source path,
 // creating a new entry if needed. Handles collisions by appending suffixes.
 func (s *stateStore) getOrCreateRepoName(sourcePath string) (string, error) {

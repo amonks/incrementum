@@ -302,6 +302,61 @@ func TestRepoRoot_NotARepo(t *testing.T) {
 	}
 }
 
+func TestRepoRootFromPath_Workspace(t *testing.T) {
+	repoPath := setupTestRepo(t)
+	workspacesDir := t.TempDir()
+	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
+	stateDir := t.TempDir()
+
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to acquire workspace: %v", err)
+	}
+
+	root, err := workspace.RepoRootFromPathWithOptions(wsPath, workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to resolve repo root: %v", err)
+	}
+	if root != repoPath {
+		t.Fatalf("expected repo path %q, got %q", repoPath, root)
+	}
+}
+
+func TestRepoRootFromPath_Repo(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	root, err := workspace.RepoRootFromPathWithOptions(repoPath, workspace.Options{
+		StateDir:      "",
+		WorkspacesDir: "",
+	})
+	if err != nil {
+		t.Fatalf("failed to resolve repo root: %v", err)
+	}
+	if root != repoPath {
+		t.Fatalf("expected repo path %q, got %q", repoPath, root)
+	}
+}
+
+func TestRepoRootFromPath_NotARepo(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	_, err := workspace.RepoRootFromPath(tmpDir)
+	if err == nil {
+		t.Fatal("expected error for non-repo directory")
+	}
+}
+
 func TestPool_DestroyAll(t *testing.T) {
 	repoPath := setupTestRepo(t)
 	workspacesDir := t.TempDir()

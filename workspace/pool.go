@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/config"
@@ -396,6 +397,51 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 func RepoRoot(path string) (string, error) {
 	client := jj.New()
 	return client.WorkspaceRoot(path)
+}
+
+// ErrWorkspaceRootNotFound indicates a path is not in a jj workspace.
+var ErrWorkspaceRootNotFound = fmt.Errorf("workspace root not found")
+
+// RepoRootFromPath returns the source repo root for a workspace or repo path.
+// If the path is a workspace, it resolves to the original repo using state.
+func RepoRootFromPath(path string) (string, error) {
+	return repoRootFromPathWithOptions(path, Options{})
+}
+
+// RepoRootFromPathWithOptions is like RepoRootFromPath with custom options.
+func RepoRootFromPathWithOptions(path string, opts Options) (string, error) {
+	return repoRootFromPathWithOptions(path, opts)
+}
+
+func repoRootFromPathWithOptions(path string, opts Options) (string, error) {
+	root, err := RepoRoot(path)
+	if err != nil {
+		return "", ErrWorkspaceRootNotFound
+	}
+
+	pool, err := OpenWithOptions(opts)
+	if err != nil {
+		return "", fmt.Errorf("open workspace pool: %w", err)
+	}
+
+	repoPath, found, err := pool.stateStore.repoPathForWorkspace(root)
+	if err != nil {
+		return "", err
+	}
+
+	if found {
+		if repoPath == "" {
+			return "", ErrRepoPathNotFound
+		}
+		return repoPath, nil
+	}
+
+	rel, err := filepath.Rel(pool.workspacesDir, root)
+	if err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
+		return "", ErrRepoPathNotFound
+	}
+
+	return root, nil
 }
 
 // nextWorkspaceName returns the next sequential workspace name for the repo.

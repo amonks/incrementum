@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"path/filepath"
 	"sync"
 	"testing"
 )
@@ -196,5 +197,71 @@ func TestStateStore_GetOrCreateRepoName(t *testing.T) {
 	// Should either be different or if it collides, have a suffix
 	if name3 == name1 {
 		t.Error("collision not handled - different paths got same name")
+	}
+}
+
+func TestStateStore_RepoPathForWorkspace(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := newStateStore(tmpDir)
+
+	repoName, err := store.getOrCreateRepoName("/Users/test/my-project")
+	if err != nil {
+		t.Fatalf("failed to create repo: %v", err)
+	}
+
+	wsPath := filepath.Join("/tmp/workspaces", repoName, "ws-001")
+	if err := store.update(func(st *state) error {
+		st.Workspaces[repoName+"/ws-001"] = workspaceInfo{
+			Name: "ws-001",
+			Repo: repoName,
+			Path: wsPath,
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("failed to add workspace: %v", err)
+	}
+
+	resolved, found, err := store.repoPathForWorkspace(wsPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !found {
+		t.Fatal("expected workspace to be found")
+	}
+	if resolved != "/Users/test/my-project" {
+		t.Fatalf("expected repo path, got %q", resolved)
+	}
+
+	_, found, err = store.repoPathForWorkspace(filepath.Join("/tmp/workspaces", repoName, "ws-999"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if found {
+		t.Fatal("expected workspace to be missing")
+	}
+}
+
+func TestStateStore_RepoPathForWorkspace_MissingRepo(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := newStateStore(tmpDir)
+
+	wsPath := filepath.Join("/tmp/workspaces", "missing", "ws-001")
+	if err := store.update(func(st *state) error {
+		st.Workspaces["missing/ws-001"] = workspaceInfo{
+			Name: "ws-001",
+			Repo: "missing",
+			Path: wsPath,
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("failed to add workspace: %v", err)
+	}
+
+	_, found, err := store.repoPathForWorkspace(wsPath)
+	if !found {
+		t.Fatal("expected workspace to be found")
+	}
+	if err == nil {
+		t.Fatal("expected error for missing repo path")
 	}
 }
