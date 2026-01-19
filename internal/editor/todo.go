@@ -1,0 +1,226 @@
+package editor
+
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"strings"
+	"text/template"
+
+	"github.com/BurntSushi/toml"
+	"github.com/amonks/incrementum/todo"
+)
+
+// TodoData represents the data used to render the TOML template.
+type TodoData struct {
+	// IsUpdate is true when editing an existing todo.
+	IsUpdate bool
+	// ID is the todo ID (only for updates).
+	ID string
+	// Title is the todo title.
+	Title string
+	// Type is the todo type (task, bug, feature).
+	Type string
+	// Priority is the todo priority (0-4).
+	Priority int
+	// Status is the todo status (only for updates).
+	Status string
+	// Description is the todo description.
+	Description string
+	// Design contains design notes.
+	Design string
+	// AcceptanceCriteria defines what "done" looks like.
+	AcceptanceCriteria string
+	// Notes contains additional notes.
+	Notes string
+}
+
+// DefaultCreateData returns TodoData with default values for creating a new todo.
+func DefaultCreateData() TodoData {
+	return TodoData{
+		IsUpdate:    false,
+		Title:       "",
+		Type:        string(todo.TypeTask),
+		Priority:    todo.PriorityMedium,
+		Description: "",
+	}
+}
+
+// DataFromTodo creates TodoData from an existing todo for editing.
+func DataFromTodo(t *todo.Todo) TodoData {
+	return TodoData{
+		IsUpdate:           true,
+		ID:                 t.ID,
+		Title:              t.Title,
+		Type:               string(t.Type),
+		Priority:           t.Priority,
+		Status:             string(t.Status),
+		Description:        t.Description,
+		Design:             t.Design,
+		AcceptanceCriteria: t.AcceptanceCriteria,
+		Notes:              t.Notes,
+	}
+}
+
+var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
+	"multiline": func(s string) string {
+		// Use multiline string syntax for TOML
+		if s == "" {
+			return `"""` + "\n" + `"""`
+		}
+		// Escape any triple quotes in the content
+		escaped := strings.ReplaceAll(s, `"""`, `'''`)
+		return `"""` + "\n" + escaped + "\n" + `"""`
+	},
+}).Parse(`title = {{ printf "%q" .Title }}
+type = {{ printf "%q" .Type }} # task, bug, feature
+priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
+{{- if .IsUpdate }}
+status = {{ printf "%q" .Status }} # open, in_progress, closed
+{{- end }}
+description = {{ multiline .Description }}
+{{- if .IsUpdate }}
+design = {{ multiline .Design }}
+acceptance_criteria = {{ multiline .AcceptanceCriteria }}
+notes = {{ multiline .Notes }}
+{{- else }}
+# design = """
+# """
+# acceptance_criteria = """
+# """
+# notes = """
+# """
+{{- end }}
+`))
+
+// RenderTodoTOML renders the todo data as a TOML string for editing.
+func RenderTodoTOML(data TodoData) (string, error) {
+	var buf bytes.Buffer
+	if err := todoTemplate.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("render template: %w", err)
+	}
+	return buf.String(), nil
+}
+
+// ParsedTodo represents the parsed result from the TOML editor output.
+type ParsedTodo struct {
+	Title              string  `toml:"title"`
+	Type               string  `toml:"type"`
+	Priority           int     `toml:"priority"`
+	Status             *string `toml:"status"`
+	Description        string  `toml:"description"`
+	Design             *string `toml:"design"`
+	AcceptanceCriteria *string `toml:"acceptance_criteria"`
+	Notes              *string `toml:"notes"`
+}
+
+// ParseTodoTOML parses the TOML content from the editor.
+func ParseTodoTOML(content string) (*ParsedTodo, error) {
+	var parsed ParsedTodo
+	if _, err := toml.Decode(content, &parsed); err != nil {
+		return nil, fmt.Errorf("parse TOML: %w", err)
+	}
+
+	// Validate required fields
+	if parsed.Title == "" {
+		return nil, fmt.Errorf("title is required")
+	}
+	if !todo.TodoType(parsed.Type).IsValid() {
+		return nil, fmt.Errorf("invalid type %q: must be task, bug, or feature", parsed.Type)
+	}
+	if err := todo.ValidatePriority(parsed.Priority); err != nil {
+		return nil, err
+	}
+	if parsed.Status != nil && !todo.Status(*parsed.Status).IsValid() {
+		return nil, fmt.Errorf("invalid status %q: must be open, in_progress, or closed", *parsed.Status)
+	}
+
+	return &parsed, nil
+}
+
+// EditTodo opens the editor for a todo and returns the parsed result.
+// For create: pass nil for existing.
+// For update: pass the existing todo.
+func EditTodo(existing *todo.Todo) (*ParsedTodo, error) {
+	var data TodoData
+	if existing == nil {
+		data = DefaultCreateData()
+	} else {
+		data = DataFromTodo(existing)
+	}
+	return EditTodoWithData(data)
+}
+
+// EditTodoWithData opens the editor with pre-populated data and returns the parsed result.
+func EditTodoWithData(data TodoData) (*ParsedTodo, error) {
+	content, err := RenderTodoTOML(data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create temp file
+	tmpfile, err := os.CreateTemp("", "incr-todo-*.toml")
+	if err != nil {
+		return nil, fmt.Errorf("create temp file: %w", err)
+	}
+	tmpPath := tmpfile.Name()
+	defer os.Remove(tmpPath)
+
+	if _, err := tmpfile.WriteString(content); err != nil {
+		tmpfile.Close()
+		return nil, fmt.Errorf("write temp file: %w", err)
+	}
+	if err := tmpfile.Close(); err != nil {
+		return nil, fmt.Errorf("close temp file: %w", err)
+	}
+
+	// Open editor
+	if err := Edit(tmpPath); err != nil {
+		return nil, err
+	}
+
+	// Read the edited content
+	edited, err := os.ReadFile(tmpPath)
+	if err != nil {
+		return nil, fmt.Errorf("read edited file: %w", err)
+	}
+
+	return ParseTodoTOML(string(edited))
+}
+
+// ToCreateOptions converts a ParsedTodo to todo.CreateOptions.
+func (p *ParsedTodo) ToCreateOptions() todo.CreateOptions {
+	return todo.CreateOptions{
+		Type:        todo.TodoType(p.Type),
+		Priority:    p.Priority,
+		Description: p.Description,
+	}
+}
+
+// ToUpdateOptions converts a ParsedTodo to todo.UpdateOptions.
+func (p *ParsedTodo) ToUpdateOptions() todo.UpdateOptions {
+	opts := todo.UpdateOptions{
+		Title:       &p.Title,
+		Description: &p.Description,
+	}
+
+	typ := todo.TodoType(p.Type)
+	opts.Type = &typ
+	opts.Priority = &p.Priority
+
+	if p.Status != nil {
+		status := todo.Status(*p.Status)
+		opts.Status = &status
+	}
+	if p.Design != nil {
+		opts.Design = p.Design
+	}
+	if p.AcceptanceCriteria != nil {
+		opts.AcceptanceCriteria = p.AcceptanceCriteria
+	}
+	if p.Notes != nil {
+		opts.Notes = p.Notes
+	}
+
+	return opts
+}

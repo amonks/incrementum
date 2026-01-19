@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/todo"
 	"github.com/spf13/cobra"
 )
@@ -19,10 +20,15 @@ var todoCmd = &cobra.Command{
 
 // todo create
 var todoCreateCmd = &cobra.Command{
-	Use:   "create <title>",
+	Use:   "create [title]",
 	Short: "Create a new todo",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runTodoCreate,
+	Long: `Create a new todo.
+
+By default, opens $EDITOR to edit a TOML representation of the todo
+when running interactively. Use --no-edit to skip the editor, or
+--edit to force opening the editor even when not interactive.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runTodoCreate,
 }
 
 var (
@@ -30,14 +36,21 @@ var (
 	todoCreatePriority    int
 	todoCreateDescription string
 	todoCreateDeps        []string
+	todoCreateEdit        bool
+	todoCreateNoEdit      bool
 )
 
 // todo update
 var todoUpdateCmd = &cobra.Command{
-	Use:   "update <id>...",
-	Short: "Update one or more todos",
-	Args:  cobra.MinimumNArgs(1),
-	RunE:  runTodoUpdate,
+	Use:   "update <id>",
+	Short: "Update a todo",
+	Long: `Update a todo.
+
+By default, opens $EDITOR to edit a TOML representation of the todo
+when running interactively. Use --no-edit to skip the editor, or
+--edit to force opening the editor even when not interactive.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runTodoUpdate,
 }
 
 var (
@@ -50,6 +63,8 @@ var (
 	todoUpdatePriority           int
 	todoUpdateType               string
 	todoUpdatePrioritySet        bool
+	todoUpdateEdit               bool
+	todoUpdateNoEdit             bool
 )
 
 // todo close
@@ -147,6 +162,8 @@ func init() {
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description")
 	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
+	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
+	todoCreateCmd.Flags().BoolVar(&todoCreateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
 	// todo update flags
 	todoUpdateCmd.Flags().StringVar(&todoUpdateTitle, "title", "", "New title")
@@ -157,6 +174,8 @@ func init() {
 	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, in_progress, closed)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
+	todoUpdateCmd.Flags().BoolVarP(&todoUpdateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
+	todoUpdateCmd.Flags().BoolVar(&todoUpdateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
 	// todo close flags
 	todoCloseCmd.Flags().StringVar(&todoCloseReason, "reason", "", "Reason for closing")
@@ -198,6 +217,56 @@ func openTodoStore() (*todo.Store, error) {
 }
 
 func runTodoCreate(cmd *cobra.Command, args []string) error {
+	// Determine whether to open editor:
+	// - --edit forces editor
+	// - --no-edit skips editor
+	// - otherwise, open editor if interactive
+	useEditor := todoCreateEdit || (!todoCreateNoEdit && editor.IsInteractive())
+
+	if useEditor {
+		// Pre-populate from flags/args if provided
+		data := editor.DefaultCreateData()
+		if len(args) > 0 {
+			data.Title = args[0]
+		}
+		if cmd.Flags().Changed("type") {
+			data.Type = todoCreateType
+		}
+		if cmd.Flags().Changed("priority") {
+			data.Priority = todoCreatePriority
+		}
+		if cmd.Flags().Changed("description") {
+			data.Description = todoCreateDescription
+		}
+
+		parsed, err := editor.EditTodoWithData(data)
+		if err != nil {
+			return err
+		}
+
+		store, err := openTodoStore()
+		if err != nil {
+			return err
+		}
+		defer store.Release()
+
+		opts := parsed.ToCreateOptions()
+		opts.Dependencies = todoCreateDeps
+
+		created, err := store.Create(parsed.Title, opts)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Created todo %s: %s\n", created.ID, created.Title)
+		return nil
+	}
+
+	// Non-editor path: title is required
+	if len(args) == 0 {
+		return fmt.Errorf("title is required (use --edit to open editor)")
+	}
+
 	store, err := openTodoStore()
 	if err != nil {
 		return err
@@ -225,9 +294,77 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
+	// Determine whether to open editor:
+	// - --edit forces editor
+	// - --no-edit skips editor
+	// - otherwise, open editor if interactive
+	useEditor := todoUpdateEdit || (!todoUpdateNoEdit && editor.IsInteractive())
+
+	if useEditor {
+		// Fetch the existing todo
+		existing, err := store.Show([]string{args[0]})
+		if err != nil {
+			return err
+		}
+
+		// Pre-populate from existing todo, then override with any flags
+		data := editor.DataFromTodo(&existing[0])
+		if cmd.Flags().Changed("title") {
+			data.Title = todoUpdateTitle
+		}
+		if cmd.Flags().Changed("description") {
+			data.Description = todoUpdateDescription
+		}
+		if cmd.Flags().Changed("design") {
+			data.Design = todoUpdateDesign
+		}
+		if cmd.Flags().Changed("acceptance-criteria") {
+			data.AcceptanceCriteria = todoUpdateAcceptanceCriteria
+		}
+		if cmd.Flags().Changed("notes") {
+			data.Notes = todoUpdateNotes
+		}
+		if cmd.Flags().Changed("status") {
+			data.Status = todoUpdateStatus
+		}
+		if cmd.Flags().Changed("priority") {
+			data.Priority = todoUpdatePriority
+		}
+		if cmd.Flags().Changed("type") {
+			data.Type = todoUpdateType
+		}
+
+		parsed, err := editor.EditTodoWithData(data)
+		if err != nil {
+			return err
+		}
+
+		opts := parsed.ToUpdateOptions()
+		updated, err := store.Update([]string{args[0]}, opts)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Updated %s: %s\n", updated[0].ID, updated[0].Title)
+		return nil
+	}
+
+	// Non-editor path: at least one flag is required
+	hasFlags := cmd.Flags().Changed("title") ||
+		cmd.Flags().Changed("description") ||
+		cmd.Flags().Changed("design") ||
+		cmd.Flags().Changed("acceptance-criteria") ||
+		cmd.Flags().Changed("notes") ||
+		cmd.Flags().Changed("status") ||
+		cmd.Flags().Changed("priority") ||
+		cmd.Flags().Changed("type")
+
+	if !hasFlags {
+		return fmt.Errorf("at least one update flag is required (use --edit to open editor)")
+	}
+
 	opts := todo.UpdateOptions{}
 
-	// Only set fields that were explicitly provided
 	if cmd.Flags().Changed("title") {
 		opts.Title = &todoUpdateTitle
 	}
@@ -255,14 +392,12 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		opts.Type = &typ
 	}
 
-	updated, err := store.Update(args, opts)
+	updated, err := store.Update([]string{args[0]}, opts)
 	if err != nil {
 		return err
 	}
 
-	for _, t := range updated {
-		fmt.Printf("Updated %s: %s\n", t.ID, t.Title)
-	}
+	fmt.Printf("Updated %s: %s\n", updated[0].ID, updated[0].Title)
 	return nil
 }
 
