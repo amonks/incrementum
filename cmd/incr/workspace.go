@@ -42,6 +42,12 @@ var workspaceRenewCmd = &cobra.Command{
 	RunE:  runWorkspaceRenew,
 }
 
+var workspaceDestroyAllCmd = &cobra.Command{
+	Use:   "destroy-all",
+	Short: "Destroy all workspaces for the current repository",
+	RunE:  runWorkspaceDestroyAll,
+}
+
 var (
 	workspaceAcquireRev string
 	workspaceAcquireTTL time.Duration
@@ -50,7 +56,7 @@ var (
 
 func init() {
 	rootCmd.AddCommand(workspaceCmd)
-	workspaceCmd.AddCommand(workspaceAcquireCmd, workspaceReleaseCmd, workspaceListCmd, workspaceRenewCmd)
+	workspaceCmd.AddCommand(workspaceAcquireCmd, workspaceReleaseCmd, workspaceListCmd, workspaceRenewCmd, workspaceDestroyAllCmd)
 
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquireRev, "rev", "@", "Revision to check out")
 	workspaceAcquireCmd.Flags().DurationVar(&workspaceAcquireTTL, "ttl", workspace.DefaultTTL, "Lease duration before auto-expiry")
@@ -150,4 +156,18 @@ func runWorkspaceRenew(cmd *cobra.Command, args []string) error {
 	}
 
 	return pool.Renew(wsPath)
+}
+
+func runWorkspaceDestroyAll(cmd *cobra.Command, args []string) error {
+	pool, err := workspace.Open()
+	if err != nil {
+		return err
+	}
+
+	repoPath, err := getRepoPath()
+	if err != nil {
+		return err
+	}
+
+	return pool.DestroyAll(repoPath)
 }

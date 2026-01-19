@@ -183,3 +183,14 @@ func (c *Client) WorkspaceUpdateStale(workspacePath string) error {
 	}
 	return nil
 }
+
+// WorkspaceForget removes a workspace from the repository without deleting it from disk.
+func (c *Client) WorkspaceForget(repoPath, workspaceName string) error {
+	cmd := exec.Command("jj", "workspace", "forget", workspaceName)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj workspace forget: %w: %s", err, output)
+	}
+	return nil
+}

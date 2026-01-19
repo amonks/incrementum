@@ -404,12 +404,20 @@ func buildIncr(t *testing.T) string {
 }
 
 // setupE2ERepo creates a temporary jj repository for e2e testing.
+// It also sets HOME to a temp directory to prevent leaking state into
+// ~/.local/state/incr and ~/.local/share/incr/workspaces.
 func setupE2ERepo(t *testing.T) string {
 	t.Helper()
 
 	tmpDir := t.TempDir()
 	// Resolve symlinks (macOS /var -> /private/var)
 	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
+
+	// Set HOME to a temp directory to isolate state/workspaces
+	homeDir := t.TempDir()
+	os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incr"), 0755)
+	os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incr", "workspaces"), 0755)
+	t.Setenv("HOME", homeDir)
 
 	client := jj.New()
 	if err := client.Init(tmpDir); err != nil {

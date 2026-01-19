@@ -301,3 +301,79 @@ func TestRepoRoot_NotARepo(t *testing.T) {
 		t.Error("expected error for non-repo directory")
 	}
 }
+
+func TestPool_DestroyAll(t *testing.T) {
+	repoPath := setupTestRepo(t)
+	workspacesDir := t.TempDir()
+	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
+	stateDir := t.TempDir()
+
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	// Acquire two workspaces
+	wsPath1, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to acquire workspace 1: %v", err)
+	}
+
+	wsPath2, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to acquire workspace 2: %v", err)
+	}
+
+	// Verify workspaces exist
+	if _, err := os.Stat(wsPath1); os.IsNotExist(err) {
+		t.Fatalf("workspace 1 does not exist: %s", wsPath1)
+	}
+	if _, err := os.Stat(wsPath2); os.IsNotExist(err) {
+		t.Fatalf("workspace 2 does not exist: %s", wsPath2)
+	}
+
+	// Destroy all
+	if err := pool.DestroyAll(repoPath); err != nil {
+		t.Fatalf("failed to destroy all: %v", err)
+	}
+
+	// Verify workspaces are gone
+	if _, err := os.Stat(wsPath1); !os.IsNotExist(err) {
+		t.Error("workspace 1 should have been deleted")
+	}
+	if _, err := os.Stat(wsPath2); !os.IsNotExist(err) {
+		t.Error("workspace 2 should have been deleted")
+	}
+
+	// List should return empty
+	list, err := pool.List(repoPath)
+	if err != nil {
+		t.Fatalf("failed to list: %v", err)
+	}
+	if len(list) != 0 {
+		t.Errorf("expected 0 workspaces after destroy-all, got %d", len(list))
+	}
+}
+
+func TestPool_DestroyAll_NoWorkspaces(t *testing.T) {
+	repoPath := setupTestRepo(t)
+	workspacesDir := t.TempDir()
+	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
+	stateDir := t.TempDir()
+
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	// Destroy all when there are no workspaces should not error
+	if err := pool.DestroyAll(repoPath); err != nil {
+		t.Fatalf("destroy-all with no workspaces should not error: %v", err)
+	}
+}

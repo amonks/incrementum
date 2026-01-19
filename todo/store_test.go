@@ -23,12 +23,20 @@ func (m *mockPrompter) Confirm(message string) (bool, error) {
 }
 
 // setupTestRepo creates a temporary jj repository for testing.
+// It also sets HOME to a temp directory to prevent leaking state into
+// ~/.local/state/incr and ~/.local/share/incr/workspaces.
 func setupTestRepo(t *testing.T) string {
 	t.Helper()
 
 	tmpDir := t.TempDir()
 	// Resolve symlinks (macOS /var -> /private/var)
 	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
+
+	// Set HOME to a temp directory to isolate state/workspaces
+	homeDir := t.TempDir()
+	os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incr"), 0755)
+	os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incr", "workspaces"), 0755)
+	t.Setenv("HOME", homeDir)
 
 	client := jj.New()
 	if err := client.Init(tmpDir); err != nil {
@@ -360,5 +368,45 @@ func TestWriteJSONL_Atomic(t *testing.T) {
 	}
 	if len(data) == 0 {
 		t.Error("file is empty")
+	}
+}
+
+// TestOpen_DoesNotModifyUserWorkingCopy verifies that opening/creating a store
+// does not modify the user's working copy. This is a regression test for a bug
+// where createTaskStore would run jj commands in the user's directory, causing
+// the user's @ to temporarily move to the todo store change.
+func TestOpen_DoesNotModifyUserWorkingCopy(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	client := jj.New()
+
+	// Record the user's current change ID before opening the store
+	changeIDBefore, err := client.CurrentChangeID(repoPath)
+	if err != nil {
+		t.Fatalf("failed to get initial change ID: %v", err)
+	}
+
+	// Open the store (which will create the task store since it doesn't exist)
+	store, err := Open(repoPath, OpenOptions{
+		CreateIfMissing: true,
+		PromptToCreate:  false,
+	})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	// The user's working copy should still be at the same change
+	changeIDAfter, err := client.CurrentChangeID(repoPath)
+	if err != nil {
+		t.Fatalf("failed to get change ID after open: %v", err)
+	}
+
+	if changeIDBefore != changeIDAfter {
+		t.Errorf("user's working copy was modified during store creation\n"+
+			"before: %s\n"+
+			"after:  %s\n"+
+			"Store creation should operate in a background workspace, not the user's directory",
+			changeIDBefore, changeIDAfter)
 	}
 }

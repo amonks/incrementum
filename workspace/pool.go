@@ -368,3 +368,65 @@ func (p *Pool) nextWorkspaceName(st *state, repoName string) string {
 	}
 	return fmt.Sprintf("ws-%03d", maxNum+1)
 }
+
+// DestroyAll removes all workspaces for the given repository.
+//
+// This deletes both the state entries and the workspace directories on disk.
+// It also runs "jj workspace forget" to unregister each workspace from the
+// source repository.
+func (p *Pool) DestroyAll(repoPath string) error {
+	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		return fmt.Errorf("get repo name: %w", err)
+	}
+
+	var workspaces []workspaceInfo
+	var repoSourcePath string
+
+	// Collect workspaces to destroy and get the source repo path
+	err = p.stateStore.update(func(state *state) error {
+		// Get the source repo path
+		if repo, ok := state.Repos[repoName]; ok {
+			repoSourcePath = repo.SourcePath
+		}
+
+		for key, ws := range state.Workspaces {
+			if ws.Repo == repoName {
+				workspaces = append(workspaces, ws)
+				delete(state.Workspaces, key)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Forget workspaces from jj and delete directories
+	var errs []error
+	for _, ws := range workspaces {
+		// Try to forget from jj (may fail if source repo is gone)
+		if repoSourcePath != "" {
+			if err := p.jj.WorkspaceForget(repoSourcePath, ws.Name); err != nil {
+				// Non-fatal - the workspace might already be forgotten or the repo gone
+				errs = append(errs, fmt.Errorf("forget workspace %s: %w", ws.Name, err))
+			}
+		}
+
+		// Delete the workspace directory
+		if err := os.RemoveAll(ws.Path); err != nil {
+			errs = append(errs, fmt.Errorf("remove workspace %s: %w", ws.Path, err))
+		}
+	}
+
+	// Also try to remove the repo's workspace directory if empty
+	repoWorkspacesDir := filepath.Join(p.workspacesDir, repoName)
+	os.Remove(repoWorkspacesDir) // Ignore error - may not be empty or exist
+
+	if len(errs) > 0 {
+		// Return first error but log intent that some cleanup failed
+		return errs[0]
+	}
+
+	return nil
+}

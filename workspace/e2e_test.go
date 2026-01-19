@@ -222,6 +222,52 @@ func TestE2E_RevisionFlag(t *testing.T) {
 	}
 }
 
+// TestE2E_DestroyAll tests the destroy-all command.
+func TestE2E_DestroyAll(t *testing.T) {
+	binPath := buildBinary(t)
+	repoPath := createJJRepo(t)
+
+	homeDir := t.TempDir()
+	os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incr"), 0755)
+	os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incr", "workspaces"), 0755)
+	t.Setenv("HOME", homeDir)
+
+	// Acquire two workspaces
+	wsPath1 := strings.TrimSpace(runIncr(t, binPath, repoPath, "workspace", "acquire"))
+	wsPath2 := strings.TrimSpace(runIncr(t, binPath, repoPath, "workspace", "acquire"))
+
+	// Verify workspaces exist
+	if _, err := os.Stat(wsPath1); os.IsNotExist(err) {
+		t.Fatalf("workspace 1 does not exist: %s", wsPath1)
+	}
+	if _, err := os.Stat(wsPath2); os.IsNotExist(err) {
+		t.Fatalf("workspace 2 does not exist: %s", wsPath2)
+	}
+
+	// List should show 2 workspaces
+	listOutput := runIncr(t, binPath, repoPath, "workspace", "list")
+	if !strings.Contains(listOutput, "ws-001") || !strings.Contains(listOutput, "ws-002") {
+		t.Errorf("expected ws-001 and ws-002 in list, got: %s", listOutput)
+	}
+
+	// Destroy all
+	runIncr(t, binPath, repoPath, "workspace", "destroy-all")
+
+	// Verify workspaces are gone
+	if _, err := os.Stat(wsPath1); !os.IsNotExist(err) {
+		t.Error("workspace 1 should have been deleted")
+	}
+	if _, err := os.Stat(wsPath2); !os.IsNotExist(err) {
+		t.Error("workspace 2 should have been deleted")
+	}
+
+	// List should show no workspaces
+	listOutput = runIncr(t, binPath, repoPath, "workspace", "list")
+	if !strings.Contains(listOutput, "No workspaces found") {
+		t.Errorf("expected 'No workspaces found', got: %s", listOutput)
+	}
+}
+
 // buildBinary builds the incr binary and returns its path.
 func buildBinary(t *testing.T) string {
 	t.Helper()

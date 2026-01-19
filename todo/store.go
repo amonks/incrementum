@@ -116,23 +116,31 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 				return nil, ErrNoTaskStore
 			}
 		}
-
-		// Create the orphan change and bookmark
-		if err := createTaskStore(client, repoPath); err != nil {
-			return nil, fmt.Errorf("create task store: %w", err)
-		}
 	}
 
-	// Acquire a workspace
-	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{
-		Rev: BookmarkName,
-	})
+	// Acquire a workspace. If the bookmark doesn't exist yet, we'll create
+	// the store in this workspace, then edit to it.
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("acquire workspace: %w", err)
 	}
 
+	// If the bookmark doesn't exist, create the store in our workspace
+	if !hasBookmark {
+		if err := createTaskStore(client, wsPath); err != nil {
+			pool.Release(wsPath)
+			return nil, fmt.Errorf("create task store: %w", err)
+		}
+	}
+
+	// Edit to the bookmark
+	if err := client.Edit(wsPath, BookmarkName); err != nil {
+		pool.Release(wsPath)
+		return nil, fmt.Errorf("edit to task store: %w", err)
+	}
+
 	// Update stale working copy if needed (this can happen if the bookmark
-	// was created after the workspace was last used)
+	// was moved after the workspace was last used)
 	if err := client.WorkspaceUpdateStale(wsPath); err != nil {
 		// Ignore errors - the workspace might not be stale
 		// The error message is not helpful for detecting this case
@@ -160,27 +168,24 @@ func (s *Store) Release() error {
 }
 
 // createTaskStore creates the orphan change and bookmark for the task store.
-func createTaskStore(client *jj.Client, repoPath string) error {
-	// Create a new change at root()
-	changeID, err := client.NewChange(repoPath, "root()")
+// wsPath must be an already-acquired workspace.
+func createTaskStore(client *jj.Client, wsPath string) error {
+	// Create a new change at root() in the workspace.
+	// This moves the workspace's @ to the new orphan change.
+	changeID, err := client.NewChange(wsPath, "root()")
 	if err != nil {
 		return fmt.Errorf("create orphan change: %w", err)
 	}
 
 	// Set the description
-	if err := client.Describe(repoPath, "incr todo store - do not edit directly"); err != nil {
+	if err := client.Describe(wsPath, "incr todo store - do not edit directly"); err != nil {
 		return fmt.Errorf("describe change: %w", err)
 	}
 
-	// Create the bookmark
-	if err := client.BookmarkCreate(repoPath, BookmarkName, changeID); err != nil {
+	// Create the bookmark pointing to the new change.
+	// This bookmark is visible repo-wide, not just in this workspace.
+	if err := client.BookmarkCreate(wsPath, BookmarkName, changeID); err != nil {
 		return fmt.Errorf("create bookmark: %w", err)
-	}
-
-	// Go back to the previous revision so we don't leave the user on the task store
-	if err := client.Edit(repoPath, "@-"); err != nil {
-		// This might fail if we were already at root, which is fine
-		// The user can navigate back themselves
 	}
 
 	return nil
