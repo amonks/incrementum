@@ -43,15 +43,20 @@ func TestE2E_FullWorkflow(t *testing.T) {
 		if len(todos) != 1 {
 			t.Fatalf("expected 1 todo, got %d", len(todos))
 		}
-		todoID = todos[0].ID
-		if todos[0].Title != "Fix the login bug" {
-			t.Errorf("expected title 'Fix the login bug', got %q", todos[0].Title)
+		for _, td := range todos {
+			if td.Title == "Fix the login bug" {
+				todoID = td.ID
+				if td.Type != todo.TypeBug {
+					t.Errorf("expected type 'bug', got %q", td.Type)
+				}
+				if td.Priority != 1 {
+					t.Errorf("expected priority 1, got %d", td.Priority)
+				}
+				break
+			}
 		}
-		if todos[0].Type != todo.TypeBug {
-			t.Errorf("expected type 'bug', got %q", todos[0].Type)
-		}
-		if todos[0].Priority != 1 {
-			t.Errorf("expected priority 1, got %d", todos[0].Priority)
+		if todoID == "" {
+			t.Fatal("failed to find 'Fix the login bug' todo")
 		}
 	})
 
@@ -451,13 +456,28 @@ func TestE2E_ReadyWithBlockers(t *testing.T) {
 func buildIncr(t *testing.T) string {
 	t.Helper()
 
-	// Get the module root
+	moduleRoot := findModuleRoot(t)
+
+	// Build to a temp location
+	binPath := filepath.Join(t.TempDir(), "incr")
+	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/incr")
+	cmd.Dir = moduleRoot
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("build incr: %v\n%s", err, output)
+	}
+
+	return binPath
+}
+
+func findModuleRoot(t *testing.T) string {
+	t.Helper()
+
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("get working directory: %v", err)
 	}
 
-	// Find module root by looking for go.mod
 	moduleRoot := wd
 	for {
 		if _, err := os.Stat(filepath.Join(moduleRoot, "go.mod")); err == nil {
@@ -470,16 +490,7 @@ func buildIncr(t *testing.T) string {
 		moduleRoot = parent
 	}
 
-	// Build to a temp location
-	binPath := filepath.Join(t.TempDir(), "incr")
-	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/incr")
-	cmd.Dir = moduleRoot
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("build incr: %v\n%s", err, output)
-	}
-
-	return binPath
+	return moduleRoot
 }
 
 // setupE2ERepo creates a temporary jj repository for e2e testing.

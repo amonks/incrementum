@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-go run ./cmd/incr $@
+go run ./cmd/incr "$@"
 
