@@ -53,7 +53,7 @@ func TestE2E_AcquireReleaseWorkflow(t *testing.T) {
 	}
 
 	// Release the workspace
-	runIncr(t, binPath, wsPath, "workspace", "release")
+	runIncr(t, binPath, repoPath, "workspace", "release", "ws-001")
 
 	// List again - should show available
 	listOutput = runIncr(t, binPath, repoPath, "workspace", "list")
@@ -148,10 +148,10 @@ func TestE2E_Renew(t *testing.T) {
 	t.Setenv("HOME", homeDir)
 
 	// Acquire a workspace
-	wsPath := strings.TrimSpace(runIncr(t, binPath, repoPath, "workspace", "acquire"))
+	runIncr(t, binPath, repoPath, "workspace", "acquire")
 
 	// Renew should succeed
-	runIncr(t, binPath, wsPath, "workspace", "renew")
+	runIncr(t, binPath, repoPath, "workspace", "renew", "ws-001")
 }
 
 // TestE2E_ConfigHooks tests on-create and on-acquire hooks.
@@ -186,7 +186,7 @@ on-acquire = "touch .acquired"
 	}
 
 	// Release and acquire again
-	runIncr(t, binPath, wsPath, "workspace", "release")
+	runIncr(t, binPath, repoPath, "workspace", "release", "ws-001")
 
 	// Remove the .acquired file to verify it gets recreated
 	os.Remove(filepath.Join(wsPath, ".acquired"))

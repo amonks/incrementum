@@ -240,6 +240,29 @@ func (p *Pool) Release(wsPath string) error {
 	})
 }
 
+// ReleaseByName returns a workspace to the pool by name.
+func (p *Pool) ReleaseByName(repoPath, wsName string) error {
+	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		return fmt.Errorf("get repo name: %w", err)
+	}
+
+	return p.stateStore.update(func(state *state) error {
+		key := repoName + "/" + wsName
+		ws, ok := state.Workspaces[key]
+		if !ok {
+			return fmt.Errorf("workspace not found: %s", wsName)
+		}
+
+		ws.Status = StatusAvailable
+		ws.AcquiredByPID = 0
+		ws.AcquiredAt = time.Time{}
+		ws.TTLSeconds = 0
+		state.Workspaces[key] = ws
+		return nil
+	})
+}
+
 // Renew extends the TTL for an acquired workspace.
 //
 // Call this periodically to prevent a long-running lease from expiring.
@@ -257,6 +280,28 @@ func (p *Pool) Renew(wsPath string) error {
 			}
 		}
 		return fmt.Errorf("workspace not found: %s", wsPath)
+	})
+}
+
+// RenewByName extends the TTL for an acquired workspace by name.
+func (p *Pool) RenewByName(repoPath, wsName string) error {
+	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		return fmt.Errorf("get repo name: %w", err)
+	}
+
+	return p.stateStore.update(func(state *state) error {
+		key := repoName + "/" + wsName
+		ws, ok := state.Workspaces[key]
+		if !ok {
+			return fmt.Errorf("workspace not found: %s", wsName)
+		}
+		if ws.Status != StatusAcquired {
+			return fmt.Errorf("workspace is not acquired")
+		}
+		ws.AcquiredAt = time.Now()
+		state.Workspaces[key] = ws
+		return nil
 	})
 }
 
