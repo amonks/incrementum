@@ -54,22 +54,20 @@ func DataFromTodo(t *todo.Todo) TodoData {
 }
 
 var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
-	"multiline": func(s string) string {
-		// Use multiline string syntax for TOML
+	"description": func(s string) string {
 		if s == "" {
-			return `"""` + "\n" + `"""`
+			return ""
 		}
-		// Escape any triple quotes in the content
-		escaped := strings.ReplaceAll(s, `"""`, `'''`)
-		return `"""` + "\n" + escaped + "\n" + `"""`
+		return s
 	},
 }).Parse(`title = {{ printf "%q" .Title }}
-type = {{ printf "%q" .Type }} # task, bug, feature
-priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
+ type = {{ printf "%q" .Type }} # task, bug, feature
+ priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 {{- if .IsUpdate }}
-status = {{ printf "%q" .Status }} # open, in_progress, closed
+ status = {{ printf "%q" .Status }} # open, in_progress, closed
 {{- end }}
-description = {{ multiline .Description }}
+---
+{{ description .Description }}
 `))
 
 // RenderTodoTOML renders the todo data as a TOML string for editing.
@@ -87,15 +85,18 @@ type ParsedTodo struct {
 	Type        string  `toml:"type"`
 	Priority    int     `toml:"priority"`
 	Status      *string `toml:"status"`
-	Description string  `toml:"description"`
+	Description string
 }
 
 // ParseTodoTOML parses the TOML content from the editor.
 func ParseTodoTOML(content string) (*ParsedTodo, error) {
+	frontmatter, body := splitFrontmatter(content)
+
 	var parsed ParsedTodo
-	if _, err := toml.Decode(content, &parsed); err != nil {
+	if _, err := toml.Decode(frontmatter, &parsed); err != nil {
 		return nil, fmt.Errorf("parse TOML: %w", err)
 	}
+	parsed.Description = strings.TrimLeft(body, "\n")
 
 	// Validate required fields
 	if parsed.Title == "" {
@@ -112,6 +113,29 @@ func ParseTodoTOML(content string) (*ParsedTodo, error) {
 	}
 
 	return &parsed, nil
+}
+
+func splitFrontmatter(content string) (string, string) {
+	content = strings.TrimLeft(content, "\n")
+	if content == "" {
+		return "", ""
+	}
+
+	lines := strings.Split(content, "\n")
+	separatorIndex := -1
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "---" {
+			separatorIndex = i
+			break
+		}
+	}
+	if separatorIndex == -1 {
+		return content, ""
+	}
+
+	frontmatter := strings.Join(lines[:separatorIndex], "\n")
+	body := strings.Join(lines[separatorIndex+1:], "\n")
+	return frontmatter, body
 }
 
 // EditTodo opens the editor for a todo and returns the parsed result.

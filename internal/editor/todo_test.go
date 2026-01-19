@@ -24,8 +24,11 @@ func TestRenderTodoTOML_Create(t *testing.T) {
 	if !strings.Contains(content, "priority = 2") {
 		t.Error("expected default priority 2")
 	}
-	if !strings.Contains(content, "description = ") {
-		t.Error("expected description field")
+	if strings.Contains(content, "description =") {
+		t.Error("expected description to be in body")
+	}
+	if !strings.Contains(content, "---") {
+		t.Error("expected frontmatter separator")
 	}
 
 	// Should not have status field for create
@@ -67,6 +70,9 @@ func TestRenderTodoTOML_Update(t *testing.T) {
 	if !strings.Contains(content, `status = "in_progress"`) {
 		t.Error("expected status to be in_progress")
 	}
+	if strings.Contains(content, "description =") {
+		t.Error("expected description to be in body")
+	}
 	if !strings.Contains(content, "A test description") {
 		t.Error("expected description content")
 	}
@@ -74,17 +80,14 @@ func TestRenderTodoTOML_Update(t *testing.T) {
 
 func TestParseTodoTOML(t *testing.T) {
 	content := `
-title = "My Todo"
-type = "bug"
-priority = 0
-status = "open"
-
-description = """
-This is a description
-with multiple lines
-"""
-
-`
+ title = "My Todo"
+ type = "bug"
+ priority = 0
+ status = "open"
+ ---
+ This is a description
+ with multiple lines
+ `
 
 	parsed, err := ParseTodoTOML(content)
 	if err != nil {
@@ -102,6 +105,9 @@ with multiple lines
 	}
 	if parsed.Status == nil || *parsed.Status != "open" {
 		t.Errorf("expected status 'open', got %v", parsed.Status)
+	}
+	if strings.Contains(parsed.Description, "description =") {
+		t.Errorf("expected description body without key, got %q", parsed.Description)
 	}
 	if !strings.Contains(parsed.Description, "multiple lines") {
 		t.Errorf("expected description with multiple lines, got %q", parsed.Description)
