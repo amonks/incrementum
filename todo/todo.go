@@ -13,15 +13,6 @@ type Todo struct {
 	// Description provides additional context about the todo.
 	Description string `json:"description"`
 
-	// Design contains design notes or technical approach.
-	Design string `json:"design"`
-
-	// AcceptanceCriteria defines what "done" looks like.
-	AcceptanceCriteria string `json:"acceptance_criteria"`
-
-	// Notes contains any additional notes.
-	Notes string `json:"notes"`
-
 	// Status is the current state of the todo.
 	Status Status `json:"status"`
 

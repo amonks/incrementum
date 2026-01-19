@@ -36,24 +36,18 @@ func TestRenderTodoTOML_Create(t *testing.T) {
 		}
 	}
 
-	// Should have commented optional fields
-	if !strings.Contains(content, "# design = ") {
-		t.Error("expected commented design field")
-	}
 }
 
 func TestRenderTodoTOML_Update(t *testing.T) {
 	existing := &todo.Todo{
-		ID:                 "abc12345",
-		Title:              "Test Todo",
-		Type:               todo.TypeFeature,
-		Priority:           todo.PriorityHigh,
-		Status:             todo.StatusInProgress,
-		Description:        "A test description",
-		Design:             "Some design notes",
-		AcceptanceCriteria: "",
-		Notes:              "Some notes",
+		ID:          "abc12345",
+		Title:       "Test Todo",
+		Type:        todo.TypeFeature,
+		Priority:    todo.PriorityHigh,
+		Status:      todo.StatusInProgress,
+		Description: "A test description",
 	}
+
 	data := DataFromTodo(existing)
 	content, err := RenderTodoTOML(data)
 	if err != nil {
@@ -76,9 +70,6 @@ func TestRenderTodoTOML_Update(t *testing.T) {
 	if !strings.Contains(content, "A test description") {
 		t.Error("expected description content")
 	}
-	if !strings.Contains(content, "Some design notes") {
-		t.Error("expected design content")
-	}
 }
 
 func TestParseTodoTOML(t *testing.T) {
@@ -93,9 +84,6 @@ This is a description
 with multiple lines
 """
 
-design = """
-Design notes here
-"""
 `
 
 	parsed, err := ParseTodoTOML(content)
@@ -117,9 +105,6 @@ Design notes here
 	}
 	if !strings.Contains(parsed.Description, "multiple lines") {
 		t.Errorf("expected description with multiple lines, got %q", parsed.Description)
-	}
-	if parsed.Design == nil || !strings.Contains(*parsed.Design, "Design notes") {
-		t.Errorf("expected design notes, got %v", parsed.Design)
 	}
 }
 
@@ -174,7 +159,7 @@ func TestToCreateOptions(t *testing.T) {
 		Title:       "Test",
 		Type:        "feature",
 		Priority:    1,
-		Description: "desc",
+		Description: "description",
 	}
 
 	opts := parsed.ToCreateOptions()
@@ -185,21 +170,19 @@ func TestToCreateOptions(t *testing.T) {
 	if opts.Priority != 1 {
 		t.Errorf("expected priority 1, got %d", opts.Priority)
 	}
-	if opts.Description != "desc" {
-		t.Errorf("expected description 'desc', got %q", opts.Description)
+	if opts.Description != "description" {
+		t.Errorf("expected description 'description', got %q", opts.Description)
 	}
 }
 
 func TestToUpdateOptions(t *testing.T) {
 	status := "in_progress"
-	design := "design"
 	parsed := &ParsedTodo{
 		Title:       "Test",
 		Type:        "bug",
 		Priority:    2,
 		Status:      &status,
-		Description: "desc",
-		Design:      &design,
+		Description: "description",
 	}
 
 	opts := parsed.ToUpdateOptions()
@@ -215,8 +198,5 @@ func TestToUpdateOptions(t *testing.T) {
 	}
 	if opts.Status == nil || *opts.Status != todo.StatusInProgress {
 		t.Errorf("expected status in_progress, got %v", opts.Status)
-	}
-	if opts.Design == nil || *opts.Design != "design" {
-		t.Errorf("expected design 'design', got %v", opts.Design)
 	}
 }

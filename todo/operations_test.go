@@ -53,6 +53,7 @@ func TestStore_Create_WithOptions(t *testing.T) {
 		Priority:    PriorityHigh,
 		Description: "Users want dark mode",
 	})
+
 	if err != nil {
 		t.Fatalf("failed to create todo: %v", err)
 	}
@@ -243,7 +244,7 @@ func TestStore_Close(t *testing.T) {
 	todo, _ := store.Create("Test todo", CreateOptions{})
 
 	// Close it
-	closed, err := store.Close([]string{todo.ID}, "Done!")
+	closed, err := store.Close([]string{todo.ID}, "")
 	if err != nil {
 		t.Fatalf("failed to close: %v", err)
 	}
@@ -273,7 +274,7 @@ func TestStore_Reopen(t *testing.T) {
 	store.Close([]string{todo.ID}, "")
 
 	// Reopen it
-	reopened, err := store.Reopen([]string{todo.ID}, "Not done yet")
+	reopened, err := store.Reopen([]string{todo.ID}, "")
 	if err != nil {
 		t.Fatalf("failed to reopen: %v", err)
 	}

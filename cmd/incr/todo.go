@@ -54,17 +54,14 @@ when running interactively. Use --no-edit to skip the editor, or
 }
 
 var (
-	todoUpdateTitle              string
-	todoUpdateDescription        string
-	todoUpdateDesign             string
-	todoUpdateAcceptanceCriteria string
-	todoUpdateNotes              string
-	todoUpdateStatus             string
-	todoUpdatePriority           int
-	todoUpdateType               string
-	todoUpdatePrioritySet        bool
-	todoUpdateEdit               bool
-	todoUpdateNoEdit             bool
+	todoUpdateTitle       string
+	todoUpdateDescription string
+	todoUpdateStatus      string
+	todoUpdatePriority    int
+	todoUpdateType        string
+	todoUpdatePrioritySet bool
+	todoUpdateEdit        bool
+	todoUpdateNoEdit      bool
 )
 
 // todo close
@@ -110,7 +107,7 @@ var (
 	todoListType        string
 	todoListIDs         string
 	todoListTitle       string
-	todoListDescription string
+	todoListDesc        string
 	todoListJSON        bool
 	todoListPrioritySet bool
 )
@@ -161,6 +158,7 @@ func init() {
 	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature)")
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description")
+	todoCreateCmd.Flags().StringVar(&todoCreateDescription, "desc", "", "Description")
 	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
 	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
 	todoCreateCmd.Flags().BoolVar(&todoCreateNoEdit, "no-edit", false, "Do not open $EDITOR")
@@ -168,9 +166,7 @@ func init() {
 	// todo update flags
 	todoUpdateCmd.Flags().StringVar(&todoUpdateTitle, "title", "", "New title")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "description", "", "New description")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateDesign, "design", "", "Design notes")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateAcceptanceCriteria, "acceptance-criteria", "", "Acceptance criteria")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateNotes, "notes", "", "Notes")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "desc", "", "New description")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, in_progress, closed)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
@@ -192,7 +188,8 @@ func init() {
 	todoListCmd.Flags().StringVar(&todoListType, "type", "", "Filter by type")
 	todoListCmd.Flags().StringVar(&todoListIDs, "id", "", "Filter by IDs (comma-separated)")
 	todoListCmd.Flags().StringVar(&todoListTitle, "title", "", "Filter by title substring")
-	todoListCmd.Flags().StringVar(&todoListDescription, "description", "", "Filter by description substring")
+	todoListCmd.Flags().StringVar(&todoListDesc, "description", "", "Filter by description substring")
+	todoListCmd.Flags().StringVar(&todoListDesc, "desc", "", "Filter by description substring")
 	todoListCmd.Flags().BoolVar(&todoListJSON, "json", false, "Output as JSON")
 
 	// todo ready flags
@@ -235,7 +232,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("priority") {
 			data.Priority = todoCreatePriority
 		}
-		if cmd.Flags().Changed("description") {
+		if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
 			data.Description = todoCreateDescription
 		}
 
@@ -312,18 +309,10 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("title") {
 			data.Title = todoUpdateTitle
 		}
-		if cmd.Flags().Changed("description") {
+		if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
 			data.Description = todoUpdateDescription
 		}
-		if cmd.Flags().Changed("design") {
-			data.Design = todoUpdateDesign
-		}
-		if cmd.Flags().Changed("acceptance-criteria") {
-			data.AcceptanceCriteria = todoUpdateAcceptanceCriteria
-		}
-		if cmd.Flags().Changed("notes") {
-			data.Notes = todoUpdateNotes
-		}
+
 		if cmd.Flags().Changed("status") {
 			data.Status = todoUpdateStatus
 		}
@@ -352,9 +341,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	// Non-editor path: at least one flag is required
 	hasFlags := cmd.Flags().Changed("title") ||
 		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("design") ||
-		cmd.Flags().Changed("acceptance-criteria") ||
-		cmd.Flags().Changed("notes") ||
+		cmd.Flags().Changed("desc") ||
 		cmd.Flags().Changed("status") ||
 		cmd.Flags().Changed("priority") ||
 		cmd.Flags().Changed("type")
@@ -368,17 +355,8 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("title") {
 		opts.Title = &todoUpdateTitle
 	}
-	if cmd.Flags().Changed("description") {
+	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
 		opts.Description = &todoUpdateDescription
-	}
-	if cmd.Flags().Changed("design") {
-		opts.Design = &todoUpdateDesign
-	}
-	if cmd.Flags().Changed("acceptance-criteria") {
-		opts.AcceptanceCriteria = &todoUpdateAcceptanceCriteria
-	}
-	if cmd.Flags().Changed("notes") {
-		opts.Notes = &todoUpdateNotes
 	}
 	if cmd.Flags().Changed("status") {
 		status := todo.Status(todoUpdateStatus)
@@ -488,7 +466,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 		filter.IDs = strings.Split(todoListIDs, ",")
 	}
 	filter.TitleSubstring = todoListTitle
-	filter.DescriptionSubstring = todoListDescription
+	filter.DescriptionSubstring = todoListDesc
 
 	todos, err := store.List(filter)
 	if err != nil {
@@ -605,15 +583,6 @@ func printTodoDetail(t todo.Todo) {
 
 	if t.Description != "" {
 		fmt.Printf("\nDescription:\n%s\n", t.Description)
-	}
-	if t.Design != "" {
-		fmt.Printf("\nDesign:\n%s\n", t.Design)
-	}
-	if t.AcceptanceCriteria != "" {
-		fmt.Printf("\nAcceptance Criteria:\n%s\n", t.AcceptanceCriteria)
-	}
-	if t.Notes != "" {
-		fmt.Printf("\nNotes:\n%s\n", t.Notes)
 	}
 }
 

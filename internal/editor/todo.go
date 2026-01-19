@@ -27,12 +27,6 @@ type TodoData struct {
 	Status string
 	// Description is the todo description.
 	Description string
-	// Design contains design notes.
-	Design string
-	// AcceptanceCriteria defines what "done" looks like.
-	AcceptanceCriteria string
-	// Notes contains additional notes.
-	Notes string
 }
 
 // DefaultCreateData returns TodoData with default values for creating a new todo.
@@ -49,16 +43,13 @@ func DefaultCreateData() TodoData {
 // DataFromTodo creates TodoData from an existing todo for editing.
 func DataFromTodo(t *todo.Todo) TodoData {
 	return TodoData{
-		IsUpdate:           true,
-		ID:                 t.ID,
-		Title:              t.Title,
-		Type:               string(t.Type),
-		Priority:           t.Priority,
-		Status:             string(t.Status),
-		Description:        t.Description,
-		Design:             t.Design,
-		AcceptanceCriteria: t.AcceptanceCriteria,
-		Notes:              t.Notes,
+		IsUpdate:    true,
+		ID:          t.ID,
+		Title:       t.Title,
+		Type:        string(t.Type),
+		Priority:    t.Priority,
+		Status:      string(t.Status),
+		Description: t.Description,
 	}
 }
 
@@ -79,18 +70,6 @@ priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 status = {{ printf "%q" .Status }} # open, in_progress, closed
 {{- end }}
 description = {{ multiline .Description }}
-{{- if .IsUpdate }}
-design = {{ multiline .Design }}
-acceptance_criteria = {{ multiline .AcceptanceCriteria }}
-notes = {{ multiline .Notes }}
-{{- else }}
-# design = """
-# """
-# acceptance_criteria = """
-# """
-# notes = """
-# """
-{{- end }}
 `))
 
 // RenderTodoTOML renders the todo data as a TOML string for editing.
@@ -104,14 +83,11 @@ func RenderTodoTOML(data TodoData) (string, error) {
 
 // ParsedTodo represents the parsed result from the TOML editor output.
 type ParsedTodo struct {
-	Title              string  `toml:"title"`
-	Type               string  `toml:"type"`
-	Priority           int     `toml:"priority"`
-	Status             *string `toml:"status"`
-	Description        string  `toml:"description"`
-	Design             *string `toml:"design"`
-	AcceptanceCriteria *string `toml:"acceptance_criteria"`
-	Notes              *string `toml:"notes"`
+	Title       string  `toml:"title"`
+	Type        string  `toml:"type"`
+	Priority    int     `toml:"priority"`
+	Status      *string `toml:"status"`
+	Description string  `toml:"description"`
 }
 
 // ParseTodoTOML parses the TOML content from the editor.
@@ -212,15 +188,5 @@ func (p *ParsedTodo) ToUpdateOptions() todo.UpdateOptions {
 		status := todo.Status(*p.Status)
 		opts.Status = &status
 	}
-	if p.Design != nil {
-		opts.Design = p.Design
-	}
-	if p.AcceptanceCriteria != nil {
-		opts.AcceptanceCriteria = p.AcceptanceCriteria
-	}
-	if p.Notes != nil {
-		opts.Notes = p.Notes
-	}
-
 	return opts
 }

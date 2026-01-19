@@ -128,14 +128,11 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 // UpdateOptions configures fields to update on todos.
 // Nil pointers mean "don't update this field".
 type UpdateOptions struct {
-	Title              *string
-	Description        *string
-	Design             *string
-	AcceptanceCriteria *string
-	Notes              *string
-	Status             *Status
-	Priority           *int
-	Type               *TodoType
+	Title       *string
+	Description *string
+	Status      *Status
+	Priority    *int
+	Type        *TodoType
 }
 
 // Update updates one or more todos with the given options.
@@ -190,15 +187,6 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		if opts.Description != nil {
 			todos[i].Description = *opts.Description
 		}
-		if opts.Design != nil {
-			todos[i].Design = *opts.Design
-		}
-		if opts.AcceptanceCriteria != nil {
-			todos[i].AcceptanceCriteria = *opts.AcceptanceCriteria
-		}
-		if opts.Notes != nil {
-			todos[i].Notes = *opts.Notes
-		}
 		if opts.Status != nil {
 			todos[i].Status = *opts.Status
 			// Handle closed_at based on status
@@ -237,24 +225,20 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 
 // Close closes one or more todos with an optional reason.
 func (s *Store) Close(ids []string, reason string) ([]Todo, error) {
+	_ = reason
 	status := StatusClosed
 	opts := UpdateOptions{
 		Status: &status,
-	}
-	if reason != "" {
-		opts.Notes = &reason
 	}
 	return s.Update(ids, opts)
 }
 
 // Reopen reopens one or more closed todos with an optional reason.
 func (s *Store) Reopen(ids []string, reason string) ([]Todo, error) {
+	_ = reason
 	status := StatusOpen
 	opts := UpdateOptions{
 		Status: &status,
-	}
-	if reason != "" {
-		opts.Notes = &reason
 	}
 	return s.Update(ids, opts)
 }
