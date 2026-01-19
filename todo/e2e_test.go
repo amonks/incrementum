@@ -373,6 +373,25 @@ func TestE2E_MultipleIDs(t *testing.T) {
 			t.Errorf("expected all todos open, but %q has status %q", td.Title, td.Status)
 		}
 	}
+
+	// Update multiple
+	args = append([]string{"todo", "update"}, ids...)
+	args = append(args, "--status", "in_progress")
+	output = runIncr(t, incrBin, repoPath, args...)
+	for _, td := range todos {
+		if !strings.Contains(output, td.ID) {
+			t.Errorf("expected ID %q in update output", td.ID)
+		}
+	}
+
+	// Verify all in progress
+	output = runIncr(t, incrBin, repoPath, "todo", "list", "--json")
+	json.Unmarshal([]byte(output), &todos)
+	for _, td := range todos {
+		if td.Status != todo.StatusInProgress {
+			t.Errorf("expected all todos in progress, but %q has status %q", td.Title, td.Status)
+		}
+	}
 }
 
 // TestE2E_ReadyWithBlockers tests that the ready command properly filters blocked todos.

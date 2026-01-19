@@ -44,14 +44,14 @@ var (
 
 // todo update
 var todoUpdateCmd = &cobra.Command{
-	Use:   "update <id>",
-	Short: "Update a todo",
-	Long: `Update a todo.
+	Use:   "update <id>...",
+	Short: "Update one or more todos",
+	Long: `Update one or more todos.
 
 By default, opens $EDITOR to edit a TOML representation of the todo
-when running interactively. Use --no-edit to skip the editor, or
+when running interactively (single ID only). Use --no-edit to skip the editor, or
 --edit to force opening the editor even when not interactive.`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	RunE: runTodoUpdate,
 }
 
@@ -342,6 +342,9 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	// - --no-edit skips editor
 	// - otherwise, open editor if interactive
 	useEditor := todoUpdateEdit || (!todoUpdateNoEdit && editor.IsInteractive())
+	if useEditor && len(args) > 1 {
+		return fmt.Errorf("editor updates support a single ID (use --no-edit for multiple IDs)")
+	}
 
 	if useEditor {
 		// Fetch the existing todo
@@ -416,12 +419,14 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		opts.Type = &typ
 	}
 
-	updated, err := store.Update([]string{args[0]}, opts)
+	updated, err := store.Update(args, opts)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Updated %s: %s\n", updated[0].ID, updated[0].Title)
+	for _, item := range updated {
+		fmt.Printf("Updated %s: %s\n", ui.HighlightID(item.ID, 0), item.Title)
+	}
 	return nil
 }
 
