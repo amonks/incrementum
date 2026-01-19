@@ -101,3 +101,85 @@ func (c *Client) CurrentChangeID(workspacePath string) (string, error) {
 	}
 	return strings.TrimSpace(string(output)), nil
 }
+
+// BookmarkList returns all bookmark names in the repository.
+func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
+	cmd := exec.Command("jj", "bookmark", "list", "-T", "name ++ \"\\n\"")
+	cmd.Dir = workspacePath
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("jj bookmark list: %w: %s", err, exitErr.Stderr)
+		}
+		return nil, fmt.Errorf("jj bookmark list: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	var bookmarks []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			bookmarks = append(bookmarks, line)
+		}
+	}
+	return bookmarks, nil
+}
+
+// BookmarkCreate creates a bookmark at the specified revision.
+func (c *Client) BookmarkCreate(workspacePath, name, rev string) error {
+	cmd := exec.Command("jj", "bookmark", "create", name, "-r", rev)
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj bookmark create: %w: %s", err, output)
+	}
+	return nil
+}
+
+// NewChange creates a new change with the given parent revision.
+// Returns the change ID of the newly created change.
+// Note: This moves the working copy to the new change.
+func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
+	cmd := exec.Command("jj", "new", parentRev)
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("jj new: %w: %s", err, output)
+	}
+
+	// Get the change ID of the newly created change (now at @)
+	return c.CurrentChangeID(workspacePath)
+}
+
+// Snapshot runs jj debug snapshot to record working copy changes to the current change.
+func (c *Client) Snapshot(workspacePath string) error {
+	cmd := exec.Command("jj", "debug", "snapshot")
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj debug snapshot: %w: %s", err, output)
+	}
+	return nil
+}
+
+// Describe sets the description for the current change.
+func (c *Client) Describe(workspacePath, message string) error {
+	cmd := exec.Command("jj", "describe", "-m", message)
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj describe: %w: %s", err, output)
+	}
+	return nil
+}
+
+// WorkspaceUpdateStale updates a stale working copy.
+func (c *Client) WorkspaceUpdateStale(workspacePath string) error {
+	cmd := exec.Command("jj", "workspace", "update-stale")
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj workspace update-stale: %w: %s", err, output)
+	}
+	return nil
+}

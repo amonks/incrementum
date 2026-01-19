@@ -1,4 +1,4 @@
-package incrementum_test
+package workspace_test
 
 import (
 	"bytes"
@@ -162,8 +162,8 @@ func TestE2E_ConfigHooks(t *testing.T) {
 	// Create a config file with hooks
 	configContent := `
 [workspace]
-on-create = ["touch .created"]
-on-acquire = ["touch .acquired"]
+on-create = "touch .created"
+on-acquire = "touch .acquired"
 `
 	if err := os.WriteFile(filepath.Join(repoPath, ".incr.toml"), []byte(configContent), 0644); err != nil {
 		t.Fatalf("failed to write config: %v", err)

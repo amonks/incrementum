@@ -1,0 +1,48 @@
+package todo
+
+import "time"
+
+// Todo represents a single task.
+type Todo struct {
+	// ID is a unique identifier (8-char alphanumeric, derived from initial title + timestamp).
+	ID string `json:"id"`
+
+	// Title is the short summary of the todo (max 500 chars).
+	Title string `json:"title"`
+
+	// Description provides additional context about the todo.
+	Description string `json:"description"`
+
+	// Design contains design notes or technical approach.
+	Design string `json:"design"`
+
+	// AcceptanceCriteria defines what "done" looks like.
+	AcceptanceCriteria string `json:"acceptance_criteria"`
+
+	// Notes contains any additional notes.
+	Notes string `json:"notes"`
+
+	// Status is the current state of the todo.
+	Status Status `json:"status"`
+
+	// Priority is the importance level (0=critical, 4=backlog).
+	Priority int `json:"priority"`
+
+	// Type categorizes the todo (task, bug, feature).
+	Type TodoType `json:"type"`
+
+	// CreatedAt is when the todo was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// UpdatedAt is when the todo was last modified.
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// ClosedAt is when the todo was closed (nil if not closed).
+	ClosedAt *time.Time `json:"closed_at,omitempty"`
+
+	// DeletedAt is when the todo was soft-deleted (nil if not deleted).
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// DeleteReason explains why the todo was deleted.
+	DeleteReason string `json:"delete_reason,omitempty"`
+}

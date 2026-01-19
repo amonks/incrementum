@@ -3,10 +3,10 @@ package workspace
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
+	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/jj"
 )
 
@@ -188,17 +188,15 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	}
 
 	// Load config and run hooks
-	cfg, err := LoadConfig(repoPath)
+	cfg, err := config.Load(repoPath)
 	if err != nil {
 		return "", fmt.Errorf("load config: %w", err)
 	}
 
-	// Run on-create hooks if this is a new or unprovisioned workspace
+	// Run on-create script if this is a new or unprovisioned workspace
 	if needsProvision {
-		for _, cmd := range cfg.Workspace.OnCreate {
-			if err := p.runHook(wsPath, cmd); err != nil {
-				return "", fmt.Errorf("on-create hook %q: %w", cmd, err)
-			}
+		if err := config.RunScript(wsPath, cfg.Workspace.OnCreate); err != nil {
+			return "", fmt.Errorf("on-create script: %w", err)
 		}
 
 		// Mark as provisioned
@@ -212,13 +210,11 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 		})
 	}
 
-	// Run on-acquire hooks
-	for _, cmd := range cfg.Workspace.OnAcquire {
-		if err := p.runHook(wsPath, cmd); err != nil {
-			// Release on failure
-			p.Release(wsPath)
-			return "", fmt.Errorf("on-acquire hook %q: %w", cmd, err)
-		}
+	// Run on-acquire script
+	if err := config.RunScript(wsPath, cfg.Workspace.OnAcquire); err != nil {
+		// Release on failure
+		p.Release(wsPath)
+		return "", fmt.Errorf("on-acquire script: %w", err)
 	}
 
 	return wsPath, nil
@@ -371,13 +367,4 @@ func (p *Pool) nextWorkspaceName(st *state, repoName string) string {
 		}
 	}
 	return fmt.Sprintf("ws-%03d", maxNum+1)
-}
-
-// runHook runs a shell command in the workspace directory.
-func (p *Pool) runHook(wsPath, cmdStr string) error {
-	cmd := exec.Command("sh", "-c", cmdStr)
-	cmd.Dir = wsPath
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }

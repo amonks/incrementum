@@ -138,3 +138,137 @@ func TestCurrentChangeID(t *testing.T) {
 		t.Error("expected non-empty change ID")
 	}
 }
+
+func TestBookmarkList_Empty(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	bookmarks, err := client.BookmarkList(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to list bookmarks: %v", err)
+	}
+
+	if len(bookmarks) != 0 {
+		t.Errorf("expected 0 bookmarks, got %d", len(bookmarks))
+	}
+}
+
+func TestBookmarkCreate(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	// Create a bookmark at the current revision
+	if err := client.BookmarkCreate(tmpDir, "test-bookmark", "@"); err != nil {
+		t.Fatalf("failed to create bookmark: %v", err)
+	}
+
+	// List bookmarks and verify
+	bookmarks, err := client.BookmarkList(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to list bookmarks: %v", err)
+	}
+
+	if len(bookmarks) != 1 {
+		t.Fatalf("expected 1 bookmark, got %d", len(bookmarks))
+	}
+
+	if bookmarks[0] != "test-bookmark" {
+		t.Errorf("expected bookmark name 'test-bookmark', got %q", bookmarks[0])
+	}
+}
+
+func TestBookmarkCreate_WithSlash(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	// Create a bookmark with slash (like incr/tasks)
+	if err := client.BookmarkCreate(tmpDir, "incr/tasks", "@"); err != nil {
+		t.Fatalf("failed to create bookmark: %v", err)
+	}
+
+	bookmarks, err := client.BookmarkList(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to list bookmarks: %v", err)
+	}
+
+	found := false
+	for _, b := range bookmarks {
+		if b == "incr/tasks" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected to find bookmark 'incr/tasks', got %v", bookmarks)
+	}
+}
+
+func TestNewChange(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	// Create a new change at root()
+	changeID, err := client.NewChange(tmpDir, "root()")
+	if err != nil {
+		t.Fatalf("failed to create new change: %v", err)
+	}
+
+	if changeID == "" {
+		t.Error("expected non-empty change ID")
+	}
+
+	// Verify the change exists by trying to edit to it
+	if err := client.Edit(tmpDir, changeID); err != nil {
+		t.Errorf("failed to edit to new change: %v", err)
+	}
+}
+
+func TestSnapshot(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	// Create a file
+	testFile := filepath.Join(tmpDir, "test.txt")
+	if err := os.WriteFile(testFile, []byte("hello"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	// Snapshot should succeed
+	if err := client.Snapshot(tmpDir); err != nil {
+		t.Fatalf("failed to snapshot: %v", err)
+	}
+}
+
+func TestDescribe(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	// Describe the current change
+	if err := client.Describe(tmpDir, "test description"); err != nil {
+		t.Fatalf("failed to describe: %v", err)
+	}
+}
