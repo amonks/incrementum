@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -168,16 +169,16 @@ func init() {
 	// todo create flags
 	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature)")
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
-	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description")
-	todoCreateCmd.Flags().StringVar(&todoCreateDescription, "desc", "", "Description")
+	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description (use '-' to read from stdin)")
+	todoCreateCmd.Flags().StringVar(&todoCreateDescription, "desc", "", "Description (use '-' to read from stdin)")
 	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
 	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
 	todoCreateCmd.Flags().BoolVar(&todoCreateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
 	// todo update flags
 	todoUpdateCmd.Flags().StringVar(&todoUpdateTitle, "title", "", "New title")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "description", "", "New description")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "desc", "", "New description")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "description", "", "New description (use '-' to read from stdin)")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "desc", "", "New description (use '-' to read from stdin)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, in_progress, closed)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
@@ -227,7 +228,30 @@ func openTodoStore() (*todo.Store, error) {
 	})
 }
 
+func resolveDescriptionFromStdin(description string, reader io.Reader) (string, error) {
+	if description != "-" {
+		return description, nil
+	}
+
+	input, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("read description from stdin: %w", err)
+	}
+
+	value := strings.TrimSuffix(string(input), "\n")
+	value = strings.TrimSuffix(value, "\r")
+	return value, nil
+}
+
 func runTodoCreate(cmd *cobra.Command, args []string) error {
+	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+		desc, err := resolveDescriptionFromStdin(todoCreateDescription, os.Stdin)
+		if err != nil {
+			return err
+		}
+		todoCreateDescription = desc
+	}
+
 	// Determine whether to open editor:
 	// - --edit forces editor
 	// - --no-edit skips editor
@@ -304,6 +328,14 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer store.Release()
+
+	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+		desc, err := resolveDescriptionFromStdin(todoUpdateDescription, os.Stdin)
+		if err != nil {
+			return err
+		}
+		todoUpdateDescription = desc
+	}
 
 	// Determine whether to open editor:
 	// - --edit forces editor

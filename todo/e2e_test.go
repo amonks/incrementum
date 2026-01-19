@@ -264,6 +264,66 @@ func TestE2E_CreatePrompt(t *testing.T) {
 }
 
 // TestE2E_MultipleIDs tests operations on multiple todos at once.
+func TestE2E_DescriptionFromStdin(t *testing.T) {
+	incrBin := buildIncr(t)
+	repoPath := setupE2ERepo(t)
+
+	runIncr(t, incrBin, repoPath, "todo", "create", "Seed todo")
+
+	cmd := exec.Command(incrBin, "todo", "create", "Stdin todo", "--desc", "-")
+	cmd.Dir = repoPath
+	cmd.Stdin = strings.NewReader("Created from stdin")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("todo create with stdin failed: %v\noutput: %s", err, output)
+	}
+	if !strings.Contains(string(output), "Created todo") {
+		t.Fatalf("expected create output, got: %s", output)
+	}
+
+	listOutput := runIncr(t, incrBin, repoPath, "todo", "list", "--json")
+	var todos []todo.Todo
+	if err := json.Unmarshal([]byte(listOutput), &todos); err != nil {
+		t.Fatalf("failed to parse list JSON: %v\noutput: %s", err, listOutput)
+	}
+
+	var stdinID string
+	for _, td := range todos {
+		if td.Title == "Stdin todo" {
+			stdinID = td.ID
+			if td.Description != "Created from stdin" {
+				t.Fatalf("expected description from stdin, got %q", td.Description)
+			}
+		}
+	}
+	if stdinID == "" {
+		t.Fatal("failed to find stdin todo")
+	}
+
+	cmd = exec.Command(incrBin, "todo", "update", stdinID, "--desc", "-")
+	cmd.Dir = repoPath
+	cmd.Stdin = strings.NewReader("Updated from stdin")
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("todo update with stdin failed: %v\noutput: %s", err, output)
+	}
+	if !strings.Contains(string(output), "Updated") {
+		t.Fatalf("expected update output, got: %s", output)
+	}
+
+	showOutput := runIncr(t, incrBin, repoPath, "todo", "show", stdinID, "--json")
+	var showTodos []todo.Todo
+	if err := json.Unmarshal([]byte(showOutput), &showTodos); err != nil {
+		t.Fatalf("failed to parse show JSON: %v\noutput: %s", err, showOutput)
+	}
+	if len(showTodos) != 1 {
+		t.Fatalf("expected 1 todo, got %d", len(showTodos))
+	}
+	if showTodos[0].Description != "Updated from stdin" {
+		t.Fatalf("expected updated description, got %q", showTodos[0].Description)
+	}
+}
+
 func TestE2E_MultipleIDs(t *testing.T) {
 	incrBin := buildIncr(t)
 	repoPath := setupE2ERepo(t)
