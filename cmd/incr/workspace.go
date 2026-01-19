@@ -23,9 +23,9 @@ var workspaceAcquireCmd = &cobra.Command{
 }
 
 var workspaceReleaseCmd = &cobra.Command{
-	Use:   "release <name>",
+	Use:   "release [name]",
 	Short: "Release an acquired workspace back to the pool",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	RunE:  runWorkspaceRelease,
 }
 
@@ -36,9 +36,9 @@ var workspaceListCmd = &cobra.Command{
 }
 
 var workspaceRenewCmd = &cobra.Command{
-	Use:   "renew <name>",
+	Use:   "renew [name]",
 	Short: "Extend the TTL for an acquired workspace",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	RunE:  runWorkspaceRenew,
 }
 
@@ -97,9 +97,12 @@ func runWorkspaceRelease(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	wsName := args[0]
-	return pool.ReleaseByName(repoPath, wsName)
+	wsName, err := resolveWorkspaceName(args, pool)
+	if err != nil {
+		return err
+	}
 
+	return pool.ReleaseByName(repoPath, wsName)
 }
 
 func runWorkspaceList(cmd *cobra.Command, args []string) error {
@@ -157,7 +160,11 @@ func runWorkspaceRenew(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	wsName := args[0]
+	wsName, err := resolveWorkspaceName(args, pool)
+	if err != nil {
+		return err
+	}
+
 	return pool.RenewByName(repoPath, wsName)
 }
 

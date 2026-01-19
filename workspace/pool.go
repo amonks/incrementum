@@ -413,6 +413,29 @@ func RepoRootFromPathWithOptions(path string, opts Options) (string, error) {
 	return repoRootFromPathWithOptions(path, opts)
 }
 
+// WorkspaceNameForPath returns the workspace name for a workspace path.
+// Returns ErrWorkspaceRootNotFound if the path is not a workspace.
+func (p *Pool) WorkspaceNameForPath(path string) (string, error) {
+	root, err := RepoRoot(path)
+	if err != nil {
+		return "", ErrWorkspaceRootNotFound
+	}
+
+	st, err := p.stateStore.load()
+	if err != nil {
+		return "", fmt.Errorf("load state: %w", err)
+	}
+
+	root = filepath.Clean(root)
+	for _, ws := range st.Workspaces {
+		if filepath.Clean(ws.Path) == root {
+			return ws.Name, nil
+		}
+	}
+
+	return "", ErrRepoPathNotFound
+}
+
 func repoRootFromPathWithOptions(path string, opts Options) (string, error) {
 	root, err := RepoRoot(path)
 	if err != nil {

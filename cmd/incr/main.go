@@ -63,3 +63,17 @@ func resolvePath(args []string) (string, error) {
 	}
 	return cwd, nil
 }
+
+// resolveWorkspaceName returns the workspace name from args or current directory.
+func resolveWorkspaceName(args []string, pool *workspace.Pool) (string, error) {
+	if len(args) > 0 {
+		return args[0], nil
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory: %w", err)
+	}
+
+	return pool.WorkspaceNameForPath(cwd)
+}

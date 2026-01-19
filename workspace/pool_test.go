@@ -1,6 +1,7 @@
 package workspace_test
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -430,5 +431,48 @@ func TestPool_DestroyAll_NoWorkspaces(t *testing.T) {
 	// Destroy all when there are no workspaces should not error
 	if err := pool.DestroyAll(repoPath); err != nil {
 		t.Fatalf("destroy-all with no workspaces should not error: %v", err)
+	}
+}
+
+func TestPool_WorkspaceNameForPath(t *testing.T) {
+	repoPath := setupTestRepo(t)
+	workspacesDir := t.TempDir()
+	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
+	stateDir := t.TempDir()
+
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to acquire workspace: %v", err)
+	}
+
+	name, err := pool.WorkspaceNameForPath(wsPath)
+	if err != nil {
+		t.Fatalf("failed to resolve workspace name: %v", err)
+	}
+	if name == "" {
+		t.Fatal("expected workspace name")
+	}
+}
+
+func TestPool_WorkspaceNameForPath_NotInWorkspace(t *testing.T) {
+	pool, err := workspace.Open()
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	_, err = pool.WorkspaceNameForPath(t.TempDir())
+	if err == nil {
+		t.Fatal("expected error for non-workspace directory")
+	}
+	if !errors.Is(err, workspace.ErrWorkspaceRootNotFound) {
+		t.Fatalf("expected workspace root not found error, got %v", err)
 	}
 }
