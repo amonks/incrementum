@@ -1,0 +1,103 @@
+// Package jj provides a wrapper around the jj CLI tool.
+package jj
+
+import (
+	"bytes"
+	"fmt"
+	"os/exec"
+	"strings"
+)
+
+// Client wraps the jj CLI.
+type Client struct{}
+
+// New creates a new jj client.
+func New() *Client {
+	return &Client{}
+}
+
+// Init initializes a new jj repository at the given path.
+func (c *Client) Init(path string) error {
+	cmd := exec.Command("jj", "git", "init")
+	cmd.Dir = path
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj git init: %w: %s", err, output)
+	}
+	return nil
+}
+
+// WorkspaceRoot returns the root directory of the workspace containing the given path.
+func (c *Client) WorkspaceRoot(path string) (string, error) {
+	cmd := exec.Command("jj", "workspace", "root")
+	cmd.Dir = path
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("jj workspace root: %w: %s", err, exitErr.Stderr)
+		}
+		return "", fmt.Errorf("jj workspace root: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// WorkspaceAdd adds a new workspace to the repository.
+func (c *Client) WorkspaceAdd(repoPath, name, workspacePath string) error {
+	cmd := exec.Command("jj", "workspace", "add", "--name", name, workspacePath)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj workspace add: %w: %s", err, output)
+	}
+	return nil
+}
+
+// WorkspaceList returns the list of workspace names in the repository.
+func (c *Client) WorkspaceList(repoPath string) ([]string, error) {
+	cmd := exec.Command("jj", "workspace", "list")
+	cmd.Dir = repoPath
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("jj workspace list: %w: %s", err, exitErr.Stderr)
+		}
+		return nil, fmt.Errorf("jj workspace list: %w", err)
+	}
+
+	lines := bytes.Split(bytes.TrimSpace(output), []byte("\n"))
+	workspaces := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		// Output format is "name: <change_id>" - extract just the name
+		parts := bytes.SplitN(line, []byte(":"), 2)
+		workspaces = append(workspaces, string(bytes.TrimSpace(parts[0])))
+	}
+	return workspaces, nil
+}
+
+// Edit checks out the specified revision in the workspace.
+func (c *Client) Edit(workspacePath, rev string) error {
+	cmd := exec.Command("jj", "edit", rev)
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj edit: %w: %s", err, output)
+	}
+	return nil
+}
+
+// CurrentChangeID returns the change ID of the current working copy commit.
+func (c *Client) CurrentChangeID(workspacePath string) (string, error) {
+	cmd := exec.Command("jj", "log", "-r", "@", "-T", "change_id", "--no-graph")
+	cmd.Dir = workspacePath
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
+		}
+		return "", fmt.Errorf("jj log: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}

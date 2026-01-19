@@ -1,0 +1,383 @@
+package workspace
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"time"
+
+	"github.com/amonks/incrementum/internal/jj"
+)
+
+// DefaultTTL is the default lease duration for acquired workspaces.
+const DefaultTTL = time.Hour
+
+// Pool manages a pool of jujutsu workspaces.
+//
+// A Pool maintains workspaces in a shared location and tracks which workspaces
+// are currently acquired. Multiple processes can safely use the same Pool
+// concurrently through file-based locking.
+type Pool struct {
+	stateStore    *stateStore
+	workspacesDir string
+	jj            *jj.Client
+}
+
+// Options configures a workspace pool.
+type Options struct {
+	// StateDir is the directory where pool state is stored.
+	// Defaults to ~/.local/state/incr if empty.
+	StateDir string
+
+	// WorkspacesDir is the directory where workspaces are created.
+	// Defaults to ~/.local/share/incr/workspaces if empty.
+	WorkspacesDir string
+}
+
+// Open creates a new Pool with default options.
+// State is stored in ~/.local/state/incr and workspaces in
+// ~/.local/share/incr/workspaces.
+func Open() (*Pool, error) {
+	return OpenWithOptions(Options{})
+}
+
+// OpenWithOptions creates a new Pool with custom options.
+func OpenWithOptions(opts Options) (*Pool, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("get home directory: %w", err)
+	}
+
+	stateDir := opts.StateDir
+	if stateDir == "" {
+		stateDir = filepath.Join(home, ".local", "state", "incr")
+	}
+
+	workspacesDir := opts.WorkspacesDir
+	if workspacesDir == "" {
+		workspacesDir = filepath.Join(home, ".local", "share", "incr", "workspaces")
+	}
+
+	return &Pool{
+		stateStore:    newStateStore(stateDir),
+		workspacesDir: workspacesDir,
+		jj:            jj.New(),
+	}, nil
+}
+
+// AcquireOptions configures a workspace acquire operation.
+type AcquireOptions struct {
+	// Rev is the jj revision to check out. Defaults to "@" if empty.
+	Rev string
+
+	// TTL is how long the lease is valid before expiring.
+	// Defaults to DefaultTTL (1 hour) if zero.
+	TTL time.Duration
+}
+
+// Acquire obtains a workspace from the pool for the given repository.
+//
+// If an available workspace exists, it will be reused. Otherwise, a new
+// workspace is created. The workspace is checked out to the specified
+// revision (or @ by default).
+//
+// The returned path is the root directory of the acquired workspace.
+// Call Release when done to return the workspace to the pool.
+//
+// If the repository contains a .incr.toml configuration file, the on-create
+// hooks run when a new workspace is created, and on-acquire hooks run on
+// every acquire (including the first).
+func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
+	// Apply defaults
+	if opts.Rev == "" {
+		opts.Rev = "@"
+	}
+	if opts.TTL == 0 {
+		opts.TTL = DefaultTTL
+	}
+
+	// Get the repo name (creates entry if needed)
+	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		return "", fmt.Errorf("get repo name: %w", err)
+	}
+
+	var wsPath string
+	var wsName string
+	var needsCreate bool
+	var needsProvision bool
+
+	// Find or create a workspace
+	err = p.stateStore.update(func(state *state) error {
+		// First, expire stale workspaces
+		now := time.Now()
+		for key, ws := range state.Workspaces {
+			if ws.Repo == repoName && ws.Status == StatusAcquired {
+				expiry := ws.AcquiredAt.Add(time.Duration(ws.TTLSeconds) * time.Second)
+				if now.After(expiry) {
+					ws.Status = StatusAvailable
+					ws.AcquiredByPID = 0
+					ws.AcquiredAt = time.Time{}
+					ws.TTLSeconds = 0
+					state.Workspaces[key] = ws
+				}
+			}
+		}
+
+		// Find an available workspace
+		for key, ws := range state.Workspaces {
+			if ws.Repo == repoName && ws.Status == StatusAvailable {
+				wsPath = ws.Path
+				wsName = ws.Name
+				needsProvision = !ws.Provisioned
+
+				// Acquire it
+				ws.Status = StatusAcquired
+				ws.AcquiredByPID = os.Getpid()
+				ws.AcquiredAt = now
+				ws.TTLSeconds = int(opts.TTL.Seconds())
+				state.Workspaces[key] = ws
+				return nil
+			}
+		}
+
+		// No available workspace - create a new one
+		wsName = p.nextWorkspaceName(state, repoName)
+		wsPath = filepath.Join(p.workspacesDir, repoName, wsName)
+		needsCreate = true
+		needsProvision = true
+
+		wsKey := repoName + "/" + wsName
+		state.Workspaces[wsKey] = workspaceInfo{
+			Name:          wsName,
+			Repo:          repoName,
+			Path:          wsPath,
+			Status:        StatusAcquired,
+			AcquiredByPID: os.Getpid(),
+			AcquiredAt:    now,
+			TTLSeconds:    int(opts.TTL.Seconds()),
+			Provisioned:   false,
+		}
+
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// Create the workspace directory if needed
+	if needsCreate {
+		if err := os.MkdirAll(filepath.Dir(wsPath), 0755); err != nil {
+			return "", fmt.Errorf("create workspace parent dir: %w", err)
+		}
+
+		if err := p.jj.WorkspaceAdd(repoPath, wsName, wsPath); err != nil {
+			// Clean up state on failure
+			p.stateStore.update(func(state *state) error {
+				delete(state.Workspaces, repoName+"/"+wsName)
+				return nil
+			})
+			return "", fmt.Errorf("jj workspace add: %w", err)
+		}
+	}
+
+	// Edit to the specified revision
+	if err := p.jj.Edit(wsPath, opts.Rev); err != nil {
+		return "", fmt.Errorf("jj edit: %w", err)
+	}
+
+	// Load config and run hooks
+	cfg, err := LoadConfig(repoPath)
+	if err != nil {
+		return "", fmt.Errorf("load config: %w", err)
+	}
+
+	// Run on-create hooks if this is a new or unprovisioned workspace
+	if needsProvision {
+		for _, cmd := range cfg.Workspace.OnCreate {
+			if err := p.runHook(wsPath, cmd); err != nil {
+				return "", fmt.Errorf("on-create hook %q: %w", cmd, err)
+			}
+		}
+
+		// Mark as provisioned
+		p.stateStore.update(func(state *state) error {
+			wsKey := repoName + "/" + wsName
+			if ws, ok := state.Workspaces[wsKey]; ok {
+				ws.Provisioned = true
+				state.Workspaces[wsKey] = ws
+			}
+			return nil
+		})
+	}
+
+	// Run on-acquire hooks
+	for _, cmd := range cfg.Workspace.OnAcquire {
+		if err := p.runHook(wsPath, cmd); err != nil {
+			// Release on failure
+			p.Release(wsPath)
+			return "", fmt.Errorf("on-acquire hook %q: %w", cmd, err)
+		}
+	}
+
+	return wsPath, nil
+}
+
+// Release returns a workspace to the pool, making it available for reuse.
+//
+// After releasing, the workspace path should no longer be used. The workspace
+// directory remains on disk and may be acquired again later.
+func (p *Pool) Release(wsPath string) error {
+	return p.stateStore.update(func(state *state) error {
+		for key, ws := range state.Workspaces {
+			if ws.Path == wsPath {
+				ws.Status = StatusAvailable
+				ws.AcquiredByPID = 0
+				ws.AcquiredAt = time.Time{}
+				ws.TTLSeconds = 0
+				state.Workspaces[key] = ws
+				return nil
+			}
+		}
+		return fmt.Errorf("workspace not found: %s", wsPath)
+	})
+}
+
+// Renew extends the TTL for an acquired workspace.
+//
+// Call this periodically to prevent a long-running lease from expiring.
+// The TTL is reset to its original duration from the current time.
+func (p *Pool) Renew(wsPath string) error {
+	return p.stateStore.update(func(state *state) error {
+		for key, ws := range state.Workspaces {
+			if ws.Path == wsPath {
+				if ws.Status != StatusAcquired {
+					return fmt.Errorf("workspace is not acquired")
+				}
+				ws.AcquiredAt = time.Now()
+				state.Workspaces[key] = ws
+				return nil
+			}
+		}
+		return fmt.Errorf("workspace not found: %s", wsPath)
+	})
+}
+
+// Info contains information about a workspace.
+type Info struct {
+	// Name is the workspace identifier (e.g., "ws-001").
+	Name string
+
+	// Path is the absolute path to the workspace directory.
+	Path string
+
+	// Status indicates whether the workspace is available, acquired, or stale.
+	Status Status
+
+	// CurrentChangeID is the jj change ID of the workspace's current commit.
+	// This is fetched live from jj and may be empty if the workspace is
+	// inaccessible.
+	CurrentChangeID string
+
+	// AcquiredByPID is the process ID that acquired this workspace.
+	// Zero if not acquired.
+	AcquiredByPID int
+
+	// AcquiredAt is when the workspace was acquired.
+	// Zero if not acquired.
+	AcquiredAt time.Time
+
+	// TTLRemaining is the time until the lease expires.
+	// Zero if not acquired or already expired.
+	TTLRemaining time.Duration
+}
+
+// List returns information about all workspaces for the given repository.
+//
+// The returned slice includes both available and acquired workspaces.
+// Current change IDs are fetched live from each workspace.
+func (p *Pool) List(repoPath string) ([]Info, error) {
+	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		return nil, fmt.Errorf("get repo name: %w", err)
+	}
+
+	st, err := p.stateStore.load()
+	if err != nil {
+		return nil, fmt.Errorf("load state: %w", err)
+	}
+
+	var items []Info
+	now := time.Now()
+
+	for _, ws := range st.Workspaces {
+		if ws.Repo != repoName {
+			continue
+		}
+
+		item := Info{
+			Name:          ws.Name,
+			Path:          ws.Path,
+			Status:        ws.Status,
+			AcquiredByPID: ws.AcquiredByPID,
+			AcquiredAt:    ws.AcquiredAt,
+		}
+
+		// Calculate TTL remaining if acquired
+		if ws.Status == StatusAcquired {
+			expiry := ws.AcquiredAt.Add(time.Duration(ws.TTLSeconds) * time.Second)
+			if now.After(expiry) {
+				item.Status = StatusStale
+			} else {
+				item.TTLRemaining = expiry.Sub(now)
+			}
+		}
+
+		// Get current change ID
+		if _, err := os.Stat(ws.Path); err == nil {
+			changeID, err := p.jj.CurrentChangeID(ws.Path)
+			if err == nil {
+				item.CurrentChangeID = changeID
+			}
+		}
+
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+// RepoRoot returns the jj repository root for the given path.
+//
+// This can be used to find the repository root before calling Acquire.
+// Returns an error if the path is not inside a jj repository.
+func RepoRoot(path string) (string, error) {
+	client := jj.New()
+	return client.WorkspaceRoot(path)
+}
+
+// nextWorkspaceName returns the next sequential workspace name for the repo.
+func (p *Pool) nextWorkspaceName(st *state, repoName string) string {
+	maxNum := 0
+	for _, ws := range st.Workspaces {
+		if ws.Repo == repoName {
+			var num int
+			if _, err := fmt.Sscanf(ws.Name, "ws-%d", &num); err == nil {
+				if num > maxNum {
+					maxNum = num
+				}
+			}
+		}
+	}
+	return fmt.Sprintf("ws-%03d", maxNum+1)
+}
+
+// runHook runs a shell command in the workspace directory.
+func (p *Pool) runHook(wsPath, cmdStr string) error {
+	cmd := exec.Command("sh", "-c", cmdStr)
+	cmd.Dir = wsPath
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
