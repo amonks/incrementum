@@ -138,8 +138,9 @@ type UpdateOptions struct {
 // Update updates one or more todos with the given options.
 // Returns the updated todos.
 func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
-	if len(ids) == 0 {
-		return nil, fmt.Errorf("no todo IDs provided")
+	resolvedIDs, err := s.resolveTodoIDs(ids)
+	if err != nil {
+		return nil, err
 	}
 
 	// Validate options
@@ -167,7 +168,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 
 	// Build a set of IDs to update
 	idSet := make(map[string]bool)
-	for _, id := range ids {
+	for _, id := range resolvedIDs {
 		idSet[id] = true
 	}
 
@@ -245,8 +246,9 @@ func (s *Store) Reopen(ids []string, reason string) ([]Todo, error) {
 
 // Show returns the full details of one or more todos.
 func (s *Store) Show(ids []string) ([]Todo, error) {
-	if len(ids) == 0 {
-		return nil, fmt.Errorf("no todo IDs provided")
+	resolvedIDs, err := s.resolveTodoIDs(ids)
+	if err != nil {
+		return nil, err
 	}
 
 	todos, err := s.readTodos()
@@ -255,7 +257,7 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 	}
 
 	idSet := make(map[string]bool)
-	for _, id := range ids {
+	for _, id := range resolvedIDs {
 		idSet[id] = true
 	}
 
@@ -422,32 +424,16 @@ func (s *Store) DepAdd(todoID, dependsOnID string, depType DependencyType) (*Dep
 		return nil, fmt.Errorf("%w: %q", ErrInvalidDependencyType, depType)
 	}
 
+	resolvedIDs, err := s.resolveTodoIDs([]string{todoID, dependsOnID})
+	if err != nil {
+		return nil, err
+	}
+	todoID = resolvedIDs[0]
+	dependsOnID = resolvedIDs[1]
+
 	// Check for self-dependency
 	if todoID == dependsOnID {
 		return nil, ErrSelfDependency
-	}
-
-	// Verify both todos exist
-	todos, err := s.readTodos()
-	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
-	}
-
-	foundTodo := false
-	foundDependsOn := false
-	for _, t := range todos {
-		if t.ID == todoID {
-			foundTodo = true
-		}
-		if t.ID == dependsOnID {
-			foundDependsOn = true
-		}
-	}
-	if !foundTodo {
-		return nil, fmt.Errorf("todo %q: %w", todoID, ErrTodoNotFound)
-	}
-	if !foundDependsOn {
-		return nil, fmt.Errorf("depends_on %q: %w", dependsOnID, ErrTodoNotFound)
 	}
 
 	// Read existing dependencies
@@ -481,6 +467,15 @@ func (s *Store) DepAdd(todoID, dependsOnID string, depType DependencyType) (*Dep
 
 // DepTree returns the dependency tree for a todo.
 func (s *Store) DepTree(id string) (*DepTreeNode, error) {
+	resolvedIDs, err := s.resolveTodoIDs([]string{id})
+	if err != nil {
+		return nil, err
+	}
+	if len(resolvedIDs) == 0 {
+		return nil, ErrTodoNotFound
+	}
+	id = resolvedIDs[0]
+
 	todos, err := s.readTodos()
 	if err != nil {
 		return nil, fmt.Errorf("read todos: %w", err)

@@ -27,6 +27,9 @@ var (
 	// ErrTodoNotFound is returned when a todo with the given ID doesn't exist.
 	ErrTodoNotFound = errors.New("todo not found")
 
+	// ErrAmbiguousTodoIDPrefix is returned when an ID prefix matches multiple todos.
+	ErrAmbiguousTodoIDPrefix = errors.New("ambiguous todo ID prefix")
+
 	// ErrSelfDependency is returned when trying to create a dependency on itself.
 	ErrSelfDependency = errors.New("todo cannot depend on itself")
 

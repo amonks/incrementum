@@ -8,6 +8,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/amonks/incrementum/internal/ui"
+
 	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/todo"
 	"github.com/spf13/cobra"
@@ -255,7 +257,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Printf("Created todo %s: %s\n", created.ID, created.Title)
+		fmt.Printf("Created todo %s: %s\n", ui.HighlightID(created.ID, 0), created.Title)
 		return nil
 	}
 
@@ -280,7 +282,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Created todo %s: %s\n", created.ID, created.Title)
+	fmt.Printf("Created todo %s: %s\n", ui.HighlightID(created.ID, 0), created.Title)
 	return nil
 }
 
@@ -334,7 +336,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Printf("Updated %s: %s\n", updated[0].ID, updated[0].Title)
+		fmt.Printf("Updated %s: %s\n", ui.HighlightID(updated[0].ID, 0), updated[0].Title)
 		return nil
 	}
 
@@ -392,7 +394,7 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, t := range closed {
-		fmt.Printf("Closed %s: %s\n", t.ID, t.Title)
+		fmt.Printf("Closed %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
 	}
 	return nil
 }
@@ -410,7 +412,7 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, t := range reopened {
-		fmt.Printf("Reopened %s: %s\n", t.ID, t.Title)
+		fmt.Printf("Reopened %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
 	}
 	return nil
 }
@@ -463,7 +465,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 		filter.Type = &typ
 	}
 	if todoListIDs != "" {
-		filter.IDs = strings.Split(todoListIDs, ",")
+		filter.IDs = parseIDList(todoListIDs)
 	}
 	filter.TitleSubstring = todoListTitle
 	filter.DescriptionSubstring = todoListDesc
@@ -522,7 +524,7 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Added dependency: %s %s %s\n", dep.TodoID, dep.Type, dep.DependsOnID)
+	fmt.Printf("Added dependency: %s %s %s\n", ui.HighlightID(dep.TodoID, 0), dep.Type, ui.HighlightID(dep.DependsOnID, 0))
 	return nil
 }
 
@@ -542,6 +544,25 @@ func runTodoDepTree(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func parseIDList(value string) []string {
+	if value == "" {
+		return nil
+	}
+
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+
+	ids := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		ids = append(ids, part)
+	}
+	return ids
+}
+
 // printTodoTable prints todos in a table format.
 func printTodoTable(todos []todo.Todo) {
 	if len(todos) == 0 {
@@ -551,13 +572,19 @@ func printTodoTable(todos []todo.Todo) {
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "ID\tPRI\tTYPE\tSTATUS\tTITLE")
+	ids := make([]string, 0, len(todos))
+	for _, t := range todos {
+		ids = append(ids, t.ID)
+	}
+	prefixLengths := ui.UniqueIDPrefixLengths(ids)
 	for _, t := range todos {
 		title := t.Title
 		if len(title) > 50 {
 			title = title[:47] + "..."
 		}
+		prefixLen := prefixLengths[strings.ToLower(t.ID)]
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-			t.ID,
+			ui.HighlightID(t.ID, prefixLen),
 			priorityShort(t.Priority),
 			t.Type,
 			t.Status,
@@ -569,7 +596,7 @@ func printTodoTable(todos []todo.Todo) {
 
 // printTodoDetail prints detailed information about a todo.
 func printTodoDetail(t todo.Todo) {
-	fmt.Printf("ID:       %s\n", t.ID)
+	fmt.Printf("ID:       %s\n", ui.HighlightID(t.ID, 0))
 	fmt.Printf("Title:    %s\n", t.Title)
 	fmt.Printf("Type:     %s\n", t.Type)
 	fmt.Printf("Status:   %s\n", t.Status)
@@ -604,7 +631,7 @@ func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool) {
 	}
 
 	fmt.Printf("%s%s%s %s%s (%s)\n",
-		prefix, connector, statusIcon, node.Todo.Title, typeStr, node.Todo.ID)
+		prefix, connector, statusIcon, node.Todo.Title, typeStr, ui.HighlightID(node.Todo.ID, 0))
 
 	// Print children
 	childPrefix := prefix

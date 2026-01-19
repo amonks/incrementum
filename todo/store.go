@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/amonks/incrementum/internal/jj"
@@ -340,16 +341,62 @@ func (s *Store) writeDependencies(deps []Dependency) error {
 
 // getTodoByID finds a todo by its ID.
 func (s *Store) getTodoByID(id string) (*Todo, error) {
+	resolved, err := s.resolveTodoIDs([]string{id})
+	if err != nil {
+		return nil, err
+	}
+	if len(resolved) == 0 {
+		return nil, ErrTodoNotFound
+	}
+
 	todos, err := s.readTodos()
 	if err != nil {
 		return nil, err
 	}
 
 	for i := range todos {
-		if todos[i].ID == id {
+		if todos[i].ID == resolved[0] {
 			return &todos[i], nil
 		}
 	}
 
 	return nil, ErrTodoNotFound
+}
+
+func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("no todo IDs provided")
+	}
+
+	todos, err := s.readTodos()
+	if err != nil {
+		return nil, err
+	}
+
+	resolved := make([]string, 0, len(ids))
+
+	for _, id := range ids {
+		if id == "" {
+			return nil, ErrTodoNotFound
+		}
+
+		idLower := strings.ToLower(id)
+		var matches []string
+		for _, todo := range todos {
+			if todo.ID == idLower || strings.HasPrefix(todo.ID, idLower) {
+				matches = append(matches, todo.ID)
+			}
+		}
+
+		if len(matches) == 0 {
+			return nil, ErrTodoNotFound
+		}
+		if len(matches) > 1 {
+			return nil, fmt.Errorf("%w: %s", ErrAmbiguousTodoIDPrefix, id)
+		}
+
+		resolved = append(resolved, matches[0])
+	}
+
+	return resolved, nil
 }
