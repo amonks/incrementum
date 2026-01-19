@@ -151,6 +151,20 @@ func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
 	return c.CurrentChangeID(workspacePath)
 }
 
+// ChangeIDAt returns the change ID at the given revision.
+func (c *Client) ChangeIDAt(workspacePath, rev string) (string, error) {
+	cmd := exec.Command("jj", "log", "-r", rev, "-T", "change_id", "--no-graph")
+	cmd.Dir = workspacePath
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
+		}
+		return "", fmt.Errorf("jj log: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 // Snapshot runs jj debug snapshot to record working copy changes to the current change.
 func (c *Client) Snapshot(workspacePath string) error {
 	cmd := exec.Command("jj", "debug", "snapshot")

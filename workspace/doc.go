@@ -30,8 +30,7 @@
 // Repositories can include a .incr.toml file to configure workspace behavior:
 //
 //	[workspace]
-//	on-create = ["npm install"]   # Run once when workspace is first created
-//	on-acquire = ["npm install"]  # Run every time workspace is acquired
+//	on-create = ["npm install"]  # Run every time workspace is acquired
 //
 // # Storage
 //

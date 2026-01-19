@@ -133,18 +133,14 @@ func runWorkspaceList(cmd *cobra.Command, args []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tSTATUS\tCHANGE\tTTL\tPATH")
+	fmt.Fprintln(w, "NAME\tSTATUS\tTTL\tPATH")
 	for _, item := range items {
 		ttl := "-"
 		if item.Status == workspace.StatusAcquired && item.TTLRemaining > 0 {
 			ttl = item.TTLRemaining.Truncate(time.Second).String()
 		}
-		changeID := item.CurrentChangeID
-		if len(changeID) > 12 {
-			changeID = changeID[:12]
-		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-			item.Name, item.Status, changeID, ttl, item.Path)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+			item.Name, item.Status, ttl, item.Path)
 	}
 	return w.Flush()
 }

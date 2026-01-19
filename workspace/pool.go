@@ -87,8 +87,8 @@ type AcquireOptions struct {
 // Call Release when done to return the workspace to the pool.
 //
 // If the repository contains a .incr.toml configuration file, the on-create
-// hooks run when a new workspace is created, and on-acquire hooks run on
-// every acquire (including the first).
+// hooks run on every acquire.
+
 func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	// Apply defaults
 	if opts.Rev == "" {
@@ -188,19 +188,29 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 		return "", fmt.Errorf("jj edit: %w", err)
 	}
 
+	onAcquireRev := opts.Rev
+	if needsCreate {
+		onAcquireRev = "@"
+	}
+	if err := p.ensureReleaseChange(wsPath, onAcquireRev); err != nil {
+		p.Release(wsPath)
+		return "", err
+	}
+
 	// Load config and run hooks
 	cfg, err := config.Load(repoPath)
 	if err != nil {
 		return "", fmt.Errorf("load config: %w", err)
 	}
 
-	// Run on-create script if this is a new or unprovisioned workspace
-	if needsProvision {
-		if err := config.RunScript(wsPath, cfg.Workspace.OnCreate); err != nil {
-			return "", fmt.Errorf("on-create script: %w", err)
-		}
+	// Run on-create script for every acquire
+	if err := config.RunScript(wsPath, cfg.Workspace.OnCreate); err != nil {
+		p.Release(wsPath)
+		return "", fmt.Errorf("on-create script: %w", err)
+	}
 
-		// Mark as provisioned
+	// Mark as provisioned if needed
+	if needsProvision {
 		p.stateStore.update(func(state *state) error {
 			wsKey := repoName + "/" + wsName
 			if ws, ok := state.Workspaces[wsKey]; ok {
@@ -211,13 +221,6 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 		})
 	}
 
-	// Run on-acquire script
-	if err := config.RunScript(wsPath, cfg.Workspace.OnAcquire); err != nil {
-		// Release on failure
-		p.Release(wsPath)
-		return "", fmt.Errorf("on-acquire script: %w", err)
-	}
-
 	return wsPath, nil
 }
 
@@ -226,6 +229,14 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 // After releasing, the workspace path should no longer be used. The workspace
 // directory remains on disk and may be acquired again later.
 func (p *Pool) Release(wsPath string) error {
+	return p.releaseToAvailable(wsPath)
+}
+
+func (p *Pool) releaseToAvailable(wsPath string) error {
+	if _, err := p.jj.NewChange(wsPath, "root()"); err != nil {
+		return fmt.Errorf("jj new root(): %w", err)
+	}
+
 	return p.stateStore.update(func(state *state) error {
 		for key, ws := range state.Workspaces {
 			if ws.Path == wsPath {
@@ -241,6 +252,18 @@ func (p *Pool) Release(wsPath string) error {
 	})
 }
 
+func (p *Pool) ensureReleaseChange(wsPath, rev string) error {
+	if _, err := p.jj.NewChange(wsPath, "root()"); err != nil {
+		return fmt.Errorf("jj new root(): %w", err)
+	}
+
+	if err := p.jj.Edit(wsPath, rev); err != nil {
+		return fmt.Errorf("jj edit: %w", err)
+	}
+
+	return nil
+}
+
 // ReleaseByName returns a workspace to the pool by name.
 func (p *Pool) ReleaseByName(repoPath, wsName string) error {
 	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
@@ -248,20 +271,18 @@ func (p *Pool) ReleaseByName(repoPath, wsName string) error {
 		return fmt.Errorf("get repo name: %w", err)
 	}
 
-	return p.stateStore.update(func(state *state) error {
-		key := repoName + "/" + wsName
-		ws, ok := state.Workspaces[key]
-		if !ok {
-			return fmt.Errorf("workspace not found: %s", wsName)
-		}
+	st, err := p.stateStore.load()
+	if err != nil {
+		return fmt.Errorf("load state: %w", err)
+	}
 
-		ws.Status = StatusAvailable
-		ws.AcquiredByPID = 0
-		ws.AcquiredAt = time.Time{}
-		ws.TTLSeconds = 0
-		state.Workspaces[key] = ws
-		return nil
-	})
+	key := repoName + "/" + wsName
+	ws, ok := st.Workspaces[key]
+	if !ok {
+		return fmt.Errorf("workspace not found: %s", wsName)
+	}
+
+	return p.releaseToAvailable(ws.Path)
 }
 
 // Renew extends the TTL for an acquired workspace.
@@ -317,11 +338,6 @@ type Info struct {
 	// Status indicates whether the workspace is available, acquired, or stale.
 	Status Status
 
-	// CurrentChangeID is the jj change ID of the workspace's current commit.
-	// This is fetched live from jj and may be empty if the workspace is
-	// inaccessible.
-	CurrentChangeID string
-
 	// AcquiredByPID is the process ID that acquired this workspace.
 	// Zero if not acquired.
 	AcquiredByPID int
@@ -338,7 +354,7 @@ type Info struct {
 // List returns information about all workspaces for the given repository.
 //
 // The returned slice includes both available and acquired workspaces.
-// Current change IDs are fetched live from each workspace.
+
 func (p *Pool) List(repoPath string) ([]Info, error) {
 	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
 	if err != nil {
@@ -373,14 +389,6 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 				item.Status = StatusStale
 			} else {
 				item.TTLRemaining = expiry.Sub(now)
-			}
-		}
-
-		// Get current change ID
-		if _, err := os.Stat(ws.Path); err == nil {
-			changeID, err := p.jj.CurrentChangeID(ws.Path)
-			if err == nil {
-				item.CurrentChangeID = changeID
 			}
 		}
 

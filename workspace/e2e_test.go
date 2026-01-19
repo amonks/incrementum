@@ -51,6 +51,9 @@ func TestE2E_AcquireReleaseWorkflow(t *testing.T) {
 	if !strings.Contains(listOutput, "ws-001") {
 		t.Errorf("expected 'ws-001' in list output, got: %s", listOutput)
 	}
+	if strings.Contains(listOutput, "CHANGE") {
+		t.Errorf("expected no CHANGE column, got: %s", listOutput)
+	}
 
 	// Release the workspace
 	runIncr(t, binPath, repoPath, "workspace", "release", "ws-001")
@@ -163,7 +166,6 @@ func TestE2E_ConfigHooks(t *testing.T) {
 	configContent := `
 [workspace]
 on-create = "touch .created"
-on-acquire = "touch .acquired"
 `
 	if err := os.WriteFile(filepath.Join(repoPath, ".incr.toml"), []byte(configContent), 0644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
@@ -181,15 +183,15 @@ on-acquire = "touch .acquired"
 	if _, err := os.Stat(filepath.Join(wsPath, ".created")); os.IsNotExist(err) {
 		t.Error("on-create hook did not run")
 	}
-	if _, err := os.Stat(filepath.Join(wsPath, ".acquired")); os.IsNotExist(err) {
-		t.Error("on-acquire hook did not run")
+	if _, err := os.Stat(filepath.Join(wsPath, ".created")); os.IsNotExist(err) {
+		t.Error("on-create hook did not run")
 	}
 
 	// Release and acquire again
 	runIncr(t, binPath, repoPath, "workspace", "release", "ws-001")
 
-	// Remove the .acquired file to verify it gets recreated
-	os.Remove(filepath.Join(wsPath, ".acquired"))
+	// Remove the .created file to verify it gets recreated
+	os.Remove(filepath.Join(wsPath, ".created"))
 
 	wsPath2 := strings.TrimSpace(runIncr(t, binPath, repoPath, "workspace", "acquire"))
 
@@ -197,9 +199,9 @@ on-acquire = "touch .acquired"
 		t.Errorf("expected same workspace, got %q and %q", wsPath, wsPath2)
 	}
 
-	// on-acquire should have run again, but not on-create
-	if _, err := os.Stat(filepath.Join(wsPath2, ".acquired")); os.IsNotExist(err) {
-		t.Error("on-acquire hook did not run on re-acquire")
+	// on-create should have run again on re-acquire
+	if _, err := os.Stat(filepath.Join(wsPath2, ".created")); os.IsNotExist(err) {
+		t.Error("on-create hook did not run on re-acquire")
 	}
 }
 

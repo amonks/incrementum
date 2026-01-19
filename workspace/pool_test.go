@@ -59,6 +59,10 @@ func TestPool_Acquire_CreatesNewWorkspace(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(wsPath, ".jj")); os.IsNotExist(err) {
 		t.Error("workspace does not have .jj directory")
 	}
+
+	if err := pool.Release(wsPath); err != nil {
+		t.Fatalf("failed to release workspace: %v", err)
+	}
 }
 
 func TestPool_Acquire_ReusesAvailableWorkspace(t *testing.T) {
@@ -93,6 +97,23 @@ func TestPool_Acquire_ReusesAvailableWorkspace(t *testing.T) {
 
 	if wsPath1 != wsPath2 {
 		t.Errorf("expected to reuse workspace %q, got %q", wsPath1, wsPath2)
+	}
+
+	if err := pool.Release(wsPath2); err != nil {
+		t.Fatalf("failed to release workspace: %v", err)
+	}
+
+	wsPath3, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to claim workspace third time: %v", err)
+	}
+
+	if wsPath1 != wsPath3 {
+		t.Errorf("expected to reuse workspace %q after second release, got %q", wsPath1, wsPath3)
+	}
+
+	if err := pool.Release(wsPath3); err != nil {
+		t.Fatalf("failed to release workspace third time: %v", err)
 	}
 }
 
@@ -132,6 +153,22 @@ func TestPool_Acquire_CreatesMultipleWorkspaces(t *testing.T) {
 	if !strings.Contains(wsPath2, "ws-") {
 		t.Errorf("expected ws- prefix in %q", wsPath2)
 	}
+
+	if err := pool.Release(wsPath1); err != nil {
+		t.Fatalf("failed to release workspace 1: %v", err)
+	}
+	if err := pool.Release(wsPath2); err != nil {
+		t.Fatalf("failed to release workspace 2: %v", err)
+	}
+
+	wsPath3, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to claim workspace 3: %v", err)
+	}
+
+	if err := pool.Release(wsPath3); err != nil {
+		t.Fatalf("failed to release workspace 3: %v", err)
+	}
 }
 
 func TestPool_Release(t *testing.T) {
@@ -155,6 +192,15 @@ func TestPool_Release(t *testing.T) {
 
 	if err := pool.Release(wsPath); err != nil {
 		t.Fatalf("failed to release workspace: %v", err)
+	}
+
+	wsPath2, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to acquire workspace after release: %v", err)
+	}
+
+	if err := pool.Release(wsPath2); err != nil {
+		t.Fatalf("failed to release workspace again: %v", err)
 	}
 }
 
@@ -180,6 +226,19 @@ func TestPool_Renew(t *testing.T) {
 	// Heartbeat should extend the lease
 	if err := pool.Renew(wsPath); err != nil {
 		t.Fatalf("failed to heartbeat: %v", err)
+	}
+
+	if err := pool.Release(wsPath); err != nil {
+		t.Fatalf("failed to release workspace: %v", err)
+	}
+
+	wsPath2, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to acquire workspace after release: %v", err)
+	}
+
+	if err := pool.Release(wsPath2); err != nil {
+		t.Fatalf("failed to release workspace again: %v", err)
 	}
 }
 
@@ -230,10 +289,10 @@ func TestPool_List(t *testing.T) {
 		t.Errorf("expected status claimed, got %s", list[0].Status)
 	}
 
-	// Should have a current change ID
-	if list[0].CurrentChangeID == "" {
-		t.Error("expected non-empty current change ID")
+	if err := pool.Release(wsPath); err != nil {
+		t.Fatalf("failed to release workspace: %v", err)
 	}
+
 }
 
 func TestPool_ExpiresStaleLeases(t *testing.T) {
@@ -267,6 +326,19 @@ func TestPool_ExpiresStaleLeases(t *testing.T) {
 
 	if wsPath1 != wsPath2 {
 		t.Errorf("expected expired workspace to be reused, got %q and %q", wsPath1, wsPath2)
+	}
+
+	if err := pool.Release(wsPath2); err != nil {
+		t.Fatalf("failed to release workspace: %v", err)
+	}
+
+	wsPath3, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	if err != nil {
+		t.Fatalf("failed to claim workspace after release: %v", err)
+	}
+
+	if err := pool.Release(wsPath3); err != nil {
+		t.Fatalf("failed to release workspace again: %v", err)
 	}
 }
 
