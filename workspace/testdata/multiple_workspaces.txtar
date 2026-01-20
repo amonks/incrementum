@@ -1,0 +1,20 @@
+# setup repo
+mkdir repo
+cd repo
+exec jj git init
+
+# acquire two workspaces
+exec $INCR workspace acquire
+envset WORKSPACE_ONE stdout
+
+exec $INCR workspace acquire
+! stdout ${WORKSPACE_ONE@R}
+envset WORKSPACE_TWO stdout
+
+exists $WORKSPACE_ONE
+exists $WORKSPACE_TWO
+
+exec $INCR workspace list
+stdout 'ws-001'
+stdout 'ws-002'
+stdout 'acquired'

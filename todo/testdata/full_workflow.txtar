@@ -1,0 +1,83 @@
+# setup repo
+mkdir repo
+cd repo
+exec jj git init
+
+# create todo
+stdin input.txt
+exec $INCR todo create 'Fix the login bug' -t bug -p 1
+stdout 'Created todo'
+stdout 'Fix the login bug'
+
+# list todos
+exec $INCR todo list --json
+todoid stdout 'Fix the login bug' TODO_ID
+stdout '"type": "bug"'
+stdout '"priority": 1'
+
+# show todo
+exec $INCR todo show $TODO_ID
+stdout 'Fix the login bug'
+stdout 'bug'
+
+# update todo
+exec $INCR todo update $TODO_ID --status in_progress
+stdout 'Updated'
+
+exec $INCR todo list --json
+stdout '"status": "in_progress"'
+
+# create todo with dependency
+exec $INCR todo create 'Write tests' --deps discovered-from:$TODO_ID
+stdout 'Created todo'
+
+exec $INCR todo list --json
+todoid stdout 'Write tests' CHILD_ID
+
+# add dependency
+exec $INCR todo create 'Blocker task'
+exec $INCR todo list --json
+todoid stdout 'Blocker task' BLOCKER_ID
+exec $INCR todo dep add $CHILD_ID $BLOCKER_ID --type blocks
+stdout 'Added dependency'
+
+# dep tree
+exec $INCR todo dep tree $CHILD_ID
+stdout 'Write tests'
+stdout 'discovered-from'
+
+# ready
+exec $INCR todo ready --json
+! stdout 'Write tests'
+stdout 'Blocker task'
+
+# close todo
+exec $INCR todo close $TODO_ID --reason 'Fixed!'
+stdout 'Closed'
+
+exec $INCR todo show $TODO_ID --json
+stdout '"status": "closed"'
+
+# reopen todo
+exec $INCR todo reopen $TODO_ID
+stdout 'Reopened'
+
+exec $INCR todo show $TODO_ID --json
+stdout '"status": "open"'
+
+# list filter by status
+exec $INCR todo list --status open --json
+stdout '"status": "open"'
+! stdout '"status": "closed"'
+
+# list filter by type
+exec $INCR todo list --type bug --json
+stdout '"type": "bug"'
+! stdout '"type": "task"'
+
+# list filter by title
+exec $INCR todo list --title login --json
+stdout 'Fix the login bug'
+
+-- repo/input.txt --
+y

@@ -1,0 +1,41 @@
+# setup repo
+mkdir repo
+cd repo
+exec jj git init
+
+# create history
+exec jj describe -m 'change 0'
+exec jj new
+exec jj describe -m 'change 1'
+exec jj new
+exec jj describe -m 'change 2'
+exec jj new
+exec jj describe -m 'change 3'
+exec jj new
+exec jj describe -m 'change 4'
+exec jj new
+exec jj describe -m 'change 5'
+
+exec jj log -r @--- -T change_id --no-graph
+envset REV_ID stdout
+
+# create todo
+stdin input.txt
+exec $INCR todo create 'Session rev todo'
+
+exec $INCR todo list --json
+todoid stdout 'Session rev todo' TODO_ID
+
+exec $INCR session start --rev $REV_ID $TODO_ID
+envset WORKSPACE_PATH stdout
+exists $WORKSPACE_PATH
+
+cd $WORKSPACE_PATH
+exec jj log -r @ -T change_id --no-graph
+stdout ${REV_ID@R}
+
+cd $WORK/repo
+exec $INCR session done $TODO_ID
+
+-- repo/input.txt --
+y
