@@ -498,6 +498,31 @@ func TestStore_List(t *testing.T) {
 	}
 }
 
+func TestStore_List_IDPrefix(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	first, _ := store.Create("Task one", CreateOptions{})
+	store.Create("Task two", CreateOptions{})
+
+	prefix := first.ID[:6]
+	listed, err := store.List(ListFilter{IDs: []string{prefix}})
+	if err != nil {
+		t.Fatalf("failed to list by ID prefix: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("expected 1 todo, got %d", len(listed))
+	}
+	if listed[0].ID != first.ID {
+		t.Fatalf("expected todo %s, got %s", first.ID, listed[0].ID)
+	}
+}
+
 func TestStore_List_TitleSubstring(t *testing.T) {
 	repoPath := setupTestRepo(t)
 

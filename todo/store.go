@@ -373,6 +373,14 @@ func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {
 		return nil, err
 	}
 
+	return resolveTodoIDsWithTodos(ids, todos)
+}
+
+func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("no todo IDs provided")
+	}
+
 	resolved := make([]string, 0, len(ids))
 
 	for _, id := range ids {

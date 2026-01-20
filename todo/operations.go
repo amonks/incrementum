@@ -348,8 +348,12 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 	// Build ID set if filtering by IDs
 	var idSet map[string]bool
 	if len(filter.IDs) > 0 {
+		resolvedIDs, err := resolveTodoIDsWithTodos(filter.IDs, todos)
+		if err != nil {
+			return nil, err
+		}
 		idSet = make(map[string]bool)
-		for _, id := range filter.IDs {
+		for _, id := range resolvedIDs {
 			idSet[id] = true
 		}
 	}
