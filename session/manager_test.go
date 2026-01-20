@@ -84,7 +84,7 @@ func TestManager_StartDone(t *testing.T) {
 	}
 	store.Release()
 
-	final, err := manager.Done(created.ID, FinalizeOptions{})
+	final, err := manager.Done(created.ID, FinalizeOptions{WorkspacePath: startResult.WorkspacePath})
 	if err != nil {
 		t.Fatalf("done session: %v", err)
 	}

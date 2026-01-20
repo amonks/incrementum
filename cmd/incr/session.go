@@ -136,9 +136,9 @@ func runSessionFinalize(args []string, todoStatus todo.Status, sessionStatus ses
 	var finalized *sessionpkg.Session
 	switch sessionStatus {
 	case sessionpkg.StatusCompleted:
-		finalized, err = manager.Done(finalizeTodo, sessionpkg.FinalizeOptions{WorkspaceName: workspacePath})
+		finalized, err = manager.Done(finalizeTodo, sessionpkg.FinalizeOptions{WorkspacePath: workspacePath})
 	case sessionpkg.StatusFailed:
-		finalized, err = manager.Fail(finalizeTodo, sessionpkg.FinalizeOptions{WorkspaceName: workspacePath})
+		finalized, err = manager.Fail(finalizeTodo, sessionpkg.FinalizeOptions{WorkspacePath: workspacePath})
 	default:
 		return fmt.Errorf("unsupported session status: %s", sessionStatus)
 	}

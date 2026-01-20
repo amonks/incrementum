@@ -27,7 +27,7 @@ type StartOptions struct {
 
 // FinalizeOptions configures done/fail.
 type FinalizeOptions struct {
-	WorkspaceName string
+	WorkspacePath string
 }
 
 // RunOptions configures a session run.
@@ -312,7 +312,7 @@ func Age(item Session, now time.Time) time.Duration {
 }
 
 func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.Status, sessionStatus workspace.SessionStatus) (*Session, error) {
-	resolved, err := m.ResolveActiveSession(todoID, opts.WorkspaceName)
+	resolved, err := m.ResolveActiveSession(todoID, opts.WorkspacePath)
 	if err != nil {
 		return nil, err
 	}
