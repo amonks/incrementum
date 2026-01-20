@@ -2,6 +2,7 @@ package session_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -77,6 +78,40 @@ func TestE2E_SessionRunOutput(t *testing.T) {
 	}
 }
 
+func TestE2E_SessionStartRevFlag(t *testing.T) {
+	binPath := buildIncr(t)
+	repoPath := setupE2ERepo(t)
+
+	createJJHistory(t, repoPath, 6)
+	revID := strings.TrimSpace(runJJ(t, repoPath, "log", "-r", "@---", "-T", "change_id", "--no-graph"))
+
+	runIncr(t, binPath, repoPath, "todo", "create", "Session rev todo")
+
+	output := runIncr(t, binPath, repoPath, "todo", "list", "--json")
+	var todos []todo.Todo
+	if err := json.Unmarshal([]byte(output), &todos); err != nil {
+		t.Fatalf("parse todo list: %v", err)
+	}
+	if len(todos) == 0 {
+		t.Fatal("expected todo in list")
+	}
+	id := todos[0].ID
+
+	shellCmd := fmt.Sprintf("cd \"$(\"%s\" session start --rev %s %s)\" && jj log -r @ -T change_id --no-graph", binPath, revID, id)
+	cmd := exec.Command("sh", "-c", shellCmd)
+	cmd.Dir = repoPath
+	outputBytes, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("session start --rev failed: %v\noutput: %s", err, outputBytes)
+	}
+	workspaceChangeID := strings.TrimSpace(string(outputBytes))
+	if workspaceChangeID != revID {
+		t.Fatalf("expected workspace at %s, got %s", revID, workspaceChangeID)
+	}
+
+	runIncr(t, binPath, repoPath, "session", "done", id)
+}
+
 func buildIncr(t *testing.T) string {
 	t.Helper()
 
@@ -148,4 +183,31 @@ func runIncr(t *testing.T, binPath, repoPath string, args ...string) string {
 	}
 
 	return string(output)
+}
+
+func runJJ(t *testing.T, repoPath string, args ...string) string {
+	t.Helper()
+
+	cmd := exec.Command("jj", args...)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj %v failed: %v\noutput: %s", args, err, output)
+	}
+
+	return string(output)
+}
+
+func createJJHistory(t *testing.T, repoPath string, count int) {
+	t.Helper()
+	if count < 1 {
+		return
+	}
+
+	for i := 0; i < count; i++ {
+		runJJ(t, repoPath, "describe", "-m", fmt.Sprintf("change %d", i))
+		if i < count-1 {
+			runJJ(t, repoPath, "new")
+		}
+	}
 }

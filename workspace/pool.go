@@ -188,11 +188,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 		return "", fmt.Errorf("jj edit: %w", err)
 	}
 
-	onAcquireRev := opts.Rev
-	if needsCreate {
-		onAcquireRev = "@"
-	}
-	if err := p.ensureReleaseChange(wsPath, onAcquireRev); err != nil {
+	if err := p.ensureReleaseChange(wsPath, opts.Rev); err != nil {
 		p.Release(wsPath)
 		return "", err
 	}
