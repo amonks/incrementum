@@ -2,6 +2,9 @@ package main
 
 import "strings"
 
+const tableCellMaxWidth = 50
+const tableCellEllipsis = "..."
+
 func formatTable(headers []string, rows [][]string) string {
 	widths := make([]int, len(headers))
 	for i, header := range headers {
@@ -39,6 +42,18 @@ func formatTable(headers []string, rows [][]string) string {
 	}
 
 	return builder.String()
+}
+
+func truncateTableCell(value string) string {
+	if len(value) <= tableCellMaxWidth {
+		return value
+	}
+
+	max := tableCellMaxWidth - len(tableCellEllipsis)
+	if max < 0 {
+		return value[:tableCellMaxWidth]
+	}
+	return value[:max] + tableCellEllipsis
 }
 
 func stripANSICodes(input string) string {

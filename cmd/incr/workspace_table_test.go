@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -30,5 +31,26 @@ func TestFormatWorkspaceTablePreservesAlignmentWithANSI(t *testing.T) {
 
 	if stripANSICodes(ansi) != plain {
 		t.Fatalf("expected ANSI output to align with plain output\nplain:\n%s\nansi:\n%s", plain, ansi)
+	}
+}
+
+func TestFormatWorkspaceTableTruncatesLongPaths(t *testing.T) {
+	longPath := "/tmp/" + strings.Repeat("a", 60)
+	items := []workspace.Info{
+		{
+			Name:         "ws-002",
+			Path:         longPath,
+			Status:       workspace.StatusAvailable,
+			TTLRemaining: 0,
+		},
+	}
+
+	output := formatWorkspaceTable(items, nil)
+	expected := longPath[:47] + "..."
+	if !strings.Contains(output, expected) {
+		t.Fatalf("expected truncated path %q in output: %s", expected, output)
+	}
+	if strings.Contains(output, longPath) {
+		t.Fatalf("expected long path to be truncated, got: %s", output)
 	}
 }

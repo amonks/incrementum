@@ -183,7 +183,7 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string)
 			highlight(item.Name),
 			string(item.Status),
 			ttl,
-			item.Path,
+			truncateTableCell(item.Path),
 		})
 	}
 

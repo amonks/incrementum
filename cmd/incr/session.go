@@ -246,9 +246,7 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 		if topic == "" {
 			topic = "-"
 		}
-		if len(topic) > 50 {
-			topic = topic[:47] + "..."
-		}
+		topic = truncateTableCell(topic)
 		age := sessionpkg.Age(item, now).Truncate(time.Second).String()
 		exit := "-"
 		if item.ExitCode != nil {

@@ -650,10 +650,7 @@ func formatTodoTable(todos []todo.Todo, highlight func(string, int) string) stri
 	prefixLengths := ui.UniqueIDPrefixLengths(ids)
 
 	for _, t := range todos {
-		title := t.Title
-		if len(title) > 50 {
-			title = title[:47] + "..."
-		}
+		title := truncateTableCell(t.Title)
 		prefixLen := prefixLengths[strings.ToLower(t.ID)]
 		highlighted := highlight(t.ID, prefixLen)
 		row := []string{
