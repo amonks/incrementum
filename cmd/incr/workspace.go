@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"text/tabwriter"
 	"time"
 
 	"github.com/amonks/incrementum/workspace"
@@ -132,17 +131,8 @@ func runWorkspaceList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tSTATUS\tTTL\tPATH")
-	for _, item := range items {
-		ttl := "-"
-		if item.Status == workspace.StatusAcquired && item.TTLRemaining > 0 {
-			ttl = item.TTLRemaining.Truncate(time.Second).String()
-		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
-			item.Name, item.Status, ttl, item.Path)
-	}
-	return w.Flush()
+	fmt.Print(formatWorkspaceTable(items, nil))
+	return nil
 }
 
 func runWorkspaceRenew(cmd *cobra.Command, args []string) error {
@@ -176,4 +166,26 @@ func runWorkspaceDestroyAll(cmd *cobra.Command, args []string) error {
 	}
 
 	return pool.DestroyAll(repoPath)
+}
+
+func formatWorkspaceTable(items []workspace.Info, highlight func(string) string) string {
+	if highlight == nil {
+		highlight = func(value string) string { return value }
+	}
+
+	rows := make([][]string, 0, len(items))
+	for _, item := range items {
+		ttl := "-"
+		if item.Status == workspace.StatusAcquired && item.TTLRemaining > 0 {
+			ttl = item.TTLRemaining.Truncate(time.Second).String()
+		}
+		rows = append(rows, []string{
+			highlight(item.Name),
+			string(item.Status),
+			ttl,
+			item.Path,
+		})
+	}
+
+	return formatTable([]string{"NAME", "STATUS", "TTL", "PATH"}, rows)
 }

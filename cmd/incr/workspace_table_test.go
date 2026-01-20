@@ -1,0 +1,34 @@
+package main
+
+import (
+	"testing"
+	"time"
+
+	"github.com/amonks/incrementum/workspace"
+)
+
+func TestFormatWorkspaceTablePreservesAlignmentWithANSI(t *testing.T) {
+	items := []workspace.Info{
+		{
+			Name:         "ws-001",
+			Path:         "/tmp/ws-001",
+			Status:       workspace.StatusAvailable,
+			TTLRemaining: 0,
+		},
+		{
+			Name:         "ws-010",
+			Path:         "/tmp/ws-010",
+			Status:       workspace.StatusAcquired,
+			TTLRemaining: 2*time.Minute + 5*time.Second,
+		},
+	}
+
+	plain := formatWorkspaceTable(items, func(value string) string { return value })
+	ansi := formatWorkspaceTable(items, func(value string) string {
+		return "\x1b[1m\x1b[36m" + value + "\x1b[0m"
+	})
+
+	if stripANSICodes(ansi) != plain {
+		t.Fatalf("expected ANSI output to align with plain output\nplain:\n%s\nansi:\n%s", plain, ansi)
+	}
+}
