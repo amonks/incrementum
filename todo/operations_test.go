@@ -584,6 +584,35 @@ func TestStore_List(t *testing.T) {
 	}
 }
 
+func TestStore_List_InvalidFilters(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	if _, err := store.Create("Task 1", CreateOptions{}); err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	invalidStatus := Status("maybe")
+	if _, err := store.List(ListFilter{Status: &invalidStatus}); err == nil || !errors.Is(err, ErrInvalidStatus) {
+		t.Fatalf("expected invalid status error, got %v", err)
+	}
+
+	invalidType := TodoType("oops")
+	if _, err := store.List(ListFilter{Type: &invalidType}); err == nil || !errors.Is(err, ErrInvalidType) {
+		t.Fatalf("expected invalid type error, got %v", err)
+	}
+
+	invalidPriority := 99
+	if _, err := store.List(ListFilter{Priority: &invalidPriority}); err == nil || !errors.Is(err, ErrInvalidPriority) {
+		t.Fatalf("expected invalid priority error, got %v", err)
+	}
+}
+
 func TestStore_List_IDPrefix(t *testing.T) {
 	repoPath := setupTestRepo(t)
 

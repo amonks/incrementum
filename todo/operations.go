@@ -344,6 +344,18 @@ type ListFilter struct {
 
 // List returns todos matching the filter.
 func (s *Store) List(filter ListFilter) ([]Todo, error) {
+	if filter.Status != nil && !filter.Status.IsValid() {
+		return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+	}
+	if filter.Type != nil && !filter.Type.IsValid() {
+		return nil, fmt.Errorf("%w: %q", ErrInvalidType, *filter.Type)
+	}
+	if filter.Priority != nil {
+		if err := ValidatePriority(*filter.Priority); err != nil {
+			return nil, err
+		}
+	}
+
 	todos, err := s.readTodos()
 	if err != nil {
 		return nil, fmt.Errorf("read todos: %w", err)
