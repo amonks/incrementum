@@ -272,7 +272,13 @@ func (m *Manager) ResolveActiveSession(todoID, workspacePath string) (*Session, 
 		return nil, fmt.Errorf("todo id required when not in a workspace")
 	}
 
-	wsName := filepath.Base(workspacePath)
+	wsName, err := m.pool.WorkspaceNameForPath(workspacePath)
+	if err != nil {
+		if errors.Is(err, workspace.ErrWorkspaceRootNotFound) || errors.Is(err, workspace.ErrRepoPathNotFound) {
+			return nil, fmt.Errorf("todo id required when not in a workspace")
+		}
+		return nil, err
+	}
 
 	found, err := m.pool.FindActiveSessionByWorkspace(m.repoPath, wsName)
 	if err != nil {

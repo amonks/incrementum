@@ -108,6 +108,32 @@ func TestManager_StartDone(t *testing.T) {
 	store.Release()
 }
 
+func TestResolveActiveSessionRequiresWorkspace(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	store.Release()
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	_, err = manager.ResolveActiveSession("", repoPath)
+	if err == nil {
+		t.Fatal("expected error for non-workspace path")
+	}
+	if err.Error() != "todo id required when not in a workspace" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestAgeUsesDurationSeconds(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	start := now.Add(-10 * time.Minute)
