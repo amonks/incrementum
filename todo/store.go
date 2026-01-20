@@ -63,8 +63,8 @@ type OpenOptions struct {
 	// Prompter is used for user confirmation. If nil, StdioPrompter is used.
 	Prompter Prompter
 
-	// CreateIfMissing creates the task store if it doesn't exist.
-	// If false and the store doesn't exist, ErrNoTaskStore is returned.
+	// CreateIfMissing creates the todo store if it doesn't exist.
+	// If false and the store doesn't exist, ErrNoTodoStore is returned.
 	CreateIfMissing bool
 
 	// PromptToCreate prompts the user before creating a new store.
@@ -107,16 +107,16 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 
 	if !hasBookmark {
 		if !opts.CreateIfMissing {
-			return nil, ErrNoTaskStore
+			return nil, ErrNoTodoStore
 		}
 
 		if opts.PromptToCreate {
-			confirmed, err := opts.Prompter.Confirm("No task store found. Create one?")
+			confirmed, err := opts.Prompter.Confirm("No todo store found. Create one?")
 			if err != nil {
 				return nil, fmt.Errorf("prompt: %w", err)
 			}
 			if !confirmed {
-				return nil, ErrNoTaskStore
+				return nil, ErrNoTodoStore
 			}
 		}
 	}
@@ -130,16 +130,16 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 
 	// If the bookmark doesn't exist, create the store in our workspace
 	if !hasBookmark {
-		if err := createTaskStore(client, wsPath); err != nil {
+		if err := createTodoStore(client, wsPath); err != nil {
 			pool.Release(wsPath)
-			return nil, fmt.Errorf("create task store: %w", err)
+			return nil, fmt.Errorf("create todo store: %w", err)
 		}
 	}
 
 	// Edit to the bookmark
 	if err := client.Edit(wsPath, BookmarkName); err != nil {
 		pool.Release(wsPath)
-		return nil, fmt.Errorf("edit to task store: %w", err)
+		return nil, fmt.Errorf("edit to todo store: %w", err)
 	}
 
 	// Update stale working copy if needed (this can happen if the bookmark
@@ -170,9 +170,9 @@ func (s *Store) Release() error {
 	return nil
 }
 
-// createTaskStore creates the orphan change and bookmark for the task store.
+// createTodoStore creates the orphan change and bookmark for the todo store.
 // wsPath must be an already-acquired workspace.
-func createTaskStore(client *jj.Client, wsPath string) error {
+func createTodoStore(client *jj.Client, wsPath string) error {
 	// Create a new change at root() in the workspace.
 	// This moves the workspace's @ to the new orphan change.
 	changeID, err := client.NewChange(wsPath, "root()")

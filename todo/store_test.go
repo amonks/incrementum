@@ -54,8 +54,8 @@ func TestOpen_NoBookmark(t *testing.T) {
 	_, err := Open(repoPath, OpenOptions{
 		CreateIfMissing: false,
 	})
-	if !errors.Is(err, ErrNoTaskStore) {
-		t.Errorf("expected ErrNoTaskStore, got %v", err)
+	if !errors.Is(err, ErrNoTodoStore) {
+		t.Errorf("expected ErrNoTodoStore, got %v", err)
 	}
 }
 
@@ -121,8 +121,8 @@ func TestOpen_PromptToCreate_Declined(t *testing.T) {
 		CreateIfMissing: true,
 		PromptToCreate:  true,
 	})
-	if !errors.Is(err, ErrNoTaskStore) {
-		t.Errorf("expected ErrNoTaskStore, got %v", err)
+	if !errors.Is(err, ErrNoTodoStore) {
+		t.Errorf("expected ErrNoTodoStore, got %v", err)
 	}
 
 	if !prompter.called {
@@ -429,7 +429,7 @@ func TestOpen_DoesNotModifyUserWorkingCopy(t *testing.T) {
 		t.Fatalf("failed to get initial change ID: %v", err)
 	}
 
-	// Open the store (which will create the task store since it doesn't exist)
+	// Open the store (which will create the todo store since it doesn't exist)
 	store, err := Open(repoPath, OpenOptions{
 		CreateIfMissing: true,
 		PromptToCreate:  false,

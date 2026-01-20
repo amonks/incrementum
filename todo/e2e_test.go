@@ -241,7 +241,7 @@ func TestE2E_FullWorkflow(t *testing.T) {
 	})
 }
 
-// TestE2E_CreatePrompt tests that creating the task store requires confirmation.
+// TestE2E_CreatePrompt tests that creating the todo store requires confirmation.
 func TestE2E_CreatePrompt(t *testing.T) {
 	incrBin := buildIncr(t)
 	repoPath := setupE2ERepo(t)
@@ -252,9 +252,9 @@ func TestE2E_CreatePrompt(t *testing.T) {
 	cmd.Stdin = strings.NewReader("n\n")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Error("expected error when declining to create task store")
+		t.Error("expected error when declining to create todo store")
 	}
-	if !strings.Contains(string(output), "No task store found") || !strings.Contains(string(output), "Create one?") {
+	if !strings.Contains(string(output), "No todo store found") || !strings.Contains(string(output), "Create one?") {
 		t.Errorf("expected prompt message, got: %s", output)
 	}
 
@@ -264,7 +264,7 @@ func TestE2E_CreatePrompt(t *testing.T) {
 	cmd.Stdin = strings.NewReader("y\n")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
-		t.Errorf("expected success when accepting to create task store: %v\noutput: %s", err, output)
+		t.Errorf("expected success when accepting to create todo store: %v\noutput: %s", err, output)
 	}
 }
 

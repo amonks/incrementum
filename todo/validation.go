@@ -36,8 +36,8 @@ var (
 	// ErrDuplicateDependency is returned when the dependency already exists.
 	ErrDuplicateDependency = errors.New("dependency already exists")
 
-	// ErrNoTaskStore is returned when the task store bookmark doesn't exist.
-	ErrNoTaskStore = errors.New("no task store found (bookmark incr/tasks does not exist)")
+	// ErrNoTodoStore is returned when the todo store bookmark doesn't exist.
+	ErrNoTodoStore = errors.New("no todo store found (bookmark incr/tasks does not exist)")
 
 	// ErrClosedTodoMissingClosedAt is returned when a closed or done todo has no closed_at timestamp.
 	ErrClosedTodoMissingClosedAt = errors.New("closed or done todo must have closed_at timestamp")
