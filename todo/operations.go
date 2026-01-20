@@ -162,9 +162,6 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 	if opts.Type != nil && !opts.Type.IsValid() {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidType, *opts.Type)
 	}
-	if opts.DeleteReason != nil && opts.DeletedAt == nil {
-		return nil, ErrDeleteReasonRequiresDeletedAt
-	}
 
 	todos, err := s.readTodos()
 	if err != nil {
@@ -202,6 +199,9 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 				todos[i].DeleteReason = ""
 			case StatusTombstone:
 				todos[i].ClosedAt = nil
+				if opts.DeletedAt == nil && todos[i].DeletedAt == nil {
+					todos[i].DeletedAt = &now
+				}
 			case StatusOpen, StatusInProgress:
 				todos[i].ClosedAt = nil
 				todos[i].DeletedAt = nil
@@ -224,6 +224,10 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 			todos[i].DeleteReason = ""
 		}
 		todos[i].UpdatedAt = now
+
+		if err := ValidateTodo(&todos[i]); err != nil {
+			return nil, fmt.Errorf("validate todo %s: %w", todos[i].ID, err)
+		}
 
 		updated = append(updated, todos[i])
 	}

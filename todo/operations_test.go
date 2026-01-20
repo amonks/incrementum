@@ -3,6 +3,7 @@ package todo
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestStore_Create(t *testing.T) {
@@ -178,6 +179,91 @@ func TestStore_Update(t *testing.T) {
 	}
 	if todos[0].Title != "Updated title" {
 		t.Errorf("title was not persisted")
+	}
+}
+
+func TestStore_Update_TombstoneSetsDeletedAt(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Old todo", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	status := StatusTombstone
+	updated, err := store.Update([]string{created.ID}, UpdateOptions{Status: &status})
+	if err != nil {
+		t.Fatalf("failed to tombstone todo: %v", err)
+	}
+
+	if updated[0].Status != StatusTombstone {
+		t.Errorf("expected status 'tombstone', got %q", updated[0].Status)
+	}
+	if updated[0].DeletedAt == nil {
+		t.Error("expected DeletedAt to be set")
+	}
+	if updated[0].ClosedAt != nil {
+		t.Error("expected ClosedAt to be nil")
+	}
+}
+
+func TestStore_Update_DeleteReasonKeepsDeletedAt(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Old todo", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	_, err = store.Delete([]string{created.ID}, "")
+	if err != nil {
+		t.Fatalf("failed to delete todo: %v", err)
+	}
+
+	reason := "Superseded"
+	updated, err := store.Update([]string{created.ID}, UpdateOptions{DeleteReason: &reason})
+	if err != nil {
+		t.Fatalf("failed to update delete reason: %v", err)
+	}
+
+	if updated[0].DeleteReason != reason {
+		t.Errorf("expected delete reason %q, got %q", reason, updated[0].DeleteReason)
+	}
+	if updated[0].DeletedAt == nil {
+		t.Error("expected DeletedAt to remain set")
+	}
+}
+
+func TestStore_Update_DeletedAtRequiresTombstone(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Open todo", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	deletedAt := time.Now()
+	_, err = store.Update([]string{created.ID}, UpdateOptions{DeletedAt: &deletedAt})
+	if !errors.Is(err, ErrDeletedAtRequiresTombstoneStatus) {
+		t.Errorf("expected ErrDeletedAtRequiresTombstoneStatus, got %v", err)
 	}
 }
 
