@@ -31,9 +31,14 @@ func TestE2E_SessionStartDoneList(t *testing.T) {
 	id := todos[0].ID
 
 	output = runIncr(t, binPath, repoPath, "session", "start", id)
-	if !strings.Contains(output, "Started session") {
-		t.Fatalf("expected start output, got: %s", output)
+	workspacePath := strings.TrimSpace(output)
+	if workspacePath == "" {
+		t.Fatalf("expected workspace path output, got: %q", output)
 	}
+	if _, err := os.Stat(workspacePath); err != nil {
+		t.Fatalf("expected workspace path to exist: %v", err)
+	}
+	expectedWorkspace := filepath.Base(workspacePath)
 
 	output = runIncr(t, binPath, repoPath, "session", "list", "--json")
 	var sessions []session.Session
@@ -48,6 +53,9 @@ func TestE2E_SessionStartDoneList(t *testing.T) {
 	}
 	if sessions[0].Status != session.StatusActive {
 		t.Fatalf("expected active status, got %s", sessions[0].Status)
+	}
+	if sessions[0].WorkspaceName != expectedWorkspace {
+		t.Fatalf("expected workspace %s, got %s", expectedWorkspace, sessions[0].WorkspaceName)
 	}
 
 	output = runIncr(t, binPath, repoPath, "session", "done", id)

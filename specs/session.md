@@ -55,7 +55,7 @@ Fields (JSON keys):
 - Acquire a workspace.
 - Update todo status to `in_progress`.
 - Create a session with status `active`.
-- Change working directory to the acquired workspace.
+- Print the workspace path.
 
 ### `incr session done [todo-id]`
 
@@ -63,7 +63,6 @@ Fields (JSON keys):
 - Release the workspace referenced by the session.
 - Update todo status to `done`.
 - Mark the session as `completed` and record `completed_at`.
-- Change working directory back to the repo root (primary workspace).
 
 ### `incr session fail [todo-id]`
 
@@ -71,7 +70,6 @@ Fields (JSON keys):
 - Release the workspace referenced by the session.
 - Update todo status to `open`.
 - Mark the session as `failed` and record `completed_at`.
-- Change working directory back to the repo root (primary workspace).
 
 ### `incr session run <todo-id> -- <cmd> [args...]`
 
@@ -87,7 +85,6 @@ Fields (JSON keys):
   - mark the session `failed`
 - Always release the workspace.
 - Record exit code and duration seconds.
-- Change working directory back to the repo root (primary workspace).
 
 ### `incr session list [--json]`
 

@@ -89,11 +89,7 @@ func runSessionStart(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := os.Chdir(result.WorkspacePath); err != nil {
-		return fmt.Errorf("change directory: %w", err)
-	}
-
-	fmt.Printf("Started session %s for %s in %s\n", result.Session.ID, ui.HighlightID(result.Session.TodoID, 0), result.Session.WorkspaceName)
+	fmt.Println(result.WorkspacePath)
 	return nil
 }
 
@@ -146,10 +142,6 @@ func runSessionFinalize(args []string, todoStatus todo.Status, sessionStatus ses
 		return err
 	}
 
-	if err := os.Chdir(repoPath); err != nil {
-		return fmt.Errorf("change directory: %w", err)
-	}
-
 	fmt.Printf("Session %s marked %s\n", finalized.ID, finalized.Status)
 	return nil
 }
@@ -186,10 +178,6 @@ func runSessionRun(cmd *cobra.Command, args []string) error {
 			fmt.Printf("Session %s marked %s (exit %d)\n", result.Session.ID, result.Session.Status, result.ExitCode)
 		}
 		return err
-	}
-
-	if err := os.Chdir(repoPath); err != nil {
-		return fmt.Errorf("change directory: %w", err)
 	}
 
 	fmt.Printf("Session %s marked %s (exit %d)\n", result.Session.ID, result.Session.Status, result.ExitCode)
