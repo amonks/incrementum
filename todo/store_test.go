@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -212,6 +213,48 @@ func TestStore_ReadWriteTodos(t *testing.T) {
 	}
 	if todos[1].Title != "Test todo 2" {
 		t.Errorf("expected title 'Test todo 2', got %q", todos[1].Title)
+	}
+}
+
+func TestStore_ReadWriteTodos_LongDescription(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{
+		CreateIfMissing: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	longDescription := strings.Repeat("a", 100000)
+	now := time.Now()
+	input := []Todo{
+		{
+			ID:          "longdesc",
+			Title:       "Long description todo",
+			Description: longDescription,
+			Status:      StatusOpen,
+			Priority:    PriorityMedium,
+			Type:        TypeTask,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+	}
+
+	if err := store.writeTodos(input); err != nil {
+		t.Fatalf("failed to write todos: %v", err)
+	}
+
+	output, err := store.readTodos()
+	if err != nil {
+		t.Fatalf("failed to read todos: %v", err)
+	}
+	if len(output) != 1 {
+		t.Fatalf("expected 1 todo, got %d", len(output))
+	}
+	if output[0].Description != longDescription {
+		t.Errorf("description mismatch: expected %d bytes, got %d", len(longDescription), len(output[0].Description))
 	}
 }
 

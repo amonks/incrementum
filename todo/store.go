@@ -23,6 +23,8 @@ const (
 
 	// DependenciesFile is the name of the JSONL file containing dependencies.
 	DependenciesFile = "dependencies.jsonl"
+
+	maxJSONLineBytes = 1024 * 1024
 )
 
 // Store provides access to the todo data for a jujutsu repository.
@@ -239,6 +241,7 @@ func readJSONL[T any](path string) ([]T, error) {
 
 	var items []T
 	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), maxJSONLineBytes)
 	lineNum := 0
 	for scanner.Scan() {
 		lineNum++
