@@ -55,6 +55,28 @@ func TestE2E_SessionStartDoneList(t *testing.T) {
 	}
 }
 
+func TestE2E_SessionRunOutput(t *testing.T) {
+	binPath := buildIncr(t)
+	repoPath := setupE2ERepo(t)
+
+	runIncr(t, binPath, repoPath, "todo", "create", "Run todo")
+
+	output := runIncr(t, binPath, repoPath, "todo", "list", "--json")
+	var todos []todo.Todo
+	if err := json.Unmarshal([]byte(output), &todos); err != nil {
+		t.Fatalf("parse todo list: %v", err)
+	}
+	if len(todos) == 0 {
+		t.Fatal("expected todo in list")
+	}
+	id := todos[0].ID
+
+	output = runIncr(t, binPath, repoPath, "session", "run", id, "--", "true")
+	if !strings.Contains(output, "marked completed") {
+		t.Fatalf("expected run output, got: %s", output)
+	}
+}
+
 func buildIncr(t *testing.T) string {
 	t.Helper()
 

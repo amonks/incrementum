@@ -182,6 +182,9 @@ func runSessionRun(cmd *cobra.Command, args []string) error {
 	cmdArgs := args[dash:]
 	result, err := manager.Run(args[0], sessionpkg.RunOptions{Command: cmdArgs, Rev: sessionRunRev})
 	if err != nil {
+		if result != nil {
+			fmt.Printf("Session %s marked %s (exit %d)\n", result.Session.ID, result.Session.Status, result.ExitCode)
+		}
 		return err
 	}
 
@@ -189,7 +192,7 @@ func runSessionRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("change directory: %w", err)
 	}
 
-	_ = result
+	fmt.Printf("Session %s marked %s (exit %d)\n", result.Session.ID, result.Session.Status, result.ExitCode)
 	return nil
 }
 
