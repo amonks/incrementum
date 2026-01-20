@@ -46,6 +46,7 @@ type workspaceInfo struct {
 type state struct {
 	Repos      map[string]repoInfo      `json:"repos"`
 	Workspaces map[string]workspaceInfo `json:"workspaces"`
+	Sessions   map[string]Session       `json:"sessions"`
 }
 
 // stateStore manages the state file with locking.
@@ -75,6 +76,7 @@ func (s *stateStore) load() (*state, error) {
 		return &state{
 			Repos:      make(map[string]repoInfo),
 			Workspaces: make(map[string]workspaceInfo),
+			Sessions:   make(map[string]Session),
 		}, nil
 	}
 	if err != nil {
@@ -92,6 +94,9 @@ func (s *stateStore) load() (*state, error) {
 	}
 	if st.Workspaces == nil {
 		st.Workspaces = make(map[string]workspaceInfo)
+	}
+	if st.Sessions == nil {
+		st.Sessions = make(map[string]Session)
 	}
 
 	return &st, nil

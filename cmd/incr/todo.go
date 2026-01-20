@@ -641,16 +641,7 @@ func printTodoTable(todos []todo.Todo) {
 }
 
 func formatTodoTable(todos []todo.Todo, highlight func(string, int) string) string {
-	widths := []int{
-		len("ID"),
-		len("PRI"),
-		len("TYPE"),
-		len("STATUS"),
-		len("TITLE"),
-	}
-
-	rows := make([][]string, 0, len(todos)+1)
-	rows = append(rows, []string{"ID", "PRI", "TYPE", "STATUS", "TITLE"})
+	rows := make([][]string, 0, len(todos))
 
 	ids := make([]string, 0, len(todos))
 	for _, t := range todos {
@@ -673,58 +664,9 @@ func formatTodoTable(todos []todo.Todo, highlight func(string, int) string) stri
 			title,
 		}
 		rows = append(rows, row)
-
-		if displayLen := len(stripANSICodes(highlighted)); displayLen > widths[0] {
-			widths[0] = displayLen
-		}
-		if len(row[1]) > widths[1] {
-			widths[1] = len(row[1])
-		}
-		if len(row[2]) > widths[2] {
-			widths[2] = len(row[2])
-		}
-		if len(row[3]) > widths[3] {
-			widths[3] = len(row[3])
-		}
-		if len(row[4]) > widths[4] {
-			widths[4] = len(row[4])
-		}
 	}
 
-	var builder strings.Builder
-	for _, row := range rows {
-		for i, cell := range row {
-			cellWidth := len(stripANSICodes(cell))
-			builder.WriteString(cell)
-			if i == len(row)-1 {
-				builder.WriteByte('\n')
-				continue
-			}
-			padding := widths[i] - cellWidth
-			builder.WriteString(strings.Repeat(" ", padding+2))
-		}
-	}
-	return builder.String()
-}
-
-func stripANSICodes(input string) string {
-	var builder strings.Builder
-	inEscape := false
-	for i := 0; i < len(input); i++ {
-		char := input[i]
-		if inEscape {
-			if char == 'm' {
-				inEscape = false
-			}
-			continue
-		}
-		if char == '\x1b' {
-			inEscape = true
-			continue
-		}
-		builder.WriteByte(char)
-	}
-	return builder.String()
+	return formatTable([]string{"ID", "PRI", "TYPE", "STATUS", "TITLE"}, rows)
 }
 
 // printTodoDetail prints detailed information about a todo.
