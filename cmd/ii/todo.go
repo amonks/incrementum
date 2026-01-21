@@ -806,8 +806,8 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 		title := truncateTableCell(t.Title)
 		prefixLen := prefixLengths[strings.ToLower(t.ID)]
 		highlighted := highlight(t.ID, prefixLen)
-		createdAge := formatTimeAgo(t.CreatedAt, now)
-		updatedAge := formatTimeAgo(t.UpdatedAt, now)
+		createdAge := ui.FormatTimeAgo(t.CreatedAt, now)
+		updatedAge := ui.FormatTimeAgo(t.UpdatedAt, now)
 		row := []string{
 			highlighted,
 			priorityShort(t.Priority),
@@ -941,33 +941,4 @@ func statusIcon(s todo.Status) string {
 	default:
 		return "[?]"
 	}
-}
-
-func formatTimeAgo(then time.Time, now time.Time) string {
-	if then.IsZero() {
-		return "-"
-	}
-
-	if now.Before(then) {
-		now = then
-	}
-
-	duration := now.Sub(then).Truncate(time.Second)
-	seconds := int64(duration.Seconds())
-	if seconds < 60 {
-		return fmt.Sprintf("%ds ago", seconds)
-	}
-
-	minutes := seconds / 60
-	if minutes < 60 {
-		return fmt.Sprintf("%dm ago", minutes)
-	}
-
-	hours := minutes / 60
-	if hours < 24 {
-		return fmt.Sprintf("%dh ago", hours)
-	}
-
-	days := hours / 24
-	return fmt.Sprintf("%dd ago", days)
 }

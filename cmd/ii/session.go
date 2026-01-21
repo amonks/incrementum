@@ -374,7 +374,7 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 			topic = "-"
 		}
 		topic = truncateTableCell(topic)
-		age := sessionpkg.Age(item, now).Truncate(time.Second).String()
+		age := ui.FormatDurationShort(sessionpkg.Age(item, now))
 		exit := "-"
 		if item.ExitCode != nil {
 			exit = strconv.Itoa(*item.ExitCode)

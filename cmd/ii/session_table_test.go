@@ -100,6 +100,38 @@ func TestFormatSessionTableIncludesSessionID(t *testing.T) {
 	}
 }
 
+func TestFormatSessionTableUsesCompactAge(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-2 * time.Minute)
+
+	sessions := []sessionpkg.Session{
+		{
+			ID:            "sess-321",
+			TodoID:        "abc12345",
+			WorkspaceName: "ws-001",
+			Status:        sessionpkg.StatusActive,
+			Topic:         "Topic",
+			StartedAt:     start,
+			UpdatedAt:     start,
+		},
+	}
+
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now))
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	fields := strings.Fields(lines[1])
+	if len(fields) < 5 {
+		t.Fatalf("expected at least 5 columns, got: %q", lines[1])
+	}
+
+	if fields[4] != "2m" {
+		t.Fatalf("expected compact age 2m, got: %s", fields[4])
+	}
+}
+
 func intPtr(value int) *int {
 	return &value
 }

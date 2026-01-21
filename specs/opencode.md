@@ -119,6 +119,7 @@ Fields (JSON keys):
 - Default output is a table matching other list commands.
 - Suggested columns: `SESSION`, `STATUS`, `AGE`, `PROMPT`, `EXIT`.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
+- `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 
 ### `ii opencode kill <session-id>`
 

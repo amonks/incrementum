@@ -90,3 +90,33 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 		t.Fatalf("expected session id in row, got: %q", row)
 	}
 }
+
+func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-2 * time.Minute)
+
+	sessions := []workspace.OpencodeSession{
+		{
+			ID:        "sess-001",
+			Status:    workspace.OpencodeSessionActive,
+			Prompt:    "Prompt",
+			StartedAt: start,
+			UpdatedAt: start,
+		},
+	}
+
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string) string { return id }, now))
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	fields := strings.Fields(lines[1])
+	if len(fields) < 4 {
+		t.Fatalf("expected at least 4 columns, got: %q", lines[1])
+	}
+
+	if fields[2] != "2m" {
+		t.Fatalf("expected compact age 2m, got: %s", fields[2])
+	}
+}

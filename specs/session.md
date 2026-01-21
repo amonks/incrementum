@@ -102,3 +102,4 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - `--all` lists all statuses.
 - `--json` emits structured output.
 - Suggested columns: `SESSION`, `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.
+- `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.

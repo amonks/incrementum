@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
+	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
@@ -106,7 +107,7 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 	for _, session := range sessions {
 		prompt := opencodePromptLine(session.Prompt)
 		prompt = truncateTableCell(prompt)
-		age := opencodeSessionAge(session, now).Truncate(time.Second).String()
+		age := ui.FormatDurationShort(opencodeSessionAge(session, now))
 		exit := "-"
 		if session.ExitCode != nil {
 			exit = strconv.Itoa(*session.ExitCode)
