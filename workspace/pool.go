@@ -67,6 +67,15 @@ func OpenWithOptions(opts Options) (*Pool, error) {
 	}, nil
 }
 
+// RepoSlug returns the repo slug used for state storage.
+func (p *Pool) RepoSlug(repoPath string) (string, error) {
+	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		return "", fmt.Errorf("get repo name: %w", err)
+	}
+	return repoName, nil
+}
+
 // AcquireOptions configures a workspace acquire operation.
 type AcquireOptions struct {
 	// Rev is the jj revision to check out. Defaults to "@" if empty.

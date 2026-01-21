@@ -45,9 +45,11 @@ type workspaceInfo struct {
 
 // state represents the persisted state of the workspace pool.
 type state struct {
-	Repos      map[string]repoInfo      `json:"repos"`
-	Workspaces map[string]workspaceInfo `json:"workspaces"`
-	Sessions   map[string]Session       `json:"sessions"`
+	Repos            map[string]repoInfo        `json:"repos"`
+	Workspaces       map[string]workspaceInfo   `json:"workspaces"`
+	Sessions         map[string]Session         `json:"sessions"`
+	OpencodeDaemons  map[string]OpencodeDaemon  `json:"opencode_daemons"`
+	OpencodeSessions map[string]OpencodeSession `json:"opencode_sessions"`
 }
 
 // stateStore manages the state file with locking.
@@ -75,9 +77,11 @@ func (s *stateStore) load() (*state, error) {
 	data, err := os.ReadFile(s.statePath())
 	if os.IsNotExist(err) {
 		return &state{
-			Repos:      make(map[string]repoInfo),
-			Workspaces: make(map[string]workspaceInfo),
-			Sessions:   make(map[string]Session),
+			Repos:            make(map[string]repoInfo),
+			Workspaces:       make(map[string]workspaceInfo),
+			Sessions:         make(map[string]Session),
+			OpencodeDaemons:  make(map[string]OpencodeDaemon),
+			OpencodeSessions: make(map[string]OpencodeSession),
 		}, nil
 	}
 	if err != nil {
@@ -98,6 +102,12 @@ func (s *stateStore) load() (*state, error) {
 	}
 	if st.Sessions == nil {
 		st.Sessions = make(map[string]Session)
+	}
+	if st.OpencodeDaemons == nil {
+		st.OpencodeDaemons = make(map[string]OpencodeDaemon)
+	}
+	if st.OpencodeSessions == nil {
+		st.OpencodeSessions = make(map[string]OpencodeSession)
 	}
 
 	return &st, nil

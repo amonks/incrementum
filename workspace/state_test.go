@@ -28,6 +28,24 @@ func TestStateStore_LoadEmpty(t *testing.T) {
 	}
 }
 
+func TestStateStore_LoadEmpty_Opencode(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := newStateStore(tmpDir)
+
+	st, err := store.load()
+	if err != nil {
+		t.Fatalf("failed to load empty state: %v", err)
+	}
+
+	if st.OpencodeDaemons == nil {
+		t.Fatal("expected opencode daemons map")
+	}
+
+	if st.OpencodeSessions == nil {
+		t.Fatal("expected opencode sessions map")
+	}
+}
+
 func TestStateStore_SaveLoad(t *testing.T) {
 	tmpDir := t.TempDir()
 	store := newStateStore(tmpDir)
