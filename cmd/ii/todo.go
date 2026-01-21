@@ -315,7 +315,11 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		highlight := todoLogHighlighter([]string{created.ID}, ui.HighlightID)
+		prefixLengths, err := todoIDPrefixLengthsForStore(store)
+		if err != nil {
+			return err
+		}
+		highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 		fmt.Printf("Created todo %s: %s\n", highlight(created.ID), created.Title)
 		return nil
 	}
@@ -341,7 +345,11 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight := todoLogHighlighter([]string{created.ID}, ui.HighlightID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
+	}
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	fmt.Printf("Created todo %s: %s\n", highlight(created.ID), created.Title)
 	return nil
 }
@@ -414,11 +422,11 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 			updatedItems = append(updatedItems, updated[0])
 		}
 
-		ids := make([]string, 0, len(updatedItems))
-		for _, item := range updatedItems {
-			ids = append(ids, item.ID)
+		prefixLengths, err := todoIDPrefixLengthsForStore(store)
+		if err != nil {
+			return err
 		}
-		highlight := todoLogHighlighter(ids, ui.HighlightID)
+		highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 		for _, item := range updatedItems {
 			fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
 		}
@@ -455,11 +463,11 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ids := make([]string, 0, len(updated))
-	for _, item := range updated {
-		ids = append(ids, item.ID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
 	}
-	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	for _, item := range updated {
 		fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
 	}
@@ -491,11 +499,11 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ids := make([]string, 0, len(closed))
-	for _, item := range closed {
-		ids = append(ids, item.ID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
 	}
-	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range closed {
 		fmt.Printf("Closed %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -514,11 +522,11 @@ func runTodoStart(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ids := make([]string, 0, len(started))
-	for _, item := range started {
-		ids = append(ids, item.ID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
 	}
-	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range started {
 		fmt.Printf("Started %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -537,11 +545,11 @@ func runTodoFinish(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ids := make([]string, 0, len(finished))
-	for _, item := range finished {
-		ids = append(ids, item.ID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
 	}
-	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range finished {
 		fmt.Printf("Finished %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -560,11 +568,11 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ids := make([]string, 0, len(reopened))
-	for _, item := range reopened {
-		ids = append(ids, item.ID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
 	}
-	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range reopened {
 		fmt.Printf("Reopened %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -583,11 +591,11 @@ func runTodoDelete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ids := make([]string, 0, len(deleted))
-	for _, item := range deleted {
-		ids = append(ids, item.ID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
 	}
-	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range deleted {
 		fmt.Printf("Deleted %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -612,11 +620,16 @@ func runTodoShow(cmd *cobra.Command, args []string) error {
 		return enc.Encode(todos)
 	}
 
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
+	}
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	for i, t := range todos {
 		if i > 0 {
 			fmt.Println("---")
 		}
-		printTodoDetail(t)
+		printTodoDetail(t, highlight)
 	}
 	return nil
 }
@@ -711,7 +724,11 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight := todoLogHighlighter([]string{dep.TodoID, dep.DependsOnID}, ui.HighlightID)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
+	}
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
 	fmt.Printf("Added dependency: %s %s %s\n", highlight(dep.TodoID), dep.Type, highlight(dep.DependsOnID))
 	return nil
 }
@@ -728,7 +745,12 @@ func runTodoDepTree(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	printDepTree(tree, "", true)
+	prefixLengths, err := todoIDPrefixLengthsForStore(store)
+	if err != nil {
+		return err
+	}
+	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	printDepTree(tree, "", true, highlight)
 	return nil
 }
 
@@ -797,8 +819,18 @@ func todoIDPrefixLengths(todos []todo.Todo) map[string]int {
 	return ui.UniqueIDPrefixLengths(ids)
 }
 
-func todoLogHighlighter(ids []string, highlight func(string, int) string) func(string) string {
-	prefixLengths := ui.UniqueIDPrefixLengths(ids)
+func todoIDPrefixLengthsForStore(store *todo.Store) (map[string]int, error) {
+	allTodos, err := store.List(todo.ListFilter{IncludeTombstones: true})
+	if err != nil {
+		return nil, err
+	}
+	return todoIDPrefixLengths(allTodos), nil
+}
+
+func todoLogHighlighter(prefixLengths map[string]int, highlight func(string, int) string) func(string) string {
+	if prefixLengths == nil {
+		prefixLengths = map[string]int{}
+	}
 	return func(id string) string {
 		if id == "" {
 			return id
@@ -812,8 +844,8 @@ func todoLogHighlighter(ids []string, highlight func(string, int) string) func(s
 }
 
 // printTodoDetail prints detailed information about a todo.
-func printTodoDetail(t todo.Todo) {
-	fmt.Printf("ID:       %s\n", ui.HighlightID(t.ID, 0))
+func printTodoDetail(t todo.Todo, highlight func(string) string) {
+	fmt.Printf("ID:       %s\n", highlight(t.ID))
 	fmt.Printf("Title:    %s\n", t.Title)
 	fmt.Printf("Type:     %s\n", t.Type)
 	fmt.Printf("Status:   %s\n", t.Status)
@@ -831,7 +863,7 @@ func printTodoDetail(t todo.Todo) {
 }
 
 // printDepTree prints a dependency tree with ASCII art.
-func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool) {
+func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool, highlight func(string) string) {
 	// Print current node
 	connector := "├── "
 	if isLast {
@@ -848,7 +880,7 @@ func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool) {
 	}
 
 	fmt.Printf("%s%s%s %s%s (%s)\n",
-		prefix, connector, statusIcon, node.Todo.Title, typeStr, ui.HighlightID(node.Todo.ID, 0))
+		prefix, connector, statusIcon, node.Todo.Title, typeStr, highlight(node.Todo.ID))
 
 	// Print children
 	childPrefix := prefix
@@ -862,7 +894,7 @@ func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool) {
 
 	for i, child := range node.Children {
 		isLastChild := i == len(node.Children)-1
-		printDepTree(child, childPrefix, isLastChild)
+		printDepTree(child, childPrefix, isLastChild, highlight)
 	}
 }
 

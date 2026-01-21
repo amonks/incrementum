@@ -46,26 +46,28 @@ func TestResolveDescriptionFromStdin(t *testing.T) {
 	}
 }
 
-func TestTodoLogHighlighterUsesUniquePrefixes(t *testing.T) {
-	highlight := todoLogHighlighter([]string{"abc123", "abd456"}, func(id string, prefix int) string {
+func TestTodoLogHighlighterUsesProvidedPrefixLengths(t *testing.T) {
+	prefixLengths := map[string]int{"abc123": 4, "abd456": 3}
+	highlight := todoLogHighlighter(prefixLengths, func(id string, prefix int) string {
 		return fmt.Sprintf("%s:%d", id, prefix)
 	})
 
-	if got := highlight("abc123"); got != "abc123:3" {
-		t.Fatalf("expected abc123 to use prefix 3, got %q", got)
+	if got := highlight("abc123"); got != "abc123:4" {
+		t.Fatalf("expected abc123 to use prefix 4, got %q", got)
 	}
 	if got := highlight("abd456"); got != "abd456:3" {
 		t.Fatalf("expected abd456 to use prefix 3, got %q", got)
 	}
 }
 
-func TestTodoLogHighlighterHandlesSingleID(t *testing.T) {
-	highlight := todoLogHighlighter([]string{"abc123"}, func(id string, prefix int) string {
+func TestTodoLogHighlighterHandlesMissingID(t *testing.T) {
+	prefixLengths := map[string]int{"abc123": 4}
+	highlight := todoLogHighlighter(prefixLengths, func(id string, prefix int) string {
 		return fmt.Sprintf("%s:%d", id, prefix)
 	})
 
-	if got := highlight("abc123"); got != "abc123:1" {
-		t.Fatalf("expected abc123 to use prefix 1, got %q", got)
+	if got := highlight("zzz999"); got != "zzz999:0" {
+		t.Fatalf("expected missing id to use prefix 0, got %q", got)
 	}
 }
 
@@ -104,8 +106,8 @@ func TestShouldUseTodoUpdateEditor(t *testing.T) {
 			want:        true,
 		},
 		{
-			name:        "no flags non-interactive",
-			want:        false,
+			name: "no flags non-interactive",
+			want: false,
 		},
 		{
 			name:        "no flags with edit",
