@@ -11,9 +11,6 @@ import (
 	"github.com/amonks/incrementum/internal/jj"
 )
 
-// DefaultTTL is the default lease duration for acquired workspaces.
-const DefaultTTL = time.Hour
-
 // Pool manages a pool of jujutsu workspaces.
 //
 // A Pool maintains workspaces in a shared location and tracks which workspaces
@@ -81,10 +78,6 @@ type AcquireOptions struct {
 	// Rev is the jj revision to check out. Defaults to "@" if empty.
 	Rev string
 
-	// TTL is how long the lease is valid before expiring.
-	// Defaults to DefaultTTL (1 hour) if zero.
-	TTL time.Duration
-
 	// Purpose describes why the workspace is being acquired.
 	// It must be a single-line string.
 	Purpose string
@@ -107,9 +100,6 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	if opts.Rev == "" {
 		opts.Rev = "@"
 	}
-	if opts.TTL == 0 {
-		opts.TTL = DefaultTTL
-	}
 	if strings.TrimSpace(opts.Purpose) == "" {
 		return "", fmt.Errorf("purpose is required")
 	}
@@ -130,21 +120,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 
 	// Find or create a workspace
 	err = p.stateStore.update(func(state *state) error {
-		// First, expire stale workspaces
 		now := time.Now()
-		for key, ws := range state.Workspaces {
-			if ws.Repo == repoName && ws.Status == StatusAcquired {
-				expiry := ws.AcquiredAt.Add(time.Duration(ws.TTLSeconds) * time.Second)
-				if now.After(expiry) {
-					ws.Status = StatusAvailable
-					ws.Purpose = ""
-					ws.AcquiredByPID = 0
-					ws.AcquiredAt = time.Time{}
-					ws.TTLSeconds = 0
-					state.Workspaces[key] = ws
-				}
-			}
-		}
 
 		// Find an available workspace
 		for key, ws := range state.Workspaces {
@@ -158,7 +134,6 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 				ws.Purpose = opts.Purpose
 				ws.AcquiredByPID = os.Getpid()
 				ws.AcquiredAt = now
-				ws.TTLSeconds = int(opts.TTL.Seconds())
 				state.Workspaces[key] = ws
 				return nil
 			}
@@ -179,7 +154,6 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 			Status:        StatusAcquired,
 			AcquiredByPID: os.Getpid(),
 			AcquiredAt:    now,
-			TTLSeconds:    int(opts.TTL.Seconds()),
 			Provisioned:   false,
 		}
 
@@ -262,7 +236,6 @@ func (p *Pool) releaseToAvailable(wsPath string) error {
 				ws.Purpose = ""
 				ws.AcquiredByPID = 0
 				ws.AcquiredAt = time.Time{}
-				ws.TTLSeconds = 0
 				state.Workspaces[key] = ws
 				return nil
 			}
@@ -304,48 +277,6 @@ func (p *Pool) ReleaseByName(repoPath, wsName string) error {
 	return p.releaseToAvailable(ws.Path)
 }
 
-// Renew extends the TTL for an acquired workspace.
-//
-// Call this periodically to prevent a long-running lease from expiring.
-// The TTL is reset to its original duration from the current time.
-func (p *Pool) Renew(wsPath string) error {
-	return p.stateStore.update(func(state *state) error {
-		for key, ws := range state.Workspaces {
-			if ws.Path == wsPath {
-				if ws.Status != StatusAcquired {
-					return fmt.Errorf("workspace is not acquired")
-				}
-				ws.AcquiredAt = time.Now()
-				state.Workspaces[key] = ws
-				return nil
-			}
-		}
-		return fmt.Errorf("workspace not found: %s", wsPath)
-	})
-}
-
-// RenewByName extends the TTL for an acquired workspace by name.
-func (p *Pool) RenewByName(repoPath, wsName string) error {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
-	if err != nil {
-		return fmt.Errorf("get repo name: %w", err)
-	}
-
-	return p.stateStore.update(func(state *state) error {
-		key := repoName + "/" + wsName
-		ws, ok := state.Workspaces[key]
-		if !ok {
-			return fmt.Errorf("workspace not found: %s", wsName)
-		}
-		if ws.Status != StatusAcquired {
-			return fmt.Errorf("workspace is not acquired")
-		}
-		ws.AcquiredAt = time.Now()
-		state.Workspaces[key] = ws
-		return nil
-	})
-}
-
 // Info contains information about a workspace.
 type Info struct {
 	// Name is the workspace identifier (e.g., "ws-001").
@@ -357,7 +288,7 @@ type Info struct {
 	// Purpose describes why the workspace was acquired.
 	Purpose string
 
-	// Status indicates whether the workspace is available, acquired, or stale.
+	// Status indicates whether the workspace is available or acquired.
 	Status Status
 
 	// AcquiredByPID is the process ID that acquired this workspace.
@@ -367,10 +298,6 @@ type Info struct {
 	// AcquiredAt is when the workspace was acquired.
 	// Zero if not acquired.
 	AcquiredAt time.Time
-
-	// TTLRemaining is the time until the lease expires.
-	// Zero if not acquired or already expired.
-	TTLRemaining time.Duration
 }
 
 // List returns information about all workspaces for the given repository.
@@ -389,7 +316,6 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 	}
 
 	var items []Info
-	now := time.Now()
 
 	for _, ws := range st.Workspaces {
 		if ws.Repo != repoName {
@@ -403,16 +329,6 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 			Status:        ws.Status,
 			AcquiredByPID: ws.AcquiredByPID,
 			AcquiredAt:    ws.AcquiredAt,
-		}
-
-		// Calculate TTL remaining if acquired
-		if ws.Status == StatusAcquired {
-			expiry := ws.AcquiredAt.Add(time.Duration(ws.TTLSeconds) * time.Second)
-			if now.After(expiry) {
-				item.Status = StatusStale
-			} else {
-				item.TTLRemaining = expiry.Sub(now)
-			}
 		}
 
 		items = append(items, item)

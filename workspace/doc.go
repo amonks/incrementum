@@ -16,7 +16,6 @@
 //
 //	wsPath, err := pool.Acquire("/path/to/repo", workspace.AcquireOptions{
 //	    Rev: "@",
-//	    TTL: time.Hour,
 //	    Purpose: "feature work",
 //	})
 //	if err != nil {
@@ -42,6 +41,5 @@
 // # Concurrency
 //
 // The pool uses file locking to safely handle concurrent access from multiple
-// processes. Workspaces are acquired with a TTL (time-to-live) and automatically
-// expire if not released or renewed.
+// processes. Workspaces remain acquired until they are released.
 package workspace

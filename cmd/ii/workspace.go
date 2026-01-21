@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
@@ -34,13 +33,6 @@ var workspaceListCmd = &cobra.Command{
 	RunE:  runWorkspaceList,
 }
 
-var workspaceRenewCmd = &cobra.Command{
-	Use:   "renew [name]",
-	Short: "Extend the TTL for an acquired workspace",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  runWorkspaceRenew,
-}
-
 var workspaceDestroyAllCmd = &cobra.Command{
 	Use:   "destroy-all",
 	Short: "Destroy all workspaces for the current repository",
@@ -49,17 +41,15 @@ var workspaceDestroyAllCmd = &cobra.Command{
 
 var (
 	workspaceAcquireRev     string
-	workspaceAcquireTTL     time.Duration
 	workspaceAcquirePurpose string
 	workspaceListJSON       bool
 )
 
 func init() {
 	rootCmd.AddCommand(workspaceCmd)
-	workspaceCmd.AddCommand(workspaceAcquireCmd, workspaceReleaseCmd, workspaceListCmd, workspaceRenewCmd, workspaceDestroyAllCmd)
+	workspaceCmd.AddCommand(workspaceAcquireCmd, workspaceReleaseCmd, workspaceListCmd, workspaceDestroyAllCmd)
 
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquireRev, "rev", "@", "Revision to check out")
-	workspaceAcquireCmd.Flags().DurationVar(&workspaceAcquireTTL, "ttl", workspace.DefaultTTL, "Lease duration before auto-expiry")
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquirePurpose, "purpose", "", "Purpose for acquiring the workspace")
 	workspaceListCmd.Flags().BoolVar(&workspaceListJSON, "json", false, "Output as JSON")
 }
@@ -77,7 +67,6 @@ func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
 
 	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{
 		Rev:     workspaceAcquireRev,
-		TTL:     workspaceAcquireTTL,
 		Purpose: workspaceAcquirePurpose,
 	})
 	if err != nil {
@@ -138,25 +127,6 @@ func runWorkspaceList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runWorkspaceRenew(cmd *cobra.Command, args []string) error {
-	pool, err := workspace.Open()
-	if err != nil {
-		return err
-	}
-
-	repoPath, err := getRepoPath()
-	if err != nil {
-		return err
-	}
-
-	wsName, err := resolveWorkspaceName(args, pool)
-	if err != nil {
-		return err
-	}
-
-	return pool.RenewByName(repoPath, wsName)
-}
-
 func runWorkspaceDestroyAll(cmd *cobra.Command, args []string) error {
 	pool, err := workspace.Open()
 	if err != nil {
@@ -178,10 +148,6 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string)
 
 	rows := make([][]string, 0, len(items))
 	for _, item := range items {
-		ttl := "-"
-		if item.Status == workspace.StatusAcquired && item.TTLRemaining > 0 {
-			ttl = item.TTLRemaining.Truncate(time.Second).String()
-		}
 		purpose := item.Purpose
 		if purpose == "" {
 			purpose = "-"
@@ -189,11 +155,10 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string)
 		rows = append(rows, []string{
 			highlight(item.Name),
 			string(item.Status),
-			ttl,
 			truncateTableCell(purpose),
 			truncateTableCell(item.Path),
 		})
 	}
 
-	return formatTable([]string{"NAME", "STATUS", "TTL", "PURPOSE", "PATH"}, rows)
+	return formatTable([]string{"NAME", "STATUS", "PURPOSE", "PATH"}, rows)
 }

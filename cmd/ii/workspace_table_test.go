@@ -3,7 +3,6 @@ package main
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/amonks/incrementum/workspace"
 )
@@ -11,18 +10,16 @@ import (
 func TestFormatWorkspaceTablePreservesAlignmentWithANSI(t *testing.T) {
 	items := []workspace.Info{
 		{
-			Name:         "ws-001",
-			Path:         "/tmp/ws-001",
-			Purpose:      "feature work",
-			Status:       workspace.StatusAvailable,
-			TTLRemaining: 0,
+			Name:    "ws-001",
+			Path:    "/tmp/ws-001",
+			Purpose: "feature work",
+			Status:  workspace.StatusAvailable,
 		},
 		{
-			Name:         "ws-010",
-			Path:         "/tmp/ws-010",
-			Purpose:      "bugfix",
-			Status:       workspace.StatusAcquired,
-			TTLRemaining: 2*time.Minute + 5*time.Second,
+			Name:    "ws-010",
+			Path:    "/tmp/ws-010",
+			Purpose: "bugfix",
+			Status:  workspace.StatusAcquired,
 		},
 	}
 
@@ -40,11 +37,10 @@ func TestFormatWorkspaceTableTruncatesLongPaths(t *testing.T) {
 	longPath := "/tmp/" + strings.Repeat("a", 60)
 	items := []workspace.Info{
 		{
-			Name:         "ws-002",
-			Path:         longPath,
-			Purpose:      "refactor",
-			Status:       workspace.StatusAvailable,
-			TTLRemaining: 0,
+			Name:    "ws-002",
+			Path:    longPath,
+			Purpose: "refactor",
+			Status:  workspace.StatusAvailable,
 		},
 	}
 

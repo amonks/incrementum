@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/amonks/incrementum/workspace"
 )
@@ -78,7 +77,7 @@ func TestResolveWorkspaceNameFromCwd(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour, Purpose: "workspace test"})
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: "workspace test"})
 	if err != nil {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}

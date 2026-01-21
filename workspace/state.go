@@ -20,9 +20,6 @@ const (
 
 	// StatusAcquired indicates the workspace is currently in use.
 	StatusAcquired Status = "acquired"
-
-	// StatusStale indicates the workspace's lease has expired.
-	StatusStale Status = "stale"
 )
 
 // repoInfo stores information about a tracked repository.
@@ -39,7 +36,6 @@ type workspaceInfo struct {
 	Status        Status    `json:"status"`
 	AcquiredByPID int       `json:"acquired_by_pid,omitempty"`
 	AcquiredAt    time.Time `json:"acquired_at,omitempty"`
-	TTLSeconds    int       `json:"ttl_seconds,omitempty"`
 	Provisioned   bool      `json:"provisioned"`
 }
 

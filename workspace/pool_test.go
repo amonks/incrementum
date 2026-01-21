@@ -31,8 +31,8 @@ func runJJ(dir string, args ...string) error {
 	return cmd.Run()
 }
 
-func acquireOptions(ttl time.Duration) workspace.AcquireOptions {
-	return workspace.AcquireOptions{TTL: ttl, Purpose: "test purpose"}
+func acquireOptions() workspace.AcquireOptions {
+	return workspace.AcquireOptions{Purpose: "test purpose"}
 }
 
 func TestPool_Acquire_CreatesNewWorkspace(t *testing.T) {
@@ -49,7 +49,7 @@ func TestPool_Acquire_CreatesNewWorkspace(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestPool_Acquire_RequiresPurpose(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	_, err = pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour, Purpose: ""})
+	_, err = pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: ""})
 	if err == nil {
 		t.Fatal("expected error for empty purpose")
 	}
@@ -117,7 +117,7 @@ func TestPool_Acquire_RejectsMultilinePurpose(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	_, err = pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour, Purpose: "line 1\nline 2"})
+	_, err = pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: "line 1\nline 2"})
 	if err == nil {
 		t.Fatal("expected error for multiline purpose")
 	}
@@ -138,7 +138,7 @@ func TestPool_Acquire_ReusesAvailableWorkspace(t *testing.T) {
 	}
 
 	// Claim and release a workspace
-	wsPath1, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath1, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim workspace: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestPool_Acquire_ReusesAvailableWorkspace(t *testing.T) {
 	}
 
 	// Claim again - should reuse the same workspace
-	wsPath2, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath2, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim workspace second time: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestPool_Acquire_ReusesAvailableWorkspace(t *testing.T) {
 		t.Fatalf("failed to release workspace: %v", err)
 	}
 
-	wsPath3, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath3, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim workspace third time: %v", err)
 	}
@@ -190,12 +190,12 @@ func TestPool_Acquire_CreatesMultipleWorkspaces(t *testing.T) {
 	}
 
 	// Claim two workspaces without releasing
-	wsPath1, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath1, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim workspace 1: %v", err)
 	}
 
-	wsPath2, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath2, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim workspace 2: %v", err)
 	}
@@ -219,7 +219,7 @@ func TestPool_Acquire_CreatesMultipleWorkspaces(t *testing.T) {
 		t.Fatalf("failed to release workspace 2: %v", err)
 	}
 
-	wsPath3, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath3, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim workspace 3: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestPool_Release(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim workspace: %v", err)
 	}
@@ -252,45 +252,7 @@ func TestPool_Release(t *testing.T) {
 		t.Fatalf("failed to release workspace: %v", err)
 	}
 
-	wsPath2, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
-	if err != nil {
-		t.Fatalf("failed to acquire workspace after release: %v", err)
-	}
-
-	if err := pool.Release(wsPath2); err != nil {
-		t.Fatalf("failed to release workspace again: %v", err)
-	}
-}
-
-func TestPool_Renew(t *testing.T) {
-	repoPath := setupTestRepo(t)
-	workspacesDir := t.TempDir()
-	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
-	stateDir := t.TempDir()
-
-	pool, err := workspace.OpenWithOptions(workspace.Options{
-		StateDir:      stateDir,
-		WorkspacesDir: workspacesDir,
-	})
-	if err != nil {
-		t.Fatalf("failed to open pool: %v", err)
-	}
-
-	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
-	if err != nil {
-		t.Fatalf("failed to claim workspace: %v", err)
-	}
-
-	// Heartbeat should extend the lease
-	if err := pool.Renew(wsPath); err != nil {
-		t.Fatalf("failed to heartbeat: %v", err)
-	}
-
-	if err := pool.Release(wsPath); err != nil {
-		t.Fatalf("failed to release workspace: %v", err)
-	}
-
-	wsPath2, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath2, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to acquire workspace after release: %v", err)
 	}
@@ -325,7 +287,7 @@ func TestPool_List(t *testing.T) {
 	}
 
 	// Claim one
-	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to claim: %v", err)
 	}
@@ -354,53 +316,6 @@ func TestPool_List(t *testing.T) {
 		t.Fatalf("failed to release workspace: %v", err)
 	}
 
-}
-
-func TestPool_ExpiresStaleLeases(t *testing.T) {
-	repoPath := setupTestRepo(t)
-	workspacesDir := t.TempDir()
-	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
-	stateDir := t.TempDir()
-
-	pool, err := workspace.OpenWithOptions(workspace.Options{
-		StateDir:      stateDir,
-		WorkspacesDir: workspacesDir,
-	})
-	if err != nil {
-		t.Fatalf("failed to open pool: %v", err)
-	}
-
-	// Claim with very short TTL
-	wsPath1, err := pool.Acquire(repoPath, acquireOptions(time.Millisecond))
-	if err != nil {
-		t.Fatalf("failed to claim: %v", err)
-	}
-
-	// Wait for it to expire
-	time.Sleep(10 * time.Millisecond)
-
-	// Next claim should reuse the expired workspace
-	wsPath2, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
-	if err != nil {
-		t.Fatalf("failed to claim after expiry: %v", err)
-	}
-
-	if wsPath1 != wsPath2 {
-		t.Errorf("expected expired workspace to be reused, got %q and %q", wsPath1, wsPath2)
-	}
-
-	if err := pool.Release(wsPath2); err != nil {
-		t.Fatalf("failed to release workspace: %v", err)
-	}
-
-	wsPath3, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
-	if err != nil {
-		t.Fatalf("failed to claim workspace after release: %v", err)
-	}
-
-	if err := pool.Release(wsPath3); err != nil {
-		t.Fatalf("failed to release workspace again: %v", err)
-	}
 }
 
 func TestPool_DefaultOptions(t *testing.T) {
@@ -450,7 +365,7 @@ func TestRepoRootFromPath_Workspace(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}
@@ -506,12 +421,12 @@ func TestPool_DestroyAll(t *testing.T) {
 	}
 
 	// Acquire two workspaces
-	wsPath1, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath1, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to acquire workspace 1: %v", err)
 	}
 
-	wsPath2, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath2, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to acquire workspace 2: %v", err)
 	}
@@ -561,7 +476,7 @@ func TestPool_DestroyAll_RemovesSessions(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}
@@ -619,7 +534,7 @@ func TestPool_WorkspaceNameForPath(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	wsPath, err := pool.Acquire(repoPath, acquireOptions())
 	if err != nil {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}
