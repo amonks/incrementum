@@ -952,5 +952,22 @@ func formatTimeAgo(then time.Time, now time.Time) string {
 		now = then
 	}
 
-	return now.Sub(then).Truncate(time.Second).String() + " ago"
+	duration := now.Sub(then).Truncate(time.Second)
+	seconds := int64(duration.Seconds())
+	if seconds < 60 {
+		return fmt.Sprintf("%ds ago", seconds)
+	}
+
+	minutes := seconds / 60
+	if minutes < 60 {
+		return fmt.Sprintf("%dm ago", minutes)
+	}
+
+	hours := minutes / 60
+	if hours < 24 {
+		return fmt.Sprintf("%dh ago", hours)
+	}
+
+	days := hours / 24
+	return fmt.Sprintf("%dd ago", days)
 }

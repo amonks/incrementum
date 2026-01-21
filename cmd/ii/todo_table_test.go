@@ -86,10 +86,31 @@ func TestFormatTodoTableShowsCreatedUpdatedAgo(t *testing.T) {
 
 	output := formatTodoTable(todos, nil, func(id string, prefix int) string { return id }, now)
 
-	if !strings.Contains(output, "2m5s ago") {
+	if !strings.Contains(output, "2m ago") {
 		t.Fatalf("expected created age in output, got:\n%s", output)
 	}
-	if !strings.Contains(output, "1h0m0s ago") {
+	if !strings.Contains(output, "1h ago") {
 		t.Fatalf("expected updated age in output, got:\n%s", output)
+	}
+}
+
+func TestFormatTodoTableShowsSecondsAgo(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 30, 0, time.UTC)
+	todos := []todo.Todo{
+		{
+			ID:        "def456",
+			Priority:  1,
+			Type:      todo.TodoType("task"),
+			Status:    todo.StatusOpen,
+			Title:     "Seconds check",
+			CreatedAt: now.Add(-45 * time.Second),
+			UpdatedAt: now.Add(-45 * time.Second),
+		},
+	}
+
+	output := formatTodoTable(todos, nil, func(id string, prefix int) string { return id }, now)
+
+	if !strings.Contains(output, "45s ago") {
+		t.Fatalf("expected seconds age in output, got:\n%s", output)
 	}
 }
