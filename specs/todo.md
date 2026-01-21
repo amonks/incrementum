@@ -74,6 +74,7 @@ Fields (JSON keys):
 
 - Only fields explicitly provided are changed.
 - When `todo update` runs in editor mode for multiple IDs, the CLI opens one editor session per todo.
+- Editor mode is used by default only when no update fields are supplied; if update fields are provided, the editor opens only with `--edit`.
 - Status transitions automatically adjust timestamps:
   - `closed`/`done` sets `closed_at` and clears delete markers.
   - `open`/`in_progress` clears `closed_at` and delete markers.

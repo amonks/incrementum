@@ -49,8 +49,8 @@ var todoUpdateCmd = &cobra.Command{
 	Long: `Update one or more todos.
 
 By default, opens $EDITOR to edit a TOML representation of the todo
-when running interactively (one editor session per ID). Use --no-edit to skip the editor, or
---edit to force opening the editor even when not interactive.`,
+when running interactively and no update flags are provided (one editor session per ID).
+Use --no-edit to skip the editor, or --edit to force opening the editor even when not interactive.`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runTodoUpdate,
 }
@@ -360,11 +360,18 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		todoUpdateDescription = desc
 	}
 
+	hasFlags := cmd.Flags().Changed("title") ||
+		cmd.Flags().Changed("description") ||
+		cmd.Flags().Changed("desc") ||
+		cmd.Flags().Changed("status") ||
+		cmd.Flags().Changed("priority") ||
+		cmd.Flags().Changed("type")
+
 	// Determine whether to open editor:
 	// - --edit forces editor
 	// - --no-edit skips editor
-	// - otherwise, open editor if interactive
-	useEditor := todoUpdateEdit || (!todoUpdateNoEdit && editor.IsInteractive())
+	// - otherwise, open editor only when no update flags and interactive
+	useEditor := shouldUseTodoUpdateEditor(hasFlags, todoUpdateEdit, todoUpdateNoEdit, editor.IsInteractive())
 	if useEditor {
 		updatedItems := make([]todo.Todo, 0, len(args))
 		for _, id := range args {
@@ -418,13 +425,6 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Non-editor path: at least one flag is required
-	hasFlags := cmd.Flags().Changed("title") ||
-		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("desc") ||
-		cmd.Flags().Changed("status") ||
-		cmd.Flags().Changed("priority") ||
-		cmd.Flags().Changed("type")
-
 	if !hasFlags {
 		return fmt.Errorf("at least one update flag is required (use --edit to open editor)")
 	}
@@ -463,6 +463,19 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
 	}
 	return nil
+}
+
+func shouldUseTodoUpdateEditor(hasUpdateFlags bool, editFlag bool, noEditFlag bool, interactive bool) bool {
+	if editFlag {
+		return true
+	}
+	if noEditFlag {
+		return false
+	}
+	if hasUpdateFlags {
+		return false
+	}
+	return interactive
 }
 
 func runTodoClose(cmd *cobra.Command, args []string) error {

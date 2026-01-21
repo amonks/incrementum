@@ -68,3 +68,65 @@ func TestTodoLogHighlighterHandlesSingleID(t *testing.T) {
 		t.Fatalf("expected abc123 to use prefix 1, got %q", got)
 	}
 }
+
+func TestShouldUseTodoUpdateEditor(t *testing.T) {
+	cases := []struct {
+		name           string
+		hasUpdateFlags bool
+		editFlag       bool
+		noEditFlag     bool
+		interactive    bool
+		want           bool
+	}{
+		{
+			name:           "flags set without edit",
+			hasUpdateFlags: true,
+			interactive:    true,
+			want:           false,
+		},
+		{
+			name:           "flags set with edit",
+			hasUpdateFlags: true,
+			editFlag:       true,
+			interactive:    true,
+			want:           true,
+		},
+		{
+			name:           "flags set with no-edit",
+			hasUpdateFlags: true,
+			noEditFlag:     true,
+			interactive:    true,
+			want:           false,
+		},
+		{
+			name:        "no flags interactive",
+			interactive: true,
+			want:        true,
+		},
+		{
+			name:        "no flags non-interactive",
+			want:        false,
+		},
+		{
+			name:        "no flags with edit",
+			editFlag:    true,
+			interactive: false,
+			want:        true,
+		},
+		{
+			name:        "no flags with no-edit",
+			noEditFlag:  true,
+			interactive: true,
+			want:        false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldUseTodoUpdateEditor(tc.hasUpdateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
+			if got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got)
+			}
+		})
+	}
+}
