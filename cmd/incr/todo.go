@@ -306,7 +306,8 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Printf("Created todo %s: %s\n", ui.HighlightID(created.ID, 0), created.Title)
+		highlight := todoLogHighlighter([]string{created.ID}, ui.HighlightID)
+		fmt.Printf("Created todo %s: %s\n", highlight(created.ID), created.Title)
 		return nil
 	}
 
@@ -331,7 +332,8 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Created todo %s: %s\n", ui.HighlightID(created.ID, 0), created.Title)
+	highlight := todoLogHighlighter([]string{created.ID}, ui.HighlightID)
+	fmt.Printf("Created todo %s: %s\n", highlight(created.ID), created.Title)
 	return nil
 }
 
@@ -396,7 +398,8 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Printf("Updated %s: %s\n", ui.HighlightID(updated[0].ID, 0), updated[0].Title)
+		highlight := todoLogHighlighter([]string{updated[0].ID}, ui.HighlightID)
+		fmt.Printf("Updated %s: %s\n", highlight(updated[0].ID), updated[0].Title)
 		return nil
 	}
 
@@ -437,8 +440,13 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ids := make([]string, 0, len(updated))
 	for _, item := range updated {
-		fmt.Printf("Updated %s: %s\n", ui.HighlightID(item.ID, 0), item.Title)
+		ids = append(ids, item.ID)
+	}
+	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	for _, item := range updated {
+		fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
 	}
 	return nil
 }
@@ -455,8 +463,13 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ids := make([]string, 0, len(closed))
+	for _, item := range closed {
+		ids = append(ids, item.ID)
+	}
+	highlight := todoLogHighlighter(ids, ui.HighlightID)
 	for _, t := range closed {
-		fmt.Printf("Closed %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
+		fmt.Printf("Closed %s: %s\n", highlight(t.ID), t.Title)
 	}
 	return nil
 }
@@ -473,8 +486,13 @@ func runTodoFinish(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ids := make([]string, 0, len(finished))
+	for _, item := range finished {
+		ids = append(ids, item.ID)
+	}
+	highlight := todoLogHighlighter(ids, ui.HighlightID)
 	for _, t := range finished {
-		fmt.Printf("Finished %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
+		fmt.Printf("Finished %s: %s\n", highlight(t.ID), t.Title)
 	}
 	return nil
 }
@@ -491,8 +509,13 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ids := make([]string, 0, len(reopened))
+	for _, item := range reopened {
+		ids = append(ids, item.ID)
+	}
+	highlight := todoLogHighlighter(ids, ui.HighlightID)
 	for _, t := range reopened {
-		fmt.Printf("Reopened %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
+		fmt.Printf("Reopened %s: %s\n", highlight(t.ID), t.Title)
 	}
 	return nil
 }
@@ -509,8 +532,13 @@ func runTodoDelete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ids := make([]string, 0, len(deleted))
+	for _, item := range deleted {
+		ids = append(ids, item.ID)
+	}
+	highlight := todoLogHighlighter(ids, ui.HighlightID)
 	for _, t := range deleted {
-		fmt.Printf("Deleted %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
+		fmt.Printf("Deleted %s: %s\n", highlight(t.ID), t.Title)
 	}
 	return nil
 }
@@ -622,7 +650,8 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Added dependency: %s %s %s\n", ui.HighlightID(dep.TodoID, 0), dep.Type, ui.HighlightID(dep.DependsOnID, 0))
+	highlight := todoLogHighlighter([]string{dep.TodoID, dep.DependsOnID}, ui.HighlightID)
+	fmt.Printf("Added dependency: %s %s %s\n", highlight(dep.TodoID), dep.Type, highlight(dep.DependsOnID))
 	return nil
 }
 
@@ -695,6 +724,20 @@ func formatTodoTable(todos []todo.Todo, highlight func(string, int) string) stri
 	}
 
 	return formatTable([]string{"ID", "PRI", "TYPE", "STATUS", "TITLE"}, rows)
+}
+
+func todoLogHighlighter(ids []string, highlight func(string, int) string) func(string) string {
+	prefixLengths := ui.UniqueIDPrefixLengths(ids)
+	return func(id string) string {
+		if id == "" {
+			return id
+		}
+		prefixLen, ok := prefixLengths[strings.ToLower(id)]
+		if !ok {
+			return highlight(id, 0)
+		}
+		return highlight(id, prefixLen)
+	}
 }
 
 // printTodoDetail prints detailed information about a todo.

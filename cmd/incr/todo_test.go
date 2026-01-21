@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -42,5 +43,28 @@ func TestResolveDescriptionFromStdin(t *testing.T) {
 				t.Fatalf("expected %q, got %q", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestTodoLogHighlighterUsesUniquePrefixes(t *testing.T) {
+	highlight := todoLogHighlighter([]string{"abc123", "abd456"}, func(id string, prefix int) string {
+		return fmt.Sprintf("%s:%d", id, prefix)
+	})
+
+	if got := highlight("abc123"); got != "abc123:3" {
+		t.Fatalf("expected abc123 to use prefix 3, got %q", got)
+	}
+	if got := highlight("abd456"); got != "abd456:3" {
+		t.Fatalf("expected abd456 to use prefix 3, got %q", got)
+	}
+}
+
+func TestTodoLogHighlighterHandlesSingleID(t *testing.T) {
+	highlight := todoLogHighlighter([]string{"abc123"}, func(id string, prefix int) string {
+		return fmt.Sprintf("%s:%d", id, prefix)
+	})
+
+	if got := highlight("abc123"); got != "abc123:1" {
+		t.Fatalf("expected abc123 to use prefix 1, got %q", got)
 	}
 }
