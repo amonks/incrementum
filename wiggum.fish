@@ -59,6 +59,7 @@ function wiggum --argument-names spec
   set -l consecutive_failures 0
   while true
     echo ">> executing against $spec"
+    echo ">> last_commit_id=$last_commit_id"
     set -l prompt "Figure out what the highest priority task is towards implementing the $spec spec, and complete it. Do tdd (write a failing test, watch it fail, make it pass). If there's nothing left to do, that's ok: exit without making changes."
     echo "$prompt" | opencode run
     if ! go test ./...
@@ -75,11 +76,14 @@ function wiggum --argument-names spec
     set -l consecutive_failures 0
     jj debug snapshot
     set -l new_commit_id "$(jj show -T commit_id)"
+    echo ">> captured post-work snapshot. new_commit_id=$new_commit_id"
     if test "$last_commit_id" = "$new_commit_id"
       echo ">> no changes; done"
       break
     end
+    echo ">> made changes: last_commit_id=$last_commit_id, new_commit_id=$new_commit_id"
     set -l last_commit_id "$new_commit_id"
-    echo ">> done. again..."
+    echo ">> updated last_commit_id for next turn."
+    echo ">> loop again..."
   end
 end
