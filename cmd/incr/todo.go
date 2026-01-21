@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/amonks/incrementum/internal/ui"
 
@@ -662,7 +663,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	printTodoTable(todos, todoIDPrefixLengths(allTodos))
+	printTodoTable(todos, todoIDPrefixLengths(allTodos), time.Now())
 	return nil
 }
 
@@ -694,7 +695,7 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	printTodoTable(todos, todoIDPrefixLengths(allTodos))
+	printTodoTable(todos, todoIDPrefixLengths(allTodos), time.Now())
 	return nil
 }
 
@@ -751,16 +752,16 @@ func parseIDList(value string) []string {
 }
 
 // printTodoTable prints todos in a table format.
-func printTodoTable(todos []todo.Todo, prefixLengths map[string]int) {
+func printTodoTable(todos []todo.Todo, prefixLengths map[string]int, now time.Time) {
 	if len(todos) == 0 {
 		fmt.Println("No todos found.")
 		return
 	}
 
-	fmt.Print(formatTodoTable(todos, prefixLengths, ui.HighlightID))
+	fmt.Print(formatTodoTable(todos, prefixLengths, ui.HighlightID, now))
 }
 
-func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight func(string, int) string) string {
+func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight func(string, int) string, now time.Time) string {
 	rows := make([][]string, 0, len(todos))
 
 	if prefixLengths == nil {
@@ -771,17 +772,21 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 		title := truncateTableCell(t.Title)
 		prefixLen := prefixLengths[strings.ToLower(t.ID)]
 		highlighted := highlight(t.ID, prefixLen)
+		createdAge := formatTimeAgo(t.CreatedAt, now)
+		updatedAge := formatTimeAgo(t.UpdatedAt, now)
 		row := []string{
 			highlighted,
 			priorityShort(t.Priority),
 			string(t.Type),
 			string(t.Status),
+			createdAge,
+			updatedAge,
 			title,
 		}
 		rows = append(rows, row)
 	}
 
-	return formatTable([]string{"ID", "PRI", "TYPE", "STATUS", "TITLE"}, rows)
+	return formatTable([]string{"ID", "PRI", "TYPE", "STATUS", "CREATED", "UPDATED", "TITLE"}, rows)
 }
 
 func todoIDPrefixLengths(todos []todo.Todo) map[string]int {
@@ -895,4 +900,16 @@ func statusIcon(s todo.Status) string {
 	default:
 		return "[?]"
 	}
+}
+
+func formatTimeAgo(then time.Time, now time.Time) string {
+	if then.IsZero() {
+		return "-"
+	}
+
+	if now.Before(then) {
+		now = then
+	}
+
+	return now.Sub(then).Truncate(time.Second).String() + " ago"
 }

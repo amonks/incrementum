@@ -96,6 +96,8 @@ Fields (JSON keys):
 - Tombstones are excluded by default unless `IncludeTombstones` is set.
 - CLI ID highlighting uses the shortest unique prefix across all todos,
   including tombstones, so the display matches prefix resolution.
+- CLI table output includes created/updated age columns formatted as
+  `<duration> ago`.
 
 ### Ready
 
