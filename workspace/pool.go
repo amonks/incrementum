@@ -530,6 +530,12 @@ func (p *Pool) DestroyAll(repoPath string) error {
 				delete(state.Workspaces, key)
 			}
 		}
+
+		for key, session := range state.Sessions {
+			if session.Repo == repoName {
+				delete(state.Sessions, key)
+			}
+		}
 		return nil
 	})
 	if err != nil {

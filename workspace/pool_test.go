@@ -533,6 +533,44 @@ func TestPool_DestroyAll(t *testing.T) {
 	}
 }
 
+func TestPool_DestroyAll_RemovesSessions(t *testing.T) {
+	repoPath := setupTestRepo(t)
+	workspacesDir := t.TempDir()
+	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
+	stateDir := t.TempDir()
+
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	wsPath, err := pool.Acquire(repoPath, acquireOptions(time.Hour))
+	if err != nil {
+		t.Fatalf("failed to acquire workspace: %v", err)
+	}
+
+	wsName := filepath.Base(wsPath)
+	_, err = pool.CreateSession(repoPath, "todo-123", wsName, "Test topic", time.Now().UTC())
+	if err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+
+	if err := pool.DestroyAll(repoPath); err != nil {
+		t.Fatalf("failed to destroy all: %v", err)
+	}
+
+	sessions, err := pool.ListSessions(repoPath)
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	if len(sessions) != 0 {
+		t.Fatalf("expected 0 sessions after destroy-all, got %d", len(sessions))
+	}
+}
+
 func TestPool_DestroyAll_NoWorkspaces(t *testing.T) {
 	repoPath := setupTestRepo(t)
 	workspacesDir := t.TempDir()
