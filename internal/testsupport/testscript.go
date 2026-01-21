@@ -60,10 +60,10 @@ func SetupScriptEnv(t testing.TB, env *testscript.Env) error {
 	env.Setenv("INCR", BuildIncr(t))
 
 	homeDir := filepath.Join(env.WorkDir, "home")
-	if err := os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incr"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incrementum"), 0o755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incr", "workspaces"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incrementum", "workspaces"), 0o755); err != nil {
 		return err
 	}
 	env.Setenv("HOME", homeDir)

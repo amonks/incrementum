@@ -35,8 +35,8 @@
 //
 // # Storage
 //
-// By default, workspaces are stored in ~/.local/share/incr/workspaces/ and
-// state is stored in ~/.local/state/incr/. These locations follow the XDG
+// By default, workspaces are stored in ~/.local/share/incrementum/workspaces/ and
+// state is stored in ~/.local/state/incrementum/. These locations follow the XDG
 // Base Directory Specification.
 //
 // # Concurrency

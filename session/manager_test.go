@@ -16,8 +16,8 @@ import (
 func TestManager_StartDone(t *testing.T) {
 	repoPath := setupSessionRepo(t)
 	homeDir := os.Getenv("HOME")
-	stateDir := filepath.Join(homeDir, ".local", "state", "incr")
-	workspacesDir := filepath.Join(homeDir, ".local", "share", "incr", "workspaces")
+	stateDir := filepath.Join(homeDir, ".local", "state", "incrementum")
+	workspacesDir := filepath.Join(homeDir, ".local", "share", "incrementum", "workspaces")
 
 	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
 	if err != nil {
@@ -138,7 +138,7 @@ func TestManager_RunReleasesWorkspaceOnSessionUpdateError(t *testing.T) {
 		Sessions   map[string]json.RawMessage `json:"sessions"`
 	}
 
-	statePath := filepath.Join(os.Getenv("HOME"), ".local", "state", "incr", "state.json")
+	statePath := filepath.Join(os.Getenv("HOME"), ".local", "state", "incrementum", "state.json")
 	removeErr := make(chan error, 1)
 	go func() {
 		deadline := time.Now().Add(2 * time.Second)
@@ -301,8 +301,8 @@ func setupSessionRepo(t *testing.T) string {
 	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
 
 	homeDir := t.TempDir()
-	os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incr"), 0755)
-	os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incr", "workspaces"), 0755)
+	os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incrementum"), 0755)
+	os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incrementum", "workspaces"), 0755)
 	t.Setenv("HOME", homeDir)
 
 	client := jj.New()

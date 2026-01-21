@@ -6,7 +6,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 ## Architecture
 - `workspace.Pool` is the public API for acquiring, releasing, renewing, listing, and destroying workspaces.
 - State is persisted in a JSON file managed by `stateStore` with an advisory file lock to serialize updates.
-- Workspaces live under a shared base directory (`~/.local/share/incr/workspaces` by default). State lives under `~/.local/state/incr` by default.
+- Workspaces live under a shared base directory (`~/.local/share/incrementum/workspaces` by default). State lives under `~/.local/state/incrementum` by default.
 - Jujutsu operations are delegated to `internal/jj` (workspace add/forget, edit, and new change).
 - Configuration hooks are loaded from `.incr.toml` via `internal/config` and executed on each acquire.
 

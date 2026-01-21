@@ -9,10 +9,10 @@ session state is scoped to a repo slug.
 
 ## Storage
 
-- Session state is stored in `~/.local/state/incr/state.json` alongside
+- Session state is stored in `~/.local/state/incrementum/state.json` alongside
   workspace/session state.
 - Opencode session logs are stored under
-  `~/.local/share/incr/opencode/<repo-slug>/<session-id>.log`.
+  `~/.local/share/incrementum/opencode/<repo-slug>/<session-id>.log`.
 - Opencode session metadata uses the same repo slug naming rules as the
   workspace pool.
 - All state updates are serialized using the existing state file lock.
@@ -77,7 +77,7 @@ Fields (JSON keys):
 
 - Start the opencode server by executing `opencode serve`.
 - Runs in the foreground and streams logs to the terminal.
-- Writes daemon logs to `~/.local/share/incr/opencode/<repo-slug>/daemon.log`.
+- Writes daemon logs to `~/.local/share/incrementum/opencode/<repo-slug>/daemon.log`.
 - Records daemon info (pid/host/port) in state while running.
 - Does not create any opencode session records.
 
@@ -86,7 +86,7 @@ Fields (JSON keys):
 - Prompt is read from stdin when no prompt argument is provided.
 - Always attaches to the running daemon and errors if the daemon is not running.
 - Creates a new opencode session record with status `active`.
-- Creates a log file at `~/.local/share/incr/opencode/<repo-slug>/<session-id>.log`.
+- Creates a log file at `~/.local/share/incrementum/opencode/<repo-slug>/<session-id>.log`.
 - Executes `opencode run --attach` and tees stdout/stderr to the log file.
 - Uses only the provided prompt/flags; no implicit config overrides.
 - Prints the session id only.

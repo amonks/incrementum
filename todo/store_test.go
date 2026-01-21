@@ -25,7 +25,7 @@ func (m *mockPrompter) Confirm(message string) (bool, error) {
 
 // setupTestRepo creates a temporary jj repository for testing.
 // It also sets HOME to a temp directory to prevent leaking state into
-// ~/.local/state/incr and ~/.local/share/incr/workspaces.
+// ~/.local/state/incrementum and ~/.local/share/incrementum/workspaces.
 func setupTestRepo(t *testing.T) string {
 	t.Helper()
 
@@ -35,8 +35,8 @@ func setupTestRepo(t *testing.T) string {
 
 	// Set HOME to a temp directory to isolate state/workspaces
 	homeDir := t.TempDir()
-	os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incr"), 0755)
-	os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incr", "workspaces"), 0755)
+	os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incrementum"), 0755)
+	os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incrementum", "workspaces"), 0755)
 	t.Setenv("HOME", homeDir)
 
 	client := jj.New()

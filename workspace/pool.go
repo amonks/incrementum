@@ -28,17 +28,17 @@ type Pool struct {
 // Options configures a workspace pool.
 type Options struct {
 	// StateDir is the directory where pool state is stored.
-	// Defaults to ~/.local/state/incr if empty.
+	// Defaults to ~/.local/state/incrementum if empty.
 	StateDir string
 
 	// WorkspacesDir is the directory where workspaces are created.
-	// Defaults to ~/.local/share/incr/workspaces if empty.
+	// Defaults to ~/.local/share/incrementum/workspaces if empty.
 	WorkspacesDir string
 }
 
 // Open creates a new Pool with default options.
-// State is stored in ~/.local/state/incr and workspaces in
-// ~/.local/share/incr/workspaces.
+// State is stored in ~/.local/state/incrementum and workspaces in
+// ~/.local/share/incrementum/workspaces.
 func Open() (*Pool, error) {
 	return OpenWithOptions(Options{})
 }
@@ -52,12 +52,12 @@ func OpenWithOptions(opts Options) (*Pool, error) {
 
 	stateDir := opts.StateDir
 	if stateDir == "" {
-		stateDir = filepath.Join(home, ".local", "state", "incr")
+		stateDir = filepath.Join(home, ".local", "state", "incrementum")
 	}
 
 	workspacesDir := opts.WorkspacesDir
 	if workspacesDir == "" {
-		workspacesDir = filepath.Join(home, ".local", "share", "incr", "workspaces")
+		workspacesDir = filepath.Join(home, ".local", "share", "incrementum", "workspaces")
 	}
 
 	return &Pool{

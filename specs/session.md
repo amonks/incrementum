@@ -8,7 +8,7 @@ shared state file so multiple processes can coordinate safely.
 
 ## Storage
 
-- Session state is stored in `~/.local/state/incr/state.json`.
+- Session state is stored in `~/.local/state/incrementum/state.json`.
 - Session records are scoped per repo using the same repo slug as workspace
   state.
 - Session records store the workspace name only; workspace paths are resolved

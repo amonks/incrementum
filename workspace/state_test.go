@@ -40,7 +40,7 @@ func TestStateStore_SaveLoad(t *testing.T) {
 			"my-project/ws-001": {
 				Name:        "ws-001",
 				Repo:        "my-project",
-				Path:        "/Users/test/.local/share/incr/workspaces/my-project/ws-001",
+				Path:        "/Users/test/.local/share/incrementum/workspaces/my-project/ws-001",
 				Purpose:     "initial sync",
 				Status:      StatusAcquired,
 				Provisioned: true,
