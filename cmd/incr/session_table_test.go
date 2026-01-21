@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -62,6 +63,40 @@ func TestSessionAgeUsesDurationSeconds(t *testing.T) {
 	age := sessionpkg.Age(session, now)
 	if age != 90*time.Second {
 		t.Fatalf("expected 90s duration, got %s", age)
+	}
+}
+
+func TestFormatSessionTableIncludesSessionID(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	sessions := []sessionpkg.Session{
+		{
+			ID:            "sess-123",
+			TodoID:        "abc12345",
+			WorkspaceName: "ws-001",
+			Status:        sessionpkg.StatusActive,
+			Topic:         "Ship",
+			StartedAt:     now.Add(-time.Minute),
+			UpdatedAt:     now.Add(-time.Minute),
+		},
+	}
+
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now))
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	header := lines[0]
+	sessionIndex := strings.Index(header, "SESSION")
+	todoIndex := strings.Index(header, "TODO")
+	if sessionIndex == -1 || todoIndex == -1 || sessionIndex > todoIndex {
+		t.Fatalf("expected SESSION column before TODO in header, got: %q", header)
+	}
+
+	row := lines[1]
+	if !strings.Contains(row, "sess-123") {
+		t.Fatalf("expected session id in row, got: %q", row)
 	}
 }
 

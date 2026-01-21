@@ -221,15 +221,20 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, int) string, now time.Time) string {
 	rows := make([][]string, 0, len(sessions))
 
-	ids := make([]string, 0, len(sessions))
+	sessionIDs := make([]string, 0, len(sessions))
+	todoIDs := make([]string, 0, len(sessions))
 	for _, item := range sessions {
-		ids = append(ids, item.TodoID)
+		sessionIDs = append(sessionIDs, item.ID)
+		todoIDs = append(todoIDs, item.TodoID)
 	}
-	prefixLengths := ui.UniqueIDPrefixLengths(ids)
+	sessionPrefixLengths := ui.UniqueIDPrefixLengths(sessionIDs)
+	todoPrefixLengths := ui.UniqueIDPrefixLengths(todoIDs)
 
 	for _, item := range sessions {
-		prefixLen := prefixLengths[strings.ToLower(item.TodoID)]
-		id := highlight(item.TodoID, prefixLen)
+		sessionPrefixLen := sessionPrefixLengths[strings.ToLower(item.ID)]
+		sessionID := highlight(item.ID, sessionPrefixLen)
+		todoPrefixLen := todoPrefixLengths[strings.ToLower(item.TodoID)]
+		id := highlight(item.TodoID, todoPrefixLen)
 		topic := item.Topic
 		if topic == "" {
 			topic = "-"
@@ -242,6 +247,7 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 		}
 
 		row := []string{
+			sessionID,
 			id,
 			string(item.Status),
 			item.WorkspaceName,
@@ -252,5 +258,5 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 		rows = append(rows, row)
 	}
 
-	return formatTable([]string{"TODO", "STATUS", "WORKSPACE", "AGE", "TOPIC", "EXIT"}, rows)
+	return formatTable([]string{"SESSION", "TODO", "STATUS", "WORKSPACE", "AGE", "TOPIC", "EXIT"}, rows)
 }

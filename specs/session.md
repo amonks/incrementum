@@ -90,4 +90,4 @@ Fields (JSON keys):
 
 - Default output is a table matching other list commands.
 - `--json` emits structured output.
-- Suggested columns: `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.
+- Suggested columns: `SESSION`, `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.
