@@ -4,3 +4,4 @@
 - `specs/todo.md`: Describes the todo store semantics, data model, and CLI architecture.
 - `specs/session.md`: Defines session state and CLI behavior for `incr session`.
 - `specs/cli.md`: Describes the CLI architecture and behavior expectations for all subcommands.
+- `specs/opencode.md`: Defines `incr opencode` server/session behavior and storage.
