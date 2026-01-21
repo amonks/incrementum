@@ -20,9 +20,9 @@ exec $INCR todo show $TODO_ID
 stdout 'Fix the login bug'
 stdout 'bug'
 
-# update todo
-exec $INCR todo update $TODO_ID --status in_progress
-stdout 'Updated'
+# start todo
+exec $INCR todo start $TODO_ID
+stdout 'Started'
 
 exec $INCR todo list --json
 stdout '"status": "in_progress"'

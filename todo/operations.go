@@ -278,6 +278,15 @@ func (s *Store) Reopen(ids []string, reason string) ([]Todo, error) {
 	return s.Update(ids, opts)
 }
 
+// Start marks one or more todos as in progress.
+func (s *Store) Start(ids []string) ([]Todo, error) {
+	status := StatusInProgress
+	opts := UpdateOptions{
+		Status: &status,
+	}
+	return s.Update(ids, opts)
+}
+
 // Delete tombstones one or more todos with an optional reason.
 func (s *Store) Delete(ids []string, reason string) ([]Todo, error) {
 	status := StatusTombstone

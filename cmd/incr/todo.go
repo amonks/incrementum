@@ -76,6 +76,14 @@ var todoCloseCmd = &cobra.Command{
 
 var todoCloseReason string
 
+// todo start
+var todoStartCmd = &cobra.Command{
+	Use:   "start <id>...",
+	Short: "Mark one or more todos as in progress",
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  runTodoStart,
+}
+
 // todo finish
 var todoFinishCmd = &cobra.Command{
 	Use:   "finish <id>...",
@@ -172,7 +180,7 @@ var todoDepTreeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(todoCmd)
-	todoCmd.AddCommand(todoCreateCmd, todoUpdateCmd, todoCloseCmd, todoFinishCmd, todoReopenCmd,
+	todoCmd.AddCommand(todoCreateCmd, todoUpdateCmd, todoStartCmd, todoCloseCmd, todoFinishCmd, todoReopenCmd,
 		todoDeleteCmd, todoShowCmd, todoListCmd, todoReadyCmd, todoDepCmd)
 	todoDepCmd.AddCommand(todoDepAddCmd, todoDepTreeCmd)
 
@@ -470,6 +478,29 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 	highlight := todoLogHighlighter(ids, ui.HighlightID)
 	for _, t := range closed {
 		fmt.Printf("Closed %s: %s\n", highlight(t.ID), t.Title)
+	}
+	return nil
+}
+
+func runTodoStart(cmd *cobra.Command, args []string) error {
+	store, err := openTodoStore()
+	if err != nil {
+		return err
+	}
+	defer store.Release()
+
+	started, err := store.Start(args)
+	if err != nil {
+		return err
+	}
+
+	ids := make([]string, 0, len(started))
+	for _, item := range started {
+		ids = append(ids, item.ID)
+	}
+	highlight := todoLogHighlighter(ids, ui.HighlightID)
+	for _, t := range started {
+		fmt.Printf("Started %s: %s\n", highlight(t.ID), t.Title)
 	}
 	return nil
 }

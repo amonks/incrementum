@@ -79,10 +79,11 @@ Fields (JSON keys):
   - `tombstone` clears `closed_at`; `deleted_at` must be set.
 - `updated_at` always changes when a todo is updated.
 
-### Close / Reopen / Delete
+### Close / Reopen / Start / Delete
 
 - `close` sets status to `closed` and updates `closed_at`.
 - `reopen` sets status to `open` and clears `closed_at`.
+- `start` sets status to `in_progress` and clears `closed_at`.
 - `delete` sets status to `tombstone`, sets `deleted_at`, clears `closed_at`,
   and optionally records a delete reason.
 
@@ -113,6 +114,7 @@ The CLI mirrors the store API:
 
 - `todo create` -> `Store.Create`
 - `todo update` -> `Store.Update`
+- `todo start` -> `Store.Start`
 - `todo close` -> `Store.Close`
 - `todo reopen` -> `Store.Reopen`
 - `todo delete` -> `Store.Delete`

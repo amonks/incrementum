@@ -416,6 +416,37 @@ func TestStore_Reopen(t *testing.T) {
 	}
 }
 
+func TestStore_Start(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, _ := store.Create("Start the work", CreateOptions{})
+	_, err = store.Close([]string{created.ID}, "")
+	if err != nil {
+		t.Fatalf("failed to close todo: %v", err)
+	}
+
+	started, err := store.Start([]string{created.ID})
+	if err != nil {
+		t.Fatalf("failed to start: %v", err)
+	}
+
+	if len(started) != 1 {
+		t.Fatalf("expected 1 started todo, got %d", len(started))
+	}
+	if started[0].Status != StatusInProgress {
+		t.Errorf("expected status 'in_progress', got %q", started[0].Status)
+	}
+	if started[0].ClosedAt != nil {
+		t.Error("expected ClosedAt to be nil")
+	}
+}
+
 func TestStore_Delete(t *testing.T) {
 	repoPath := setupTestRepo(t)
 
