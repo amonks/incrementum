@@ -680,12 +680,12 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 		return enc.Encode(todos)
 	}
 
-	allTodos, err := store.List(todo.ListFilter{IncludeTombstones: true})
+	index, err := store.IDIndex()
 	if err != nil {
 		return err
 	}
 
-	printTodoTable(todos, todoIDPrefixLengths(allTodos), time.Now())
+	printTodoTable(todos, index.PrefixLengths(), time.Now())
 	return nil
 }
 
@@ -712,12 +712,12 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	allTodos, err := store.List(todo.ListFilter{IncludeTombstones: true})
+	index, err := store.IDIndex()
 	if err != nil {
 		return err
 	}
 
-	printTodoTable(todos, todoIDPrefixLengths(allTodos), time.Now())
+	printTodoTable(todos, index.PrefixLengths(), time.Now())
 	return nil
 }
 
@@ -821,19 +821,16 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 }
 
 func todoIDPrefixLengths(todos []todo.Todo) map[string]int {
-	ids := make([]string, 0, len(todos))
-	for _, t := range todos {
-		ids = append(ids, t.ID)
-	}
-	return ui.UniqueIDPrefixLengths(ids)
+	index := todo.NewIDIndex(todos)
+	return index.PrefixLengths()
 }
 
 func todoIDPrefixLengthsForStore(store *todo.Store) (map[string]int, error) {
-	allTodos, err := store.List(todo.ListFilter{IncludeTombstones: true})
+	index, err := store.IDIndex()
 	if err != nil {
 		return nil, err
 	}
-	return todoIDPrefixLengths(allTodos), nil
+	return index.PrefixLengths(), nil
 }
 
 func todoLogHighlighter(prefixLengths map[string]int, highlight func(string, int) string) func(string) string {

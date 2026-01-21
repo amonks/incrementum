@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/amonks/incrementum/internal/jj"
@@ -312,6 +311,15 @@ func (s *Store) readTodos() ([]Todo, error) {
 	return todos, err
 }
 
+// IDIndex returns an index of all todo IDs in the store.
+func (s *Store) IDIndex() (IDIndex, error) {
+	todos, err := s.readTodos()
+	if err != nil {
+		return IDIndex{}, fmt.Errorf("read todos: %w", err)
+	}
+	return NewIDIndex(todos), nil
+}
+
 // writeTodos writes all todos to the store and runs jj snapshot.
 func (s *Store) writeTodos(todos []Todo) error {
 	err := withFileLock(s.todosPath(), func() error {
@@ -397,29 +405,14 @@ func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
 		return nil, fmt.Errorf("no todo IDs provided")
 	}
 
+	index := NewIDIndex(todos)
 	resolved := make([]string, 0, len(ids))
-
 	for _, id := range ids {
-		if id == "" {
-			return nil, ErrTodoNotFound
+		resolvedID, err := index.Resolve(id)
+		if err != nil {
+			return nil, err
 		}
-
-		idLower := strings.ToLower(id)
-		var matches []string
-		for _, todo := range todos {
-			if todo.ID == idLower || strings.HasPrefix(todo.ID, idLower) {
-				matches = append(matches, todo.ID)
-			}
-		}
-
-		if len(matches) == 0 {
-			return nil, ErrTodoNotFound
-		}
-		if len(matches) > 1 {
-			return nil, fmt.Errorf("%w: %s", ErrAmbiguousTodoIDPrefix, id)
-		}
-
-		resolved = append(resolved, matches[0])
+		resolved = append(resolved, resolvedID)
 	}
 
 	return resolved, nil
