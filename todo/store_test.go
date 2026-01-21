@@ -153,15 +153,7 @@ func TestOpen_ExistingStore(t *testing.T) {
 }
 
 func TestStore_ReadWriteTodos(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{
-		CreateIfMissing: true,
-	})
-	if err != nil {
-		t.Fatalf("failed to open store: %v", err)
-	}
-	defer store.Release()
+	store := newTestStore(t)
 
 	// Initially empty
 	todos, err := store.readTodos()
@@ -216,16 +208,43 @@ func TestStore_ReadWriteTodos(t *testing.T) {
 	}
 }
 
-func TestStore_ReadWriteTodos_LongDescription(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{
-		CreateIfMissing: true,
-	})
-	if err != nil {
-		t.Fatalf("failed to open store: %v", err)
+func TestStore_SnapshotsOnWriteTodos(t *testing.T) {
+	store := &Store{
+		repoPath: "test",
+		wsPath:   t.TempDir(),
+		wsRelease: func() error {
+			return nil
+		},
 	}
-	defer store.Release()
+
+	var calls int
+	store.snapshot = snapshotterFunc(func(workspacePath string) error {
+		calls++
+		return nil
+	})
+
+	now := time.Now()
+	input := []Todo{{
+		ID:        "abc12345",
+		Title:     "Test todo",
+		Status:    StatusOpen,
+		Priority:  PriorityMedium,
+		Type:      TypeTask,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}}
+
+	if err := store.writeTodos(input); err != nil {
+		t.Fatalf("failed to write todos: %v", err)
+	}
+
+	if calls != 1 {
+		t.Fatalf("expected 1 snapshot call, got %d", calls)
+	}
+}
+
+func TestStore_ReadWriteTodos_LongDescription(t *testing.T) {
+	store := newTestStore(t)
 
 	longDescription := strings.Repeat("a", 100000)
 	now := time.Now()
@@ -259,15 +278,7 @@ func TestStore_ReadWriteTodos_LongDescription(t *testing.T) {
 }
 
 func TestStore_ReadWriteDependencies(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{
-		CreateIfMissing: true,
-	})
-	if err != nil {
-		t.Fatalf("failed to open store: %v", err)
-	}
-	defer store.Release()
+	store := newTestStore(t)
 
 	// Initially empty
 	deps, err := store.readDependencies()
@@ -308,15 +319,7 @@ func TestStore_ReadWriteDependencies(t *testing.T) {
 }
 
 func TestStore_GetTodoByID(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{
-		CreateIfMissing: true,
-	})
-	if err != nil {
-		t.Fatalf("failed to open store: %v", err)
-	}
-	defer store.Release()
+	store := newTestStore(t)
 
 	now := time.Now()
 	testTodos := []Todo{

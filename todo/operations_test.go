@@ -7,9 +7,7 @@ import (
 )
 
 func TestStore_Create(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -41,9 +39,7 @@ func TestStore_Create(t *testing.T) {
 }
 
 func TestStore_Create_WithOptions(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -71,9 +67,7 @@ func TestStore_Create_WithOptions(t *testing.T) {
 }
 
 func TestStore_Create_WithDependency(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -114,9 +108,7 @@ func TestStore_Create_WithDependency(t *testing.T) {
 }
 
 func TestStore_Create_Validation(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -142,9 +134,7 @@ func TestStore_Create_Validation(t *testing.T) {
 }
 
 func TestStore_Update(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -183,9 +173,7 @@ func TestStore_Update(t *testing.T) {
 }
 
 func TestStore_Update_TombstoneSetsDeletedAt(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -214,9 +202,7 @@ func TestStore_Update_TombstoneSetsDeletedAt(t *testing.T) {
 }
 
 func TestStore_Update_DeleteReasonKeepsDeletedAt(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -247,9 +233,7 @@ func TestStore_Update_DeleteReasonKeepsDeletedAt(t *testing.T) {
 }
 
 func TestStore_Update_DeletedAtRequiresTombstone(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -268,9 +252,7 @@ func TestStore_Update_DeletedAtRequiresTombstone(t *testing.T) {
 }
 
 func TestStore_Update_Multiple(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -300,9 +282,7 @@ func TestStore_Update_Multiple(t *testing.T) {
 }
 
 func TestStore_Update_NotFound(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -318,9 +298,7 @@ func TestStore_Update_NotFound(t *testing.T) {
 }
 
 func TestStore_Close(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -360,9 +338,7 @@ func TestStore_Close(t *testing.T) {
 }
 
 func TestStore_Finish(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -387,9 +363,7 @@ func TestStore_Finish(t *testing.T) {
 }
 
 func TestStore_Reopen(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -417,9 +391,7 @@ func TestStore_Reopen(t *testing.T) {
 }
 
 func TestStore_Start(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -448,9 +420,7 @@ func TestStore_Start(t *testing.T) {
 }
 
 func TestStore_Delete(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -492,9 +462,7 @@ func TestStore_Delete(t *testing.T) {
 }
 
 func TestStore_Delete_ClearsClosedAt(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -520,9 +488,7 @@ func TestStore_Delete_ClearsClosedAt(t *testing.T) {
 }
 
 func TestStore_Delete_NotFound(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -538,9 +504,7 @@ func TestStore_Delete_NotFound(t *testing.T) {
 }
 
 func TestStore_Delete_ListExcludesTombstones(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -575,9 +539,7 @@ func TestStore_Delete_ListExcludesTombstones(t *testing.T) {
 }
 
 func TestStore_Show(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -599,9 +561,7 @@ func TestStore_Show(t *testing.T) {
 }
 
 func TestStore_List(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -643,9 +603,7 @@ func TestStore_List(t *testing.T) {
 }
 
 func TestStore_List_InvalidFilters(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -672,9 +630,7 @@ func TestStore_List_InvalidFilters(t *testing.T) {
 }
 
 func TestStore_List_IDPrefix(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -697,9 +653,7 @@ func TestStore_List_IDPrefix(t *testing.T) {
 }
 
 func TestStore_List_TitleSubstring(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -720,9 +674,7 @@ func TestStore_List_TitleSubstring(t *testing.T) {
 }
 
 func TestStore_Ready(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -755,9 +707,7 @@ func TestStore_Ready(t *testing.T) {
 }
 
 func TestStore_Ready_TypePriority(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -787,9 +737,7 @@ func TestStore_Ready_TypePriority(t *testing.T) {
 }
 
 func TestStore_Ready_WithBlockers(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -841,9 +789,7 @@ func TestStore_Ready_WithBlockers(t *testing.T) {
 }
 
 func TestStore_Ready_Limit(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -865,9 +811,7 @@ func TestStore_Ready_Limit(t *testing.T) {
 }
 
 func TestStore_DepAdd(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -894,9 +838,7 @@ func TestStore_DepAdd(t *testing.T) {
 }
 
 func TestStore_DepAdd_Validation(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -924,9 +866,7 @@ func TestStore_DepAdd_Validation(t *testing.T) {
 }
 
 func TestStore_DepAdd_Duplicate(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -946,9 +886,7 @@ func TestStore_DepAdd_Duplicate(t *testing.T) {
 }
 
 func TestStore_DepTree(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1001,9 +939,7 @@ func TestStore_DepTree(t *testing.T) {
 }
 
 func TestStore_DepTree_NotFound(t *testing.T) {
-	repoPath := setupTestRepo(t)
-
-	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}

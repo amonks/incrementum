@@ -33,9 +33,14 @@ type Store struct {
 	repoPath  string
 	wsPath    string
 	pool      *workspace.Pool
-	jj        *jj.Client
+	snapshot  Snapshotter
 	prompter  Prompter
 	wsRelease func() error
+}
+
+// Snapshotter records workspace changes.
+type Snapshotter interface {
+	Snapshot(workspacePath string) error
 }
 
 // Prompter is used to ask the user for confirmation.
@@ -153,7 +158,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 		repoPath: repoPath,
 		wsPath:   wsPath,
 		pool:     pool,
-		jj:       client,
+		snapshot: client,
 		prompter: opts.Prompter,
 		wsRelease: func() error {
 			return pool.Release(wsPath)
@@ -316,7 +321,11 @@ func (s *Store) writeTodos(todos []Todo) error {
 		return err
 	}
 
-	return s.jj.Snapshot(s.wsPath)
+	if s.snapshot == nil {
+		return fmt.Errorf("snapshotter is not configured")
+	}
+
+	return s.snapshot.Snapshot(s.wsPath)
 }
 
 // readDependencies reads all dependencies from the store.
@@ -339,7 +348,11 @@ func (s *Store) writeDependencies(deps []Dependency) error {
 		return err
 	}
 
-	return s.jj.Snapshot(s.wsPath)
+	if s.snapshot == nil {
+		return fmt.Errorf("snapshotter is not configured")
+	}
+
+	return s.snapshot.Snapshot(s.wsPath)
 }
 
 // getTodoByID finds a todo by its ID.
