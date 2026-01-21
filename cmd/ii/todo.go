@@ -76,8 +76,6 @@ var todoCloseCmd = &cobra.Command{
 	RunE:  runTodoClose,
 }
 
-var todoCloseReason string
-
 // todo start
 var todoStartCmd = &cobra.Command{
 	Use:   "start <id>...",
@@ -94,8 +92,6 @@ var todoFinishCmd = &cobra.Command{
 	RunE:  runTodoFinish,
 }
 
-var todoFinishReason string
-
 // todo reopen
 var todoReopenCmd = &cobra.Command{
 	Use:   "reopen <id>...",
@@ -103,8 +99,6 @@ var todoReopenCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	RunE:  runTodoReopen,
 }
-
-var todoReopenReason string
 
 // todo delete
 var todoDeleteCmd = &cobra.Command{
@@ -207,13 +201,10 @@ func init() {
 	todoUpdateCmd.Flags().BoolVar(&todoUpdateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
 	// todo close flags
-	todoCloseCmd.Flags().StringVar(&todoCloseReason, "reason", "", "Reason for closing")
 
 	// todo finish flags
-	todoFinishCmd.Flags().StringVar(&todoFinishReason, "reason", "", "Reason for finishing")
 
 	// todo reopen flags
-	todoReopenCmd.Flags().StringVar(&todoReopenReason, "reason", "", "Reason for reopening")
 
 	// todo delete flags
 	todoDeleteCmd.Flags().StringVar(&todoDeleteReason, "reason", "", "Reason for deletion")
@@ -497,7 +488,7 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	closed, err := store.Close(args, todoCloseReason)
+	closed, err := store.Close(args)
 	if err != nil {
 		return err
 	}
@@ -543,7 +534,7 @@ func runTodoFinish(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	finished, err := store.Finish(args, todoFinishReason)
+	finished, err := store.Finish(args)
 	if err != nil {
 		return err
 	}
@@ -566,7 +557,7 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	reopened, err := store.Reopen(args, todoReopenReason)
+	reopened, err := store.Reopen(args)
 	if err != nil {
 		return err
 	}

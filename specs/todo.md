@@ -88,6 +88,8 @@ Fields (JSON keys):
 - `start` sets status to `in_progress` and clears `closed_at`.
 - `delete` sets status to `tombstone`, sets `deleted_at`, clears `closed_at`,
   and optionally records a delete reason.
+- Close/finish/reopen/start do not store reasons; only delete supports
+  `delete_reason`.
 
 ### List
 

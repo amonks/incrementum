@@ -308,7 +308,7 @@ func TestStore_Close(t *testing.T) {
 	todo, _ := store.Create("Test todo", CreateOptions{})
 
 	// Close it
-	closed, err := store.Close([]string{todo.ID}, "")
+	closed, err := store.Close([]string{todo.ID})
 	if err != nil {
 		t.Fatalf("failed to close: %v", err)
 	}
@@ -346,7 +346,7 @@ func TestStore_Finish(t *testing.T) {
 
 	created, _ := store.Create("Finish the docs", CreateOptions{})
 
-	finished, err := store.Finish([]string{created.ID}, "")
+	finished, err := store.Finish([]string{created.ID})
 	if err != nil {
 		t.Fatalf("failed to finish: %v", err)
 	}
@@ -371,10 +371,10 @@ func TestStore_Reopen(t *testing.T) {
 
 	// Create and close a todo
 	todo, _ := store.Create("Test todo", CreateOptions{})
-	store.Close([]string{todo.ID}, "")
+	store.Close([]string{todo.ID})
 
 	// Reopen it
-	reopened, err := store.Reopen([]string{todo.ID}, "")
+	reopened, err := store.Reopen([]string{todo.ID})
 	if err != nil {
 		t.Fatalf("failed to reopen: %v", err)
 	}
@@ -398,7 +398,7 @@ func TestStore_Start(t *testing.T) {
 	defer store.Release()
 
 	created, _ := store.Create("Start the work", CreateOptions{})
-	_, err = store.Close([]string{created.ID}, "")
+	_, err = store.Close([]string{created.ID})
 	if err != nil {
 		t.Fatalf("failed to close todo: %v", err)
 	}
@@ -473,7 +473,7 @@ func TestStore_Delete_ClearsClosedAt(t *testing.T) {
 		t.Fatalf("failed to create todo: %v", err)
 	}
 
-	_, err = store.Close([]string{created.ID}, "")
+	_, err = store.Close([]string{created.ID})
 	if err != nil {
 		t.Fatalf("failed to close todo: %v", err)
 	}
@@ -764,7 +764,7 @@ func TestStore_Ready_WithBlockers(t *testing.T) {
 	}
 
 	// Close the blocker
-	store.Close([]string{blocker.ID}, "")
+	store.Close([]string{blocker.ID})
 
 	// Now all three should be ready (but blocker is closed, so only 2)
 	ready, err = store.Ready(10)

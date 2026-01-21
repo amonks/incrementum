@@ -52,7 +52,7 @@ exec $II todo ready --json
 stdout 'Blocker task'
 
 # close todo
-exec $II todo close $TODO_ID --reason 'Fixed!'
+exec $II todo close $TODO_ID
 stdout 'Closed'
 
 exec $II todo show $TODO_ID --json
@@ -66,7 +66,7 @@ exec $II todo show $TODO_ID --json
 stdout '"status": "open"'
 
 # finish todo
-exec $II todo finish $TODO_ID --reason 'Done!'
+exec $II todo finish $TODO_ID
 stdout 'Finished'
 
 exec $II todo show $TODO_ID --json
