@@ -1,2 +1,5 @@
 - first, consult the specifications in `specs/README.md`
+- keep the specifications up to date as you make changes
+- pay attention to our domain model and to good factoring
+- if you see issues unrelated to your current task, don't work on them but do `incr todo create` todos for them
 - always do tdd
