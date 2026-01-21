@@ -22,7 +22,7 @@ function fix --argument-names todo_id
       incr session fail $todo_id
       echo "tests failed; rejecting change"
       popd
-      return
+      return 1
     end
     echo ">> tests passed"
 
