@@ -186,7 +186,7 @@ func createTodoStore(client *jj.Client, wsPath string) error {
 	}
 
 	// Set the description
-	if err := client.Describe(wsPath, "incr todo store - do not edit directly"); err != nil {
+	if err := client.Describe(wsPath, "ii todo store - do not edit directly"); err != nil {
 		return fmt.Errorf("describe change: %w", err)
 	}
 

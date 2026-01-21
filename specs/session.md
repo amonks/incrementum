@@ -50,7 +50,7 @@ Fields (JSON keys):
 
 ## Commands
 
-### `incr session start <todo-id> [--topic <text>]`
+### `ii session start <todo-id> [--topic <text>]`
 
 - Resolve todo id.
 - Error if todo status is `in_progress`, `done`, `closed`, or `tombstone`.
@@ -59,21 +59,21 @@ Fields (JSON keys):
 - Create a session with status `active`.
 - Print the workspace path.
 
-### `incr session done [todo-id]`
+### `ii session done [todo-id]`
 
 - Resolve the session using the rules above.
 - Release the workspace referenced by the session.
 - Update todo status to `done`.
 - Mark the session as `completed` and record `completed_at`.
 
-### `incr session fail [todo-id]`
+### `ii session fail [todo-id]`
 
 - Resolve the session using the rules above.
 - Release the workspace referenced by the session.
 - Update todo status to `open`.
 - Mark the session as `failed` and record `completed_at`.
 
-### `incr session run <todo-id> -- <cmd> [args...]`
+### `ii session run <todo-id> -- <cmd> [args...]`
 
 - Standard passthrough after `--`.
 - Acquire a workspace and create a session (same as `start`).
@@ -88,7 +88,7 @@ Fields (JSON keys):
 - Always release the workspace.
 - Record exit code and duration seconds.
 
-### `incr session list [--json]`
+### `ii session list [--json]`
 
 - Default output is a table matching other list commands.
 - `--json` emits structured output.

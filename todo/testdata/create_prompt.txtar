@@ -5,12 +5,12 @@ exec jj git init
 
 # decline creation
 stdin deny.txt
-! exec $INCR todo list
+! exec $II todo list
 stdout 'No todo store found\. Create one\?'
 
 # accept creation
 stdin accept.txt
-exec $INCR todo list
+exec $II todo list
 stdout 'No todos found\.'
 
 -- repo/deny.txt --

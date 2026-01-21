@@ -51,8 +51,8 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 - If the path is inside the workspace pool directory but no repo mapping exists, `ErrRepoPathNotFound` is returned.
 
 ## CLI Commands
-- `incr workspace acquire [--rev <rev>] [--ttl <duration>] --purpose <text>`: acquire or create a workspace; prints the workspace path.
-- `incr workspace release [name]`: release the named workspace (or current workspace when omitted).
-- `incr workspace renew [name]`: renew TTL for the named workspace (or current workspace when omitted).
-- `incr workspace list [--json]`: list workspaces for the current repo.
-- `incr workspace destroy-all`: remove all workspaces for the current repo.
+- `ii workspace acquire [--rev <rev>] [--ttl <duration>] --purpose <text>`: acquire or create a workspace; prints the workspace path.
+- `ii workspace release [name]`: release the named workspace (or current workspace when omitted).
+- `ii workspace renew [name]`: renew TTL for the named workspace (or current workspace when omitted).
+- `ii workspace list [--json]`: list workspaces for the current repo.
+- `ii workspace destroy-all`: remove all workspaces for the current repo.

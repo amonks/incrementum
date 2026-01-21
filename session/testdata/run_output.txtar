@@ -5,12 +5,12 @@ exec jj git init
 
 # create todo
 stdin input.txt
-exec $INCR todo create 'Run todo'
+exec $II todo create 'Run todo'
 
-exec $INCR todo list --json
+exec $II todo list --json
 todoid stdout 'Run todo' TODO_ID
 
-exec $INCR session run $TODO_ID -- true
+exec $II session run $TODO_ID -- true
 stdout 'marked completed'
 
 -- repo/input.txt --

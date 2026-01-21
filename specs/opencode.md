@@ -2,7 +2,7 @@
 
 ## Overview
 
-The opencode subcommand integrates the Opencode agent workflow into `incr`.
+The opencode subcommand integrates the Opencode agent workflow into `ii`.
 It wraps the external `opencode` CLI and tracks long-running sessions in the
 shared state store. The server is intended as a global process (per-user) while
 session state is scoped to a repo slug.
@@ -57,9 +57,9 @@ Fields (JSON keys):
 
 - Opencode sessions are tracked per repo slug.
 - The daemon is a foreground process invoked via `opencode serve`.
-- `incr opencode serve` records daemon state when the process starts and clears
+- `ii opencode serve` records daemon state when the process starts and clears
   it when the process exits.
-- Daemon metadata comes from explicit `incr opencode serve` flags; if host/port
+- Daemon metadata comes from explicit `ii opencode serve` flags; if host/port
   are not provided, they are left empty and the daemon is still considered
   running.
 - When listing or validating daemon state, verify the stored pid is still
@@ -73,7 +73,7 @@ Fields (JSON keys):
 
 ## Commands
 
-### `incr opencode serve`
+### `ii opencode serve`
 
 - Start the opencode server by executing `opencode serve`.
 - Runs in the foreground and streams logs to the terminal.
@@ -81,7 +81,7 @@ Fields (JSON keys):
 - Records daemon info (pid/host/port) in state while running.
 - Does not create any opencode session records.
 
-### `incr opencode run [--attach] [prompt]`
+### `ii opencode run [--attach] [prompt]`
 
 - Prompt is read from stdin when no prompt argument is provided.
 - Always attaches to the running daemon and errors if the daemon is not running.
@@ -92,17 +92,17 @@ Fields (JSON keys):
 - Prints the session id only.
 - Returns immediately after the opencode session is created.
 
-### `incr opencode logs <session-id>`
+### `ii opencode logs <session-id>`
 
 - Resolves the opencode session by id in the current repo.
 - Prints a snapshot of the log contents to stdout.
 
-### `incr opencode tail <session-id>`
+### `ii opencode tail <session-id>`
 
 - Resolves the opencode session by id in the current repo.
 - Streams live log output (similar to `tail -f`).
 
-### `incr opencode wait <session-id>`
+### `ii opencode wait <session-id>`
 
 - Resolves the opencode session by id in the current repo.
 - Polls `opencode session list --format json` until the session is no longer
@@ -113,14 +113,14 @@ Fields (JSON keys):
   exits 0 after marking completion.
 - Exits with the same code as the opencode session.
 
-### `incr opencode list [--json]`
+### `ii opencode list [--json]`
 
 - Lists opencode sessions for the current repo.
 - Default output is a table matching other list commands.
 - Suggested columns: `SESSION`, `STATUS`, `AGE`, `PROMPT`, `EXIT`.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
 
-### `incr opencode kill <session-id>`
+### `ii opencode kill <session-id>`
 
 - Resolves the opencode session by id in the current repo.
 - Sends a termination request via `opencode`.

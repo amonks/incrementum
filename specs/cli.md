@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This specification documents the overall CLI architecture and behavior expectations for `incr`. It is intended for implementers adding new subcommands. It does not describe individual command behavior beyond cross-cutting rules.
+This specification documents the overall CLI architecture and behavior expectations for `ii`. It is intended for implementers adding new subcommands. It does not describe individual command behavior beyond cross-cutting rules.
 
 ## Execution Model
 
@@ -12,7 +12,7 @@ This specification documents the overall CLI architecture and behavior expectati
 
 ## Command Structure
 
-- Commands follow the pattern `incr <noun> <verb> [args] [flags]`.
+- Commands follow the pattern `ii <noun> <verb> [args] [flags]`.
 - The CLI layer is a thin wrapper around public packages; command handlers should delegate to package APIs with minimal logic.
 - Command interfaces should closely mirror the public APIs they wrap (1:1 when possible).
 

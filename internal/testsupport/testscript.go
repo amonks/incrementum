@@ -16,12 +16,12 @@ import (
 
 var (
 	buildOnce sync.Once
-	incrPath  string
+	iiPath    string
 	buildErr  error
 )
 
-// BuildIncr builds the incr binary once and returns its path.
-func BuildIncr(t testing.TB) string {
+// BuildII builds the ii binary once and returns its path.
+func BuildII(t testing.TB) string {
 	t.Helper()
 
 	buildOnce.Do(func() {
@@ -31,18 +31,18 @@ func BuildIncr(t testing.TB) string {
 			return
 		}
 
-		binDir, err := os.MkdirTemp("", "incr-bin-")
+		binDir, err := os.MkdirTemp("", "ii-bin-")
 		if err != nil {
 			buildErr = err
 			return
 		}
 
-		incrPath = filepath.Join(binDir, "incr")
-		cmd := exec.Command("go", "build", "-o", incrPath, "./cmd/incr")
+		iiPath = filepath.Join(binDir, "ii")
+		cmd := exec.Command("go", "build", "-o", iiPath, "./cmd/incr")
 		cmd.Dir = moduleRoot
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			buildErr = fmt.Errorf("build incr: %w: %s", err, strings.TrimSpace(string(output)))
+			buildErr = fmt.Errorf("build ii: %w: %s", err, strings.TrimSpace(string(output)))
 		}
 	})
 
@@ -50,14 +50,14 @@ func BuildIncr(t testing.TB) string {
 		t.Fatalf("%v", buildErr)
 	}
 
-	return incrPath
+	return iiPath
 }
 
 // SetupScriptEnv configures common environment variables for testscript.
 func SetupScriptEnv(t testing.TB, env *testscript.Env) error {
 	t.Helper()
 
-	env.Setenv("INCR", BuildIncr(t))
+	env.Setenv("II", BuildII(t))
 
 	homeDir := filepath.Join(env.WorkDir, "home")
 	if err := os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incrementum"), 0o755); err != nil {

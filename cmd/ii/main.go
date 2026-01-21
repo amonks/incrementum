@@ -1,4 +1,4 @@
-// Package main implements the incr CLI tool.
+// Package main implements the ii CLI tool.
 package main
 
 import (
@@ -18,7 +18,7 @@ func main() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "incr",
+	Use:   "ii",
 	Short: "Incrementum - tools for incremental development",
 }
 

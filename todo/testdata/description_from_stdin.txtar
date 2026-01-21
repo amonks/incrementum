@@ -5,23 +5,23 @@ exec jj git init
 
 # seed todo
 stdin input.txt
-exec $INCR todo create 'Seed todo'
+exec $II todo create 'Seed todo'
 
 # create with description from stdin
 stdin create_desc.txt
-exec $INCR todo create 'Stdin todo' --desc -
+exec $II todo create 'Stdin todo' --desc -
 stdout 'Created todo'
 
-exec $INCR todo list --json
+exec $II todo list --json
 todoid stdout 'Stdin todo' STDIN_ID
 stdout 'Created from stdin'
 
 # update with description from stdin
 stdin update_desc.txt
-exec $INCR todo update $STDIN_ID --desc -
+exec $II todo update $STDIN_ID --desc -
 stdout 'Updated'
 
-exec $INCR todo show $STDIN_ID --json
+exec $II todo show $STDIN_ID --json
 stdout 'Updated from stdin'
 
 -- repo/input.txt --

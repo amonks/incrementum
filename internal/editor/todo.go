@@ -139,7 +139,7 @@ func splitFrontmatter(content string) (string, string) {
 }
 
 func createTodoTempFile() (*os.File, error) {
-	return os.CreateTemp("", "incr-todo-*.md")
+	return os.CreateTemp("", "ii-todo-*.md")
 }
 
 // EditTodo opens the editor for a todo and returns the parsed result.
