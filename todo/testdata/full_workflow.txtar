@@ -72,18 +72,23 @@ stdout 'Finished'
 exec $II todo show $TODO_ID --json
 stdout '"status": "done"'
 
+# list default excludes done
+exec $II todo list --json
+! stdout 'Fix the login bug'
+
 # list filter by status
 exec $II todo list --status open --json
 stdout '"status": "open"'
 ! stdout '"status": "closed"'
 
 # list filter by type
-exec $II todo list --type bug --json
+exec $II todo list --status done --type bug --json
 stdout '"type": "bug"'
+stdout '"status": "done"'
 ! stdout '"type": "task"'
 
 # list filter by title
-exec $II todo list --title login --json
+exec $II todo list --status done --title login --json
 stdout 'Fix the login bug'
 
 -- repo/input.txt --

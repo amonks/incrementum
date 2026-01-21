@@ -664,6 +664,15 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if todoListStatus == "" {
+		filtered := todos[:0]
+		for _, item := range todos {
+			if item.Status != todo.StatusDone {
+				filtered = append(filtered, item)
+			}
+		}
+		todos = filtered
+	}
 
 	if todoListJSON {
 		enc := json.NewEncoder(os.Stdout)
