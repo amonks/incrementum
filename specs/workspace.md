@@ -33,7 +33,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 
 ### Release
 - Release creates a new change at `root()` to reset the workspace state.
-- The workspace remains on disk, but its status is marked `available`, and TTL/acquisition metadata is cleared.
+- The workspace remains on disk, but its status is marked `available`, and TTL/acquisition metadata and purpose are cleared.
 
 ### Renew
 - Renew only applies to acquired workspaces and resets `AcquiredAt` to extend the TTL window.

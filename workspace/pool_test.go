@@ -67,6 +67,20 @@ func TestPool_Acquire_CreatesNewWorkspace(t *testing.T) {
 	if err := pool.Release(wsPath); err != nil {
 		t.Fatalf("failed to release workspace: %v", err)
 	}
+
+	list, err := pool.List(repoPath)
+	if err != nil {
+		t.Fatalf("failed to list after release: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 workspace after release, got %d", len(list))
+	}
+	if list[0].Status != workspace.StatusAvailable {
+		t.Fatalf("expected status available after release, got %s", list[0].Status)
+	}
+	if list[0].Purpose != "" {
+		t.Fatalf("expected purpose to be cleared on release, got %q", list[0].Purpose)
+	}
 }
 
 func TestPool_Acquire_RequiresPurpose(t *testing.T) {

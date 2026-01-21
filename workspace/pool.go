@@ -137,6 +137,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 				expiry := ws.AcquiredAt.Add(time.Duration(ws.TTLSeconds) * time.Second)
 				if now.After(expiry) {
 					ws.Status = StatusAvailable
+					ws.Purpose = ""
 					ws.AcquiredByPID = 0
 					ws.AcquiredAt = time.Time{}
 					ws.TTLSeconds = 0
@@ -258,6 +259,7 @@ func (p *Pool) releaseToAvailable(wsPath string) error {
 		for key, ws := range state.Workspaces {
 			if ws.Path == wsPath {
 				ws.Status = StatusAvailable
+				ws.Purpose = ""
 				ws.AcquiredByPID = 0
 				ws.AcquiredAt = time.Time{}
 				ws.TTLSeconds = 0
