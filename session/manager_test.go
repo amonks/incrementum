@@ -2,6 +2,7 @@ package session
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -274,6 +275,68 @@ func TestResolveActiveSessionMatchesSessionTodoPrefix(t *testing.T) {
 	}
 	if resolved.TodoID != "abc12345" {
 		t.Fatalf("expected todo ID abc12345, got %q", resolved.TodoID)
+	}
+}
+
+func TestManagerListFiltersByStatus(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	start := time.Now().UTC().Add(-time.Minute)
+	activeSession, err := manager.pool.CreateSession(repoPath, "todo-1", "ws-001", "Active", start)
+	if err != nil {
+		t.Fatalf("create active session: %v", err)
+	}
+
+	completedSession, err := manager.pool.CreateSession(repoPath, "todo-2", "ws-002", "Completed", start.Add(10*time.Second))
+	if err != nil {
+		t.Fatalf("create completed session: %v", err)
+	}
+	if _, err := manager.pool.CompleteSession(repoPath, completedSession.ID, workspace.SessionCompleted, start.Add(20*time.Second), nil, 10); err != nil {
+		t.Fatalf("complete session: %v", err)
+	}
+
+	list, err := manager.List(ListFilter{})
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 active session, got %d", len(list))
+	}
+	if list[0].ID != activeSession.ID {
+		t.Fatalf("expected active session %q, got %q", activeSession.ID, list[0].ID)
+	}
+
+	completed := StatusCompleted
+	list, err = manager.List(ListFilter{Status: &completed})
+	if err != nil {
+		t.Fatalf("list completed sessions: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 completed session, got %d", len(list))
+	}
+	if list[0].Status != StatusCompleted {
+		t.Fatalf("expected completed status, got %q", list[0].Status)
+	}
+
+	list, err = manager.List(ListFilter{IncludeAll: true})
+	if err != nil {
+		t.Fatalf("list all sessions: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("expected 2 sessions, got %d", len(list))
+	}
+
+	invalid := Status("unknown")
+	if _, err := manager.List(ListFilter{Status: &invalid}); err == nil || !errors.Is(err, ErrInvalidStatus) {
+		t.Fatalf("expected invalid status error, got %v", err)
 	}
 }
 

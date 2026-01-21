@@ -76,6 +76,11 @@ stdout '"status": "done"'
 exec $II todo list --json
 ! stdout 'Fix the login bug'
 
+# list all includes done
+exec $II todo list --all --json
+stdout 'Fix the login bug'
+stdout '"status": "done"'
+
 # list filter by status
 exec $II todo list --status open --json
 stdout '"status": "open"'

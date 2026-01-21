@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
@@ -52,6 +53,7 @@ func init() {
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquireRev, "rev", "@", "Revision to check out")
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquirePurpose, "purpose", "", "Purpose for acquiring the workspace")
 	workspaceListCmd.Flags().BoolVar(&workspaceListJSON, "json", false, "Output as JSON")
+	listflags.AddAllFlag(workspaceListCmd, nil)
 }
 
 func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
@@ -37,6 +38,7 @@ func init() {
 	opencodeCmd.AddCommand(opencodeListCmd, opencodeLogsCmd)
 
 	opencodeListCmd.Flags().BoolVar(&opencodeListJSON, "json", false, "Output as JSON")
+	listflags.AddAllFlag(opencodeListCmd, nil)
 }
 
 func runOpencodeList(cmd *cobra.Command, args []string) error {

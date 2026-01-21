@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/internal/ui"
 
 	"github.com/amonks/incrementum/internal/editor"
@@ -140,6 +141,7 @@ var (
 	todoListTitle       string
 	todoListDesc        string
 	todoListJSON        bool
+	todoListAll         bool
 	todoListPrioritySet bool
 )
 
@@ -228,6 +230,7 @@ func init() {
 	todoListCmd.Flags().StringVar(&todoListDesc, "description", "", "Filter by description substring")
 	todoListCmd.Flags().StringVar(&todoListDesc, "desc", "", "Filter by description substring")
 	todoListCmd.Flags().BoolVar(&todoListJSON, "json", false, "Output as JSON")
+	listflags.AddAllFlag(todoListCmd, &todoListAll)
 
 	// todo ready flags
 	todoReadyCmd.Flags().IntVar(&todoReadyLimit, "limit", 20, "Maximum number of todos to show")
@@ -664,7 +667,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if todoListStatus == "" {
+	if todoListStatus == "" && !todoListAll {
 		filtered := todos[:0]
 		for _, item := range todos {
 			if item.Status != todo.StatusDone {

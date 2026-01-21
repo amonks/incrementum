@@ -25,5 +25,18 @@ stdout '"workspace_name": "ws-[0-9]{3}"'
 exec $II session done $TODO_ID
 stdout 'marked completed'
 
+# default list excludes completed
+exec $II session list --json
+! stdout ${TODO_ID@R}
+
+# list completed
+exec $II session list --status completed --json
+stdout ${TODO_ID@R}
+stdout '"status": "completed"'
+
+# list all
+exec $II session list --all --json
+stdout ${TODO_ID@R}
+
 -- repo/input.txt --
 y

@@ -256,8 +256,20 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 	}, nil
 }
 
+// ListFilter configures which sessions to return.
+type ListFilter struct {
+	// Status filters by exact status match.
+	Status *Status
+	// IncludeAll includes sessions regardless of status.
+	IncludeAll bool
+}
+
 // List returns sessions for the repo.
-func (m *Manager) List() ([]Session, error) {
+func (m *Manager) List(filter ListFilter) ([]Session, error) {
+	if filter.Status != nil && !filter.Status.IsValid() {
+		return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+	}
+
 	items, err := m.pool.ListSessions(m.repoPath)
 	if err != nil {
 		return nil, err
@@ -265,7 +277,15 @@ func (m *Manager) List() ([]Session, error) {
 
 	results := make([]Session, 0, len(items))
 	for _, item := range items {
-		results = append(results, fromWorkspaceSession(item))
+		converted := fromWorkspaceSession(item)
+		if filter.Status != nil {
+			if converted.Status != *filter.Status {
+				continue
+			}
+		} else if !filter.IncludeAll && converted.Status != StatusActive {
+			continue
+		}
+		results = append(results, converted)
 	}
 	return results, nil
 }

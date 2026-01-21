@@ -113,7 +113,7 @@ Fields (JSON keys):
   exits 0 after marking completion.
 - Exits with the same code as the opencode session.
 
-### `ii opencode list [--json]`
+### `ii opencode list [--json] [--all]`
 
 - Lists opencode sessions for the current repo.
 - Default output is a table matching other list commands.

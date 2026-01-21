@@ -94,8 +94,11 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - Always release the workspace.
 - Record exit code and duration seconds.
 
-### `ii session list [--json]`
+### `ii session list [--status <status>] [--all] [--json]`
 
 - Default output is a table matching other list commands.
+- Default behavior lists only `active` sessions unless `--status` or `--all` is provided.
+- `--status` filters to `active`, `completed`, or `failed`.
+- `--all` lists all statuses.
 - `--json` emits structured output.
 - Suggested columns: `SESSION`, `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.

@@ -14,6 +14,21 @@ const (
 	StatusFailed Status = "failed"
 )
 
+// ValidStatuses returns all valid session status values.
+func ValidStatuses() []Status {
+	return []Status{StatusActive, StatusCompleted, StatusFailed}
+}
+
+// IsValid returns true if the status is a known value.
+func (s Status) IsValid() bool {
+	for _, valid := range ValidStatuses() {
+		if s == valid {
+			return true
+		}
+	}
+	return false
+}
+
 // Session captures session metadata for a todo.
 type Session struct {
 	ID              string    `json:"id"`

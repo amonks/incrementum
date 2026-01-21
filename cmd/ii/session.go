@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/editor"
+	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/internal/ui"
 	sessionpkg "github.com/amonks/incrementum/session"
 	"github.com/amonks/incrementum/todo"
@@ -67,6 +68,8 @@ var (
 	sessionStartPriority int
 	sessionRunRev        string
 	sessionListJSON      bool
+	sessionListStatus    string
+	sessionListAll       bool
 )
 
 func init() {
@@ -85,6 +88,8 @@ func init() {
 	sessionStartCmd.Flags().BoolVar(&sessionStartNoEdit, "no-edit", false, "Do not open $EDITOR")
 	sessionRunCmd.Flags().StringVar(&sessionRunRev, "rev", "@", "Revision to check out")
 	sessionListCmd.Flags().BoolVar(&sessionListJSON, "json", false, "Output as JSON")
+	sessionListCmd.Flags().StringVar(&sessionListStatus, "status", "", "Filter by status")
+	listflags.AddAllFlag(sessionListCmd, &sessionListAll)
 }
 
 func runSessionStart(cmd *cobra.Command, args []string) error {
@@ -321,7 +326,13 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 	}
 	defer manager.Close()
 
-	sessions, err := manager.List()
+	filter := sessionpkg.ListFilter{IncludeAll: sessionListAll}
+	if sessionListStatus != "" {
+		status := sessionpkg.Status(sessionListStatus)
+		filter.Status = &status
+	}
+
+	sessions, err := manager.List(filter)
 	if err != nil {
 		return err
 	}
