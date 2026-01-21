@@ -45,6 +45,8 @@ Fields (JSON keys):
   1) if a todo id is provided, resolve the session by todo id
   2) else if the cwd is a workspace, resolve the session by workspace
   3) otherwise error
+- Todo id matching for sessions uses case-insensitive prefix matching against
+  active sessions in the repo.
 
 ## Commands
 

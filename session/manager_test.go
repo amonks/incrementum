@@ -245,6 +245,38 @@ func TestResolveActiveSessionRequiresWorkspace(t *testing.T) {
 	}
 }
 
+func TestResolveActiveSessionMatchesSessionTodoPrefix(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	store.Release()
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	start := time.Now().UTC()
+	_, err = manager.pool.CreateSession(repoPath, "abc12345", "ws-001", "Test topic", start)
+	if err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+
+	resolved, err := manager.ResolveActiveSession("abc", "")
+	if err != nil {
+		t.Fatalf("resolve active session: %v", err)
+	}
+	if resolved.TodoID != "abc12345" {
+		t.Fatalf("expected todo ID abc12345, got %q", resolved.TodoID)
+	}
+}
+
 func TestAgeUsesDurationSeconds(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	start := now.Add(-10 * time.Minute)

@@ -273,16 +273,7 @@ func (m *Manager) List() ([]Session, error) {
 // ResolveActiveSession finds an active session by todo ID or workspace path.
 func (m *Manager) ResolveActiveSession(todoID, workspacePath string) (*Session, error) {
 	if todoID != "" {
-		item, err := m.resolveTodo(todoID)
-		if err != nil {
-			return nil, err
-		}
-		found, err := m.pool.FindActiveSessionByTodoID(m.repoPath, item.ID)
-		if err != nil {
-			return nil, err
-		}
-		converted := fromWorkspaceSession(found)
-		return &converted, nil
+		return m.resolveActiveSessionByTodoPrefix(todoID)
 	}
 
 	if workspacePath == "" {
@@ -302,6 +293,38 @@ func (m *Manager) ResolveActiveSession(todoID, workspacePath string) (*Session, 
 		return nil, err
 	}
 	converted := fromWorkspaceSession(found)
+	return &converted, nil
+}
+
+func (m *Manager) resolveActiveSessionByTodoPrefix(todoID string) (*Session, error) {
+	items, err := m.pool.ListSessions(m.repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	needle := strings.ToLower(todoID)
+	var matched workspace.Session
+	found := false
+
+	for _, item := range items {
+		if item.Status != workspace.SessionActive {
+			continue
+		}
+		if !strings.HasPrefix(strings.ToLower(item.TodoID), needle) {
+			continue
+		}
+		if found && !strings.EqualFold(matched.TodoID, item.TodoID) {
+			return nil, fmt.Errorf("%w: %s", todo.ErrAmbiguousTodoIDPrefix, todoID)
+		}
+		matched = item
+		found = true
+	}
+
+	if !found {
+		return nil, ErrSessionNotFound
+	}
+
+	converted := fromWorkspaceSession(matched)
 	return &converted, nil
 }
 
