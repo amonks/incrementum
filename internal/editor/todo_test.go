@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -204,5 +205,19 @@ func TestToUpdateOptions(t *testing.T) {
 	}
 	if opts.Status == nil || *opts.Status != todo.StatusInProgress {
 		t.Errorf("expected status in_progress, got %v", opts.Status)
+	}
+}
+
+func TestCreateTodoTempFileExtension(t *testing.T) {
+	file, err := createTodoTempFile()
+	if err != nil {
+		t.Fatalf("createTodoTempFile failed: %v", err)
+	}
+	t.Cleanup(func() {
+		os.Remove(file.Name())
+	})
+
+	if !strings.HasSuffix(file.Name(), ".md") {
+		t.Errorf("expected temp file to end with .md, got %q", file.Name())
 	}
 }

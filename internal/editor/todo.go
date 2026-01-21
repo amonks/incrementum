@@ -138,6 +138,10 @@ func splitFrontmatter(content string) (string, string) {
 	return frontmatter, body
 }
 
+func createTodoTempFile() (*os.File, error) {
+	return os.CreateTemp("", "incr-todo-*.md")
+}
+
 // EditTodo opens the editor for a todo and returns the parsed result.
 // For create: pass nil for existing.
 // For update: pass the existing todo.
@@ -159,7 +163,7 @@ func EditTodoWithData(data TodoData) (*ParsedTodo, error) {
 	}
 
 	// Create temp file
-	tmpfile, err := os.CreateTemp("", "incr-todo-*.toml")
+	tmpfile, err := createTodoTempFile()
 	if err != nil {
 		return nil, fmt.Errorf("create temp file: %w", err)
 	}
