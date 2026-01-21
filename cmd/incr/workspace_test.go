@@ -78,7 +78,7 @@ func TestResolveWorkspaceNameFromCwd(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour})
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{TTL: time.Hour, Purpose: "workspace test"})
 	if err != nil {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}

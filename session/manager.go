@@ -95,7 +95,12 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		return nil, err
 	}
 
-	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev})
+	purpose := opts.Topic
+	if purpose == "" {
+		purpose = item.Title
+	}
+
+	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: purpose})
 	if err != nil {
 		return nil, fmt.Errorf("acquire workspace: %w", err)
 	}
@@ -107,10 +112,7 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		return nil, err
 	}
 
-	topic := opts.Topic
-	if topic == "" {
-		topic = item.Title
-	}
+	topic := purpose
 
 	startedAt := time.Now()
 	created, err := m.pool.CreateSession(m.repoPath, item.ID, wsName, topic, startedAt)
@@ -157,7 +159,8 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 		return nil, err
 	}
 
-	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev})
+	purpose := strings.Join(opts.Command, " ")
+	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: purpose})
 	if err != nil {
 		return nil, fmt.Errorf("acquire workspace: %w", err)
 	}
@@ -188,7 +191,7 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 	}()
 
 	startedAt := time.Now()
-	topic := strings.Join(opts.Command, " ")
+	topic := purpose
 	created, err := m.pool.CreateSession(m.repoPath, item.ID, wsName, topic, startedAt)
 	if err != nil {
 		reset := todo.StatusOpen

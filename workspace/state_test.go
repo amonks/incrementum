@@ -41,6 +41,7 @@ func TestStateStore_SaveLoad(t *testing.T) {
 				Name:        "ws-001",
 				Repo:        "my-project",
 				Path:        "/Users/test/.local/share/incr/workspaces/my-project/ws-001",
+				Purpose:     "initial sync",
 				Status:      StatusAcquired,
 				Provisioned: true,
 			},
@@ -71,6 +72,9 @@ func TestStateStore_SaveLoad(t *testing.T) {
 	ws := loaded.Workspaces["my-project/ws-001"]
 	if ws.Name != "ws-001" {
 		t.Errorf("expected name ws-001, got %s", ws.Name)
+	}
+	if ws.Purpose != "initial sync" {
+		t.Errorf("expected purpose to persist, got %q", ws.Purpose)
 	}
 	if ws.Status != StatusAcquired {
 		t.Errorf("expected status claimed, got %s", ws.Status)

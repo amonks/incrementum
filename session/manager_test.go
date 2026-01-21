@@ -48,7 +48,7 @@ func TestManager_StartDone(t *testing.T) {
 	}
 	defer manager.Close()
 
-	if _, err := manager.pool.Acquire(repoPath, workspace.AcquireOptions{Rev: "@"}); err != nil {
+	if _, err := manager.pool.Acquire(repoPath, workspace.AcquireOptions{Rev: "@", Purpose: "seed"}); err != nil {
 		manager.Close()
 		t.Fatalf("seed repo in pool: %v", err)
 	}

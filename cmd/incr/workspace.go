@@ -48,9 +48,10 @@ var workspaceDestroyAllCmd = &cobra.Command{
 }
 
 var (
-	workspaceAcquireRev string
-	workspaceAcquireTTL time.Duration
-	workspaceListJSON   bool
+	workspaceAcquireRev     string
+	workspaceAcquireTTL     time.Duration
+	workspaceAcquirePurpose string
+	workspaceListJSON       bool
 )
 
 func init() {
@@ -59,6 +60,7 @@ func init() {
 
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquireRev, "rev", "@", "Revision to check out")
 	workspaceAcquireCmd.Flags().DurationVar(&workspaceAcquireTTL, "ttl", workspace.DefaultTTL, "Lease duration before auto-expiry")
+	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquirePurpose, "purpose", "", "Purpose for acquiring the workspace")
 	workspaceListCmd.Flags().BoolVar(&workspaceListJSON, "json", false, "Output as JSON")
 }
 
@@ -74,8 +76,9 @@ func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
 	}
 
 	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{
-		Rev: workspaceAcquireRev,
-		TTL: workspaceAcquireTTL,
+		Rev:     workspaceAcquireRev,
+		TTL:     workspaceAcquireTTL,
+		Purpose: workspaceAcquirePurpose,
 	})
 	if err != nil {
 		return fmt.Errorf("acquire workspace: %w", err)
@@ -179,13 +182,18 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string)
 		if item.Status == workspace.StatusAcquired && item.TTLRemaining > 0 {
 			ttl = item.TTLRemaining.Truncate(time.Second).String()
 		}
+		purpose := item.Purpose
+		if purpose == "" {
+			purpose = "-"
+		}
 		rows = append(rows, []string{
 			highlight(item.Name),
 			string(item.Status),
 			ttl,
+			truncateTableCell(purpose),
 			truncateTableCell(item.Path),
 		})
 	}
 
-	return formatTable([]string{"NAME", "STATUS", "TTL", "PATH"}, rows)
+	return formatTable([]string{"NAME", "STATUS", "TTL", "PURPOSE", "PATH"}, rows)
 }

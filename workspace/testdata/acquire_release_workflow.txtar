@@ -4,7 +4,7 @@ cd repo
 exec jj git init
 
 # acquire workspace
-exec $INCR workspace acquire
+exec $INCR workspace acquire --purpose workflow
 envset WORKSPACE_PATH stdout
 exists $WORKSPACE_PATH
 exists $WORKSPACE_PATH/.jj
@@ -20,5 +20,5 @@ exec $INCR workspace list
 stdout 'available'
 
 # reuse workspace
-exec $INCR workspace acquire
+exec $INCR workspace acquire --purpose workflow-reuse
 stdout ${WORKSPACE_PATH@R}

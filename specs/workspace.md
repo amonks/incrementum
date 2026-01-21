@@ -16,7 +16,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
   - `workspaces`: maps `repoName/workspaceName` to workspace info.
 - A repo name is a sanitized version of the source path, lowercased, with path separators converted to hyphens. Collisions add a numeric suffix.
 - Workspace names are sequential `ws-###` values allocated per repo.
-- Workspace info tracks: path, repo name, status, acquisition PID/time, TTL seconds, and provisioning status.
+- Workspace info tracks: path, repo name, purpose, status, acquisition PID/time, TTL seconds, and provisioning status.
 
 ## Workspace Lifecycle
 ### Acquire
@@ -51,7 +51,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 - If the path is inside the workspace pool directory but no repo mapping exists, `ErrRepoPathNotFound` is returned.
 
 ## CLI Commands
-- `incr workspace acquire [--rev <rev>] [--ttl <duration>]`: acquire or create a workspace; prints the workspace path.
+- `incr workspace acquire [--rev <rev>] [--ttl <duration>] --purpose <text>`: acquire or create a workspace; prints the workspace path.
 - `incr workspace release [name]`: release the named workspace (or current workspace when omitted).
 - `incr workspace renew [name]`: renew TTL for the named workspace (or current workspace when omitted).
 - `incr workspace list [--json]`: list workspaces for the current repo.

@@ -17,6 +17,7 @@
 //	wsPath, err := pool.Acquire("/path/to/repo", workspace.AcquireOptions{
 //	    Rev: "@",
 //	    TTL: time.Hour,
+//	    Purpose: "feature work",
 //	})
 //	if err != nil {
 //	    log.Fatal(err)

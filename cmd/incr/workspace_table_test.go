@@ -13,12 +13,14 @@ func TestFormatWorkspaceTablePreservesAlignmentWithANSI(t *testing.T) {
 		{
 			Name:         "ws-001",
 			Path:         "/tmp/ws-001",
+			Purpose:      "feature work",
 			Status:       workspace.StatusAvailable,
 			TTLRemaining: 0,
 		},
 		{
 			Name:         "ws-010",
 			Path:         "/tmp/ws-010",
+			Purpose:      "bugfix",
 			Status:       workspace.StatusAcquired,
 			TTLRemaining: 2*time.Minute + 5*time.Second,
 		},
@@ -40,6 +42,7 @@ func TestFormatWorkspaceTableTruncatesLongPaths(t *testing.T) {
 		{
 			Name:         "ws-002",
 			Path:         longPath,
+			Purpose:      "refactor",
 			Status:       workspace.StatusAvailable,
 			TTLRemaining: 0,
 		},

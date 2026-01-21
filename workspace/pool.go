@@ -75,6 +75,10 @@ type AcquireOptions struct {
 	// TTL is how long the lease is valid before expiring.
 	// Defaults to DefaultTTL (1 hour) if zero.
 	TTL time.Duration
+
+	// Purpose describes why the workspace is being acquired.
+	// It must be a single-line string.
+	Purpose string
 }
 
 // Acquire obtains a workspace from the pool for the given repository.
@@ -96,6 +100,12 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	}
 	if opts.TTL == 0 {
 		opts.TTL = DefaultTTL
+	}
+	if strings.TrimSpace(opts.Purpose) == "" {
+		return "", fmt.Errorf("purpose is required")
+	}
+	if strings.ContainsAny(opts.Purpose, "\r\n") {
+		return "", fmt.Errorf("purpose must be a single line")
 	}
 
 	// Get the repo name (creates entry if needed)
@@ -135,6 +145,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 
 				// Acquire it
 				ws.Status = StatusAcquired
+				ws.Purpose = opts.Purpose
 				ws.AcquiredByPID = os.Getpid()
 				ws.AcquiredAt = now
 				ws.TTLSeconds = int(opts.TTL.Seconds())
@@ -154,6 +165,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 			Name:          wsName,
 			Repo:          repoName,
 			Path:          wsPath,
+			Purpose:       opts.Purpose,
 			Status:        StatusAcquired,
 			AcquiredByPID: os.Getpid(),
 			AcquiredAt:    now,
@@ -331,6 +343,9 @@ type Info struct {
 	// Path is the absolute path to the workspace directory.
 	Path string
 
+	// Purpose describes why the workspace was acquired.
+	Purpose string
+
 	// Status indicates whether the workspace is available, acquired, or stale.
 	Status Status
 
@@ -373,6 +388,7 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 		item := Info{
 			Name:          ws.Name,
 			Path:          ws.Path,
+			Purpose:       ws.Purpose,
 			Status:        ws.Status,
 			AcquiredByPID: ws.AcquiredByPID,
 			AcquiredAt:    ws.AcquiredAt,

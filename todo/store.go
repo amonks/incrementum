@@ -123,7 +123,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 
 	// Acquire a workspace. If the bookmark doesn't exist yet, we'll create
 	// the store in this workspace, then edit to it.
-	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{})
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: "todo store"})
 	if err != nil {
 		return nil, fmt.Errorf("acquire workspace: %w", err)
 	}
