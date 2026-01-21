@@ -54,6 +54,22 @@ function fix-all
   end
 end
 
+function improvement-loop
+  while true
+    echo ">> running an improvement"
+
+    # run the improvement
+    cat prompt.md | opencode run
+    if ! go test ./...
+      # the tests failed. improvement rejected. exit.
+      echo ">> test failure"
+      return 1
+    end
+
+    echo ">> tests passed; improvement is valid; continue"
+  end
+end
+
 function wiggum --argument-names spec
   set -l last_commit_id "$(jj show -T commit_id)"
   set -l consecutive_failures 0
@@ -74,7 +90,7 @@ function wiggum --argument-names spec
       set -l consecutive_failures (math $consecutive_failures + 1)
       if test $consecutive_failures -ge 3
         echo ">> too many failures; exiting"
-        exit 1
+        return 1
       end
       jj restore --from "$last_commit_id"
       echo ">> restored to $last_commit_id"
