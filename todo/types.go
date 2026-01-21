@@ -74,6 +74,20 @@ func (t TodoType) IsValid() bool {
 	return false
 }
 
+// TodoTypeRank returns the sort rank for a todo type.
+func TodoTypeRank(t TodoType) int {
+	switch t {
+	case TypeBug:
+		return 0
+	case TypeTask:
+		return 1
+	case TypeFeature:
+		return 2
+	default:
+		return 3
+	}
+}
+
 // DependencyType represents the relationship between two todos.
 type DependencyType string
 

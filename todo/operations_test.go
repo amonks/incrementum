@@ -754,6 +754,38 @@ func TestStore_Ready(t *testing.T) {
 	}
 }
 
+func TestStore_Ready_TypePriority(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	feature, _ := store.Create("Feature", CreateOptions{Type: TypeFeature, Priority: PriorityMedium})
+	task, _ := store.Create("Task", CreateOptions{Type: TypeTask, Priority: PriorityMedium})
+	bug, _ := store.Create("Bug", CreateOptions{Type: TypeBug, Priority: PriorityMedium})
+
+	ready, err := store.Ready(10)
+	if err != nil {
+		t.Fatalf("failed to get ready: %v", err)
+	}
+	if len(ready) != 3 {
+		t.Fatalf("expected 3 ready todos, got %d", len(ready))
+	}
+
+	if ready[0].ID != bug.ID {
+		t.Errorf("expected bug todo first, got %q", ready[0].Title)
+	}
+	if ready[1].ID != task.ID {
+		t.Errorf("expected task todo second, got %q", ready[1].Title)
+	}
+	if ready[2].ID != feature.ID {
+		t.Errorf("expected feature todo third, got %q", ready[2].Title)
+	}
+}
+
 func TestStore_Ready_WithBlockers(t *testing.T) {
 	repoPath := setupTestRepo(t)
 

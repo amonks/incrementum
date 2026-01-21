@@ -97,8 +97,8 @@ Fields (JSON keys):
 
 - Returns `open` todos that have no unresolved `blocks` dependencies.
 - A blocker is unresolved when the blocking todo is not `closed`.
-- Results are ordered by priority (ascending) then by creation time
-  (oldest first); an optional limit truncates the list.
+- Results are ordered by priority (ascending), then type (bug, task, feature),
+  then creation time (oldest first); an optional limit truncates the list.
 
 ### Dependencies
 

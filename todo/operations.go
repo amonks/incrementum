@@ -478,6 +478,9 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		if ready[i].Priority != ready[j].Priority {
 			return ready[i].Priority < ready[j].Priority
 		}
+		if TodoTypeRank(ready[i].Type) != TodoTypeRank(ready[j].Type) {
+			return TodoTypeRank(ready[i].Type) < TodoTypeRank(ready[j].Type)
+		}
 		// Secondary sort by creation time (oldest first)
 		return ready[i].CreatedAt.Before(ready[j].CreatedAt)
 	})
