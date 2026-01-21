@@ -2,7 +2,7 @@ function next
   incr todo ready --json --limit=1 | jq -r first.id
 end
 
-function fix --argument-names todo_id
+function fix --argument-names todo_id move_main
     echo ">> fixing $todo_id"
     jj new main
     echo ">> made empty change"
@@ -33,6 +33,10 @@ function fix --argument-names todo_id
     echo ">> committing"
     jj commit --message="$todo_title"\n\n"$todo_description"
     echo ">> committed"
+    if test move_main = true
+      jj bookmark move main --to @-
+      echo ">> advanced main bookmark"
+    end
 
     incr session done $todo_id
     echo ">> closed session"
@@ -46,8 +50,7 @@ function wiggum
       echo "nothing left to do"
       break
     end
-    fix $todo_id || break
-    jj bookmark move main --to @-
+    fix $todo_id true || break
   end
 end
 
