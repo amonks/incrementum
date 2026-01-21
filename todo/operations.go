@@ -258,6 +258,16 @@ func (s *Store) Close(ids []string, reason string) ([]Todo, error) {
 	return s.Update(ids, opts)
 }
 
+// Finish marks one or more todos as done with an optional reason.
+func (s *Store) Finish(ids []string, reason string) ([]Todo, error) {
+	_ = reason
+	status := StatusDone
+	opts := UpdateOptions{
+		Status: &status,
+	}
+	return s.Update(ids, opts)
+}
+
 // Reopen reopens one or more closed todos with an optional reason.
 func (s *Store) Reopen(ids []string, reason string) ([]Todo, error) {
 	_ = reason

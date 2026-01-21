@@ -65,6 +65,13 @@ stdout 'Reopened'
 exec $INCR todo show $TODO_ID --json
 stdout '"status": "open"'
 
+# finish todo
+exec $INCR todo finish $TODO_ID --reason 'Done!'
+stdout 'Finished'
+
+exec $INCR todo show $TODO_ID --json
+stdout '"status": "done"'
+
 # list filter by status
 exec $INCR todo list --status open --json
 stdout '"status": "open"'

@@ -76,6 +76,16 @@ var todoCloseCmd = &cobra.Command{
 
 var todoCloseReason string
 
+// todo finish
+var todoFinishCmd = &cobra.Command{
+	Use:   "finish <id>...",
+	Short: "Mark one or more todos as done",
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  runTodoFinish,
+}
+
+var todoFinishReason string
+
 // todo reopen
 var todoReopenCmd = &cobra.Command{
 	Use:   "reopen <id>...",
@@ -162,7 +172,7 @@ var todoDepTreeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(todoCmd)
-	todoCmd.AddCommand(todoCreateCmd, todoUpdateCmd, todoCloseCmd, todoReopenCmd,
+	todoCmd.AddCommand(todoCreateCmd, todoUpdateCmd, todoCloseCmd, todoFinishCmd, todoReopenCmd,
 		todoDeleteCmd, todoShowCmd, todoListCmd, todoReadyCmd, todoDepCmd)
 	todoDepCmd.AddCommand(todoDepAddCmd, todoDepTreeCmd)
 
@@ -187,6 +197,9 @@ func init() {
 
 	// todo close flags
 	todoCloseCmd.Flags().StringVar(&todoCloseReason, "reason", "", "Reason for closing")
+
+	// todo finish flags
+	todoFinishCmd.Flags().StringVar(&todoFinishReason, "reason", "", "Reason for finishing")
 
 	// todo reopen flags
 	todoReopenCmd.Flags().StringVar(&todoReopenReason, "reason", "", "Reason for reopening")
@@ -444,6 +457,24 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 
 	for _, t := range closed {
 		fmt.Printf("Closed %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
+	}
+	return nil
+}
+
+func runTodoFinish(cmd *cobra.Command, args []string) error {
+	store, err := openTodoStore()
+	if err != nil {
+		return err
+	}
+	defer store.Release()
+
+	finished, err := store.Finish(args, todoFinishReason)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range finished {
+		fmt.Printf("Finished %s: %s\n", ui.HighlightID(t.ID, 0), t.Title)
 	}
 	return nil
 }

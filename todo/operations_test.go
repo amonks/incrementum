@@ -359,6 +359,33 @@ func TestStore_Close(t *testing.T) {
 	}
 }
 
+func TestStore_Finish(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{CreateIfMissing: true})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, _ := store.Create("Finish the docs", CreateOptions{})
+
+	finished, err := store.Finish([]string{created.ID}, "")
+	if err != nil {
+		t.Fatalf("failed to finish: %v", err)
+	}
+
+	if len(finished) != 1 {
+		t.Fatalf("expected 1 finished todo, got %d", len(finished))
+	}
+	if finished[0].Status != StatusDone {
+		t.Errorf("expected status 'done', got %q", finished[0].Status)
+	}
+	if finished[0].ClosedAt == nil {
+		t.Error("expected ClosedAt to be set")
+	}
+}
+
 func TestStore_Reopen(t *testing.T) {
 	repoPath := setupTestRepo(t)
 

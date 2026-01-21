@@ -5,7 +5,7 @@
 // without polluting the code history.
 //
 // The public API mirrors the CLI commands:
-//   - Create, Update, Close, Reopen for todo lifecycle
+//   - Create, Update, Close, Finish, Reopen for todo lifecycle
 //   - Show, List, Ready for querying
 //   - DepAdd, DepTree for dependency management
 package todo
