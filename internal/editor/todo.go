@@ -61,10 +61,10 @@ var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
 		return s
 	},
 }).Parse(`title = {{ printf "%q" .Title }}
- type = {{ printf "%q" .Type }} # task, bug, feature
- priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
+type = {{ printf "%q" .Type }} # task, bug, feature
+priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 {{- if .IsUpdate }}
- status = {{ printf "%q" .Status }} # open, in_progress, closed, done, tombstone
+status = {{ printf "%q" .Status }} # open, in_progress, closed, done, tombstone
 {{- end }}
 ---
 {{ description .Description }}

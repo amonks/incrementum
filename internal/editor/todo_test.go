@@ -14,6 +14,7 @@ func TestRenderTodoTOML_Create(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RenderTodoTOML failed: %v", err)
 	}
+	assertUnindentedFrontmatter(t, content)
 
 	// Check required elements are present
 	if !strings.Contains(content, `title = ""`) {
@@ -57,6 +58,7 @@ func TestRenderTodoTOML_Update(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RenderTodoTOML failed: %v", err)
 	}
+	assertUnindentedFrontmatter(t, content)
 
 	// Check fields are present with values
 	if !strings.Contains(content, `title = "Test Todo"`) {
@@ -256,5 +258,21 @@ func TestCreateTodoTempFileExtension(t *testing.T) {
 
 	if !strings.HasSuffix(file.Name(), ".md") {
 		t.Errorf("expected temp file to end with .md, got %q", file.Name())
+	}
+}
+
+func assertUnindentedFrontmatter(t *testing.T, content string) {
+	t.Helper()
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		if strings.TrimSpace(line) == "---" {
+			break
+		}
+		if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
+			t.Fatalf("expected frontmatter line to be unindented, got %q", line)
+		}
 	}
 }
