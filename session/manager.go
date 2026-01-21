@@ -109,6 +109,7 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 
 	status := todo.StatusInProgress
 	if _, err := m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &status}); err != nil {
+		_ = m.pool.Release(wsPath)
 		return nil, err
 	}
 

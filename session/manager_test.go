@@ -220,6 +220,55 @@ func TestManager_RunReleasesWorkspaceOnSessionUpdateError(t *testing.T) {
 	}
 }
 
+func TestManager_StartReleasesWorkspaceOnTodoUpdateError(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	created, err := store.Create("Session start", todo.CreateOptions{Priority: todo.PriorityMedium})
+	if err != nil {
+		store.Release()
+		t.Fatalf("create todo: %v", err)
+	}
+	store.Release()
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	statePath := filepath.Join(os.Getenv("HOME"), ".local", "state", "incrementum", "state.json")
+	todoWorkspacePath := workspacePathByPurpose(t, statePath, "todo store")
+	todosPath := filepath.Join(todoWorkspacePath, todo.TodosFile)
+	if err := os.Chmod(todosPath, 0400); err != nil {
+		t.Fatalf("make todos file read-only: %v", err)
+	}
+
+	_, err = manager.Start(created.ID, StartOptions{Rev: "@"})
+	if err == nil {
+		t.Fatal("expected error from start")
+	}
+
+	infos, err := manager.pool.List(repoPath)
+	if err != nil {
+		t.Fatalf("list workspaces: %v", err)
+	}
+	acquired := 0
+	for _, info := range infos {
+		if info.Status == workspace.StatusAcquired {
+			acquired++
+		}
+	}
+	if acquired != 1 {
+		t.Fatalf("expected 1 acquired workspace, got %d", acquired)
+	}
+}
+
 func TestResolveActiveSessionRequiresWorkspace(t *testing.T) {
 	repoPath := setupSessionRepo(t)
 
@@ -374,4 +423,32 @@ func setupSessionRepo(t *testing.T) string {
 	}
 
 	return tmpDir
+}
+
+func workspacePathByPurpose(t *testing.T, statePath, purpose string) string {
+	t.Helper()
+
+	data, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read state file: %v", err)
+	}
+
+	var st struct {
+		Workspaces map[string]struct {
+			Path    string `json:"path"`
+			Purpose string `json:"purpose"`
+		} `json:"workspaces"`
+	}
+	if err := json.Unmarshal(data, &st); err != nil {
+		t.Fatalf("unmarshal state: %v", err)
+	}
+
+	for _, ws := range st.Workspaces {
+		if ws.Purpose == purpose {
+			return ws.Path
+		}
+	}
+
+	t.Fatalf("workspace with purpose %q not found", purpose)
+	return ""
 }
