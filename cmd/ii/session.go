@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/internal/ui"
 	sessionpkg "github.com/amonks/incrementum/session"
 	"github.com/amonks/incrementum/todo"
@@ -20,9 +21,9 @@ var sessionCmd = &cobra.Command{
 }
 
 var sessionStartCmd = &cobra.Command{
-	Use:   "start <todo-id>",
+	Use:   "start [todo-id]",
 	Short: "Start a new session for a todo",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	RunE:  runSessionStart,
 }
 
@@ -54,10 +55,18 @@ var sessionListCmd = &cobra.Command{
 }
 
 var (
-	sessionStartTopic string
-	sessionStartRev   string
-	sessionRunRev     string
-	sessionListJSON   bool
+	sessionStartTopic  string
+	sessionStartRev    string
+	sessionStartTitle  string
+	sessionStartType   string
+	sessionStartDesc   string
+	sessionStartDeps   []string
+	sessionStartEdit   bool
+	sessionStartNoEdit bool
+
+	sessionStartPriority int
+	sessionRunRev        string
+	sessionListJSON      bool
 )
 
 func init() {
@@ -66,11 +75,43 @@ func init() {
 
 	sessionStartCmd.Flags().StringVar(&sessionStartTopic, "topic", "", "Session topic")
 	sessionStartCmd.Flags().StringVar(&sessionStartRev, "rev", "@", "Revision to check out")
+	sessionStartCmd.Flags().StringVar(&sessionStartTitle, "title", "", "Todo title")
+	sessionStartCmd.Flags().StringVarP(&sessionStartType, "type", "t", "task", "Todo type (task, bug, feature)")
+	sessionStartCmd.Flags().IntVarP(&sessionStartPriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
+	sessionStartCmd.Flags().StringVarP(&sessionStartDesc, "description", "d", "", "Description (use '-' to read from stdin)")
+	sessionStartCmd.Flags().StringVar(&sessionStartDesc, "desc", "", "Description (use '-' to read from stdin)")
+	sessionStartCmd.Flags().StringArrayVar(&sessionStartDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
+	sessionStartCmd.Flags().BoolVarP(&sessionStartEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
+	sessionStartCmd.Flags().BoolVar(&sessionStartNoEdit, "no-edit", false, "Do not open $EDITOR")
 	sessionRunCmd.Flags().StringVar(&sessionRunRev, "rev", "@", "Revision to check out")
 	sessionListCmd.Flags().BoolVar(&sessionListJSON, "json", false, "Output as JSON")
 }
 
 func runSessionStart(cmd *cobra.Command, args []string) error {
+	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+		desc, err := resolveDescriptionFromStdin(sessionStartDesc, os.Stdin)
+		if err != nil {
+			return err
+		}
+		sessionStartDesc = desc
+	}
+
+	hasCreateFlags := sessionStartHasCreateFlags(cmd)
+	if len(args) > 0 && (hasCreateFlags || sessionStartEdit || sessionStartNoEdit) {
+		return fmt.Errorf("todo id cannot be combined with todo creation flags")
+	}
+
+	todoID := ""
+	if len(args) > 0 {
+		todoID = args[0]
+	} else {
+		createdID, err := createTodoForSessionStart(cmd, hasCreateFlags)
+		if err != nil {
+			return err
+		}
+		todoID = createdID
+	}
+
 	repoPath, err := getRepoPath()
 	if err != nil {
 		return err
@@ -84,13 +125,95 @@ func runSessionStart(cmd *cobra.Command, args []string) error {
 	}
 	defer manager.Close()
 
-	result, err := manager.Start(args[0], sessionpkg.StartOptions{Topic: sessionStartTopic, Rev: sessionStartRev})
+	result, err := manager.Start(todoID, sessionpkg.StartOptions{Topic: sessionStartTopic, Rev: sessionStartRev})
 	if err != nil {
 		return err
 	}
 
 	fmt.Println(result.WorkspacePath)
 	return nil
+}
+
+func createTodoForSessionStart(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
+	useEditor := shouldUseSessionStartEditor(hasCreateFlags, sessionStartEdit, sessionStartNoEdit, editor.IsInteractive())
+	if useEditor {
+		data := editor.DefaultCreateData()
+		if cmd.Flags().Changed("title") {
+			data.Title = sessionStartTitle
+		}
+		if cmd.Flags().Changed("type") {
+			data.Type = sessionStartType
+		}
+		if cmd.Flags().Changed("priority") {
+			data.Priority = sessionStartPriority
+		}
+		if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+			data.Description = sessionStartDesc
+		}
+
+		parsed, err := editor.EditTodoWithData(data)
+		if err != nil {
+			return "", err
+		}
+
+		store, err := openTodoStore()
+		if err != nil {
+			return "", err
+		}
+		defer store.Release()
+
+		opts := parsed.ToCreateOptions()
+		opts.Dependencies = sessionStartDeps
+
+		created, err := store.Create(parsed.Title, opts)
+		if err != nil {
+			return "", err
+		}
+		return created.ID, nil
+	}
+
+	if sessionStartTitle == "" {
+		return "", fmt.Errorf("title is required (use --edit to open editor)")
+	}
+
+	store, err := openTodoStore()
+	if err != nil {
+		return "", err
+	}
+	defer store.Release()
+
+	created, err := store.Create(sessionStartTitle, todo.CreateOptions{
+		Type:         todo.TodoType(sessionStartType),
+		Priority:     sessionStartPriority,
+		Description:  sessionStartDesc,
+		Dependencies: sessionStartDeps,
+	})
+	if err != nil {
+		return "", err
+	}
+	return created.ID, nil
+}
+
+func sessionStartHasCreateFlags(cmd *cobra.Command) bool {
+	return cmd.Flags().Changed("title") ||
+		cmd.Flags().Changed("type") ||
+		cmd.Flags().Changed("priority") ||
+		cmd.Flags().Changed("description") ||
+		cmd.Flags().Changed("desc") ||
+		cmd.Flags().Changed("deps")
+}
+
+func shouldUseSessionStartEditor(hasCreateFlags bool, editFlag bool, noEditFlag bool, interactive bool) bool {
+	if editFlag {
+		return true
+	}
+	if noEditFlag {
+		return false
+	}
+	if hasCreateFlags {
+		return false
+	}
+	return interactive
 }
 
 func runSessionDone(cmd *cobra.Command, args []string) error {

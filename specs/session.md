@@ -50,8 +50,14 @@ Fields (JSON keys):
 
 ## Commands
 
-### `ii session start <todo-id> [--topic <text>]`
+### `ii session start [todo-id] [--topic <text>]`
 
+When a todo id is provided, start a session for the existing todo.
+When no id is provided, create a new todo using the same flags as `ii todo create`
+(`--title`, `--type`, `--priority`, `--description/--desc`, `--deps`, `--edit`, `--no-edit`).
+
+- Reject combining a todo id with todo creation flags.
+- For new todos, default to opening $EDITOR when running interactively and no create flags are provided.
 - Resolve todo id.
 - Error if todo status is `in_progress`, `done`, `closed`, or `tombstone`.
 - Acquire a workspace.
