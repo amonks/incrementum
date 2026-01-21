@@ -2,7 +2,7 @@ function next
   ii todo ready --json --limit=1 | jq -r first.id
 end
 
-function fix --argument-names todo_id move_main
+function fix --argument-names todo_id --argument-names move_main
     echo ">> fixing $todo_id"
     jj new main
     echo ">> made empty change"
@@ -43,7 +43,7 @@ function fix --argument-names todo_id move_main
     popd
 end
 
-function wiggum
+function fix-all
   while true
     set -l todo_id "$(next)"
     if test "null" = "$todo_id"
@@ -51,5 +51,35 @@ function wiggum
       break
     end
     fix $todo_id true || break
+  end
+end
+
+function wiggum --argument-names spec
+  set -l last_commit_id "$(jj show -T commit_id)"
+  set -l consecutive_failures 0
+  while true
+    echo ">> executing against $spec"
+    set -l prompt "Figure out what the highest priority task is towards implementing the $spec spec, and complete it. Do tdd (write a failing test, watch it fail, make it pass). If there's nothing left to do, that's ok: exit without making changes."
+    echo "$prompt" | opencode run
+    if ! go test ./...
+      echo ">> test failure"
+      set -l consecutive_failures (math $consecutive_failures + 1)
+      if test $consecutive_failures -ge 3
+        echo ">> too many failures; exiting"
+        exit 1
+      end
+      jj restore --from "$last_commit_id"
+      echo ">> restored to $last_commit_id"
+      continue
+    end
+    set -l consecutive_failures 0
+    jj debug snapshot
+    set -l new_commit_id "$(jj show -T commit_id)"
+    if test "$last_commit_id" = "$new_commit_id"
+      echo ">> no changes; done"
+      break
+    end
+    set -l last_commit_id "$new_commit_id"
+    echo ">> done. again..."
   end
 end
