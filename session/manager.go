@@ -104,7 +104,6 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 
 	status := todo.StatusInProgress
 	if _, err := m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &status}); err != nil {
-		m.pool.Release(wsPath)
 		return nil, err
 	}
 
@@ -118,7 +117,6 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 	if err != nil {
 		reset := todo.StatusOpen
 		_, _ = m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &reset})
-		m.pool.Release(wsPath)
 		return nil, err
 	}
 
@@ -172,13 +170,29 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 		return nil, err
 	}
 
+	released := false
+	releaseWorkspace := func() error {
+		if released {
+			return nil
+		}
+		if err := m.pool.ReleaseByName(m.repoPath, wsName); err != nil {
+			return err
+		}
+		released = true
+		return nil
+	}
+	defer func() {
+		if !released {
+			_ = releaseWorkspace()
+		}
+	}()
+
 	startedAt := time.Now()
 	topic := strings.Join(opts.Command, " ")
 	created, err := m.pool.CreateSession(m.repoPath, item.ID, wsName, topic, startedAt)
 	if err != nil {
 		reset := todo.StatusOpen
 		_, _ = m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &reset})
-		m.pool.Release(wsPath)
 		return nil, err
 	}
 
@@ -218,7 +232,7 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 		return nil, err
 	}
 
-	if err := m.pool.ReleaseByName(m.repoPath, created.WorkspaceName); err != nil {
+	if err := releaseWorkspace(); err != nil {
 		return nil, err
 	}
 
