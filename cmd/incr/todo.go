@@ -49,7 +49,7 @@ var todoUpdateCmd = &cobra.Command{
 	Long: `Update one or more todos.
 
 By default, opens $EDITOR to edit a TOML representation of the todo
-when running interactively (single ID only). Use --no-edit to skip the editor, or
+when running interactively (one editor session per ID). Use --no-edit to skip the editor, or
 --edit to force opening the editor even when not interactive.`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runTodoUpdate,
@@ -365,49 +365,55 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	// - --no-edit skips editor
 	// - otherwise, open editor if interactive
 	useEditor := todoUpdateEdit || (!todoUpdateNoEdit && editor.IsInteractive())
-	if useEditor && len(args) > 1 {
-		return fmt.Errorf("editor updates support a single ID (use --no-edit for multiple IDs)")
-	}
-
 	if useEditor {
-		// Fetch the existing todo
-		existing, err := store.Show([]string{args[0]})
-		if err != nil {
-			return err
+		updatedItems := make([]todo.Todo, 0, len(args))
+		for _, id := range args {
+			// Fetch the existing todo
+			existing, err := store.Show([]string{id})
+			if err != nil {
+				return err
+			}
+
+			// Pre-populate from existing todo, then override with any flags
+			data := editor.DataFromTodo(&existing[0])
+			if cmd.Flags().Changed("title") {
+				data.Title = todoUpdateTitle
+			}
+			if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+				data.Description = todoUpdateDescription
+			}
+
+			if cmd.Flags().Changed("status") {
+				data.Status = todoUpdateStatus
+			}
+			if cmd.Flags().Changed("priority") {
+				data.Priority = todoUpdatePriority
+			}
+			if cmd.Flags().Changed("type") {
+				data.Type = todoUpdateType
+			}
+
+			parsed, err := editor.EditTodoWithData(data)
+			if err != nil {
+				return err
+			}
+
+			opts := parsed.ToUpdateOptions()
+			updated, err := store.Update([]string{id}, opts)
+			if err != nil {
+				return err
+			}
+			updatedItems = append(updatedItems, updated[0])
 		}
 
-		// Pre-populate from existing todo, then override with any flags
-		data := editor.DataFromTodo(&existing[0])
-		if cmd.Flags().Changed("title") {
-			data.Title = todoUpdateTitle
+		ids := make([]string, 0, len(updatedItems))
+		for _, item := range updatedItems {
+			ids = append(ids, item.ID)
 		}
-		if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
-			data.Description = todoUpdateDescription
+		highlight := todoLogHighlighter(ids, ui.HighlightID)
+		for _, item := range updatedItems {
+			fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
 		}
-
-		if cmd.Flags().Changed("status") {
-			data.Status = todoUpdateStatus
-		}
-		if cmd.Flags().Changed("priority") {
-			data.Priority = todoUpdatePriority
-		}
-		if cmd.Flags().Changed("type") {
-			data.Type = todoUpdateType
-		}
-
-		parsed, err := editor.EditTodoWithData(data)
-		if err != nil {
-			return err
-		}
-
-		opts := parsed.ToUpdateOptions()
-		updated, err := store.Update([]string{args[0]}, opts)
-		if err != nil {
-			return err
-		}
-
-		highlight := todoLogHighlighter([]string{updated[0].ID}, ui.HighlightID)
-		fmt.Printf("Updated %s: %s\n", highlight(updated[0].ID), updated[0].Title)
 		return nil
 	}
 
