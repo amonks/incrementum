@@ -1,7 +1,9 @@
 # Specifications
 
-- `specs/workspace.md`: Defines the workspace pool semantics, state model, and CLI behavior for managing jujutsu workspaces.
-- `specs/todo.md`: Describes the todo store semantics, data model, and CLI architecture.
-- `specs/session.md`: Defines session state and CLI behavior for `ii session`.
-- `specs/cli.md`: Describes the CLI architecture and behavior expectations for all subcommands.
-- `specs/opencode.md`: Defines `ii opencode` server/session behavior and storage.
+| Spec                           | Code                        | Purpose                                            |
+| ------------------------------ | --------------------------- | -------------------------------------------------- |
+| [workspace.md](./workspace.md) | [workspace/](../workspace/) | Workspace pool and CLI flow for jujutsu workspaces |
+| [todo.md](./todo.md)           | [todo/](../todo/)           | Todo store semantics and CLI behavior              |
+| [session.md](./session.md)     | [session/](../session/)     | Session lifecycle for todo work                    |
+| [cli.md](./cli.md)             | [cmd/ii/](../cmd/ii/)       | CLI architecture and cross-cutting rules           |
+| [opencode.md](./opencode.md)   |                             | Opencode subcommand behavior and session tracking  |
