@@ -38,7 +38,7 @@ func BuildII(t testing.TB) string {
 		}
 
 		iiPath = filepath.Join(binDir, "ii")
-		cmd := exec.Command("go", "build", "-o", iiPath, "./cmd/incr")
+	cmd := exec.Command("go", "build", "-o", iiPath, "./cmd/ii")
 		cmd.Dir = moduleRoot
 		output, err := cmd.CombinedOutput()
 		if err != nil {
