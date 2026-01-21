@@ -638,7 +638,12 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 		return enc.Encode(todos)
 	}
 
-	printTodoTable(todos)
+	allTodos, err := store.List(todo.ListFilter{IncludeTombstones: true})
+	if err != nil {
+		return err
+	}
+
+	printTodoTable(todos, todoIDPrefixLengths(allTodos))
 	return nil
 }
 
@@ -665,7 +670,12 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	printTodoTable(todos)
+	allTodos, err := store.List(todo.ListFilter{IncludeTombstones: true})
+	if err != nil {
+		return err
+	}
+
+	printTodoTable(todos, todoIDPrefixLengths(allTodos))
 	return nil
 }
 
@@ -722,23 +732,21 @@ func parseIDList(value string) []string {
 }
 
 // printTodoTable prints todos in a table format.
-func printTodoTable(todos []todo.Todo) {
+func printTodoTable(todos []todo.Todo, prefixLengths map[string]int) {
 	if len(todos) == 0 {
 		fmt.Println("No todos found.")
 		return
 	}
 
-	fmt.Print(formatTodoTable(todos, ui.HighlightID))
+	fmt.Print(formatTodoTable(todos, prefixLengths, ui.HighlightID))
 }
 
-func formatTodoTable(todos []todo.Todo, highlight func(string, int) string) string {
+func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight func(string, int) string) string {
 	rows := make([][]string, 0, len(todos))
 
-	ids := make([]string, 0, len(todos))
-	for _, t := range todos {
-		ids = append(ids, t.ID)
+	if prefixLengths == nil {
+		prefixLengths = todoIDPrefixLengths(todos)
 	}
-	prefixLengths := ui.UniqueIDPrefixLengths(ids)
 
 	for _, t := range todos {
 		title := truncateTableCell(t.Title)
@@ -755,6 +763,14 @@ func formatTodoTable(todos []todo.Todo, highlight func(string, int) string) stri
 	}
 
 	return formatTable([]string{"ID", "PRI", "TYPE", "STATUS", "TITLE"}, rows)
+}
+
+func todoIDPrefixLengths(todos []todo.Todo) map[string]int {
+	ids := make([]string, 0, len(todos))
+	for _, t := range todos {
+		ids = append(ids, t.ID)
+	}
+	return ui.UniqueIDPrefixLengths(ids)
 }
 
 func todoLogHighlighter(ids []string, highlight func(string, int) string) func(string) string {

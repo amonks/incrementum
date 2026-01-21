@@ -92,6 +92,8 @@ Fields (JSON keys):
 - Returns todos matching optional filters: status, priority, type, IDs,
   title substring, description substring.
 - Tombstones are excluded by default unless `IncludeTombstones` is set.
+- CLI ID highlighting uses the shortest unique prefix across all todos,
+  including tombstones, so the display matches prefix resolution.
 
 ### Ready
 
