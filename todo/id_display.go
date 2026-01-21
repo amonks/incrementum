@@ -3,6 +3,8 @@ package todo
 import (
 	"fmt"
 	"strings"
+
+	"github.com/amonks/incrementum/internal/ids"
 )
 
 // IDIndex indexes todo IDs for prefix matching and display.
@@ -54,30 +56,5 @@ func (index IDIndex) Resolve(prefix string) (string, error) {
 
 // PrefixLengths returns the shortest unique prefix length for each ID.
 func (index IDIndex) PrefixLengths() map[string]int {
-	lengths := make(map[string]int, len(index.ids))
-	for _, id := range index.ids {
-		lengths[id] = uniquePrefixLength(id, index.ids)
-	}
-	return lengths
-}
-
-func uniquePrefixLength(id string, ids []string) int {
-	for length := 1; length <= len(id); length++ {
-		prefix := id[:length]
-		unique := true
-		for _, other := range ids {
-			if other == id {
-				continue
-			}
-			if strings.HasPrefix(other, prefix) {
-				unique = false
-				break
-			}
-		}
-		if unique {
-			return length
-		}
-	}
-
-	return len(id)
+	return ids.UniquePrefixLengths(index.ids)
 }
