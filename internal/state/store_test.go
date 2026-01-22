@@ -1,4 +1,4 @@
-package workspace
+package state
 
 import (
 	"path/filepath"
@@ -6,11 +6,11 @@ import (
 	"testing"
 )
 
-func TestStateStore_LoadEmpty(t *testing.T) {
+func TestStore_LoadEmpty(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
+	store := NewStore(tmpDir)
 
-	st, err := store.load()
+	st, err := store.Load()
 	if err != nil {
 		t.Fatalf("failed to load empty state: %v", err)
 	}
@@ -26,51 +26,48 @@ func TestStateStore_LoadEmpty(t *testing.T) {
 	if len(st.Workspaces) != 0 {
 		t.Errorf("expected 0 workspaces, got %d", len(st.Workspaces))
 	}
-}
 
-func TestStateStore_LoadEmpty_Opencode(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
-
-	st, err := store.load()
-	if err != nil {
-		t.Fatalf("failed to load empty state: %v", err)
+	if len(st.Sessions) != 0 {
+		t.Errorf("expected 0 sessions, got %d", len(st.Sessions))
 	}
 
-	if st.OpencodeDaemons == nil {
-		t.Fatal("expected opencode daemons map")
+	if len(st.OpencodeDaemons) != 0 {
+		t.Errorf("expected 0 opencode daemons, got %d", len(st.OpencodeDaemons))
 	}
 
-	if st.OpencodeSessions == nil {
-		t.Fatal("expected opencode sessions map")
+	if len(st.OpencodeSessions) != 0 {
+		t.Errorf("expected 0 opencode sessions, got %d", len(st.OpencodeSessions))
 	}
 }
 
-func TestStateStore_SaveLoad(t *testing.T) {
+func TestStore_SaveLoad(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
+	store := NewStore(tmpDir)
 
-	st := &state{
-		Repos: map[string]repoInfo{
+	st := &State{
+		Repos: map[string]RepoInfo{
 			"my-project": {SourcePath: "/Users/test/my-project"},
 		},
-		Workspaces: map[string]workspaceInfo{
+		Workspaces: map[string]WorkspaceInfo{
 			"my-project/ws-001": {
 				Name:        "ws-001",
 				Repo:        "my-project",
 				Path:        "/Users/test/.local/share/incrementum/workspaces/my-project/ws-001",
 				Purpose:     "initial sync",
-				Status:      StatusAcquired,
+				Status:      WorkspaceStatusAcquired,
 				Provisioned: true,
 			},
 		},
+		Sessions:         make(map[string]Session),
+		OpencodeDaemons:  make(map[string]OpencodeDaemon),
+		OpencodeSessions: make(map[string]OpencodeSession),
 	}
 
-	if err := store.save(st); err != nil {
+	if err := store.Save(st); err != nil {
 		t.Fatalf("failed to save state: %v", err)
 	}
 
-	loaded, err := store.load()
+	loaded, err := store.Load()
 	if err != nil {
 		t.Fatalf("failed to load state: %v", err)
 	}
@@ -94,26 +91,24 @@ func TestStateStore_SaveLoad(t *testing.T) {
 	if ws.Purpose != "initial sync" {
 		t.Errorf("expected purpose to persist, got %q", ws.Purpose)
 	}
-	if ws.Status != StatusAcquired {
-		t.Errorf("expected status claimed, got %s", ws.Status)
+	if ws.Status != WorkspaceStatusAcquired {
+		t.Errorf("expected status acquired, got %s", ws.Status)
 	}
 }
 
-func TestStateStore_Update(t *testing.T) {
+func TestStore_Update(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
+	store := NewStore(tmpDir)
 
-	// Use update to atomically modify state
-	err := store.update(func(st *state) error {
-		st.Repos["my-project"] = repoInfo{SourcePath: "/test/path"}
+	err := store.Update(func(st *State) error {
+		st.Repos["my-project"] = RepoInfo{SourcePath: "/test/path"}
 		return nil
 	})
 	if err != nil {
 		t.Fatalf("failed to update state: %v", err)
 	}
 
-	// Verify the update
-	loaded, err := store.load()
+	loaded, err := store.Load()
 	if err != nil {
 		t.Fatalf("failed to load state: %v", err)
 	}
@@ -123,20 +118,18 @@ func TestStateStore_Update(t *testing.T) {
 	}
 }
 
-func TestStateStore_ConcurrentUpdates(t *testing.T) {
+func TestStore_ConcurrentUpdates(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
+	store := NewStore(tmpDir)
 
-	// Initialize with a counter
-	err := store.update(func(st *state) error {
-		st.Repos["counter"] = repoInfo{SourcePath: "0"}
+	err := store.Update(func(st *State) error {
+		st.Repos["counter"] = RepoInfo{SourcePath: "0"}
 		return nil
 	})
 	if err != nil {
 		t.Fatalf("failed to init state: %v", err)
 	}
 
-	// Run concurrent updates
 	var wg sync.WaitGroup
 	numGoroutines := 10
 	incrementsPerGoroutine := 10
@@ -146,10 +139,9 @@ func TestStateStore_ConcurrentUpdates(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for j := 0; j < incrementsPerGoroutine; j++ {
-				err := store.update(func(st *state) error {
-					// Just verify we can read/write without corruption
+				err := store.Update(func(st *State) error {
 					_ = st.Repos["counter"]
-					st.Repos["counter"] = repoInfo{SourcePath: "updated"}
+					st.Repos["counter"] = RepoInfo{SourcePath: "updated"}
 					return nil
 				})
 				if err != nil {
@@ -161,8 +153,7 @@ func TestStateStore_ConcurrentUpdates(t *testing.T) {
 
 	wg.Wait()
 
-	// Verify final state is valid
-	loaded, err := store.load()
+	loaded, err := store.Load()
 	if err != nil {
 		t.Fatalf("failed to load final state: %v", err)
 	}
@@ -183,25 +174,23 @@ func TestSanitizeRepoName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := sanitizeRepoName(tt.input)
+		result := SanitizeRepoName(tt.input)
 		if result != tt.expected {
-			t.Errorf("sanitizeRepoName(%q) = %q, expected %q", tt.input, result, tt.expected)
+			t.Errorf("SanitizeRepoName(%q) = %q, expected %q", tt.input, result, tt.expected)
 		}
 	}
 }
 
-func TestStateStore_GetOrCreateRepoName(t *testing.T) {
+func TestStore_GetOrCreateRepoName(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
+	store := NewStore(tmpDir)
 
-	// First call should create the repo
-	name1, err := store.getOrCreateRepoName("/Users/test/my-project")
+	name1, err := store.GetOrCreateRepoName("/Users/test/my-project")
 	if err != nil {
 		t.Fatalf("failed to get repo name: %v", err)
 	}
 
-	// Second call with same path should return same name
-	name2, err := store.getOrCreateRepoName("/Users/test/my-project")
+	name2, err := store.GetOrCreateRepoName("/Users/test/my-project")
 	if err != nil {
 		t.Fatalf("failed to get repo name: %v", err)
 	}
@@ -210,30 +199,28 @@ func TestStateStore_GetOrCreateRepoName(t *testing.T) {
 		t.Errorf("expected same name, got %q and %q", name1, name2)
 	}
 
-	// Different path that sanitizes to same name should get a suffix
-	name3, err := store.getOrCreateRepoName("/Users/test/my/project") // different path, could collide
+	name3, err := store.GetOrCreateRepoName("/Users/test/my/project")
 	if err != nil {
 		t.Fatalf("failed to get repo name: %v", err)
 	}
 
-	// Should either be different or if it collides, have a suffix
 	if name3 == name1 {
 		t.Error("collision not handled - different paths got same name")
 	}
 }
 
-func TestStateStore_RepoPathForWorkspace(t *testing.T) {
+func TestStore_RepoPathForWorkspace(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
+	store := NewStore(tmpDir)
 
-	repoName, err := store.getOrCreateRepoName("/Users/test/my-project")
+	repoName, err := store.GetOrCreateRepoName("/Users/test/my-project")
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
 	wsPath := filepath.Join("/tmp/workspaces", repoName, "ws-001")
-	if err := store.update(func(st *state) error {
-		st.Workspaces[repoName+"/ws-001"] = workspaceInfo{
+	if err := store.Update(func(st *State) error {
+		st.Workspaces[repoName+"/ws-001"] = WorkspaceInfo{
 			Name: "ws-001",
 			Repo: repoName,
 			Path: wsPath,
@@ -243,7 +230,7 @@ func TestStateStore_RepoPathForWorkspace(t *testing.T) {
 		t.Fatalf("failed to add workspace: %v", err)
 	}
 
-	resolved, found, err := store.repoPathForWorkspace(wsPath)
+	resolved, found, err := store.RepoPathForWorkspace(wsPath)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -254,7 +241,7 @@ func TestStateStore_RepoPathForWorkspace(t *testing.T) {
 		t.Fatalf("expected repo path, got %q", resolved)
 	}
 
-	_, found, err = store.repoPathForWorkspace(filepath.Join("/tmp/workspaces", repoName, "ws-999"))
+	_, found, err = store.RepoPathForWorkspace(filepath.Join("/tmp/workspaces", repoName, "ws-999"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -263,13 +250,13 @@ func TestStateStore_RepoPathForWorkspace(t *testing.T) {
 	}
 }
 
-func TestStateStore_RepoPathForWorkspace_MissingRepo(t *testing.T) {
+func TestStore_RepoPathForWorkspace_MissingRepo(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := newStateStore(tmpDir)
+	store := NewStore(tmpDir)
 
 	wsPath := filepath.Join("/tmp/workspaces", "missing", "ws-001")
-	if err := store.update(func(st *state) error {
-		st.Workspaces["missing/ws-001"] = workspaceInfo{
+	if err := store.Update(func(st *State) error {
+		st.Workspaces["missing/ws-001"] = WorkspaceInfo{
 			Name: "ws-001",
 			Repo: "missing",
 			Path: wsPath,
@@ -279,7 +266,7 @@ func TestStateStore_RepoPathForWorkspace_MissingRepo(t *testing.T) {
 		t.Fatalf("failed to add workspace: %v", err)
 	}
 
-	_, found, err := store.repoPathForWorkspace(wsPath)
+	_, found, err := store.RepoPathForWorkspace(wsPath)
 	if !found {
 		t.Fatal("expected workspace to be found")
 	}

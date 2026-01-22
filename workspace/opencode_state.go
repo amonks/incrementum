@@ -1,53 +1,35 @@
 package workspace
 
-import "time"
+import (
+	statestore "github.com/amonks/incrementum/internal/state"
+)
 
 // OpencodeDaemonStatus represents the state of an opencode daemon.
-type OpencodeDaemonStatus string
+type OpencodeDaemonStatus = statestore.OpencodeDaemonStatus
 
 const (
 	// OpencodeDaemonRunning indicates the daemon is running.
-	OpencodeDaemonRunning OpencodeDaemonStatus = "running"
+	OpencodeDaemonRunning OpencodeDaemonStatus = statestore.OpencodeDaemonRunning
 	// OpencodeDaemonStopped indicates the daemon is stopped.
-	OpencodeDaemonStopped OpencodeDaemonStatus = "stopped"
+	OpencodeDaemonStopped OpencodeDaemonStatus = statestore.OpencodeDaemonStopped
 )
 
 // OpencodeDaemon stores daemon state for a repo.
-type OpencodeDaemon struct {
-	Repo      string               `json:"repo"`
-	Status    OpencodeDaemonStatus `json:"status"`
-	StartedAt time.Time            `json:"started_at"`
-	UpdatedAt time.Time            `json:"updated_at"`
-	PID       int                  `json:"pid,omitempty"`
-	Host      string               `json:"host,omitempty"`
-	Port      int                  `json:"port,omitempty"`
-	LogPath   string               `json:"log_path,omitempty"`
-}
+type OpencodeDaemon = statestore.OpencodeDaemon
 
 // OpencodeSessionStatus represents the state of an opencode session.
-type OpencodeSessionStatus string
+type OpencodeSessionStatus = statestore.OpencodeSessionStatus
 
 const (
 	// OpencodeSessionActive indicates the session is active.
-	OpencodeSessionActive OpencodeSessionStatus = "active"
+	OpencodeSessionActive OpencodeSessionStatus = statestore.OpencodeSessionActive
 	// OpencodeSessionCompleted indicates the session completed successfully.
-	OpencodeSessionCompleted OpencodeSessionStatus = "completed"
+	OpencodeSessionCompleted OpencodeSessionStatus = statestore.OpencodeSessionCompleted
 	// OpencodeSessionFailed indicates the session failed.
-	OpencodeSessionFailed OpencodeSessionStatus = "failed"
+	OpencodeSessionFailed OpencodeSessionStatus = statestore.OpencodeSessionFailed
 	// OpencodeSessionKilled indicates the session was terminated.
-	OpencodeSessionKilled OpencodeSessionStatus = "killed"
+	OpencodeSessionKilled OpencodeSessionStatus = statestore.OpencodeSessionKilled
 )
 
 // OpencodeSession stores session state for a repo.
-type OpencodeSession struct {
-	ID              string                `json:"id"`
-	Repo            string                `json:"repo"`
-	Status          OpencodeSessionStatus `json:"status"`
-	Prompt          string                `json:"prompt"`
-	StartedAt       time.Time             `json:"started_at"`
-	UpdatedAt       time.Time             `json:"updated_at"`
-	CompletedAt     time.Time             `json:"completed_at,omitempty"`
-	ExitCode        *int                  `json:"exit_code,omitempty"`
-	DurationSeconds int                   `json:"duration_seconds,omitempty"`
-	LogPath         string                `json:"log_path,omitempty"`
-}
+type OpencodeSession = statestore.OpencodeSession

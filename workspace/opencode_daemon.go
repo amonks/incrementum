@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"syscall"
 	"time"
+
+	statestore "github.com/amonks/incrementum/internal/state"
 )
 
 // ErrOpencodeDaemonNotFound indicates the requested daemon is missing.
@@ -12,7 +14,7 @@ var ErrOpencodeDaemonNotFound = errors.New("opencode daemon not found")
 
 // RecordOpencodeDaemon stores a running opencode daemon for a repo.
 func (p *Pool) RecordOpencodeDaemon(repoPath string, pid int, host string, port int, logPath string, startedAt time.Time) (OpencodeDaemon, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeDaemon{}, fmt.Errorf("get repo name: %w", err)
 	}
@@ -28,7 +30,7 @@ func (p *Pool) RecordOpencodeDaemon(repoPath string, pid int, host string, port 
 		LogPath:   logPath,
 	}
 
-	err = p.stateStore.update(func(st *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		st.OpencodeDaemons[repoName] = created
 		return nil
 	})
@@ -41,12 +43,12 @@ func (p *Pool) RecordOpencodeDaemon(repoPath string, pid int, host string, port 
 
 // FindOpencodeDaemon returns the daemon for the given repo.
 func (p *Pool) FindOpencodeDaemon(repoPath string) (OpencodeDaemon, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeDaemon{}, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return OpencodeDaemon{}, fmt.Errorf("load state: %w", err)
 	}
@@ -58,7 +60,7 @@ func (p *Pool) FindOpencodeDaemon(repoPath string) (OpencodeDaemon, error) {
 
 	if daemon.Status == OpencodeDaemonRunning && daemon.PID > 0 && !processRunning(daemon.PID) {
 		updatedAt := time.Now()
-		err = p.stateStore.update(func(st *state) error {
+		err = p.stateStore.Update(func(st *statestore.State) error {
 			current, ok := st.OpencodeDaemons[repoName]
 			if !ok {
 				return ErrOpencodeDaemonNotFound
@@ -79,13 +81,13 @@ func (p *Pool) FindOpencodeDaemon(repoPath string) (OpencodeDaemon, error) {
 
 // StopOpencodeDaemon marks the daemon as stopped.
 func (p *Pool) StopOpencodeDaemon(repoPath string, stoppedAt time.Time) (OpencodeDaemon, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeDaemon{}, fmt.Errorf("get repo name: %w", err)
 	}
 
 	var updated OpencodeDaemon
-	err = p.stateStore.update(func(st *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		daemon, ok := st.OpencodeDaemons[repoName]
 		if !ok {
 			return ErrOpencodeDaemonNotFound

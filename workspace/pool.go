@@ -10,6 +10,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/jj"
+	statestore "github.com/amonks/incrementum/internal/state"
 )
 
 // Pool manages a pool of jujutsu workspaces.
@@ -18,7 +19,7 @@ import (
 // are currently acquired. Multiple processes can safely use the same Pool
 // concurrently through file-based locking.
 type Pool struct {
-	stateStore    *stateStore
+	stateStore    *statestore.Store
 	workspacesDir string
 	jj            *jj.Client
 }
@@ -59,7 +60,7 @@ func OpenWithOptions(opts Options) (*Pool, error) {
 	}
 
 	return &Pool{
-		stateStore:    newStateStore(stateDir),
+		stateStore:    statestore.NewStore(stateDir),
 		workspacesDir: workspacesDir,
 		jj:            jj.New(),
 	}, nil
@@ -67,7 +68,7 @@ func OpenWithOptions(opts Options) (*Pool, error) {
 
 // RepoSlug returns the repo slug used for state storage.
 func (p *Pool) RepoSlug(repoPath string) (string, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return "", fmt.Errorf("get repo name: %w", err)
 	}
@@ -109,7 +110,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	}
 
 	// Get the repo name (creates entry if needed)
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return "", fmt.Errorf("get repo name: %w", err)
 	}
@@ -120,39 +121,39 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	var needsProvision bool
 
 	// Find or create a workspace
-	err = p.stateStore.update(func(state *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		now := time.Now()
 
 		// Find an available workspace
-		for key, ws := range state.Workspaces {
-			if ws.Repo == repoName && ws.Status == StatusAvailable {
+		for key, ws := range st.Workspaces {
+			if ws.Repo == repoName && ws.Status == statestore.WorkspaceStatusAvailable {
 				wsPath = ws.Path
 				wsName = ws.Name
 				needsProvision = !ws.Provisioned
 
 				// Acquire it
-				ws.Status = StatusAcquired
+				ws.Status = statestore.WorkspaceStatusAcquired
 				ws.Purpose = opts.Purpose
 				ws.AcquiredByPID = os.Getpid()
 				ws.AcquiredAt = now
-				state.Workspaces[key] = ws
+				st.Workspaces[key] = ws
 				return nil
 			}
 		}
 
 		// No available workspace - create a new one
-		wsName = p.nextWorkspaceName(state, repoName)
+		wsName = p.nextWorkspaceName(st, repoName)
 		wsPath = filepath.Join(p.workspacesDir, repoName, wsName)
 		needsCreate = true
 		needsProvision = true
 
 		wsKey := repoName + "/" + wsName
-		state.Workspaces[wsKey] = workspaceInfo{
+		st.Workspaces[wsKey] = statestore.WorkspaceInfo{
 			Name:          wsName,
 			Repo:          repoName,
 			Path:          wsPath,
 			Purpose:       opts.Purpose,
-			Status:        StatusAcquired,
+			Status:        statestore.WorkspaceStatusAcquired,
 			AcquiredByPID: os.Getpid(),
 			AcquiredAt:    now,
 			Provisioned:   false,
@@ -172,8 +173,8 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 
 		if err := p.jj.WorkspaceAdd(repoPath, wsName, wsPath); err != nil {
 			// Clean up state on failure
-			p.stateStore.update(func(state *state) error {
-				delete(state.Workspaces, repoName+"/"+wsName)
+			p.stateStore.Update(func(st *statestore.State) error {
+				delete(st.Workspaces, repoName+"/"+wsName)
 				return nil
 			})
 			return "", fmt.Errorf("jj workspace add: %w", err)
@@ -204,11 +205,11 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 
 	// Mark as provisioned if needed
 	if needsProvision {
-		p.stateStore.update(func(state *state) error {
+		p.stateStore.Update(func(st *statestore.State) error {
 			wsKey := repoName + "/" + wsName
-			if ws, ok := state.Workspaces[wsKey]; ok {
+			if ws, ok := st.Workspaces[wsKey]; ok {
 				ws.Provisioned = true
-				state.Workspaces[wsKey] = ws
+				st.Workspaces[wsKey] = ws
 			}
 			return nil
 		})
@@ -230,14 +231,14 @@ func (p *Pool) releaseToAvailable(wsPath string) error {
 		return fmt.Errorf("jj new root(): %w", err)
 	}
 
-	return p.stateStore.update(func(state *state) error {
-		for key, ws := range state.Workspaces {
+	return p.stateStore.Update(func(st *statestore.State) error {
+		for key, ws := range st.Workspaces {
 			if ws.Path == wsPath {
-				ws.Status = StatusAvailable
+				ws.Status = statestore.WorkspaceStatusAvailable
 				ws.Purpose = ""
 				ws.AcquiredByPID = 0
 				ws.AcquiredAt = time.Time{}
-				state.Workspaces[key] = ws
+				st.Workspaces[key] = ws
 				return nil
 			}
 		}
@@ -259,12 +260,12 @@ func (p *Pool) ensureReleaseChange(wsPath, rev string) error {
 
 // ReleaseByName returns a workspace to the pool by name.
 func (p *Pool) ReleaseByName(repoPath, wsName string) error {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return fmt.Errorf("load state: %w", err)
 	}
@@ -306,12 +307,12 @@ type Info struct {
 // The returned slice includes both available and acquired workspaces.
 
 func (p *Pool) List(repoPath string) ([]Info, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load state: %w", err)
 	}
@@ -390,7 +391,7 @@ func (p *Pool) WorkspaceNameForPath(path string) (string, error) {
 		return "", ErrWorkspaceRootNotFound
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return "", fmt.Errorf("load state: %w", err)
 	}
@@ -416,7 +417,7 @@ func repoRootFromPathWithOptions(path string, opts Options) (string, error) {
 		return "", fmt.Errorf("open workspace pool: %w", err)
 	}
 
-	repoPath, found, err := pool.stateStore.repoPathForWorkspace(root)
+	repoPath, found, err := pool.stateStore.RepoPathForWorkspace(root)
 	if err != nil {
 		return "", err
 	}
@@ -437,7 +438,7 @@ func repoRootFromPathWithOptions(path string, opts Options) (string, error) {
 }
 
 // nextWorkspaceName returns the next sequential workspace name for the repo.
-func (p *Pool) nextWorkspaceName(st *state, repoName string) string {
+func (p *Pool) nextWorkspaceName(st *statestore.State, repoName string) string {
 	maxNum := 0
 	for _, ws := range st.Workspaces {
 		if ws.Repo == repoName {
@@ -458,31 +459,31 @@ func (p *Pool) nextWorkspaceName(st *state, repoName string) string {
 // It also runs "jj workspace forget" to unregister each workspace from the
 // source repository.
 func (p *Pool) DestroyAll(repoPath string) error {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return fmt.Errorf("get repo name: %w", err)
 	}
 
-	var workspaces []workspaceInfo
+	var workspaces []statestore.WorkspaceInfo
 	var repoSourcePath string
 
 	// Collect workspaces to destroy and get the source repo path
-	err = p.stateStore.update(func(state *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		// Get the source repo path
-		if repo, ok := state.Repos[repoName]; ok {
+		if repo, ok := st.Repos[repoName]; ok {
 			repoSourcePath = repo.SourcePath
 		}
 
-		for key, ws := range state.Workspaces {
+		for key, ws := range st.Workspaces {
 			if ws.Repo == repoName {
 				workspaces = append(workspaces, ws)
-				delete(state.Workspaces, key)
+				delete(st.Workspaces, key)
 			}
 		}
 
-		for key, session := range state.Sessions {
+		for key, session := range st.Sessions {
 			if session.Repo == repoName {
-				delete(state.Sessions, key)
+				delete(st.Sessions, key)
 			}
 		}
 		return nil

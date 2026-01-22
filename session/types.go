@@ -1,23 +1,23 @@
 package session
 
-import "github.com/amonks/incrementum/internal/sessionmodel"
+import statestore "github.com/amonks/incrementum/internal/state"
 
 // Status represents the session lifecycle state.
-type Status = sessionmodel.SessionStatus
+type Status = statestore.SessionStatus
 
 const (
 	// StatusActive indicates the session is in progress.
-	StatusActive Status = sessionmodel.SessionActive
+	StatusActive Status = statestore.SessionActive
 	// StatusCompleted indicates the session completed successfully.
-	StatusCompleted Status = sessionmodel.SessionCompleted
+	StatusCompleted Status = statestore.SessionCompleted
 	// StatusFailed indicates the session failed.
-	StatusFailed Status = sessionmodel.SessionFailed
+	StatusFailed Status = statestore.SessionFailed
 )
 
 // ValidStatuses returns all valid session status values.
 func ValidStatuses() []Status {
-	return sessionmodel.ValidSessionStatuses()
+	return statestore.ValidSessionStatuses()
 }
 
 // Session captures session metadata for a todo.
-type Session = sessionmodel.Session
+type Session = statestore.Session

@@ -6,18 +6,15 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 ## Architecture
 - `workspace.Pool` is the public API for acquiring, releasing, listing, and destroying workspaces.
 - Opencode session timing helpers (for age/duration display) live in `workspace` to keep the CLI thin.
-- State is persisted in a JSON file managed by `stateStore` with an advisory file lock to serialize updates.
-- Workspaces live under a shared base directory (`~/.local/share/incrementum/workspaces` by default). State lives under `~/.local/state/incrementum` by default.
+- State is persisted via `internal/state` which manages `~/.local/state/incrementum/state.json` with advisory file locking.
+- Workspaces live under a shared base directory (`~/.local/share/incrementum/workspaces` by default).
 - Jujutsu operations are delegated to `internal/jj` (workspace add/forget, edit, and new change).
 - Configuration hooks are loaded from `.incr.toml` via `internal/config` and executed on each acquire.
 
 ## State Model
-- State file is `state.json` with two maps:
-  - `repos`: maps repo names to their source paths.
-  - `workspaces`: maps `repoName/workspaceName` to workspace info.
-- A repo name is a sanitized version of the source path, lowercased, with path separators converted to hyphens. Collisions add a numeric suffix.
+- State is managed by `internal/state`. See [internal-state.md](./internal-state.md) for details.
+- Workspace-specific state includes: path, repo name, purpose, status, acquisition PID/time, and provisioning status.
 - Workspace names are sequential `ws-###` values allocated per repo.
-- Workspace info tracks: path, repo name, purpose, status, acquisition PID/time, and provisioning status.
 
 ## Workspace Lifecycle
 ### Acquire

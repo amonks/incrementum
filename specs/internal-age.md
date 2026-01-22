@@ -1,0 +1,10 @@
+# Internal Age
+
+## Overview
+The age package calculates display durations for items that may be active or completed.
+
+## Responsibilities
+- `DurationData` returns a duration and a flag indicating whether timing data exists.
+- Active items require `startedAt`; the duration is `now - startedAt`.
+- Completed items prefer an explicit `durationSeconds`, falling back to `completedAt - startedAt`.
+- Returns `(0, false)` when no timing data is available.

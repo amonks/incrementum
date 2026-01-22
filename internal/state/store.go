@@ -1,0 +1,226 @@
+package state
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"syscall"
+)
+
+// ErrRepoPathNotFound indicates a workspace is tracked but missing repo info.
+var ErrRepoPathNotFound = fmt.Errorf("repo source path not found")
+
+// Store manages the state file with locking.
+type Store struct {
+	dir string
+}
+
+// NewStore creates a new state store using the given directory.
+func NewStore(dir string) *Store {
+	return &Store{dir: dir}
+}
+
+// statePath returns the path to the state file.
+func (s *Store) statePath() string {
+	return filepath.Join(s.dir, "state.json")
+}
+
+// lockPath returns the path to the lock file.
+func (s *Store) lockPath() string {
+	return filepath.Join(s.dir, "state.lock")
+}
+
+// Load reads the state from disk. Returns an empty state if the file doesn't exist.
+func (s *Store) Load() (*State, error) {
+	data, err := os.ReadFile(s.statePath())
+	if os.IsNotExist(err) {
+		return &State{
+			Repos:            make(map[string]RepoInfo),
+			Workspaces:       make(map[string]WorkspaceInfo),
+			Sessions:         make(map[string]Session),
+			OpencodeDaemons:  make(map[string]OpencodeDaemon),
+			OpencodeSessions: make(map[string]OpencodeSession),
+		}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read state file: %w", err)
+	}
+
+	var st State
+	if err := json.Unmarshal(data, &st); err != nil {
+		return nil, fmt.Errorf("unmarshal state: %w", err)
+	}
+
+	// Initialize maps if nil
+	if st.Repos == nil {
+		st.Repos = make(map[string]RepoInfo)
+	}
+	if st.Workspaces == nil {
+		st.Workspaces = make(map[string]WorkspaceInfo)
+	}
+	if st.Sessions == nil {
+		st.Sessions = make(map[string]Session)
+	}
+	if st.OpencodeDaemons == nil {
+		st.OpencodeDaemons = make(map[string]OpencodeDaemon)
+	}
+	if st.OpencodeSessions == nil {
+		st.OpencodeSessions = make(map[string]OpencodeSession)
+	}
+
+	return &st, nil
+}
+
+// Save writes the state to disk.
+func (s *Store) Save(st *State) error {
+	// Ensure directory exists
+	if err := os.MkdirAll(s.dir, 0755); err != nil {
+		return fmt.Errorf("create state dir: %w", err)
+	}
+
+	data, err := json.MarshalIndent(st, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal state: %w", err)
+	}
+
+	// Write atomically via temp file
+	tmpPath := s.statePath() + ".tmp"
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		return fmt.Errorf("write temp state file: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, s.statePath()); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("rename state file: %w", err)
+	}
+
+	return nil
+}
+
+// Update atomically reads, modifies, and writes the state with file locking.
+func (s *Store) Update(fn func(st *State) error) error {
+	// Ensure directory exists
+	if err := os.MkdirAll(s.dir, 0755); err != nil {
+		return fmt.Errorf("create state dir: %w", err)
+	}
+
+	// Open lock file
+	lockFile, err := os.OpenFile(s.lockPath(), os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("open lock file: %w", err)
+	}
+	defer lockFile.Close()
+
+	// Acquire exclusive lock
+	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
+		return fmt.Errorf("acquire lock: %w", err)
+	}
+	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+
+	// Load current state
+	st, err := s.Load()
+	if err != nil {
+		return err
+	}
+
+	// Apply modifications
+	if err := fn(st); err != nil {
+		return err
+	}
+
+	// Save updated state
+	return s.Save(st)
+}
+
+// RepoPathForWorkspace returns the source repo path for a workspace path.
+func (s *Store) RepoPathForWorkspace(wsPath string) (string, bool, error) {
+	st, err := s.Load()
+	if err != nil {
+		return "", false, err
+	}
+
+	wsPath = filepath.Clean(wsPath)
+	for _, ws := range st.Workspaces {
+		if filepath.Clean(ws.Path) != wsPath {
+			continue
+		}
+		repo, ok := st.Repos[ws.Repo]
+		if !ok || repo.SourcePath == "" {
+			return "", true, ErrRepoPathNotFound
+		}
+		return repo.SourcePath, true, nil
+	}
+
+	return "", false, nil
+}
+
+// GetOrCreateRepoName returns the repo name for the given source path,
+// creating a new entry if needed. Handles collisions by appending suffixes.
+func (s *Store) GetOrCreateRepoName(sourcePath string) (string, error) {
+	var result string
+
+	err := s.Update(func(st *State) error {
+		// Check if this path already has a name
+		for name, info := range st.Repos {
+			if info.SourcePath == sourcePath {
+				result = name
+				return nil
+			}
+		}
+
+		// Generate a new name
+		baseName := SanitizeRepoName(sourcePath)
+		name := baseName
+
+		// Handle collisions
+		suffix := 2
+		for {
+			if _, exists := st.Repos[name]; !exists {
+				break
+			}
+			name = fmt.Sprintf("%s-%d", baseName, suffix)
+			suffix++
+		}
+
+		st.Repos[name] = RepoInfo{SourcePath: sourcePath}
+		result = name
+		return nil
+	})
+
+	return result, err
+}
+
+// SanitizeRepoName converts a file path to a safe repo name.
+func SanitizeRepoName(path string) string {
+	// Expand ~ if present
+	if strings.HasPrefix(path, "~/") {
+		home, _ := os.UserHomeDir()
+		path = filepath.Join(home, path[2:])
+	}
+
+	// Remove leading slash
+	path = strings.TrimPrefix(path, "/")
+
+	// Convert to lowercase
+	path = strings.ToLower(path)
+
+	// Replace path separators and spaces with hyphens
+	path = strings.ReplaceAll(path, "/", "-")
+	path = strings.ReplaceAll(path, " ", "-")
+
+	// Remove any characters that aren't alphanumeric or hyphens
+	reg := regexp.MustCompile(`[^a-z0-9-]`)
+	path = reg.ReplaceAllString(path, "")
+
+	// Collapse multiple hyphens
+	reg = regexp.MustCompile(`-+`)
+	path = reg.ReplaceAllString(path, "-")
+
+	// Trim leading/trailing hyphens
+	path = strings.Trim(path, "-")
+
+	return path
+}

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	statestore "github.com/amonks/incrementum/internal/state"
 )
 
 func TestPool_CreateSessionAndFind(t *testing.T) {
@@ -29,8 +31,8 @@ func TestPool_CreateSessionAndFind(t *testing.T) {
 	if session.Status != SessionActive {
 		t.Fatalf("expected status active, got %q", session.Status)
 	}
-	if session.Repo != sanitizeRepoName(repoPath) {
-		t.Fatalf("expected repo %q, got %q", sanitizeRepoName(repoPath), session.Repo)
+	if session.Repo != statestore.SanitizeRepoName(repoPath) {
+		t.Fatalf("expected repo %q, got %q", statestore.SanitizeRepoName(repoPath), session.Repo)
 	}
 	if session.TodoID != "abc12345" {
 		t.Fatalf("expected todo ID abc12345, got %q", session.TodoID)

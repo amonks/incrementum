@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	statestore "github.com/amonks/incrementum/internal/state"
 )
 
 // ErrOpencodeSessionNotFound indicates the requested session is missing.
@@ -21,14 +23,14 @@ var ErrOpencodeSessionNotActive = errors.New("opencode session is not active")
 
 // CreateOpencodeSession creates a new active opencode session.
 func (p *Pool) CreateOpencodeSession(repoPath, prompt, logPath string, startedAt time.Time) (OpencodeSession, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
 	}
 
 	var created OpencodeSession
 
-	err = p.stateStore.update(func(st *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		sessionID := generateOpencodeSessionID(prompt, startedAt)
 		created = OpencodeSession{
 			ID:        sessionID,
@@ -53,12 +55,12 @@ func (p *Pool) CreateOpencodeSession(repoPath, prompt, logPath string, startedAt
 
 // FindOpencodeSession returns the session with the given id in the repo.
 func (p *Pool) FindOpencodeSession(repoPath, sessionID string) (OpencodeSession, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("load state: %w", err)
 	}
@@ -93,12 +95,12 @@ func (p *Pool) FindOpencodeSession(repoPath, sessionID string) (OpencodeSession,
 
 // ListOpencodeSessions returns all sessions for a repo.
 func (p *Pool) ListOpencodeSessions(repoPath string) ([]OpencodeSession, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load state: %w", err)
 	}
@@ -126,14 +128,14 @@ func (p *Pool) CompleteOpencodeSession(repoPath, sessionID string, status Openco
 		return OpencodeSession{}, fmt.Errorf("invalid opencode session status: %s", status)
 	}
 
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
 	}
 
 	var updated OpencodeSession
 
-	err = p.stateStore.update(func(st *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		key := repoName + "/" + sessionID
 		session, ok := st.OpencodeSessions[key]
 		if !ok {

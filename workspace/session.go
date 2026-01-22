@@ -9,28 +9,28 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amonks/incrementum/internal/sessionmodel"
+	statestore "github.com/amonks/incrementum/internal/state"
 )
 
 // SessionStatus represents the state of a session.
-type SessionStatus = sessionmodel.SessionStatus
+type SessionStatus = statestore.SessionStatus
 
 const (
 	// SessionActive indicates the session is still active.
-	SessionActive SessionStatus = sessionmodel.SessionActive
+	SessionActive SessionStatus = statestore.SessionActive
 	// SessionCompleted indicates the session completed successfully.
-	SessionCompleted SessionStatus = sessionmodel.SessionCompleted
+	SessionCompleted SessionStatus = statestore.SessionCompleted
 	// SessionFailed indicates the session failed.
-	SessionFailed SessionStatus = sessionmodel.SessionFailed
+	SessionFailed SessionStatus = statestore.SessionFailed
 )
 
 // ValidSessionStatuses returns all valid session status values.
 func ValidSessionStatuses() []SessionStatus {
-	return sessionmodel.ValidSessionStatuses()
+	return statestore.ValidSessionStatuses()
 }
 
 // Session represents an active or completed session.
-type Session = sessionmodel.Session
+type Session = statestore.Session
 
 // ErrSessionAlreadyActive indicates a todo already has an active session.
 var ErrSessionAlreadyActive = errors.New("session already active")
@@ -43,14 +43,14 @@ var ErrSessionNotActive = errors.New("session is not active")
 
 // CreateSession creates a new active session for the given todo.
 func (p *Pool) CreateSession(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (Session, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return Session{}, fmt.Errorf("get repo name: %w", err)
 	}
 
 	var created Session
 
-	err = p.stateStore.update(func(st *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		for _, session := range st.Sessions {
 			if session.Repo == repoName && session.TodoID == todoID && session.Status == SessionActive {
 				return ErrSessionAlreadyActive
@@ -82,12 +82,12 @@ func (p *Pool) CreateSession(repoPath, todoID, workspaceName, topic string, star
 
 // FindActiveSessionByTodoID returns the active session for a todo.
 func (p *Pool) FindActiveSessionByTodoID(repoPath, todoID string) (Session, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return Session{}, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return Session{}, fmt.Errorf("load state: %w", err)
 	}
@@ -103,12 +103,12 @@ func (p *Pool) FindActiveSessionByTodoID(repoPath, todoID string) (Session, erro
 
 // FindActiveSessionByWorkspace returns the active session for a workspace.
 func (p *Pool) FindActiveSessionByWorkspace(repoPath, workspaceName string) (Session, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return Session{}, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return Session{}, fmt.Errorf("load state: %w", err)
 	}
@@ -128,14 +128,14 @@ func (p *Pool) CompleteSession(repoPath, sessionID string, status SessionStatus,
 		return Session{}, fmt.Errorf("invalid session status: %s", status)
 	}
 
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return Session{}, fmt.Errorf("get repo name: %w", err)
 	}
 
 	var updated Session
 
-	err = p.stateStore.update(func(st *state) error {
+	err = p.stateStore.Update(func(st *statestore.State) error {
 		key := repoName + "/" + sessionID
 		session, ok := st.Sessions[key]
 		if !ok {
@@ -164,12 +164,12 @@ func (p *Pool) CompleteSession(repoPath, sessionID string, status SessionStatus,
 
 // ListSessions returns all sessions for a repo.
 func (p *Pool) ListSessions(repoPath string) ([]Session, error) {
-	repoName, err := p.stateStore.getOrCreateRepoName(repoPath)
+	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.load()
+	st, err := p.stateStore.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load state: %w", err)
 	}
