@@ -118,6 +118,25 @@ func TestParseTodoTOML(t *testing.T) {
 	}
 }
 
+func TestParseTodoTOML_NormalizesCase(t *testing.T) {
+	content := `title = "My Todo"
+type = "BUG"
+priority = 1
+status = "DONE"`
+
+	parsed, err := ParseTodoTOML(content)
+	if err != nil {
+		t.Fatalf("ParseTodoTOML failed: %v", err)
+	}
+
+	if parsed.Type != "bug" {
+		t.Errorf("expected type 'bug', got %q", parsed.Type)
+	}
+	if parsed.Status == nil || *parsed.Status != "done" {
+		t.Errorf("expected status 'done', got %v", parsed.Status)
+	}
+}
+
 func TestParseTodoTOML_Validation(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -127,7 +146,7 @@ func TestParseTodoTOML_Validation(t *testing.T) {
 		{
 			name:    "missing title",
 			content: `type = "task"`,
-			wantErr: "title is required",
+			wantErr: "title cannot be empty",
 		},
 		{
 			name:    "invalid type",

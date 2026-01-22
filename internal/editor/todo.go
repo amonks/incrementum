@@ -97,10 +97,15 @@ func ParseTodoTOML(content string) (*ParsedTodo, error) {
 		return nil, fmt.Errorf("parse TOML: %w", err)
 	}
 	parsed.Description = strings.TrimLeft(body, "\n")
+	parsed.Type = strings.ToLower(strings.TrimSpace(parsed.Type))
+	if parsed.Status != nil {
+		normalizedStatus := strings.ToLower(strings.TrimSpace(*parsed.Status))
+		parsed.Status = &normalizedStatus
+	}
 
 	// Validate required fields
-	if parsed.Title == "" {
-		return nil, fmt.Errorf("title is required")
+	if err := todo.ValidateTitle(parsed.Title); err != nil {
+		return nil, err
 	}
 	if !todo.TodoType(parsed.Type).IsValid() {
 		return nil, fmt.Errorf("invalid type %q: must be task, bug, or feature", parsed.Type)
