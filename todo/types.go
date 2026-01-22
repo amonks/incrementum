@@ -45,6 +45,16 @@ func (s Status) IsValid() bool {
 	return false
 }
 
+// IsResolved returns true when a status is considered resolved for dependencies.
+func (s Status) IsResolved() bool {
+	switch s {
+	case StatusClosed, StatusDone, StatusTombstone:
+		return true
+	default:
+		return false
+	}
+}
+
 // TodoType represents the category of a todo.
 type TodoType string
 

@@ -25,6 +25,28 @@ func TestStatus_IsValid(t *testing.T) {
 	}
 }
 
+func TestStatus_IsResolved(t *testing.T) {
+	tests := []struct {
+		status   Status
+		resolved bool
+	}{
+		{StatusOpen, false},
+		{StatusInProgress, false},
+		{StatusClosed, true},
+		{StatusDone, true},
+		{StatusTombstone, true},
+		{Status("unknown"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.status), func(t *testing.T) {
+			if got := tt.status.IsResolved(); got != tt.resolved {
+				t.Errorf("Status(%q).IsResolved() = %v, want %v", tt.status, got, tt.resolved)
+			}
+		})
+	}
+}
+
 func TestTodoType_IsValid(t *testing.T) {
 	tests := []struct {
 		typ   TodoType
