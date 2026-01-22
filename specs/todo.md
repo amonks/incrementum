@@ -149,6 +149,7 @@ The CLI mirrors the store API:
 - `todo update` -> `Store.Update`
 - `todo start` -> `Store.Start`
 - `todo close` -> `Store.Close`
+- `todo finish` (`todo done`) -> `Store.Finish`
 - `todo reopen` -> `Store.Reopen`
 - `todo delete` -> `Store.Delete`
 - `todo show` -> `Store.Show`

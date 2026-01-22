@@ -89,8 +89,11 @@ var todoStartCmd = &cobra.Command{
 var todoFinishCmd = &cobra.Command{
 	Use:   "finish <id>...",
 	Short: "Mark one or more todos as done",
-	Args:  cobra.MinimumNArgs(1),
-	RunE:  runTodoFinish,
+	Aliases: []string{
+		"done",
+	},
+	Args: cobra.MinimumNArgs(1),
+	RunE: runTodoFinish,
 }
 
 // todo reopen

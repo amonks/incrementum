@@ -53,3 +53,18 @@ func TestTodoUpdateStatusMentionsTombstone(t *testing.T) {
 		t.Fatalf("expected todo update status usage to mention tombstone, got %q", flag.Usage)
 	}
 }
+
+func TestTodoFinishHasDoneAlias(t *testing.T) {
+	if !containsAlias(todoFinishCmd, "done") {
+		t.Fatalf("expected todo finish to have done alias, got %v", todoFinishCmd.Aliases)
+	}
+}
+
+func containsAlias(cmd *cobra.Command, alias string) bool {
+	for _, item := range cmd.Aliases {
+		if item == alias {
+			return true
+		}
+	}
+	return false
+}
