@@ -261,6 +261,13 @@ func resolveDescriptionFromStdin(description string, reader io.Reader) (string, 
 	return value, nil
 }
 
+func todoCreatePriorityValue(cmd *cobra.Command) *int {
+	if cmd.Flags().Changed("priority") {
+		return todo.PriorityPtr(todoCreatePriority)
+	}
+	return nil
+}
+
 func runTodoCreate(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
 		desc, err := resolveDescriptionFromStdin(todoCreateDescription, os.Stdin)
@@ -333,7 +340,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 
 	created, err := store.Create(args[0], todo.CreateOptions{
 		Type:         todo.TodoType(todoCreateType),
-		Priority:     todoCreatePriority,
+		Priority:     todoCreatePriorityValue(cmd),
 		Description:  todoCreateDescription,
 		Dependencies: todoCreateDeps,
 	})

@@ -196,7 +196,7 @@ func EditTodoWithData(data TodoData) (*ParsedTodo, error) {
 func (p *ParsedTodo) ToCreateOptions() todo.CreateOptions {
 	return todo.CreateOptions{
 		Type:        todo.TodoType(p.Type),
-		Priority:    p.Priority,
+		Priority:    todo.PriorityPtr(p.Priority),
 		Description: p.Description,
 	}
 }

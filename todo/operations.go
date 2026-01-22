@@ -12,8 +12,8 @@ type CreateOptions struct {
 	// Type is the todo type (task, bug, feature). Defaults to TypeTask.
 	Type TodoType
 
-	// Priority is the importance level (0-4). Defaults to PriorityMedium (2).
-	Priority int
+	// Priority is the importance level (0-4). Defaults to PriorityMedium (2) when nil.
+	Priority *int
 
 	// Description provides additional context.
 	Description string
@@ -38,8 +38,13 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidType, opts.Type)
 	}
 
-	// Note: Priority 0 is valid (critical), so CLI must pass explicit default
-	if err := ValidatePriority(opts.Priority); err != nil {
+	priority := opts.Priority
+	if priority == nil {
+		defaultPriority := PriorityMedium
+		priority = &defaultPriority
+	}
+	// Note: Priority 0 is valid (critical), so nil indicates default.
+	if err := ValidatePriority(*priority); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +74,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		Title:       title,
 		Description: opts.Description,
 		Status:      StatusOpen,
-		Priority:    opts.Priority,
+		Priority:    *priority,
 		Type:        opts.Type,
 		CreatedAt:   now,
 		UpdatedAt:   now,

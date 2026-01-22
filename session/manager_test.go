@@ -24,7 +24,7 @@ func TestManager_StartDone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open todo store: %v", err)
 	}
-	created, err := store.Create("Session todo", todo.CreateOptions{Priority: todo.PriorityMedium})
+	created, err := store.Create("Session todo", todo.CreateOptions{Priority: todo.PriorityPtr(todo.PriorityMedium)})
 	if err != nil {
 		store.Release()
 		t.Fatalf("create todo: %v", err)
@@ -118,7 +118,7 @@ func TestManager_StartUsesTitleForBlankTopic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open todo store: %v", err)
 	}
-	created, err := store.Create("Topic fallback", todo.CreateOptions{Priority: todo.PriorityMedium})
+	created, err := store.Create("Topic fallback", todo.CreateOptions{Priority: todo.PriorityPtr(todo.PriorityMedium)})
 	if err != nil {
 		store.Release()
 		t.Fatalf("create todo: %v", err)
@@ -151,7 +151,7 @@ func TestManager_RunReleasesWorkspaceOnSessionUpdateError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open todo store: %v", err)
 	}
-	created, err := store.Create("Session run", todo.CreateOptions{Priority: todo.PriorityMedium})
+	created, err := store.Create("Session run", todo.CreateOptions{Priority: todo.PriorityPtr(todo.PriorityMedium)})
 	if err != nil {
 		store.Release()
 		t.Fatalf("create todo: %v", err)
@@ -260,7 +260,7 @@ func TestManager_StartReleasesWorkspaceOnTodoUpdateError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open todo store: %v", err)
 	}
-	created, err := store.Create("Session start", todo.CreateOptions{Priority: todo.PriorityMedium})
+	created, err := store.Create("Session start", todo.CreateOptions{Priority: todo.PriorityPtr(todo.PriorityMedium)})
 	if err != nil {
 		store.Release()
 		t.Fatalf("create todo: %v", err)
@@ -309,7 +309,7 @@ func TestManager_StartReleasesWorkspaceOnSessionCreateError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open todo store: %v", err)
 	}
-	created, err := store.Create("Session create", todo.CreateOptions{Priority: todo.PriorityMedium})
+	created, err := store.Create("Session create", todo.CreateOptions{Priority: todo.PriorityPtr(todo.PriorityMedium)})
 	if err != nil {
 		store.Release()
 		t.Fatalf("create todo: %v", err)

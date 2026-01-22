@@ -192,7 +192,7 @@ func createTodoForSessionStart(cmd *cobra.Command, hasCreateFlags bool) (string,
 
 	created, err := store.Create(sessionStartTitle, todo.CreateOptions{
 		Type:         todo.TodoType(sessionStartType),
-		Priority:     sessionStartPriority,
+		Priority:     sessionStartPriorityValue(cmd),
 		Description:  sessionStartDesc,
 		Dependencies: sessionStartDeps,
 	})
@@ -222,6 +222,13 @@ func shouldUseSessionStartEditor(hasCreateFlags bool, editFlag bool, noEditFlag 
 		return false
 	}
 	return interactive
+}
+
+func sessionStartPriorityValue(cmd *cobra.Command) *int {
+	if cmd.Flags().Changed("priority") {
+		return todo.PriorityPtr(sessionStartPriority)
+	}
+	return nil
 }
 
 func runSessionDone(cmd *cobra.Command, args []string) error {

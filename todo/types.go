@@ -145,5 +145,10 @@ func PriorityName(p int) string {
 	}
 }
 
+// PriorityPtr returns a pointer to the provided priority.
+func PriorityPtr(priority int) *int {
+	return &priority
+}
+
 // MaxTitleLength is the maximum allowed length for a todo title.
 const MaxTitleLength = 500

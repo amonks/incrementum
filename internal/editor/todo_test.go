@@ -174,8 +174,8 @@ func TestToCreateOptions(t *testing.T) {
 	if opts.Type != todo.TypeFeature {
 		t.Errorf("expected type feature, got %v", opts.Type)
 	}
-	if opts.Priority != 1 {
-		t.Errorf("expected priority 1, got %d", opts.Priority)
+	if opts.Priority == nil || *opts.Priority != 1 {
+		t.Errorf("expected priority 1, got %v", opts.Priority)
 	}
 	if opts.Description != "description" {
 		t.Errorf("expected description 'description', got %q", opts.Description)
