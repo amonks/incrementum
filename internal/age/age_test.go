@@ -1,0 +1,73 @@
+package age
+
+import (
+	"testing"
+	"time"
+)
+
+func TestDurationData(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-10 * time.Minute)
+	completed := start.Add(3 * time.Minute)
+
+	cases := []struct {
+		name            string
+		startedAt       time.Time
+		completedAt     time.Time
+		durationSeconds int
+		active          bool
+		want            time.Duration
+		ok              bool
+	}{
+		{
+			name:      "active uses now",
+			startedAt: start,
+			active:    true,
+			want:      10 * time.Minute,
+			ok:        true,
+		},
+		{
+			name:      "active zero duration",
+			startedAt: now,
+			active:    true,
+			want:      0,
+			ok:        true,
+		},
+		{
+			name:            "duration seconds preferred",
+			startedAt:       start,
+			completedAt:     now,
+			durationSeconds: 90,
+			want:            90 * time.Second,
+			ok:              true,
+		},
+		{
+			name:        "completed uses timestamps",
+			startedAt:   start,
+			completedAt: completed,
+			want:        3 * time.Minute,
+			ok:          true,
+		},
+		{
+			name:   "missing timing data",
+			active: true,
+			want:   0,
+			ok:     false,
+		},
+		{
+			name:      "completed missing timestamps",
+			startedAt: start,
+			want:      0,
+			ok:        false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := DurationData(tc.startedAt, tc.completedAt, tc.durationSeconds, tc.active, now)
+			if got != tc.want || ok != tc.ok {
+				t.Fatalf("expected %s/%t, got %s/%t", tc.want, tc.ok, got, ok)
+			}
+		})
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/age"
 	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/workspace"
 )
@@ -390,22 +391,7 @@ func (m *Manager) resolveActiveSessionByTodoPrefix(todoID string) (*Session, err
 
 // AgeData computes the display age and whether timing data exists.
 func AgeData(item Session, now time.Time) (time.Duration, bool) {
-	if item.Status == StatusActive {
-		if item.StartedAt.IsZero() {
-			return 0, false
-		}
-		return now.Sub(item.StartedAt), true
-	}
-
-	if item.DurationSeconds > 0 {
-		return time.Duration(item.DurationSeconds) * time.Second, true
-	}
-
-	if !item.CompletedAt.IsZero() && !item.StartedAt.IsZero() {
-		return item.CompletedAt.Sub(item.StartedAt), true
-	}
-
-	return 0, false
+	return age.DurationData(item.StartedAt, item.CompletedAt, item.DurationSeconds, item.Status == StatusActive, now)
 }
 
 // Age computes the display age for a session.
