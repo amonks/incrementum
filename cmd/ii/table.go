@@ -9,12 +9,26 @@ const tableCellMaxWidth = 50
 const tableCellEllipsis = "..."
 
 func formatTable(headers []string, rows [][]string) string {
-	widths := make([]int, len(headers))
+	normalizedHeaders := make([]string, len(headers))
 	for i, header := range headers {
+		normalizedHeaders[i] = normalizeTableCell(header)
+	}
+
+	normalizedRows := make([][]string, 0, len(rows))
+	for _, row := range rows {
+		normalizedRow := make([]string, len(row))
+		for i, cell := range row {
+			normalizedRow[i] = normalizeTableCell(cell)
+		}
+		normalizedRows = append(normalizedRows, normalizedRow)
+	}
+
+	widths := make([]int, len(normalizedHeaders))
+	for i, header := range normalizedHeaders {
 		widths[i] = displayWidth(header)
 	}
 
-	for _, row := range rows {
+	for _, row := range normalizedRows {
 		for i, cell := range row {
 			if i >= len(widths) {
 				break
@@ -39,8 +53,8 @@ func formatTable(headers []string, rows [][]string) string {
 		}
 	}
 
-	writeRow(headers)
-	for _, row := range rows {
+	writeRow(normalizedHeaders)
+	for _, row := range normalizedRows {
 		writeRow(row)
 	}
 
@@ -48,7 +62,7 @@ func formatTable(headers []string, rows [][]string) string {
 }
 
 func truncateTableCell(value string) string {
-	value = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\t", " ").Replace(value)
+	value = normalizeTableCell(value)
 	if utf8.RuneCountInString(value) <= tableCellMaxWidth {
 		return value
 	}
@@ -62,6 +76,10 @@ func truncateTableCell(value string) string {
 
 func displayWidth(value string) int {
 	return utf8.RuneCountInString(stripANSICodes(value))
+}
+
+func normalizeTableCell(value string) string {
+	return strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\t", " ").Replace(value)
 }
 
 func stripANSICodes(input string) string {

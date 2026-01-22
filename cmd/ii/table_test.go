@@ -24,3 +24,15 @@ func TestTruncateTableCellNormalizesLineBreaks(t *testing.T) {
 		t.Fatalf("expected line breaks to normalize, got %q", got)
 	}
 }
+
+func TestFormatTableNormalizesLineBreaks(t *testing.T) {
+	headers := []string{"COL"}
+	rows := [][]string{{"Hello\nWorld\r\nAgain\tTab"}}
+
+	got := formatTable(headers, rows)
+
+	expected := "COL\nHello World Again Tab\n"
+	if got != expected {
+		t.Fatalf("expected normalized table output, got %q", got)
+	}
+}
