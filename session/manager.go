@@ -17,6 +17,8 @@ import (
 type OpenOptions struct {
 	Todo      todo.OpenOptions
 	Workspace workspace.Options
+	// AllowMissingTodo permits opening without a todo store.
+	AllowMissingTodo bool
 }
 
 // StartOptions configures a session start.
@@ -63,12 +65,17 @@ type Manager struct {
 func Open(repoPath string, opts OpenOptions) (*Manager, error) {
 	store, err := todo.Open(repoPath, opts.Todo)
 	if err != nil {
-		return nil, err
+		if !opts.AllowMissingTodo || !errors.Is(err, todo.ErrNoTodoStore) {
+			return nil, err
+		}
+		store = nil
 	}
 
 	pool, err := workspace.OpenWithOptions(opts.Workspace)
 	if err != nil {
-		store.Release()
+		if store != nil {
+			store.Release()
+		}
 		return nil, err
 	}
 
@@ -82,11 +89,17 @@ func Open(repoPath string, opts OpenOptions) (*Manager, error) {
 
 // Close releases resources held by the manager.
 func (m *Manager) Close() error {
+	if m.store == nil {
+		return nil
+	}
 	return m.store.Release()
 }
 
 // Start starts a session for a todo.
 func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) {
+	if err := m.requireStore(); err != nil {
+		return nil, err
+	}
 	item, err := m.resolveTodo(todoID)
 	if err != nil {
 		return nil, err
@@ -149,6 +162,9 @@ func (m *Manager) Fail(todoID string, opts FinalizeOptions) (*Session, error) {
 
 // Run executes a command in a session workspace.
 func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
+	if err := m.requireStore(); err != nil {
+		return nil, err
+	}
 	if len(opts.Command) == 0 {
 		return nil, fmt.Errorf("command is required")
 	}
@@ -300,6 +316,9 @@ func (m *Manager) List(filter ListFilter) ([]Session, error) {
 
 // TodoIDPrefixLengths returns prefix lengths for todo IDs in the store.
 func (m *Manager) TodoIDPrefixLengths() (map[string]int, error) {
+	if m.store == nil {
+		return nil, nil
+	}
 	index, err := m.store.IDIndex()
 	if err != nil {
 		return nil, err
@@ -389,6 +408,9 @@ func Age(item Session, now time.Time) time.Duration {
 }
 
 func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.Status, sessionStatus workspace.SessionStatus) (*Session, error) {
+	if err := m.requireStore(); err != nil {
+		return nil, err
+	}
 	resolved, err := m.ResolveActiveSession(todoID, opts.WorkspacePath)
 	if err != nil {
 		return nil, err
@@ -414,6 +436,9 @@ func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.
 }
 
 func (m *Manager) resolveTodo(id string) (todo.Todo, error) {
+	if err := m.requireStore(); err != nil {
+		return todo.Todo{}, err
+	}
 	item, err := m.store.Show([]string{id})
 	if err != nil {
 		return todo.Todo{}, err
@@ -447,4 +472,11 @@ func fromWorkspaceSession(item workspace.Session) Session {
 		ExitCode:        item.ExitCode,
 		DurationSeconds: item.DurationSeconds,
 	}
+}
+
+func (m *Manager) requireStore() error {
+	if m.store == nil {
+		return todo.ErrNoTodoStore
+	}
+	return nil
 }

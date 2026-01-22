@@ -487,6 +487,41 @@ func TestManagerListFiltersByStatus(t *testing.T) {
 	}
 }
 
+func TestManagerListWithoutTodoStore(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo:             todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+		AllowMissingTodo: true,
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	start := time.Now().UTC()
+	_, err = manager.pool.CreateSession(repoPath, "todo-1", "ws-001", "Active", start)
+	if err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+
+	list, err := manager.List(ListFilter{IncludeAll: true})
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(list))
+	}
+
+	lengths, err := manager.TodoIDPrefixLengths()
+	if err != nil {
+		t.Fatalf("todo prefix lengths: %v", err)
+	}
+	if lengths != nil {
+		t.Fatalf("expected nil prefix lengths without todo store, got %v", lengths)
+	}
+}
+
 func TestAgeUsesDurationSeconds(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	start := now.Add(-10 * time.Minute)

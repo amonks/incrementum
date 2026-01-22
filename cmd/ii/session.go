@@ -123,7 +123,8 @@ func runSessionStart(cmd *cobra.Command, args []string) error {
 	}
 
 	manager, err := sessionpkg.Open(repoPath, sessionpkg.OpenOptions{
-		Todo: todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true},
+		Todo:             todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+		AllowMissingTodo: true,
 	})
 	if err != nil {
 		return err
