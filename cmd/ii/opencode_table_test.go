@@ -163,6 +163,13 @@ func TestFormatOpencodeTableShowsMissingAgeForCompletedSession(t *testing.T) {
 	}
 }
 
+func TestOpencodePromptLineTreatsWhitespaceAsMissing(t *testing.T) {
+	prompt := "   \nsecond line"
+	if got := opencodePromptLine(prompt); got != "-" {
+		t.Fatalf("expected whitespace-only prompt to return '-', got %q", got)
+	}
+}
+
 func TestFilterOpencodeSessionsForListDefaultsToActive(t *testing.T) {
 	sessions := []workspace.OpencodeSession{
 		{ID: "active", Status: workspace.OpencodeSessionActive},

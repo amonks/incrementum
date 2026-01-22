@@ -164,7 +164,7 @@ func opencodePromptLine(prompt string) string {
 	}
 	line := strings.SplitN(prompt, "\n", 2)[0]
 	line = strings.TrimSuffix(line, "\r")
-	if line == "" {
+	if strings.TrimSpace(line) == "" {
 		return "-"
 	}
 	return line

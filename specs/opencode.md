@@ -124,6 +124,7 @@ Fields (JSON keys):
 - `SESSION` highlights the shortest unique prefix across all sessions in the
   repo when ANSI output is enabled.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
+- `PROMPT` displays `-` when the first line is empty or whitespace-only.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.
 - `AGE` prefers `duration_seconds`, otherwise uses `completed_at - started_at` for finished sessions or `now - started_at` for active sessions.
