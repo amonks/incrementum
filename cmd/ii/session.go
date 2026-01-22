@@ -331,17 +331,17 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 		return enc.Encode(sessions)
 	}
 
-	if len(sessions) == 0 {
-		fmt.Println("No sessions found.")
-		return nil
-	}
-
 	allSessions := sessions
 	if sessionListStatus != "" || !sessionListAll {
 		allSessions, err = manager.List(sessionpkg.ListFilter{IncludeAll: true})
 		if err != nil {
 			return err
 		}
+	}
+
+	if len(sessions) == 0 {
+		fmt.Println(sessionEmptyListMessage(len(allSessions), sessionListStatus, sessionListAll))
+		return nil
 	}
 
 	sessionPrefixLengths := sessionIDPrefixLengths(allSessions)

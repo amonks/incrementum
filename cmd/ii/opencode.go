@@ -69,7 +69,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(sessions) == 0 {
-		fmt.Println("No opencode sessions found.")
+		fmt.Println(opencodeEmptyListMessage(len(allSessions), opencodeListAll))
 		return nil
 	}
 

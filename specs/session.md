@@ -111,6 +111,7 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - Invalid `--status` values return errors listing valid statuses.
 - `--all` lists all statuses.
 - `--json` emits structured output.
+- When the list is empty but sessions exist, print a hint explaining the active/status filter (including `--all` when applicable).
 - Suggested columns: `SESSION`, `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.

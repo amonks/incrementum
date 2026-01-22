@@ -120,6 +120,7 @@ Fields (JSON keys):
 - Lists opencode sessions for the current repo.
 - Default output is a table matching other list commands.
 - Default output includes only active sessions unless `--all` is provided.
+- When the list is empty but sessions exist, print a hint to use `--all`.
 - Suggested columns: `SESSION`, `STATUS`, `AGE`, `PROMPT`, `EXIT`.
 - `SESSION` highlights the shortest unique prefix across all sessions in the
   repo when ANSI output is enabled.
