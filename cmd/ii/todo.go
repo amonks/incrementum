@@ -867,8 +867,8 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 		title := truncateTableCell(t.Title)
 		prefixLen := prefixLengths[strings.ToLower(t.ID)]
 		highlighted := highlight(t.ID, prefixLen)
-		createdAge := ui.FormatTimeAgo(t.CreatedAt, now)
-		updatedAge := ui.FormatTimeAgo(t.UpdatedAt, now)
+		createdAge := ui.FormatTimeAgeShort(t.CreatedAt, now)
+		updatedAge := ui.FormatTimeAgeShort(t.UpdatedAt, now)
 		row := []string{
 			highlighted,
 			priorityShort(t.Priority),

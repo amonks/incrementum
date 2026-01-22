@@ -36,3 +36,13 @@ func TestFormatTimeAgo(t *testing.T) {
 		t.Fatalf("expected 2m ago, got %s", got)
 	}
 }
+
+func TestFormatTimeAgeShort(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	then := now.Add(-2 * time.Minute)
+
+	got := FormatTimeAgeShort(then, now)
+	if got != "2m" {
+		t.Fatalf("expected 2m, got %s", got)
+	}
+}

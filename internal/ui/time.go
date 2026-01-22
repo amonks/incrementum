@@ -18,6 +18,19 @@ func FormatTimeAgo(then time.Time, now time.Time) string {
 	return FormatDurationShort(now.Sub(then)) + " ago"
 }
 
+// FormatTimeAgeShort returns a compact age string like "2m".
+func FormatTimeAgeShort(then time.Time, now time.Time) string {
+	if then.IsZero() {
+		return "-"
+	}
+
+	if now.Before(then) {
+		now = then
+	}
+
+	return FormatDurationShort(now.Sub(then))
+}
+
 // FormatDurationShort formats a duration using short units (s/m/h/d).
 func FormatDurationShort(duration time.Duration) string {
 	if duration < 0 {
