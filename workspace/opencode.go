@@ -13,6 +13,9 @@ import (
 // ErrOpencodeSessionNotFound indicates the requested session is missing.
 var ErrOpencodeSessionNotFound = errors.New("opencode session not found")
 
+// ErrAmbiguousOpencodeSessionIDPrefix indicates a prefix matches multiple sessions.
+var ErrAmbiguousOpencodeSessionIDPrefix = errors.New("ambiguous opencode session id prefix")
+
 // ErrOpencodeSessionNotActive indicates a session is not active.
 var ErrOpencodeSessionNotActive = errors.New("opencode session is not active")
 
@@ -60,13 +63,32 @@ func (p *Pool) FindOpencodeSession(repoPath, sessionID string) (OpencodeSession,
 		return OpencodeSession{}, fmt.Errorf("load state: %w", err)
 	}
 
-	key := repoName + "/" + sessionID
-	session, ok := st.OpencodeSessions[key]
-	if !ok {
+	if sessionID == "" {
 		return OpencodeSession{}, ErrOpencodeSessionNotFound
 	}
 
-	return session, nil
+	needle := strings.ToLower(sessionID)
+	var match *OpencodeSession
+	for _, session := range st.OpencodeSessions {
+		if session.Repo != repoName {
+			continue
+		}
+		idLower := strings.ToLower(session.ID)
+		if idLower != needle && !strings.HasPrefix(idLower, needle) {
+			continue
+		}
+		if match != nil && !strings.EqualFold(match.ID, session.ID) {
+			return OpencodeSession{}, fmt.Errorf("%w: %s", ErrAmbiguousOpencodeSessionIDPrefix, sessionID)
+		}
+		matched := session
+		match = &matched
+	}
+
+	if match == nil {
+		return OpencodeSession{}, ErrOpencodeSessionNotFound
+	}
+
+	return *match, nil
 }
 
 // ListOpencodeSessions returns all sessions for a repo.

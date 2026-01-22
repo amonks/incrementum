@@ -62,6 +62,8 @@ Fields (JSON keys):
 - Daemon metadata comes from explicit `ii opencode serve` flags; if host/port
   are not provided, they are left empty and the daemon is still considered
   running.
+- Session IDs accept case-insensitive prefix matching; prefixes must be
+  unambiguous.
 - When listing or validating daemon state, verify the stored pid is still
   running; if the process is gone, mark status `stopped`.
 - `run` always attaches to the daemon; it fails when the daemon is not running.
@@ -119,7 +121,8 @@ Fields (JSON keys):
 - Default output is a table matching other list commands.
 - Default output includes only active sessions unless `--all` is provided.
 - Suggested columns: `SESSION`, `STATUS`, `AGE`, `PROMPT`, `EXIT`.
-- `SESSION` highlights the shortest unique prefix when ANSI output is enabled.
+- `SESSION` highlights the shortest unique prefix across all sessions in the
+  repo when ANSI output is enabled.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.

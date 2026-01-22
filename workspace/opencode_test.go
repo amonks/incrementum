@@ -73,6 +73,101 @@ func TestPool_CreateOpencodeSessionAndList(t *testing.T) {
 	}
 }
 
+func TestPool_FindOpencodeSessionMatchesPrefix(t *testing.T) {
+	pool, err := OpenWithOptions(Options{
+		StateDir:      t.TempDir(),
+		WorkspacesDir: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatalf("open pool: %v", err)
+	}
+
+	repoPath := "/tmp/my-repo"
+	repoName, err := pool.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		t.Fatalf("get repo name: %v", err)
+	}
+
+	startedAt := time.Now().UTC()
+	session := OpencodeSession{
+		ID:        "abc123",
+		Repo:      repoName,
+		Status:    OpencodeSessionActive,
+		StartedAt: startedAt,
+		UpdatedAt: startedAt,
+	}
+	other := OpencodeSession{
+		ID:        "def456",
+		Repo:      repoName,
+		Status:    OpencodeSessionCompleted,
+		StartedAt: startedAt,
+		UpdatedAt: startedAt,
+	}
+
+	err = pool.stateStore.update(func(st *state) error {
+		st.OpencodeSessions[repoName+"/"+session.ID] = session
+		st.OpencodeSessions[repoName+"/"+other.ID] = other
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("seed sessions: %v", err)
+	}
+
+	found, err := pool.FindOpencodeSession(repoPath, "ABc")
+	if err != nil {
+		t.Fatalf("find session by prefix: %v", err)
+	}
+	if found.ID != session.ID {
+		t.Fatalf("expected session ID %q, got %q", session.ID, found.ID)
+	}
+}
+
+func TestPool_FindOpencodeSessionRejectsAmbiguousPrefix(t *testing.T) {
+	pool, err := OpenWithOptions(Options{
+		StateDir:      t.TempDir(),
+		WorkspacesDir: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatalf("open pool: %v", err)
+	}
+
+	repoPath := "/tmp/my-repo"
+	repoName, err := pool.stateStore.getOrCreateRepoName(repoPath)
+	if err != nil {
+		t.Fatalf("get repo name: %v", err)
+	}
+
+	startedAt := time.Now().UTC()
+	first := OpencodeSession{
+		ID:        "abc111",
+		Repo:      repoName,
+		Status:    OpencodeSessionActive,
+		StartedAt: startedAt,
+		UpdatedAt: startedAt,
+	}
+	second := OpencodeSession{
+		ID:        "abc222",
+		Repo:      repoName,
+		Status:    OpencodeSessionCompleted,
+		StartedAt: startedAt,
+		UpdatedAt: startedAt,
+	}
+
+	err = pool.stateStore.update(func(st *state) error {
+		st.OpencodeSessions[repoName+"/"+first.ID] = first
+		st.OpencodeSessions[repoName+"/"+second.ID] = second
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("seed sessions: %v", err)
+	}
+
+	_, err = pool.FindOpencodeSession(repoPath, "abc")
+	if !errors.Is(err, ErrAmbiguousOpencodeSessionIDPrefix) {
+		t.Fatalf("expected ErrAmbiguousOpencodeSessionIDPrefix, got %v", err)
+	}
+}
+
 func TestPool_RepoSlug(t *testing.T) {
 	pool, err := OpenWithOptions(Options{
 		StateDir:      t.TempDir(),

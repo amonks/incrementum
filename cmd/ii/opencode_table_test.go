@@ -33,13 +33,13 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 	}
 
-	plain := formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now)
+	plain := formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil)
 	ansi := formatOpencodeTable(sessions, func(id string, prefix int) string {
 		if prefix <= 0 || prefix > len(id) {
 			return id
 		}
 		return "\x1b[1m\x1b[36m" + id[:prefix] + "\x1b[0m" + id[prefix:]
-	}, now)
+	}, now, nil)
 
 	if stripANSICodes(ansi) != plain {
 		t.Fatalf("expected ANSI output to align with plain output\nplain:\n%s\nansi:\n%s", plain, ansi)
@@ -59,7 +59,7 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now))
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -92,7 +92,7 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now))
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -119,7 +119,7 @@ func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(value string, prefix int) string { return value }, now))
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(value string, prefix int) string { return value }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -188,7 +188,7 @@ func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 
 	output := formatOpencodeTable(sessions, func(id string, prefix int) string {
 		return id + ":" + strconv.Itoa(prefix)
-	}, now)
+	}, now, nil)
 
 	if !strings.Contains(output, "abc123:3") {
 		t.Fatalf("expected session prefix length 3, got: %q", output)

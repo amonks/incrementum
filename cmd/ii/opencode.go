@@ -59,6 +59,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("list opencode sessions: %w", err)
 	}
 
+	allSessions := sessions
 	sessions = filterOpencodeSessionsForList(sessions, opencodeListAll)
 
 	if opencodeListJSON {
@@ -72,7 +73,8 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Print(formatOpencodeTable(sessions, ui.HighlightID, time.Now()))
+	prefixLengths := opencodeSessionPrefixLengths(allSessions)
+	fmt.Print(formatOpencodeTable(sessions, ui.HighlightID, time.Now(), prefixLengths))
 	return nil
 }
 
@@ -116,17 +118,15 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time) string {
+func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) string {
 	if highlight == nil {
 		highlight = func(value string, prefix int) string { return value }
 	}
 
 	rows := make([][]string, 0, len(sessions))
-	sessionIDs := make([]string, 0, len(sessions))
-	for _, session := range sessions {
-		sessionIDs = append(sessionIDs, session.ID)
+	if prefixLengths == nil {
+		prefixLengths = opencodeSessionPrefixLengths(sessions)
 	}
-	prefixLengths := ui.UniqueIDPrefixLengths(sessionIDs)
 
 	for _, session := range sessions {
 		prompt := opencodePromptLine(session.Prompt)
@@ -148,6 +148,14 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 	}
 
 	return formatTable([]string{"SESSION", "STATUS", "AGE", "PROMPT", "EXIT"}, rows)
+}
+
+func opencodeSessionPrefixLengths(sessions []workspace.OpencodeSession) map[string]int {
+	sessionIDs := make([]string, 0, len(sessions))
+	for _, session := range sessions {
+		sessionIDs = append(sessionIDs, session.ID)
+	}
+	return ui.UniqueIDPrefixLengths(sessionIDs)
 }
 
 func opencodePromptLine(prompt string) string {
