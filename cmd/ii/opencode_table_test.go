@@ -121,6 +121,33 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 	}
 }
 
+func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	sessions := []workspace.OpencodeSession{
+		{
+			ID:     "sess-1",
+			Status: workspace.OpencodeSessionActive,
+			Prompt: "Do the thing",
+		},
+	}
+
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(value string) string { return value }, now))
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	fields := strings.Fields(lines[1])
+	if len(fields) < 3 {
+		t.Fatalf("expected at least 3 columns, got: %q", lines[1])
+	}
+
+	if fields[2] != "-" {
+		t.Fatalf("expected missing age '-', got: %s", fields[2])
+	}
+}
+
 func TestFilterOpencodeSessionsForListDefaultsToActive(t *testing.T) {
 	sessions := []workspace.OpencodeSession{
 		{ID: "active", Status: workspace.OpencodeSessionActive},

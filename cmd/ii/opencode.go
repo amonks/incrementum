@@ -125,7 +125,7 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 	for _, session := range sessions {
 		prompt := opencodePromptLine(session.Prompt)
 		prompt = truncateTableCell(prompt)
-		age := ui.FormatDurationShort(opencodeSessionAge(session, now))
+		age := formatOpencodeAge(session, now)
 		exit := "-"
 		if session.ExitCode != nil {
 			exit = strconv.Itoa(*session.ExitCode)
@@ -175,6 +175,13 @@ func opencodeSessionAge(session workspace.OpencodeSession, now time.Time) time.D
 		return 0
 	}
 	return now.Sub(session.StartedAt)
+}
+
+func formatOpencodeAge(session workspace.OpencodeSession, now time.Time) string {
+	if session.StartedAt.IsZero() && session.DurationSeconds == 0 {
+		return "-"
+	}
+	return ui.FormatDurationShort(opencodeSessionAge(session, now))
 }
 
 func opencodeSessionLogPath(pool *workspace.Pool, repoPath, sessionID string) (string, error) {

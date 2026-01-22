@@ -121,6 +121,7 @@ Fields (JSON keys):
 - Suggested columns: `SESSION`, `STATUS`, `AGE`, `PROMPT`, `EXIT`.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
+- `AGE` is `-` when the session is missing timing data.
 
 ### `ii opencode kill <session-id>`
 
