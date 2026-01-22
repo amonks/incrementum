@@ -384,24 +384,30 @@ func (m *Manager) resolveActiveSessionByTodoPrefix(todoID string) (*Session, err
 	return &converted, nil
 }
 
-// Age computes the display age for a session.
-func Age(item Session, now time.Time) time.Duration {
+// AgeData computes the display age and whether timing data exists.
+func AgeData(item Session, now time.Time) (time.Duration, bool) {
 	if item.Status == StatusActive {
 		if item.StartedAt.IsZero() {
-			return 0
+			return 0, false
 		}
-		return now.Sub(item.StartedAt)
+		return now.Sub(item.StartedAt), true
 	}
 
 	if item.DurationSeconds > 0 {
-		return time.Duration(item.DurationSeconds) * time.Second
+		return time.Duration(item.DurationSeconds) * time.Second, true
 	}
 
 	if !item.CompletedAt.IsZero() && !item.StartedAt.IsZero() {
-		return item.CompletedAt.Sub(item.StartedAt)
+		return item.CompletedAt.Sub(item.StartedAt), true
 	}
 
-	return 0
+	return 0, false
+}
+
+// Age computes the display age for a session.
+func Age(item Session, now time.Time) time.Duration {
+	age, _ := AgeData(item, now)
+	return age
 }
 
 func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.Status, sessionStatus workspace.SessionStatus) (*Session, error) {

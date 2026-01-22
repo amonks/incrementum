@@ -52,22 +52,28 @@ type OpencodeSession struct {
 	LogPath         string                `json:"log_path,omitempty"`
 }
 
-// OpencodeSessionAge computes the display age for an opencode session.
-func OpencodeSessionAge(session OpencodeSession, now time.Time) time.Duration {
+// OpencodeSessionAgeData computes the display age and whether timing data exists.
+func OpencodeSessionAgeData(session OpencodeSession, now time.Time) (time.Duration, bool) {
 	if session.Status == OpencodeSessionActive {
 		if session.StartedAt.IsZero() {
-			return 0
+			return 0, false
 		}
-		return now.Sub(session.StartedAt)
+		return now.Sub(session.StartedAt), true
 	}
 
 	if session.DurationSeconds > 0 {
-		return time.Duration(session.DurationSeconds) * time.Second
+		return time.Duration(session.DurationSeconds) * time.Second, true
 	}
 
 	if !session.CompletedAt.IsZero() && !session.StartedAt.IsZero() {
-		return session.CompletedAt.Sub(session.StartedAt)
+		return session.CompletedAt.Sub(session.StartedAt), true
 	}
 
-	return 0
+	return 0, false
+}
+
+// OpencodeSessionAge computes the display age for an opencode session.
+func OpencodeSessionAge(session OpencodeSession, now time.Time) time.Duration {
+	age, _ := OpencodeSessionAgeData(session, now)
+	return age
 }

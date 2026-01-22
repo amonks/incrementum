@@ -68,3 +68,82 @@ func TestOpencodeSessionAge(t *testing.T) {
 		})
 	}
 }
+
+func TestOpencodeSessionAgeData(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-10 * time.Minute)
+	completed := start.Add(3 * time.Minute)
+
+	cases := []struct {
+		name    string
+		session OpencodeSession
+		want    time.Duration
+		ok      bool
+	}{
+		{
+			name: "active uses now",
+			session: OpencodeSession{
+				Status:    OpencodeSessionActive,
+				StartedAt: start,
+			},
+			want: 10 * time.Minute,
+			ok:   true,
+		},
+		{
+			name: "active zero duration",
+			session: OpencodeSession{
+				Status:    OpencodeSessionActive,
+				StartedAt: now,
+			},
+			want: 0,
+			ok:   true,
+		},
+		{
+			name: "duration seconds preferred",
+			session: OpencodeSession{
+				Status:          OpencodeSessionCompleted,
+				StartedAt:       start,
+				CompletedAt:     now,
+				DurationSeconds: 90,
+			},
+			want: 90 * time.Second,
+			ok:   true,
+		},
+		{
+			name: "completed uses timestamps",
+			session: OpencodeSession{
+				Status:      OpencodeSessionCompleted,
+				StartedAt:   start,
+				CompletedAt: completed,
+			},
+			want: 3 * time.Minute,
+			ok:   true,
+		},
+		{
+			name: "missing timing data",
+			session: OpencodeSession{
+				Status: OpencodeSessionActive,
+			},
+			want: 0,
+			ok:   false,
+		},
+		{
+			name: "completed missing timestamps",
+			session: OpencodeSession{
+				Status:    OpencodeSessionCompleted,
+				StartedAt: start,
+			},
+			want: 0,
+			ok:   false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := OpencodeSessionAgeData(tc.session, now)
+			if got != tc.want || ok != tc.ok {
+				t.Fatalf("expected %s/%t, got %s/%t", tc.want, tc.ok, got, ok)
+			}
+		})
+	}
+}

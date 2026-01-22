@@ -421,20 +421,9 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 }
 
 func formatSessionAge(item sessionpkg.Session, now time.Time) string {
-	if item.Status == sessionpkg.StatusActive {
-		if item.StartedAt.IsZero() {
-			return "-"
-		}
-		return ui.FormatDurationShort(sessionpkg.Age(item, now))
+	age, ok := sessionpkg.AgeData(item, now)
+	if !ok {
+		return "-"
 	}
-
-	if item.DurationSeconds > 0 {
-		return ui.FormatDurationShort(sessionpkg.Age(item, now))
-	}
-
-	if !item.CompletedAt.IsZero() && !item.StartedAt.IsZero() {
-		return ui.FormatDurationShort(sessionpkg.Age(item, now))
-	}
-
-	return "-"
+	return ui.FormatDurationShort(age)
 }
