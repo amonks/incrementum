@@ -55,6 +55,8 @@ var sessionListCmd = &cobra.Command{
 	RunE:  runSessionList,
 }
 
+var sessionOpen = sessionpkg.Open
+
 var (
 	sessionStartTopic  string
 	sessionStartRev    string
@@ -317,9 +319,7 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	manager, err := sessionpkg.Open(repoPath, sessionpkg.OpenOptions{
-		Todo: todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true},
-	})
+	manager, err := sessionOpen(repoPath, sessionListOpenOptions())
 	if err != nil {
 		return err
 	}
