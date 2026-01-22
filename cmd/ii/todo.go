@@ -642,6 +642,9 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	if todoListStatus != "" {
 		status := todo.Status(todoListStatus)
 		filter.Status = &status
+		if status == todo.StatusTombstone {
+			filter.IncludeTombstones = true
+		}
 	}
 	if cmd.Flags().Changed("priority") && todoListPriority >= 0 {
 		filter.Priority = &todoListPriority
@@ -655,7 +658,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	}
 	filter.TitleSubstring = todoListTitle
 	filter.DescriptionSubstring = todoListDesc
-	filter.IncludeTombstones = todoListTombstones
+	filter.IncludeTombstones = filter.IncludeTombstones || todoListTombstones
 
 	todos, err := store.List(filter)
 	if err != nil {
