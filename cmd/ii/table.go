@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 const tableCellMaxWidth = 50
 const tableCellEllipsis = "..."
@@ -8,7 +11,7 @@ const tableCellEllipsis = "..."
 func formatTable(headers []string, rows [][]string) string {
 	widths := make([]int, len(headers))
 	for i, header := range headers {
-		widths[i] = len(stripANSICodes(header))
+		widths[i] = displayWidth(header)
 	}
 
 	for _, row := range rows {
@@ -16,7 +19,7 @@ func formatTable(headers []string, rows [][]string) string {
 			if i >= len(widths) {
 				break
 			}
-			if displayLen := len(stripANSICodes(cell)); displayLen > widths[i] {
+			if displayLen := displayWidth(cell); displayLen > widths[i] {
 				widths[i] = displayLen
 			}
 		}
@@ -25,7 +28,7 @@ func formatTable(headers []string, rows [][]string) string {
 	var builder strings.Builder
 	writeRow := func(row []string) {
 		for i, cell := range row {
-			cellWidth := len(stripANSICodes(cell))
+			cellWidth := displayWidth(cell)
 			builder.WriteString(cell)
 			if i == len(row)-1 {
 				builder.WriteByte('\n')
@@ -45,15 +48,19 @@ func formatTable(headers []string, rows [][]string) string {
 }
 
 func truncateTableCell(value string) string {
-	if len(value) <= tableCellMaxWidth {
+	if utf8.RuneCountInString(value) <= tableCellMaxWidth {
 		return value
 	}
 
-	max := tableCellMaxWidth - len(tableCellEllipsis)
+	max := tableCellMaxWidth - utf8.RuneCountInString(tableCellEllipsis)
 	if max < 0 {
-		return value[:tableCellMaxWidth]
+		return string([]rune(value)[:tableCellMaxWidth])
 	}
-	return value[:max] + tableCellEllipsis
+	return string([]rune(value)[:max]) + tableCellEllipsis
+}
+
+func displayWidth(value string) int {
+	return utf8.RuneCountInString(stripANSICodes(value))
 }
 
 func stripANSICodes(input string) string {
