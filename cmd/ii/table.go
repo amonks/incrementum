@@ -48,6 +48,7 @@ func formatTable(headers []string, rows [][]string) string {
 }
 
 func truncateTableCell(value string) string {
+	value = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\t", " ").Replace(value)
 	if utf8.RuneCountInString(value) <= tableCellMaxWidth {
 		return value
 	}

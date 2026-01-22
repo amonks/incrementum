@@ -20,6 +20,7 @@ This specification documents the overall CLI architecture and behavior expectati
 
 - Machine-readable output should be provided only when explicitly requested (for example via `--json`).
 - Table output aligns and truncates by visible characters instead of raw byte length.
+- Table output normalizes line breaks and tabs to spaces to keep rows single-line.
 
 ## Testing Expectations
 
