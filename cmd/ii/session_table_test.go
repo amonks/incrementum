@@ -144,8 +144,8 @@ func TestFormatSessionTableFallsBackForMissingTodoPrefixLengths(t *testing.T) {
 		return id + ":" + strconv.Itoa(prefix)
 	}, now, todoPrefixLengths)
 
-	if !strings.Contains(output, "abc12345:2") {
-		t.Fatalf("expected todo prefix length 2, got: %q", output)
+	if !strings.Contains(output, "abc12345:3") {
+		t.Fatalf("expected fallback prefix length 3, got: %q", output)
 	}
 	if !strings.Contains(output, "abd99999:3") {
 		t.Fatalf("expected fallback prefix length 3, got: %q", output)

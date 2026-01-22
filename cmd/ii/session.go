@@ -383,19 +383,17 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 	}
 	sessionPrefixLengths := ui.UniqueIDPrefixLengths(sessionIDs)
 	sessionTodoPrefixLengths := ui.UniqueIDPrefixLengths(todoIDs)
-	if todoPrefixLengths == nil {
-		todoPrefixLengths = sessionTodoPrefixLengths
-	} else {
-		merged := make(map[string]int, len(todoPrefixLengths)+len(sessionTodoPrefixLengths))
-		for key, value := range todoPrefixLengths {
-			merged[key] = value
-		}
-		for key, value := range sessionTodoPrefixLengths {
-			if _, ok := merged[key]; !ok {
-				merged[key] = value
+	useSessionPrefixes := todoPrefixLengths == nil
+	if !useSessionPrefixes {
+		for _, id := range todoIDs {
+			if _, ok := todoPrefixLengths[strings.ToLower(id)]; !ok {
+				useSessionPrefixes = true
+				break
 			}
 		}
-		todoPrefixLengths = merged
+	}
+	if useSessionPrefixes {
+		todoPrefixLengths = sessionTodoPrefixLengths
 	}
 
 	for _, item := range sessions {
