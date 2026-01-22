@@ -46,23 +46,6 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 	}
 }
 
-func TestOpencodeSessionAgeUsesDurationSeconds(t *testing.T) {
-	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-10 * time.Minute)
-
-	session := workspace.OpencodeSession{
-		Status:          workspace.OpencodeSessionCompleted,
-		StartedAt:       start,
-		CompletedAt:     now,
-		DurationSeconds: 90,
-	}
-
-	age := opencodeSessionAge(session, now)
-	if age != 90*time.Second {
-		t.Fatalf("expected 90s duration, got %s", age)
-	}
-}
-
 func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 

@@ -123,6 +123,7 @@ Fields (JSON keys):
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.
+- `AGE` prefers `duration_seconds`, otherwise uses `completed_at - started_at` for finished sessions or `now - started_at` for active sessions.
 
 ### `ii opencode kill <session-id>`
 

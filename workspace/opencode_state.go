@@ -14,14 +14,14 @@ const (
 
 // OpencodeDaemon stores daemon state for a repo.
 type OpencodeDaemon struct {
-	Repo      string              `json:"repo"`
+	Repo      string               `json:"repo"`
 	Status    OpencodeDaemonStatus `json:"status"`
-	StartedAt time.Time           `json:"started_at"`
-	UpdatedAt time.Time           `json:"updated_at"`
-	PID       int                 `json:"pid,omitempty"`
-	Host      string              `json:"host,omitempty"`
-	Port      int                 `json:"port,omitempty"`
-	LogPath   string              `json:"log_path,omitempty"`
+	StartedAt time.Time            `json:"started_at"`
+	UpdatedAt time.Time            `json:"updated_at"`
+	PID       int                  `json:"pid,omitempty"`
+	Host      string               `json:"host,omitempty"`
+	Port      int                  `json:"port,omitempty"`
+	LogPath   string               `json:"log_path,omitempty"`
 }
 
 // OpencodeSessionStatus represents the state of an opencode session.
@@ -50,4 +50,27 @@ type OpencodeSession struct {
 	ExitCode        *int                  `json:"exit_code,omitempty"`
 	DurationSeconds int                   `json:"duration_seconds,omitempty"`
 	LogPath         string                `json:"log_path,omitempty"`
+}
+
+// OpencodeSessionAge computes the display age for an opencode session.
+func OpencodeSessionAge(session OpencodeSession, now time.Time) time.Duration {
+	if session.Status == OpencodeSessionActive {
+		if session.StartedAt.IsZero() {
+			return 0
+		}
+		return now.Sub(session.StartedAt)
+	}
+
+	if session.DurationSeconds > 0 {
+		return time.Duration(session.DurationSeconds) * time.Second
+	}
+
+	if !session.CompletedAt.IsZero() && !session.StartedAt.IsZero() {
+		return session.CompletedAt.Sub(session.StartedAt)
+	}
+
+	if session.StartedAt.IsZero() {
+		return 0
+	}
+	return now.Sub(session.StartedAt)
 }

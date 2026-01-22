@@ -162,33 +162,11 @@ func opencodePromptLine(prompt string) string {
 	return line
 }
 
-func opencodeSessionAge(session workspace.OpencodeSession, now time.Time) time.Duration {
-	if session.Status == workspace.OpencodeSessionActive {
-		if session.StartedAt.IsZero() {
-			return 0
-		}
-		return now.Sub(session.StartedAt)
-	}
-
-	if session.DurationSeconds > 0 {
-		return time.Duration(session.DurationSeconds) * time.Second
-	}
-
-	if !session.CompletedAt.IsZero() && !session.StartedAt.IsZero() {
-		return session.CompletedAt.Sub(session.StartedAt)
-	}
-
-	if session.StartedAt.IsZero() {
-		return 0
-	}
-	return now.Sub(session.StartedAt)
-}
-
 func formatOpencodeAge(session workspace.OpencodeSession, now time.Time) string {
 	if session.StartedAt.IsZero() && session.DurationSeconds == 0 {
 		return "-"
 	}
-	return ui.FormatDurationShort(opencodeSessionAge(session, now))
+	return ui.FormatDurationShort(workspace.OpencodeSessionAge(session, now))
 }
 
 func opencodeSessionLogPath(pool *workspace.Pool, repoPath, sessionID string) (string, error) {
