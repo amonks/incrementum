@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -334,7 +335,28 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 		items = append(items, item)
 	}
 
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Status != items[j].Status {
+			return workspaceStatusRank(items[i].Status) < workspaceStatusRank(items[j].Status)
+		}
+		if items[i].Name != items[j].Name {
+			return items[i].Name < items[j].Name
+		}
+		return items[i].Path < items[j].Path
+	})
+
 	return items, nil
+}
+
+func workspaceStatusRank(status Status) int {
+	switch status {
+	case StatusAcquired:
+		return 0
+	case StatusAvailable:
+		return 1
+	default:
+		return 2
+	}
 }
 
 // RepoRoot returns the jj repository root for the given path.

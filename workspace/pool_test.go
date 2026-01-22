@@ -318,6 +318,68 @@ func TestPool_List(t *testing.T) {
 
 }
 
+func TestPool_List_SortsByStatusThenName(t *testing.T) {
+	repoPath := setupTestRepo(t)
+	workspacesDir := t.TempDir()
+	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
+	stateDir := t.TempDir()
+
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	wsPath1, err := pool.Acquire(repoPath, acquireOptions())
+	if err != nil {
+		t.Fatalf("failed to acquire workspace 1: %v", err)
+	}
+
+	wsPath2, err := pool.Acquire(repoPath, acquireOptions())
+	if err != nil {
+		t.Fatalf("failed to acquire workspace 2: %v", err)
+	}
+
+	wsPath3, err := pool.Acquire(repoPath, acquireOptions())
+	if err != nil {
+		t.Fatalf("failed to acquire workspace 3: %v", err)
+	}
+
+	if err := pool.Release(wsPath2); err != nil {
+		t.Fatalf("failed to release workspace 2: %v", err)
+	}
+
+	list, err := pool.List(repoPath)
+	if err != nil {
+		t.Fatalf("failed to list: %v", err)
+	}
+	if len(list) != 3 {
+		t.Fatalf("expected 3 workspaces, got %d", len(list))
+	}
+
+	if list[0].Name != filepath.Base(wsPath1) {
+		t.Fatalf("expected first workspace %q, got %q", filepath.Base(wsPath1), list[0].Name)
+	}
+	if list[1].Name != filepath.Base(wsPath3) {
+		t.Fatalf("expected second workspace %q, got %q", filepath.Base(wsPath3), list[1].Name)
+	}
+	if list[2].Name != filepath.Base(wsPath2) {
+		t.Fatalf("expected third workspace %q, got %q", filepath.Base(wsPath2), list[2].Name)
+	}
+
+	if list[0].Status != workspace.StatusAcquired {
+		t.Fatalf("expected first workspace status acquired, got %s", list[0].Status)
+	}
+	if list[1].Status != workspace.StatusAcquired {
+		t.Fatalf("expected second workspace status acquired, got %s", list[1].Status)
+	}
+	if list[2].Status != workspace.StatusAvailable {
+		t.Fatalf("expected third workspace status available, got %s", list[2].Status)
+	}
+}
+
 func TestPool_DefaultOptions(t *testing.T) {
 	// Just verify Open() doesn't error
 	pool, err := workspace.Open()

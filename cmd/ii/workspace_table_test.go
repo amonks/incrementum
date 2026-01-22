@@ -54,7 +54,7 @@ func TestFormatWorkspaceTableTruncatesLongPaths(t *testing.T) {
 	}
 }
 
-func TestFilterWorkspaceListDefaultsToAcquired(t *testing.T) {
+func TestFilterWorkspaceListDefaultsToAcquiredWhenPresent(t *testing.T) {
 	items := []workspace.Info{
 		{Name: "ws-001", Status: workspace.StatusAvailable},
 		{Name: "ws-002", Status: workspace.StatusAcquired},
@@ -66,6 +66,18 @@ func TestFilterWorkspaceListDefaultsToAcquired(t *testing.T) {
 	}
 	if filtered[0].Name != "ws-002" {
 		t.Fatalf("expected ws-002, got %q", filtered[0].Name)
+	}
+}
+
+func TestFilterWorkspaceListFallsBackToAvailable(t *testing.T) {
+	items := []workspace.Info{
+		{Name: "ws-001", Status: workspace.StatusAvailable},
+		{Name: "ws-002", Status: workspace.StatusAvailable},
+	}
+
+	filtered := filterWorkspaceList(items, false)
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 available workspaces, got %d", len(filtered))
 	}
 }
 

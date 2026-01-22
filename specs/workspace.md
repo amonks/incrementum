@@ -36,7 +36,8 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 
 ### List
 - Listing returns every workspace for a repo when `--all` is provided.
-- Default CLI output includes only acquired workspaces.
+- Default CLI output lists acquired workspaces; if none are acquired, it falls back to available workspaces.
+- List output is ordered by status (acquired first), then by workspace name.
 
 ### Destroy All
 - Destroy-all removes workspaces for a repo from state, forgets each workspace from jj (best-effort), deletes the workspace directories, and removes the repo workspaces directory if empty.

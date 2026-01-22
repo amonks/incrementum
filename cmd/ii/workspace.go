@@ -137,9 +137,17 @@ func filterWorkspaceList(items []workspace.Info, includeAll bool) []workspace.In
 		return items
 	}
 
-	filtered := items[:0]
+	acquired := filterWorkspaceListByStatus(items, workspace.StatusAcquired)
+	if len(acquired) > 0 {
+		return acquired
+	}
+	return filterWorkspaceListByStatus(items, workspace.StatusAvailable)
+}
+
+func filterWorkspaceListByStatus(items []workspace.Info, status workspace.Status) []workspace.Info {
+	filtered := make([]workspace.Info, 0, len(items))
 	for _, item := range items {
-		if item.Status != workspace.StatusAcquired {
+		if item.Status != status {
 			continue
 		}
 		filtered = append(filtered, item)
