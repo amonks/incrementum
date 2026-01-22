@@ -384,7 +384,7 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 			topic = "-"
 		}
 		topic = truncateTableCell(topic)
-		age := ui.FormatDurationShort(sessionpkg.Age(item, now))
+		age := formatSessionAge(item, now)
 		exit := "-"
 		if item.ExitCode != nil {
 			exit = strconv.Itoa(*item.ExitCode)
@@ -403,4 +403,11 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 	}
 
 	return formatTable([]string{"SESSION", "TODO", "STATUS", "WORKSPACE", "AGE", "TOPIC", "EXIT"}, rows)
+}
+
+func formatSessionAge(item sessionpkg.Session, now time.Time) string {
+	if item.StartedAt.IsZero() && item.DurationSeconds == 0 {
+		return "-"
+	}
+	return ui.FormatDurationShort(sessionpkg.Age(item, now))
 }
