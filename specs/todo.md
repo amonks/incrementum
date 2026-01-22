@@ -67,6 +67,7 @@ Fields (JSON keys):
 
 - Title is required and validated.
 - Defaults: `type=task`, `priority=medium` (2), `status=open`.
+- Type and dependency type inputs are case-insensitive and stored as lowercase.
 - Dependencies may be supplied as `type:id` pairs; each dependency must
   reference an existing todo.
 - Dependency IDs accept the same case-insensitive prefix matching as other
@@ -81,6 +82,7 @@ Fields (JSON keys):
   - `closed`/`done` sets `closed_at` and clears delete markers.
   - `open`/`in_progress` clears `closed_at` and delete markers.
   - `tombstone` clears `closed_at`; `deleted_at` must be set.
+- Status and type inputs are case-insensitive and stored as lowercase.
 - Updating `deleted_at` without `delete_reason` preserves any existing delete reason; clear it explicitly when needed.
 - Reapplying the current status does not reset timestamps unless explicitly provided.
 - `updated_at` always changes when a todo is updated.
@@ -100,6 +102,7 @@ Fields (JSON keys):
 - Returns todos matching optional filters: status, priority, type, IDs,
   title substring, description substring.
 - Priority filters must be within 0..4; invalid values return an error.
+- Status and type filters are case-insensitive.
 - Tombstones are excluded by default unless `IncludeTombstones` is set.
 - Setting `Status=tombstone` implicitly includes tombstones in list results.
 - CLI `todo list` includes tombstones when `--tombstones` is provided or when `--status tombstone` is specified.

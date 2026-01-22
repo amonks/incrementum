@@ -64,6 +64,22 @@ func TestStore_Create_WithOptions(t *testing.T) {
 	}
 }
 
+func TestStore_Create_NormalizesType(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Uppercase bug", CreateOptions{Type: TodoType("BUG")})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+	if created.Type != TypeBug {
+		t.Errorf("expected type 'bug', got %q", created.Type)
+	}
+}
+
 func TestStore_Create_WithDependency(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {
@@ -102,6 +118,43 @@ func TestStore_Create_WithDependency(t *testing.T) {
 	}
 	if deps[0].Type != DepDiscoveredFrom {
 		t.Errorf("expected type 'discovered-from', got %q", deps[0].Type)
+	}
+}
+
+func TestStore_Create_NormalizesDependencyType(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	parent, err := store.Create("Parent task", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create parent: %v", err)
+	}
+
+	child, err := store.Create("Child task", CreateOptions{
+		Dependencies: []string{"BLOCKS:" + parent.ID},
+	})
+	if err != nil {
+		t.Fatalf("failed to create child: %v", err)
+	}
+
+	deps, err := store.readDependencies()
+	if err != nil {
+		t.Fatalf("failed to read dependencies: %v", err)
+	}
+	if len(deps) != 1 {
+		t.Fatalf("expected 1 dependency, got %d", len(deps))
+	}
+	if deps[0].TodoID != child.ID {
+		t.Errorf("expected TodoID %q, got %q", child.ID, deps[0].TodoID)
+	}
+	if deps[0].DependsOnID != parent.ID {
+		t.Errorf("expected DependsOnID %q, got %q", parent.ID, deps[0].DependsOnID)
+	}
+	if deps[0].Type != DepBlocks {
+		t.Errorf("expected type 'blocks', got %q", deps[0].Type)
 	}
 }
 
@@ -206,6 +259,28 @@ func TestStore_Update(t *testing.T) {
 	}
 	if todos[0].Title != "Updated title" {
 		t.Errorf("title was not persisted")
+	}
+}
+
+func TestStore_Update_NormalizesStatus(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Close me", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	status := Status("DONE")
+	updated, err := store.Update([]string{created.ID}, UpdateOptions{Status: &status})
+	if err != nil {
+		t.Fatalf("failed to update todo: %v", err)
+	}
+	if updated[0].Status != StatusDone {
+		t.Errorf("expected status 'done', got %q", updated[0].Status)
 	}
 }
 
@@ -1010,6 +1085,25 @@ func TestStore_DepAdd(t *testing.T) {
 	}
 	if dep.DependsOnID != todo2.ID {
 		t.Errorf("expected DependsOnID %q, got %q", todo2.ID, dep.DependsOnID)
+	}
+	if dep.Type != DepBlocks {
+		t.Errorf("expected type 'blocks', got %q", dep.Type)
+	}
+}
+
+func TestStore_DepAdd_NormalizesType(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	todo1, _ := store.Create("Todo 1", CreateOptions{})
+	todo2, _ := store.Create("Todo 2", CreateOptions{})
+
+	dep, err := store.DepAdd(todo1.ID, todo2.ID, DependencyType("BLOCKS"))
+	if err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
 	}
 	if dep.Type != DepBlocks {
 		t.Errorf("expected type 'blocks', got %q", dep.Type)

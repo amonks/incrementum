@@ -34,6 +34,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 	if opts.Type == "" {
 		opts.Type = TypeTask
 	}
+	opts.Type = normalizeTodoType(opts.Type)
 	if !opts.Type.IsValid() {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidType, opts.Type)
 	}
@@ -58,7 +59,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid dependency format %q: expected 'type:id'", depSpec)
 		}
-		depType := DependencyType(parts[0])
+		depType := normalizeDependencyType(DependencyType(parts[0]))
 		if !depType.IsValid() {
 			return nil, fmt.Errorf("%w: %q", ErrInvalidDependencyType, parts[0])
 		}
@@ -158,16 +159,24 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 			return nil, err
 		}
 	}
-	if opts.Status != nil && !opts.Status.IsValid() {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *opts.Status)
+	if opts.Status != nil {
+		normalized := normalizeStatus(*opts.Status)
+		opts.Status = &normalized
+		if !opts.Status.IsValid() {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *opts.Status)
+		}
 	}
 	if opts.Priority != nil {
 		if err := ValidatePriority(*opts.Priority); err != nil {
 			return nil, err
 		}
 	}
-	if opts.Type != nil && !opts.Type.IsValid() {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidType, *opts.Type)
+	if opts.Type != nil {
+		normalized := normalizeTodoType(*opts.Type)
+		opts.Type = &normalized
+		if !opts.Type.IsValid() {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidType, *opts.Type)
+		}
 	}
 
 	todos, err := s.readTodos()
@@ -369,11 +378,19 @@ type ListFilter struct {
 
 // List returns todos matching the filter.
 func (s *Store) List(filter ListFilter) ([]Todo, error) {
-	if filter.Status != nil && !filter.Status.IsValid() {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+	if filter.Status != nil {
+		normalizedStatus := normalizeStatus(*filter.Status)
+		filter.Status = &normalizedStatus
+		if !filter.Status.IsValid() {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+		}
 	}
-	if filter.Type != nil && !filter.Type.IsValid() {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidType, *filter.Type)
+	if filter.Type != nil {
+		normalizedType := normalizeTodoType(*filter.Type)
+		filter.Type = &normalizedType
+		if !filter.Type.IsValid() {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidType, *filter.Type)
+		}
 	}
 	if filter.Priority != nil {
 		if err := ValidatePriority(*filter.Priority); err != nil {
@@ -507,6 +524,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 // DepAdd adds a dependency between two todos.
 func (s *Store) DepAdd(todoID, dependsOnID string, depType DependencyType) (*Dependency, error) {
 	// Validate dependency type
+	depType = normalizeDependencyType(depType)
 	if !depType.IsValid() {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidDependencyType, depType)
 	}
