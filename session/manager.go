@@ -291,6 +291,15 @@ func (m *Manager) List(filter ListFilter) ([]Session, error) {
 	return results, nil
 }
 
+// TodoIDPrefixLengths returns prefix lengths for todo IDs in the store.
+func (m *Manager) TodoIDPrefixLengths() (map[string]int, error) {
+	index, err := m.store.IDIndex()
+	if err != nil {
+		return nil, err
+	}
+	return index.PrefixLengths(), nil
+}
+
 // ResolveActiveSession finds an active session by todo ID or workspace path.
 func (m *Manager) ResolveActiveSession(todoID, workspacePath string) (*Session, error) {
 	if todoID != "" {

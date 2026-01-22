@@ -104,3 +104,4 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - `--json` emits structured output.
 - Suggested columns: `SESSION`, `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
+- Todo IDs use the same shortest-unique prefix lengths as todo list output.

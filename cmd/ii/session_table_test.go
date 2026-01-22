@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -36,13 +37,13 @@ func TestFormatSessionTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 	}
 
-	plain := formatSessionTable(sessions, func(id string, prefix int) string { return id }, now)
+	plain := formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil)
 	ansi := formatSessionTable(sessions, func(id string, prefix int) string {
 		if prefix <= 0 || prefix > len(id) {
 			return id
 		}
 		return "\x1b[1m\x1b[36m" + id[:prefix] + "\x1b[0m" + id[prefix:]
-	}, now)
+	}, now, nil)
 
 	if stripANSICodes(ansi) != plain {
 		t.Fatalf("expected ANSI output to align with plain output\nplain:\n%s\nansi:\n%s", plain, ansi)
@@ -66,6 +67,49 @@ func TestSessionAgeUsesDurationSeconds(t *testing.T) {
 	}
 }
 
+func TestFormatSessionTableUsesTodoPrefixLengths(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-5 * time.Minute)
+
+	sessions := []sessionpkg.Session{
+		{
+			ID:            "sess-1",
+			TodoID:        "abc12345",
+			WorkspaceName: "ws-001",
+			Status:        sessionpkg.StatusActive,
+			Topic:         "One",
+			StartedAt:     start,
+			UpdatedAt:     start,
+		},
+		{
+			ID:            "sess-2",
+			TodoID:        "abd99999",
+			WorkspaceName: "ws-002",
+			Status:        sessionpkg.StatusCompleted,
+			Topic:         "Two",
+			StartedAt:     start,
+			UpdatedAt:     start,
+			CompletedAt:   now,
+		},
+	}
+
+	todoPrefixLengths := map[string]int{
+		"abc12345": 5,
+		"abd99999": 4,
+	}
+
+	output := formatSessionTable(sessions, func(id string, prefix int) string {
+		return id + ":" + strconv.Itoa(prefix)
+	}, now, todoPrefixLengths)
+
+	if !strings.Contains(output, "abc12345:5") {
+		t.Fatalf("expected todo prefix length 5, got: %q", output)
+	}
+	if !strings.Contains(output, "abd99999:4") {
+		t.Fatalf("expected todo prefix length 4, got: %q", output)
+	}
+}
+
 func TestFormatSessionTableIncludesSessionID(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 
@@ -81,7 +125,7 @@ func TestFormatSessionTableIncludesSessionID(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now))
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -116,7 +160,7 @@ func TestFormatSessionTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now))
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
