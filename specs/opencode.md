@@ -117,6 +117,7 @@ Fields (JSON keys):
 
 - Lists opencode sessions for the current repo.
 - Default output is a table matching other list commands.
+- Default output includes only active sessions unless `--all` is provided.
 - Suggested columns: `SESSION`, `STATUS`, `AGE`, `PROMPT`, `EXIT`.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.

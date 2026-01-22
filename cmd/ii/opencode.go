@@ -33,13 +33,14 @@ var opencodeLogsCmd = &cobra.Command{
 }
 
 var opencodeListJSON bool
+var opencodeListAll bool
 
 func init() {
 	rootCmd.AddCommand(opencodeCmd)
 	opencodeCmd.AddCommand(opencodeListCmd, opencodeLogsCmd)
 
 	opencodeListCmd.Flags().BoolVar(&opencodeListJSON, "json", false, "Output as JSON")
-	listflags.AddAllFlag(opencodeListCmd, nil)
+	listflags.AddAllFlag(opencodeListCmd, &opencodeListAll)
 }
 
 func runOpencodeList(cmd *cobra.Command, args []string) error {
@@ -58,6 +59,8 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("list opencode sessions: %w", err)
 	}
 
+	sessions = filterOpencodeSessionsForList(sessions, opencodeListAll)
+
 	if opencodeListJSON {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -71,6 +74,21 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 
 	fmt.Print(formatOpencodeTable(sessions, nil, time.Now()))
 	return nil
+}
+
+func filterOpencodeSessionsForList(sessions []workspace.OpencodeSession, includeAll bool) []workspace.OpencodeSession {
+	if includeAll {
+		return sessions
+	}
+
+	filtered := sessions[:0]
+	for _, session := range sessions {
+		if session.Status != workspace.OpencodeSessionActive {
+			continue
+		}
+		filtered = append(filtered, session)
+	}
+	return filtered
 }
 
 func runOpencodeLogs(cmd *cobra.Command, args []string) error {

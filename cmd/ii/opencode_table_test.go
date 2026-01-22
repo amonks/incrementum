@@ -120,3 +120,32 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 		t.Fatalf("expected compact age 2m, got: %s", fields[2])
 	}
 }
+
+func TestFilterOpencodeSessionsForListDefaultsToActive(t *testing.T) {
+	sessions := []workspace.OpencodeSession{
+		{ID: "active", Status: workspace.OpencodeSessionActive},
+		{ID: "completed", Status: workspace.OpencodeSessionCompleted},
+		{ID: "failed", Status: workspace.OpencodeSessionFailed},
+		{ID: "killed", Status: workspace.OpencodeSessionKilled},
+	}
+
+	filtered := filterOpencodeSessionsForList(sessions, false)
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 active session, got %d", len(filtered))
+	}
+	if filtered[0].ID != "active" {
+		t.Fatalf("expected active session, got %q", filtered[0].ID)
+	}
+}
+
+func TestFilterOpencodeSessionsForListWithAll(t *testing.T) {
+	sessions := []workspace.OpencodeSession{
+		{ID: "active", Status: workspace.OpencodeSessionActive},
+		{ID: "completed", Status: workspace.OpencodeSessionCompleted},
+	}
+
+	filtered := filterOpencodeSessionsForList(sessions, true)
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 sessions, got %d", len(filtered))
+	}
+}

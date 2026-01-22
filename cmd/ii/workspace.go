@@ -44,6 +44,7 @@ var (
 	workspaceAcquireRev     string
 	workspaceAcquirePurpose string
 	workspaceListJSON       bool
+	workspaceListAll        bool
 )
 
 func init() {
@@ -53,7 +54,7 @@ func init() {
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquireRev, "rev", "@", "Revision to check out")
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquirePurpose, "purpose", "", "Purpose for acquiring the workspace")
 	workspaceListCmd.Flags().BoolVar(&workspaceListJSON, "json", false, "Output as JSON")
-	listflags.AddAllFlag(workspaceListCmd, nil)
+	listflags.AddAllFlag(workspaceListCmd, &workspaceListAll)
 }
 
 func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
@@ -114,6 +115,8 @@ func runWorkspaceList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("list workspaces: %w", err)
 	}
 
+	items = filterWorkspaceList(items, workspaceListAll)
+
 	if workspaceListJSON {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -127,6 +130,21 @@ func runWorkspaceList(cmd *cobra.Command, args []string) error {
 
 	fmt.Print(formatWorkspaceTable(items, nil))
 	return nil
+}
+
+func filterWorkspaceList(items []workspace.Info, includeAll bool) []workspace.Info {
+	if includeAll {
+		return items
+	}
+
+	filtered := items[:0]
+	for _, item := range items {
+		if item.Status != workspace.StatusAcquired {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	return filtered
 }
 
 func runWorkspaceDestroyAll(cmd *cobra.Command, args []string) error {

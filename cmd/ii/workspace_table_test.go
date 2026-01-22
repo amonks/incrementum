@@ -53,3 +53,30 @@ func TestFormatWorkspaceTableTruncatesLongPaths(t *testing.T) {
 		t.Fatalf("expected long path to be truncated, got: %s", output)
 	}
 }
+
+func TestFilterWorkspaceListDefaultsToAcquired(t *testing.T) {
+	items := []workspace.Info{
+		{Name: "ws-001", Status: workspace.StatusAvailable},
+		{Name: "ws-002", Status: workspace.StatusAcquired},
+	}
+
+	filtered := filterWorkspaceList(items, false)
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 acquired workspace, got %d", len(filtered))
+	}
+	if filtered[0].Name != "ws-002" {
+		t.Fatalf("expected ws-002, got %q", filtered[0].Name)
+	}
+}
+
+func TestFilterWorkspaceListWithAll(t *testing.T) {
+	items := []workspace.Info{
+		{Name: "ws-001", Status: workspace.StatusAvailable},
+		{Name: "ws-002", Status: workspace.StatusAcquired},
+	}
+
+	filtered := filterWorkspaceList(items, true)
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 workspaces, got %d", len(filtered))
+	}
+}
