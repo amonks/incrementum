@@ -81,6 +81,20 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		return nil, fmt.Errorf("read todos: %w", err)
 	}
 
+	if len(deps) > 0 {
+		depIDs := make([]string, 0, len(deps))
+		for _, dep := range deps {
+			depIDs = append(depIDs, dep.ID)
+		}
+		resolvedIDs, err := resolveTodoIDsWithTodos(depIDs, todos)
+		if err != nil {
+			return nil, err
+		}
+		for i := range deps {
+			deps[i].ID = resolvedIDs[i]
+		}
+	}
+
 	// Add the new todo
 	todos = append(todos, todo)
 
@@ -97,18 +111,6 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		}
 
 		for _, dep := range deps {
-			// Verify the target todo exists
-			found := false
-			for _, t := range todos {
-				if t.ID == dep.ID {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nil, fmt.Errorf("dependency target %q: %w", dep.ID, ErrTodoNotFound)
-			}
-
 			existingDeps = append(existingDeps, Dependency{
 				TodoID:      todo.ID,
 				DependsOnID: dep.ID,

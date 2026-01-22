@@ -69,6 +69,8 @@ Fields (JSON keys):
 - Defaults: `type=task`, `priority=medium` (2), `status=open`.
 - Dependencies may be supplied as `type:id` pairs; each dependency must
   reference an existing todo.
+- Dependency IDs accept the same case-insensitive prefix matching as other
+  commands.
 
 ### Update
 

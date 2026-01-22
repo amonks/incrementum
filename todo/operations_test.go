@@ -107,6 +107,45 @@ func TestStore_Create_WithDependency(t *testing.T) {
 	}
 }
 
+func TestStore_Create_WithDependencyPrefix(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	parent, err := store.Create("Parent task", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create parent: %v", err)
+	}
+
+	prefix := parent.ID[:4]
+	child, err := store.Create("Child task", CreateOptions{
+		Dependencies: []string{"blocks:" + prefix},
+	})
+	if err != nil {
+		t.Fatalf("failed to create child: %v", err)
+	}
+
+	deps, err := store.readDependencies()
+	if err != nil {
+		t.Fatalf("failed to read dependencies: %v", err)
+	}
+
+	if len(deps) != 1 {
+		t.Fatalf("expected 1 dependency, got %d", len(deps))
+	}
+	if deps[0].TodoID != child.ID {
+		t.Errorf("expected TodoID %q, got %q", child.ID, deps[0].TodoID)
+	}
+	if deps[0].DependsOnID != parent.ID {
+		t.Errorf("expected DependsOnID %q, got %q", parent.ID, deps[0].DependsOnID)
+	}
+	if deps[0].Type != DepBlocks {
+		t.Errorf("expected type 'blocks', got %q", deps[0].Type)
+	}
+}
+
 func TestStore_Create_Validation(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {
