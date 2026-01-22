@@ -113,5 +113,6 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - Suggested columns: `SESSION`, `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.
+- `SESSION` highlights the shortest unique prefix across all sessions in the repo.
 - Todo IDs use the same shortest-unique prefix lengths as todo list output.
 - When the todo store is missing or does not contain all listed todo IDs, session listing falls back to prefix lengths derived from listed sessions.

@@ -37,13 +37,13 @@ func TestFormatSessionTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 	}
 
-	plain := formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil)
+	plain := formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil, nil)
 	ansi := formatSessionTable(sessions, func(id string, prefix int) string {
 		if prefix <= 0 || prefix > len(id) {
 			return id
 		}
 		return "\x1b[1m\x1b[36m" + id[:prefix] + "\x1b[0m" + id[prefix:]
-	}, now, nil)
+	}, now, nil, nil)
 
 	if stripANSICodes(ansi) != plain {
 		t.Fatalf("expected ANSI output to align with plain output\nplain:\n%s\nansi:\n%s", plain, ansi)
@@ -100,7 +100,7 @@ func TestFormatSessionTableUsesTodoPrefixLengths(t *testing.T) {
 
 	output := formatSessionTable(sessions, func(id string, prefix int) string {
 		return id + ":" + strconv.Itoa(prefix)
-	}, now, todoPrefixLengths)
+	}, now, todoPrefixLengths, nil)
 
 	if !strings.Contains(output, "abc12345:5") {
 		t.Fatalf("expected todo prefix length 5, got: %q", output)
@@ -142,7 +142,7 @@ func TestFormatSessionTableFallsBackForMissingTodoPrefixLengths(t *testing.T) {
 
 	output := formatSessionTable(sessions, func(id string, prefix int) string {
 		return id + ":" + strconv.Itoa(prefix)
-	}, now, todoPrefixLengths)
+	}, now, todoPrefixLengths, nil)
 
 	if !strings.Contains(output, "abc12345:3") {
 		t.Fatalf("expected fallback prefix length 3, got: %q", output)
@@ -167,7 +167,7 @@ func TestFormatSessionTableIncludesSessionID(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -202,7 +202,7 @@ func TestFormatSessionTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -231,7 +231,7 @@ func TestFormatSessionTableShowsMissingAgeAsDash(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -244,6 +244,49 @@ func TestFormatSessionTableShowsMissingAgeAsDash(t *testing.T) {
 
 	if fields[4] != "-" {
 		t.Fatalf("expected missing age '-', got: %s", fields[4])
+	}
+}
+
+func TestFormatSessionTableUsesProvidedSessionPrefixLengths(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-5 * time.Minute)
+
+	sessions := []sessionpkg.Session{
+		{
+			ID:            "sess-alpha",
+			TodoID:        "abc12345",
+			WorkspaceName: "ws-001",
+			Status:        sessionpkg.StatusActive,
+			Topic:         "One",
+			StartedAt:     start,
+			UpdatedAt:     start,
+		},
+		{
+			ID:            "sess-beta",
+			TodoID:        "abd99999",
+			WorkspaceName: "ws-002",
+			Status:        sessionpkg.StatusCompleted,
+			Topic:         "Two",
+			StartedAt:     start,
+			UpdatedAt:     start,
+			CompletedAt:   now,
+		},
+	}
+
+	providedPrefixes := map[string]int{
+		"sess-alpha": 2,
+		"sess-beta":  3,
+	}
+
+	output := formatSessionTable(sessions, func(id string, prefix int) string {
+		return id + ":" + strconv.Itoa(prefix)
+	}, now, nil, providedPrefixes)
+
+	if !strings.Contains(output, "sess-alpha:2") {
+		t.Fatalf("expected session prefix length 2, got: %q", output)
+	}
+	if !strings.Contains(output, "sess-beta:3") {
+		t.Fatalf("expected session prefix length 3, got: %q", output)
 	}
 }
 
@@ -261,7 +304,7 @@ func TestFormatSessionTableShowsMissingAgeForCompletedSession(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)

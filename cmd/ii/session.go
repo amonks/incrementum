@@ -349,12 +349,25 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	allSessions := sessions
+	if sessionListStatus != "" || !sessionListAll {
+		allSessions, err = manager.List(sessionpkg.ListFilter{IncludeAll: true})
+		if err != nil {
+			return err
+		}
+	}
+
+	sessionPrefixLengths := sessionIDPrefixLengths(allSessions)
+	if len(sessionPrefixLengths) == 0 {
+		sessionPrefixLengths = nil
+	}
+
 	todoPrefixLengths, err := manager.TodoIDPrefixLengths()
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(formatSessionTable(sessions, ui.HighlightID, time.Now(), todoPrefixLengths))
+	fmt.Print(formatSessionTable(sessions, ui.HighlightID, time.Now(), todoPrefixLengths, sessionPrefixLengths))
 	return nil
 }
 
@@ -372,7 +385,15 @@ func sessionMutatingOpenOptions() sessionpkg.OpenOptions {
 	}
 }
 
-func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, int) string, now time.Time, todoPrefixLengths map[string]int) string {
+func sessionIDPrefixLengths(sessions []sessionpkg.Session) map[string]int {
+	ids := make([]string, 0, len(sessions))
+	for _, item := range sessions {
+		ids = append(ids, item.ID)
+	}
+	return ui.UniqueIDPrefixLengths(ids)
+}
+
+func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, int) string, now time.Time, todoPrefixLengths map[string]int, sessionPrefixLengths map[string]int) string {
 	rows := make([][]string, 0, len(sessions))
 
 	sessionIDs := make([]string, 0, len(sessions))
@@ -381,7 +402,9 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 		sessionIDs = append(sessionIDs, item.ID)
 		todoIDs = append(todoIDs, item.TodoID)
 	}
-	sessionPrefixLengths := ui.UniqueIDPrefixLengths(sessionIDs)
+	if sessionPrefixLengths == nil {
+		sessionPrefixLengths = ui.UniqueIDPrefixLengths(sessionIDs)
+	}
 	sessionTodoPrefixLengths := ui.UniqueIDPrefixLengths(todoIDs)
 	useSessionPrefixes := todoPrefixLengths == nil
 	if !useSessionPrefixes {
