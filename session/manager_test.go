@@ -473,6 +473,18 @@ func TestManagerListFiltersByStatus(t *testing.T) {
 		t.Fatalf("expected completed status, got %q", list[0].Status)
 	}
 
+	mixedCase := Status("Completed")
+	list, err = manager.List(ListFilter{Status: &mixedCase})
+	if err != nil {
+		t.Fatalf("list mixed-case completed sessions: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 mixed-case session, got %d", len(list))
+	}
+	if list[0].Status != StatusCompleted {
+		t.Fatalf("expected completed status, got %q", list[0].Status)
+	}
+
 	list, err = manager.List(ListFilter{IncludeAll: true})
 	if err != nil {
 		t.Fatalf("list all sessions: %v", err)

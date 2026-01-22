@@ -290,8 +290,12 @@ type ListFilter struct {
 
 // List returns sessions for the repo.
 func (m *Manager) List(filter ListFilter) ([]Session, error) {
-	if filter.Status != nil && !filter.Status.IsValid() {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+	if filter.Status != nil {
+		normalized := Status(strings.ToLower(string(*filter.Status)))
+		filter.Status = &normalized
+		if !filter.Status.IsValid() {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+		}
 	}
 
 	items, err := m.pool.ListSessions(m.repoPath)
