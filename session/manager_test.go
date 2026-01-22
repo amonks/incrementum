@@ -269,6 +269,71 @@ func TestManager_StartReleasesWorkspaceOnTodoUpdateError(t *testing.T) {
 	}
 }
 
+func TestManager_StartReleasesWorkspaceOnSessionCreateError(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	created, err := store.Create("Session create", todo.CreateOptions{Priority: todo.PriorityMedium})
+	if err != nil {
+		store.Release()
+		t.Fatalf("create todo: %v", err)
+	}
+	store.Release()
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	createErr := errors.New("create session failed")
+	manager.createSession = func(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (workspace.Session, error) {
+		return workspace.Session{}, createErr
+	}
+
+	_, err = manager.Start(created.ID, StartOptions{Rev: "@"})
+	if err == nil {
+		t.Fatal("expected error from start")
+	}
+	if !errors.Is(err, createErr) {
+		t.Fatalf("expected create session error, got %v", err)
+	}
+
+	store, err = todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false})
+	if err != nil {
+		t.Fatalf("reopen todo store: %v", err)
+	}
+	items, err := store.Show([]string{created.ID})
+	if err != nil {
+		store.Release()
+		t.Fatalf("show todo: %v", err)
+	}
+	if items[0].Status != todo.StatusOpen {
+		store.Release()
+		t.Fatalf("expected status open, got %q", items[0].Status)
+	}
+	store.Release()
+
+	infos, err := manager.pool.List(repoPath)
+	if err != nil {
+		t.Fatalf("list workspaces: %v", err)
+	}
+	acquired := 0
+	for _, info := range infos {
+		if info.Status == workspace.StatusAcquired {
+			acquired++
+		}
+	}
+	if acquired != 1 {
+		t.Fatalf("expected 1 acquired workspace, got %d", acquired)
+	}
+}
+
 func TestResolveActiveSessionRequiresWorkspace(t *testing.T) {
 	repoPath := setupSessionRepo(t)
 

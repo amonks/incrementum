@@ -53,9 +53,10 @@ type RunResult struct {
 
 // Manager coordinates todo/workspace interactions for sessions.
 type Manager struct {
-	repoPath string
-	store    *todo.Store
-	pool     *workspace.Pool
+	repoPath      string
+	store         *todo.Store
+	pool          *workspace.Pool
+	createSession func(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (workspace.Session, error)
 }
 
 // Open creates a new session manager for a repo.
@@ -71,7 +72,12 @@ func Open(repoPath string, opts OpenOptions) (*Manager, error) {
 		return nil, err
 	}
 
-	return &Manager{repoPath: repoPath, store: store, pool: pool}, nil
+	return &Manager{
+		repoPath:      repoPath,
+		store:         store,
+		pool:          pool,
+		createSession: pool.CreateSession,
+	}, nil
 }
 
 // Close releases resources held by the manager.
@@ -116,10 +122,11 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 	topic := purpose
 
 	startedAt := time.Now()
-	created, err := m.pool.CreateSession(m.repoPath, item.ID, wsName, topic, startedAt)
+	created, err := m.createSession(m.repoPath, item.ID, wsName, topic, startedAt)
 	if err != nil {
 		reset := todo.StatusOpen
 		_, _ = m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &reset})
+		_ = m.pool.Release(wsPath)
 		return nil, err
 	}
 
@@ -193,7 +200,7 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 
 	startedAt := time.Now()
 	topic := purpose
-	created, err := m.pool.CreateSession(m.repoPath, item.ID, wsName, topic, startedAt)
+	created, err := m.createSession(m.repoPath, item.ID, wsName, topic, startedAt)
 	if err != nil {
 		reset := todo.StatusOpen
 		_, _ = m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &reset})
