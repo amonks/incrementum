@@ -83,7 +83,7 @@ func filterOpencodeSessionsForList(sessions []workspace.OpencodeSession, include
 		return sessions
 	}
 
-	filtered := sessions[:0]
+	filtered := make([]workspace.OpencodeSession, 0, len(sessions))
 	for _, session := range sessions {
 		if session.Status != workspace.OpencodeSessionActive {
 			continue
