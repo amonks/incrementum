@@ -130,6 +130,48 @@ func TestOpen_PromptToCreate_Declined(t *testing.T) {
 	}
 }
 
+func TestOpen_PromptToCreate_NonTTY(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	oldStdin := os.Stdin
+	os.Stdin = reader
+	t.Cleanup(func() {
+		os.Stdin = oldStdin
+		reader.Close()
+		writer.Close()
+	})
+
+	store, err := Open(repoPath, OpenOptions{
+		CreateIfMissing: true,
+		PromptToCreate:  true,
+	})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	client := jj.New()
+	bookmarks, err := client.BookmarkList(repoPath)
+	if err != nil {
+		t.Fatalf("failed to list bookmarks: %v", err)
+	}
+
+	found := false
+	for _, b := range bookmarks {
+		if b == BookmarkName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("bookmark %q not found in %v", BookmarkName, bookmarks)
+	}
+}
+
 func TestOpen_ExistingStore(t *testing.T) {
 	repoPath := setupTestRepo(t)
 

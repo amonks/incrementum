@@ -11,6 +11,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/jj"
 	"github.com/amonks/incrementum/workspace"
+	"golang.org/x/term"
 )
 
 const (
@@ -80,6 +81,7 @@ type OpenOptions struct {
 // If the incr/tasks bookmark doesn't exist and PromptToCreate is true,
 // the user will be prompted to create it.
 func Open(repoPath string, opts OpenOptions) (*Store, error) {
+	usesStdioPrompter := opts.Prompter == nil
 	if opts.Prompter == nil {
 		opts.Prompter = StdioPrompter{}
 	}
@@ -115,12 +117,15 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 		}
 
 		if opts.PromptToCreate {
-			confirmed, err := opts.Prompter.Confirm("No todo store found. Create one?")
-			if err != nil {
-				return nil, fmt.Errorf("prompt: %w", err)
-			}
-			if !confirmed {
-				return nil, ErrNoTodoStore
+			shouldPrompt := !usesStdioPrompter || term.IsTerminal(int(os.Stdin.Fd()))
+			if shouldPrompt {
+				confirmed, err := opts.Prompter.Confirm("No todo store found. Create one?")
+				if err != nil {
+					return nil, fmt.Errorf("prompt: %w", err)
+				}
+				if !confirmed {
+					return nil, ErrNoTodoStore
+				}
 			}
 		}
 	}

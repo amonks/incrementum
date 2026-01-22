@@ -7,17 +7,10 @@ exec jj git init
 exec $II todo list
 stdout 'No todos found\.'
 
-# decline creation
-stdin deny.txt
-! exec $II todo create 'First todo'
-stdout 'No todo store found\. Create one\?'
-
-# accept creation
+# create without prompt in non-tty
 stdin accept.txt
 exec $II todo create 'First todo'
 stdout 'Created todo'
 
--- repo/deny.txt --
-n
 -- repo/accept.txt --
 y

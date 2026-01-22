@@ -20,6 +20,8 @@ across workspaces without polluting the code history.
   the change.
 - `todo.Open` can create the store when missing, optionally prompting the
   user before creating the bookmark.
+- Prompting via stdin only happens when stdin is a TTY; non-interactive calls
+  skip the prompt and proceed with creation unless a custom prompter is used.
 
 ## Data Model
 
