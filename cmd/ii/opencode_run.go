@@ -68,10 +68,6 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 	}
 	defer logFile.Close()
 
-	if cmd.Flags().Changed("attach") && !opencodeRunAttach {
-		return fmt.Errorf("opencode run always attaches to sessions")
-	}
-
 	runArgs := []string{"run", "--attach", prompt}
 
 	runCmd := exec.Command("opencode", runArgs...)

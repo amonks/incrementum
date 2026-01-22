@@ -87,6 +87,7 @@ Fields (JSON keys):
 
 - Prompt is read from stdin when no prompt argument is provided.
 - Always attaches to the running daemon and errors if the daemon is not running.
+- Accepts `--attach` for compatibility; it is always treated as enabled.
 - Creates a new opencode session record with status `active`.
 - Creates a log file at `~/.local/share/incrementum/opencode/<repo-slug>/<session-id>.log`.
 - Executes `opencode run --attach` and tees stdout/stderr to the log file.
