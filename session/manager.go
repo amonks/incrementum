@@ -460,19 +460,7 @@ func normalizeSessionTopic(value string) string {
 }
 
 func fromWorkspaceSession(item workspace.Session) Session {
-	return Session{
-		ID:              item.ID,
-		Repo:            item.Repo,
-		TodoID:          item.TodoID,
-		WorkspaceName:   item.WorkspaceName,
-		Status:          Status(item.Status),
-		Topic:           item.Topic,
-		StartedAt:       item.StartedAt,
-		UpdatedAt:       item.UpdatedAt,
-		CompletedAt:     item.CompletedAt,
-		ExitCode:        item.ExitCode,
-		DurationSeconds: item.DurationSeconds,
-	}
+	return item
 }
 
 func (m *Manager) requireStore() error {

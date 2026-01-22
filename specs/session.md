@@ -18,6 +18,7 @@ shared state file so multiple processes can coordinate safely.
 
 Fields (JSON keys):
 
+- Session records share the same schema as the workspace state session entries.
 - `id`: session id (hash prefix of todo id + timestamp).
 - `repo`: repo slug.
 - `todo_id`: full resolved todo id.
