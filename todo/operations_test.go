@@ -793,6 +793,18 @@ func TestStore_Show(t *testing.T) {
 	if len(shown) != 2 {
 		t.Fatalf("expected 2 todos, got %d", len(shown))
 	}
+
+	// Preserve requested order
+	ordered, err := store.Show([]string{todo2.ID, todo1.ID})
+	if err != nil {
+		t.Fatalf("failed to show in requested order: %v", err)
+	}
+	if len(ordered) != 2 {
+		t.Fatalf("expected 2 todos in order check, got %d", len(ordered))
+	}
+	if ordered[0].ID != todo2.ID || ordered[1].ID != todo1.ID {
+		t.Fatalf("expected show to preserve input order, got %q then %q", ordered[0].ID, ordered[1].ID)
+	}
 }
 
 func TestStore_List(t *testing.T) {

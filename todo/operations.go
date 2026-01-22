@@ -338,24 +338,28 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 		return nil, fmt.Errorf("read todos: %w", err)
 	}
 
-	idSet := make(map[string]bool)
-	for _, id := range resolvedIDs {
-		idSet[id] = true
+	todoByID := make(map[string]Todo, len(todos))
+	for _, todo := range todos {
+		todoByID[todo.ID] = todo
 	}
 
 	var result []Todo
-	for _, todo := range todos {
-		if idSet[todo.ID] {
-			result = append(result, todo)
-			delete(idSet, todo.ID)
+	seen := make(map[string]bool)
+	var missing []string
+	for _, id := range resolvedIDs {
+		if seen[id] {
+			continue
 		}
+		seen[id] = true
+		todo, ok := todoByID[id]
+		if !ok {
+			missing = append(missing, id)
+			continue
+		}
+		result = append(result, todo)
 	}
 
-	if len(idSet) > 0 {
-		var missing []string
-		for id := range idSet {
-			missing = append(missing, id)
-		}
+	if len(missing) > 0 {
 		return nil, fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
 	}
 
