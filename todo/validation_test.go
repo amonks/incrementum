@@ -16,6 +16,7 @@ func TestValidateTitle(t *testing.T) {
 		{"valid short", "Fix bug", nil},
 		{"valid long", strings.Repeat("a", MaxTitleLength), nil},
 		{"empty", "", ErrEmptyTitle},
+		{"whitespace", "   ", ErrEmptyTitle},
 		{"too long", strings.Repeat("a", MaxTitleLength+1), ErrTitleTooLong},
 	}
 

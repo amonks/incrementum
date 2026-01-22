@@ -28,7 +28,7 @@ across workspaces without polluting the code history.
 Fields (JSON keys):
 
 - `id`: 8-character lowercase base32 identifier.
-- `title`: required; max length 500.
+- `title`: required; must include non-whitespace characters; max length 500.
 - `description`: optional free text.
 - `status`: `open`, `in_progress`, `closed`, `done`, or `tombstone`.
 - `priority`: integer 0..4 (0 = critical, 4 = backlog).

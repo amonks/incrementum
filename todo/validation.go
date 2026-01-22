@@ -3,6 +3,7 @@ package todo
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -63,7 +64,7 @@ var (
 
 // ValidateTitle checks if the title is valid.
 func ValidateTitle(title string) error {
-	if title == "" {
+	if strings.TrimSpace(title) == "" {
 		return ErrEmptyTitle
 	}
 	if len(title) > MaxTitleLength {
