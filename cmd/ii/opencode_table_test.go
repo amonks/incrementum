@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -32,9 +33,12 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 	}
 
-	plain := formatOpencodeTable(sessions, func(id string) string { return id }, now)
-	ansi := formatOpencodeTable(sessions, func(id string) string {
-		return "\x1b[1m\x1b[36m" + id + "\x1b[0m"
+	plain := formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now)
+	ansi := formatOpencodeTable(sessions, func(id string, prefix int) string {
+		if prefix <= 0 || prefix > len(id) {
+			return id
+		}
+		return "\x1b[1m\x1b[36m" + id[:prefix] + "\x1b[0m" + id[prefix:]
 	}, now)
 
 	if stripANSICodes(ansi) != plain {
@@ -72,7 +76,7 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string) string { return id }, now))
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -105,7 +109,7 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string) string { return id }, now))
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -132,7 +136,7 @@ func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(value string) string { return value }, now))
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(value string, prefix int) string { return value }, now))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -174,5 +178,39 @@ func TestFilterOpencodeSessionsForListWithAll(t *testing.T) {
 	filtered := filterOpencodeSessionsForList(sessions, true)
 	if len(filtered) != 2 {
 		t.Fatalf("expected 2 sessions, got %d", len(filtered))
+	}
+}
+
+func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-5 * time.Minute)
+
+	sessions := []workspace.OpencodeSession{
+		{
+			ID:        "abc123",
+			Status:    workspace.OpencodeSessionActive,
+			Prompt:    "One",
+			StartedAt: start,
+			UpdatedAt: start,
+		},
+		{
+			ID:          "abd999",
+			Status:      workspace.OpencodeSessionCompleted,
+			Prompt:      "Two",
+			StartedAt:   start,
+			UpdatedAt:   now,
+			CompletedAt: now,
+		},
+	}
+
+	output := formatOpencodeTable(sessions, func(id string, prefix int) string {
+		return id + ":" + strconv.Itoa(prefix)
+	}, now)
+
+	if !strings.Contains(output, "abc123:3") {
+		t.Fatalf("expected session prefix length 3, got: %q", output)
+	}
+	if !strings.Contains(output, "abd999:3") {
+		t.Fatalf("expected session prefix length 3, got: %q", output)
 	}
 }

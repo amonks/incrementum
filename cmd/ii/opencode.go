@@ -72,7 +72,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Print(formatOpencodeTable(sessions, nil, time.Now()))
+	fmt.Print(formatOpencodeTable(sessions, ui.HighlightID, time.Now()))
 	return nil
 }
 
@@ -116,12 +116,18 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(string) string, now time.Time) string {
+func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time) string {
 	if highlight == nil {
-		highlight = func(value string) string { return value }
+		highlight = func(value string, prefix int) string { return value }
 	}
 
 	rows := make([][]string, 0, len(sessions))
+	sessionIDs := make([]string, 0, len(sessions))
+	for _, session := range sessions {
+		sessionIDs = append(sessionIDs, session.ID)
+	}
+	prefixLengths := ui.UniqueIDPrefixLengths(sessionIDs)
+
 	for _, session := range sessions {
 		prompt := opencodePromptLine(session.Prompt)
 		prompt = truncateTableCell(prompt)
@@ -130,9 +136,10 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 		if session.ExitCode != nil {
 			exit = strconv.Itoa(*session.ExitCode)
 		}
+		prefixLen := prefixLengths[strings.ToLower(session.ID)]
 
 		rows = append(rows, []string{
-			highlight(session.ID),
+			highlight(session.ID, prefixLen),
 			string(session.Status),
 			age,
 			prompt,
