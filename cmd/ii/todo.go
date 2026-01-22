@@ -653,9 +653,11 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 			filter.IncludeTombstones = true
 		}
 	}
-	if cmd.Flags().Changed("priority") && todoListPriority >= 0 {
-		filter.Priority = &todoListPriority
+	priority, err := todoListPriorityFilter(todoListPriority, cmd.Flags().Changed("priority"))
+	if err != nil {
+		return err
 	}
+	filter.Priority = priority
 	if todoListType != "" {
 		typ := todo.TodoType(todoListType)
 		filter.Type = &typ
@@ -854,6 +856,16 @@ func todoLogHighlighter(prefixLengths map[string]int, highlight func(string, int
 		}
 		return highlight(id, prefixLen)
 	}
+}
+
+func todoListPriorityFilter(priority int, changed bool) (*int, error) {
+	if !changed {
+		return nil, nil
+	}
+	if err := todo.ValidatePriority(priority); err != nil {
+		return nil, err
+	}
+	return &priority, nil
 }
 
 // printTodoDetail prints detailed information about a todo.

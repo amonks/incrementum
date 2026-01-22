@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -135,6 +136,30 @@ func TestShouldUseTodoUpdateEditor(t *testing.T) {
 				t.Fatalf("expected %v, got %v", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestTodoListPriorityFilter(t *testing.T) {
+	valid := todo.PriorityMedium
+	priority, err := todoListPriorityFilter(valid, true)
+	if err != nil {
+		t.Fatalf("expected valid priority, got error: %v", err)
+	}
+	if priority == nil || *priority != valid {
+		t.Fatalf("expected priority %d, got %v", valid, priority)
+	}
+
+	priority, err = todoListPriorityFilter(-1, false)
+	if err != nil {
+		t.Fatalf("expected no error when priority not set, got %v", err)
+	}
+	if priority != nil {
+		t.Fatalf("expected nil priority when not set, got %v", priority)
+	}
+
+	priority, err = todoListPriorityFilter(-1, true)
+	if err == nil || !errors.Is(err, todo.ErrInvalidPriority) {
+		t.Fatalf("expected invalid priority error, got %v", err)
 	}
 }
 

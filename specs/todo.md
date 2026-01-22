@@ -98,6 +98,7 @@ Fields (JSON keys):
 
 - Returns todos matching optional filters: status, priority, type, IDs,
   title substring, description substring.
+- Priority filters must be within 0..4; invalid values return an error.
 - Tombstones are excluded by default unless `IncludeTombstones` is set.
 - CLI `todo list` includes tombstones when `--tombstones` is provided or when `--status tombstone` is specified.
 - CLI `todo list` excludes `done` todos by default unless `--status` or `--all` is provided.
