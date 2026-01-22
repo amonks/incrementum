@@ -32,3 +32,13 @@ func TestTodoReasonFlagOnlyOnDelete(t *testing.T) {
 		})
 	}
 }
+
+func TestTodoListHasTombstonesFlag(t *testing.T) {
+	flag := todoListCmd.Flags().Lookup("tombstones")
+	if flag == nil {
+		t.Fatal("expected todo list to have --tombstones flag")
+	}
+	if flag.DefValue != "false" {
+		t.Fatalf("expected todo list tombstones default false, got %q", flag.DefValue)
+	}
+}

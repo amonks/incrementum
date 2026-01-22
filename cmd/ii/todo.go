@@ -136,6 +136,7 @@ var (
 	todoListDesc        string
 	todoListJSON        bool
 	todoListAll         bool
+	todoListTombstones  bool
 	todoListPrioritySet bool
 )
 
@@ -221,6 +222,7 @@ func init() {
 	todoListCmd.Flags().StringVar(&todoListDesc, "description", "", "Filter by description substring")
 	todoListCmd.Flags().StringVar(&todoListDesc, "desc", "", "Filter by description substring")
 	todoListCmd.Flags().BoolVar(&todoListJSON, "json", false, "Output as JSON")
+	todoListCmd.Flags().BoolVar(&todoListTombstones, "tombstones", false, "Include tombstoned todos")
 	listflags.AddAllFlag(todoListCmd, &todoListAll)
 
 	// todo ready flags
@@ -653,6 +655,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	}
 	filter.TitleSubstring = todoListTitle
 	filter.DescriptionSubstring = todoListDesc
+	filter.IncludeTombstones = todoListTombstones
 
 	todos, err := store.List(filter)
 	if err != nil {
