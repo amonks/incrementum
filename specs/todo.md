@@ -101,6 +101,7 @@ Fields (JSON keys):
   title substring, description substring.
 - Priority filters must be within 0..4; invalid values return an error.
 - Tombstones are excluded by default unless `IncludeTombstones` is set.
+- Setting `Status=tombstone` implicitly includes tombstones in list results.
 - CLI `todo list` includes tombstones when `--tombstones` is provided or when `--status tombstone` is specified.
 - CLI `todo list` excludes `done` todos by default unless `--status` or `--all` is provided.
 - CLI ID highlighting uses the shortest unique prefix across all todos,

@@ -399,10 +399,15 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 		}
 	}
 
+	includeTombstones := filter.IncludeTombstones
+	if filter.Status != nil && *filter.Status == StatusTombstone {
+		includeTombstones = true
+	}
+
 	var result []Todo
 	for _, todo := range todos {
 		// Filter tombstones unless explicitly included
-		if todo.Status == StatusTombstone && !filter.IncludeTombstones {
+		if todo.Status == StatusTombstone && !includeTombstones {
 			continue
 		}
 

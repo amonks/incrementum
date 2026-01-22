@@ -646,6 +646,34 @@ func TestStore_Delete_ListExcludesTombstones(t *testing.T) {
 	}
 }
 
+func TestStore_List_StatusTombstoneIncludesTombstones(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	first, _ := store.Create("First", CreateOptions{})
+	store.Create("Second", CreateOptions{})
+
+	_, err = store.Delete([]string{first.ID}, "No longer needed")
+	if err != nil {
+		t.Fatalf("failed to delete: %v", err)
+	}
+
+	status := StatusTombstone
+	listed, err := store.List(ListFilter{Status: &status})
+	if err != nil {
+		t.Fatalf("failed to list tombstones: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("expected 1 tombstoned todo, got %d", len(listed))
+	}
+	if listed[0].Status != StatusTombstone {
+		t.Fatalf("expected tombstoned todo, got %s", listed[0].Status)
+	}
+}
+
 func TestStore_Show(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {
