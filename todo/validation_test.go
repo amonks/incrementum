@@ -365,3 +365,20 @@ func TestValidateDependency(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateDependencyInvalidTypeListsValidValues(t *testing.T) {
+	dep := Dependency{
+		TodoID:      "abc12345",
+		DependsOnID: "def67890",
+		Type:        DependencyType("invalid"),
+		CreatedAt:   time.Now(),
+	}
+
+	err := ValidateDependency(&dep)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "valid: blocks, discovered-from") {
+		t.Fatalf("expected valid values in error, got %q", err.Error())
+	}
+}

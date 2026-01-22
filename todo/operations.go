@@ -61,7 +61,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		}
 		depType := normalizeDependencyType(DependencyType(parts[0]))
 		if !depType.IsValid() {
-			return nil, fmt.Errorf("%w: %q", ErrInvalidDependencyType, parts[0])
+			return nil, formatInvalidDependencyTypeError(depType)
 		}
 		deps = append(deps, struct {
 			Type DependencyType
@@ -540,7 +540,7 @@ func (s *Store) DepAdd(todoID, dependsOnID string, depType DependencyType) (*Dep
 	// Validate dependency type
 	depType = normalizeDependencyType(depType)
 	if !depType.IsValid() {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidDependencyType, depType)
+		return nil, formatInvalidDependencyTypeError(depType)
 	}
 
 	resolvedIDs, err := s.resolveTodoIDs([]string{todoID, dependsOnID})

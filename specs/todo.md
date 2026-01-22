@@ -142,6 +142,7 @@ Fields (JSON keys):
 - `blocks` means `depends_on_id` must be closed before `todo_id` is ready.
 - `discovered-from` links related work but does not affect readiness.
 - Self-dependencies and duplicates are rejected.
+- Invalid dependency type inputs return an error listing valid values.
 - Dependency trees are computed by walking dependencies from a root todo;
   cycles are avoided by tracking the current traversal path so shared
   dependencies can appear under each branch.

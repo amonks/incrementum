@@ -144,6 +144,10 @@ func formatInvalidTypeError(todoType TodoType) error {
 	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidType, todoType, validTypeList())
 }
 
+func formatInvalidDependencyTypeError(depType DependencyType) error {
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidDependencyType, depType, validDependencyTypeList())
+}
+
 func validStatusList() string {
 	statuses := ValidStatuses()
 	values := make([]string, 0, len(statuses))
@@ -162,6 +166,15 @@ func validTypeList() string {
 	return strings.Join(values, ", ")
 }
 
+func validDependencyTypeList() string {
+	types := ValidDependencyTypes()
+	values := make([]string, 0, len(types))
+	for _, depType := range types {
+		values = append(values, string(depType))
+	}
+	return strings.Join(values, ", ")
+}
+
 // ValidateDependency checks if a dependency is valid.
 func ValidateDependency(d *Dependency) error {
 	if d.TodoID == "" {
@@ -174,7 +187,7 @@ func ValidateDependency(d *Dependency) error {
 		return ErrSelfDependency
 	}
 	if !d.Type.IsValid() {
-		return fmt.Errorf("%w: %q", ErrInvalidDependencyType, d.Type)
+		return formatInvalidDependencyTypeError(d.Type)
 	}
 	return nil
 }
