@@ -108,10 +108,14 @@ Fields (JSON keys):
   list/ready tables, dependency output) use the same prefix highlighting rules.
 - CLI table output includes created/updated age columns formatted as
   `<count><unit> ago`, using `s`, `m`, `h`, or `d` based on recency.
+- When the todo store is missing, CLI `todo list` does not prompt to create it
+  and returns an empty list.
 
 ### Show
 
 - CLI detail output includes deleted timestamps and delete reasons when present.
+- When the todo store is missing, CLI `todo show` does not prompt to create it
+  and returns the store missing error.
 
 ### Ready
 
@@ -119,6 +123,8 @@ Fields (JSON keys):
 - A blocker is unresolved when the blocking todo is not `closed`, `done`, or `tombstone`.
 - Results are ordered by priority (ascending), then type (bug, task, feature),
   then creation time (oldest first); an optional limit truncates the list.
+- When the todo store is missing, CLI `todo ready` does not prompt to create it
+  and returns an empty list.
 
 ### Dependencies
 
@@ -127,6 +133,8 @@ Fields (JSON keys):
 - Self-dependencies and duplicates are rejected.
 - Dependency trees are computed by walking dependencies from a root todo;
   cycles are avoided by tracking visited nodes.
+- When the todo store is missing, CLI dependency tree output does not prompt to
+  create it and returns the store missing error.
 
 ## CLI Mapping
 

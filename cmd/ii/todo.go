@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -234,15 +235,26 @@ func init() {
 }
 
 // openTodoStore opens the todo store, prompting to create if it doesn't exist.
-func openTodoStore() (*todo.Store, error) {
+func openTodoStoreWithOptions(opts todo.OpenOptions) (*todo.Store, error) {
 	repoPath, err := getRepoPath()
 	if err != nil {
 		return nil, err
 	}
 
-	return todo.Open(repoPath, todo.OpenOptions{
+	return todo.Open(repoPath, opts)
+}
+
+func openTodoStore() (*todo.Store, error) {
+	return openTodoStoreWithOptions(todo.OpenOptions{
 		CreateIfMissing: true,
 		PromptToCreate:  true,
+	})
+}
+
+func openTodoStoreReadOnly() (*todo.Store, error) {
+	return openTodoStoreWithOptions(todo.OpenOptions{
+		CreateIfMissing: false,
+		PromptToCreate:  false,
 	})
 }
 
@@ -606,7 +618,7 @@ func runTodoDelete(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoShow(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStoreReadOnly()
 	if err != nil {
 		return err
 	}
@@ -638,8 +650,17 @@ func runTodoShow(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoList(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStoreReadOnly()
 	if err != nil {
+		if errors.Is(err, todo.ErrNoTodoStore) {
+			if todoListJSON {
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode([]todo.Todo{})
+			}
+			printTodoTable(nil, nil, time.Now())
+			return nil
+		}
 		return err
 	}
 	defer store.Release()
@@ -699,8 +720,17 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoReady(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStoreReadOnly()
 	if err != nil {
+		if errors.Is(err, todo.ErrNoTodoStore) {
+			if todoReadyJSON {
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode([]todo.Todo{})
+			}
+			fmt.Println("No ready todos found.")
+			return nil
+		}
 		return err
 	}
 	defer store.Release()
@@ -752,7 +782,7 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoDepTree(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStoreReadOnly()
 	if err != nil {
 		return err
 	}
