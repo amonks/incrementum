@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/workspace"
@@ -58,6 +59,10 @@ func init() {
 }
 
 func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
+	if err := validateWorkspaceAcquirePurpose(workspaceAcquirePurpose); err != nil {
+		return err
+	}
+
 	pool, err := workspace.Open()
 	if err != nil {
 		return err
@@ -77,6 +82,16 @@ func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(wsPath)
+	return nil
+}
+
+func validateWorkspaceAcquirePurpose(purpose string) error {
+	if strings.TrimSpace(purpose) == "" {
+		return fmt.Errorf("purpose is required")
+	}
+	if strings.ContainsAny(purpose, "\r\n") {
+		return fmt.Errorf("purpose must be a single line")
+	}
 	return nil
 }
 

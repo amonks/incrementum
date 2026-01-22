@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/amonks/incrementum/workspace"
@@ -60,6 +61,37 @@ func TestResolveWorkspaceNameFromArgs(t *testing.T) {
 
 	if name != "ws-123" {
 		t.Fatalf("expected ws-123, got %q", name)
+	}
+}
+
+func TestValidateWorkspaceAcquirePurpose(t *testing.T) {
+	cases := []struct {
+		name    string
+		purpose string
+		wantErr string
+	}{
+		{name: "empty", purpose: "", wantErr: "purpose is required"},
+		{name: "whitespace", purpose: "  ", wantErr: "purpose is required"},
+		{name: "multiline", purpose: "first\nsecond", wantErr: "purpose must be a single line"},
+		{name: "valid", purpose: "debugging cache", wantErr: ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateWorkspaceAcquirePurpose(tc.purpose)
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error %q, got nil", tc.wantErr)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected error %q, got %q", tc.wantErr, err.Error())
+			}
+		})
 	}
 }
 
