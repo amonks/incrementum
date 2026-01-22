@@ -99,6 +99,32 @@ func TestLoad_InvalidTOML(t *testing.T) {
 	}
 }
 
+func TestLoad_JobConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	configContent := `
+[job]
+test-commands = ["go test ./...", "golangci-lint run"]
+`
+
+	if err := os.WriteFile(filepath.Join(tmpDir, ".incr.toml"), []byte(configContent), 0644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := config.Load(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if len(cfg.Job.TestCommands) != 2 {
+		t.Fatalf("expected 2 test commands, got %d", len(cfg.Job.TestCommands))
+	}
+
+	if cfg.Job.TestCommands[0] != "go test ./..." {
+		t.Fatalf("expected first test command %q, got %q", "go test ./...", cfg.Job.TestCommands[0])
+	}
+}
+
 func TestRunScript_Empty(t *testing.T) {
 	tmpDir := t.TempDir()
 

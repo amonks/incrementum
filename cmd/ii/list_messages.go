@@ -34,6 +34,23 @@ func opencodeEmptyListMessage(total int, includeAll bool) string {
 	return "No opencode sessions found."
 }
 
+func jobEmptyListMessage(total int, status string, includeAll bool) string {
+	if total == 0 {
+		return "No jobs found."
+	}
+
+	status = strings.TrimSpace(status)
+	if status != "" {
+		return fmt.Sprintf("No jobs found with status %s.", strings.ToLower(status))
+	}
+
+	if !includeAll {
+		return "No active jobs found. Use --all to include completed/failed/abandoned jobs."
+	}
+
+	return "No jobs found."
+}
+
 func todoEmptyListMessage(total int, status string, includeAll bool, includeTombstones bool, hasDone bool, hasTombstones bool) string {
 	if total == 0 {
 		return "No todos found."

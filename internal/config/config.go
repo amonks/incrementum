@@ -14,6 +14,7 @@ import (
 // Config represents the .incr.toml configuration file.
 type Config struct {
 	Workspace Workspace `toml:"workspace"`
+	Job       Job       `toml:"job"`
 }
 
 // Workspace contains workspace-related configuration.
@@ -25,6 +26,12 @@ type Workspace struct {
 	// OnAcquire is a script to run every time a workspace is acquired.
 	// Can include a shebang line; defaults to bash if not specified.
 	OnAcquire string `toml:"on-acquire"`
+}
+
+// Job contains job-related configuration.
+type Job struct {
+	// TestCommands defines commands to run during job testing.
+	TestCommands []string `toml:"test-commands"`
 }
 
 // Load loads the .incr.toml configuration from the given directory.

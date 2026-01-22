@@ -10,6 +10,7 @@ The state file contains:
 - `sessions`: maps session keys to session records
 - `opencode_daemons`: maps repo names to daemon state
 - `opencode_sessions`: maps session keys to opencode session records
+- `jobs`: maps job ids to job records
 
 ## Types
 
@@ -28,6 +29,11 @@ The state file contains:
 ### OpencodeSession
 - `id`, `repo`, `status`, `prompt`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`, `log_path`
 - Status: `active`, `completed`, `failed`, or `killed`
+
+### Job
+- `id`, `repo`, `todo_id`, `session_id`, `stage`, `feedback`, `opencode_sessions`, `status`, `started_at`, `updated_at`, `completed_at`
+- Stage: `implementing`, `testing`, `reviewing`, or `committing`
+- Status: `active`, `completed`, `failed`, or `abandoned`
 
 ## Locking
 All state updates use advisory file locking via `state.lock` to serialize concurrent access from multiple processes.

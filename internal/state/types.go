@@ -15,6 +15,7 @@ type State struct {
 	Sessions         map[string]Session         `json:"sessions"`
 	OpencodeDaemons  map[string]OpencodeDaemon  `json:"opencode_daemons"`
 	OpencodeSessions map[string]OpencodeSession `json:"opencode_sessions"`
+	Jobs             map[string]Job             `json:"jobs"`
 }
 
 // RepoInfo stores information about a tracked repository.
@@ -134,4 +135,83 @@ type OpencodeSession struct {
 	ExitCode        *int                  `json:"exit_code,omitempty"`
 	DurationSeconds int                   `json:"duration_seconds,omitempty"`
 	LogPath         string                `json:"log_path,omitempty"`
+}
+
+// JobStage represents the current workflow stage for a job.
+type JobStage string
+
+const (
+	// JobStageImplementing indicates the opencode implementation stage.
+	JobStageImplementing JobStage = "implementing"
+	// JobStageTesting indicates the test execution stage.
+	JobStageTesting JobStage = "testing"
+	// JobStageReviewing indicates the opencode review stage.
+	JobStageReviewing JobStage = "reviewing"
+	// JobStageCommitting indicates the commit message generation stage.
+	JobStageCommitting JobStage = "committing"
+)
+
+// ValidJobStages returns all valid job stage values.
+func ValidJobStages() []JobStage {
+	return []JobStage{JobStageImplementing, JobStageTesting, JobStageReviewing, JobStageCommitting}
+}
+
+// IsValid returns true if the stage is a known value.
+func (s JobStage) IsValid() bool {
+	for _, valid := range ValidJobStages() {
+		if s == valid {
+			return true
+		}
+	}
+	return false
+}
+
+// JobStatus represents the lifecycle status for a job.
+type JobStatus string
+
+const (
+	// JobStatusActive indicates the job is still running.
+	JobStatusActive JobStatus = "active"
+	// JobStatusCompleted indicates the job completed successfully.
+	JobStatusCompleted JobStatus = "completed"
+	// JobStatusFailed indicates the job failed.
+	JobStatusFailed JobStatus = "failed"
+	// JobStatusAbandoned indicates the job was abandoned.
+	JobStatusAbandoned JobStatus = "abandoned"
+)
+
+// ValidJobStatuses returns all valid job status values.
+func ValidJobStatuses() []JobStatus {
+	return []JobStatus{JobStatusActive, JobStatusCompleted, JobStatusFailed, JobStatusAbandoned}
+}
+
+// IsValid returns true if the status is a known value.
+func (s JobStatus) IsValid() bool {
+	for _, valid := range ValidJobStatuses() {
+		if s == valid {
+			return true
+		}
+	}
+	return false
+}
+
+// JobOpencodeSession tracks an opencode session started by a job.
+type JobOpencodeSession struct {
+	Purpose string `json:"purpose"`
+	ID      string `json:"id"`
+}
+
+// Job stores job state for a repo.
+type Job struct {
+	ID               string               `json:"id"`
+	Repo             string               `json:"repo"`
+	TodoID           string               `json:"todo_id"`
+	SessionID        string               `json:"session_id"`
+	Stage            JobStage             `json:"stage"`
+	Feedback         string               `json:"feedback,omitempty"`
+	OpencodeSessions []JobOpencodeSession `json:"opencode_sessions,omitempty"`
+	Status           JobStatus            `json:"status"`
+	StartedAt        time.Time            `json:"started_at"`
+	UpdatedAt        time.Time            `json:"updated_at"`
+	CompletedAt      time.Time            `json:"completed_at,omitempty"`
 }

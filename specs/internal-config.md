@@ -4,8 +4,9 @@
 The config package loads `.incr.toml` files and runs hook scripts.
 
 ## Configuration Model
-- `Config` holds workspace configuration.
+- `Config` holds workspace and job configuration.
 - `Workspace` defines `on-create` and `on-acquire` scripts.
+- `Job` defines `test-commands` used by the job workflow.
 
 ## Behavior
 - `Load` reads `.incr.toml` from the repo root and returns an empty config if missing.

@@ -43,6 +43,7 @@ func (s *Store) Load() (*State, error) {
 			Sessions:         make(map[string]Session),
 			OpencodeDaemons:  make(map[string]OpencodeDaemon),
 			OpencodeSessions: make(map[string]OpencodeSession),
+			Jobs:             make(map[string]Job),
 		}, nil
 	}
 	if err != nil {
@@ -69,6 +70,9 @@ func (s *Store) Load() (*State, error) {
 	}
 	if st.OpencodeSessions == nil {
 		st.OpencodeSessions = make(map[string]OpencodeSession)
+	}
+	if st.Jobs == nil {
+		st.Jobs = make(map[string]Job)
 	}
 
 	return &st, nil

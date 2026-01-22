@@ -37,6 +37,27 @@ func TestOpencodeEmptyListMessageSuggestsAll(t *testing.T) {
 	}
 }
 
+func TestJobEmptyListMessageNoJobs(t *testing.T) {
+	message := jobEmptyListMessage(0, "", false)
+	if message != "No jobs found." {
+		t.Fatalf("expected no jobs message, got %q", message)
+	}
+}
+
+func TestJobEmptyListMessageForStatusFilter(t *testing.T) {
+	message := jobEmptyListMessage(2, "Completed", false)
+	if message != "No jobs found with status completed." {
+		t.Fatalf("expected status message, got %q", message)
+	}
+}
+
+func TestJobEmptyListMessageSuggestsAll(t *testing.T) {
+	message := jobEmptyListMessage(3, "", false)
+	if message != "No active jobs found. Use --all to include completed/failed/abandoned jobs." {
+		t.Fatalf("expected --all hint, got %q", message)
+	}
+}
+
 func TestTodoEmptyListMessageNoTodos(t *testing.T) {
 	message := todoEmptyListMessage(0, "", false, false, false, false)
 	if message != "No todos found." {

@@ -38,6 +38,10 @@ func TestStore_LoadEmpty(t *testing.T) {
 	if len(st.OpencodeSessions) != 0 {
 		t.Errorf("expected 0 opencode sessions, got %d", len(st.OpencodeSessions))
 	}
+
+	if len(st.Jobs) != 0 {
+		t.Errorf("expected 0 jobs, got %d", len(st.Jobs))
+	}
 }
 
 func TestStore_SaveLoad(t *testing.T) {
@@ -61,6 +65,16 @@ func TestStore_SaveLoad(t *testing.T) {
 		Sessions:         make(map[string]Session),
 		OpencodeDaemons:  make(map[string]OpencodeDaemon),
 		OpencodeSessions: make(map[string]OpencodeSession),
+		Jobs: map[string]Job{
+			"job-123": {
+				ID:        "job-123",
+				Repo:      "my-project",
+				TodoID:    "todo-1",
+				SessionID: "session-1",
+				Stage:     JobStageImplementing,
+				Status:    JobStatusActive,
+			},
+		},
 	}
 
 	if err := store.Save(st); err != nil {
@@ -93,6 +107,21 @@ func TestStore_SaveLoad(t *testing.T) {
 	}
 	if ws.Status != WorkspaceStatusAcquired {
 		t.Errorf("expected status acquired, got %s", ws.Status)
+	}
+
+	if len(loaded.Jobs) != 1 {
+		t.Errorf("expected 1 job, got %d", len(loaded.Jobs))
+	}
+
+	job := loaded.Jobs["job-123"]
+	if job.ID != "job-123" {
+		t.Errorf("expected job id job-123, got %s", job.ID)
+	}
+	if job.Stage != JobStageImplementing {
+		t.Errorf("expected job stage implementing, got %s", job.Stage)
+	}
+	if job.Status != JobStatusActive {
+		t.Errorf("expected job status active, got %s", job.Status)
 	}
 }
 
