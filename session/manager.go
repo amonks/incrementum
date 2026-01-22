@@ -39,6 +39,19 @@ type RunOptions struct {
 	Rev     string
 }
 
+type sessionStartOptions struct {
+	Topic        string
+	Rev          string
+	UseTodoTitle bool
+}
+
+type sessionStartData struct {
+	Session       Session
+	Todo          todo.Todo
+	WorkspacePath string
+	WorkspaceName string
+}
+
 // StartResult captures the output of starting a session.
 type StartResult struct {
 	Session       Session
@@ -98,6 +111,23 @@ func (m *Manager) Close() error {
 
 // Start starts a session for a todo.
 func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) {
+	started, err := m.startSession(todoID, sessionStartOptions{
+		Topic:        opts.Topic,
+		Rev:          opts.Rev,
+		UseTodoTitle: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &StartResult{
+		Session:       started.Session,
+		WorkspacePath: started.WorkspacePath,
+		RepoPath:      m.repoPath,
+	}, nil
+}
+
+func (m *Manager) startSession(todoID string, opts sessionStartOptions) (*sessionStartData, error) {
 	if err := m.requireStore(); err != nil {
 		return nil, err
 	}
@@ -115,12 +145,12 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		return nil, err
 	}
 
-	purpose := normalizeSessionTopic(opts.Topic)
-	if purpose == "" {
-		purpose = normalizeSessionTopic(item.Title)
+	topic := normalizeSessionTopic(opts.Topic)
+	if topic == "" && opts.UseTodoTitle {
+		topic = normalizeSessionTopic(item.Title)
 	}
 
-	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: purpose})
+	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: topic})
 	if err != nil {
 		return nil, fmt.Errorf("acquire workspace: %w", err)
 	}
@@ -133,8 +163,6 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		return nil, err
 	}
 
-	topic := purpose
-
 	startedAt := time.Now()
 	created, err := m.createSession(m.repoPath, item.ID, wsName, topic, startedAt)
 	if err != nil {
@@ -144,10 +172,11 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		return nil, err
 	}
 
-	return &StartResult{
+	return &sessionStartData{
 		Session:       fromWorkspaceSession(created),
+		Todo:          item,
 		WorkspacePath: wsPath,
-		RepoPath:      m.repoPath,
+		WorkspaceName: wsName,
 	}, nil
 }
 
@@ -163,40 +192,22 @@ func (m *Manager) Fail(todoID string, opts FinalizeOptions) (*Session, error) {
 
 // Run executes a command in a session workspace.
 func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
-	if err := m.requireStore(); err != nil {
-		return nil, err
-	}
 	if len(opts.Command) == 0 {
 		return nil, fmt.Errorf("command is required")
 	}
 
-	item, err := m.resolveTodo(todoID)
+	started, err := m.startSession(todoID, sessionStartOptions{
+		Topic: strings.Join(opts.Command, " "),
+		Rev:   opts.Rev,
+	})
 	if err != nil {
 		return nil, err
 	}
-	if err := validateTodoForSessionStart(item); err != nil {
-		return nil, err
-	}
 
-	if _, err := m.pool.FindActiveSessionByTodoID(m.repoPath, item.ID); err == nil {
-		return nil, ErrSessionAlreadyActive
-	} else if !errors.Is(err, ErrSessionNotFound) {
-		return nil, err
-	}
-
-	purpose := normalizeSessionTopic(strings.Join(opts.Command, " "))
-	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: purpose})
-	if err != nil {
-		return nil, fmt.Errorf("acquire workspace: %w", err)
-	}
-
-	wsName := filepath.Base(wsPath)
-
-	status := todo.StatusInProgress
-	if _, err := m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &status}); err != nil {
-		m.pool.Release(wsPath)
-		return nil, err
-	}
+	wsPath := started.WorkspacePath
+	wsName := started.WorkspaceName
+	created := started.Session
+	item := started.Todo
 
 	released := false
 	releaseWorkspace := func() error {
@@ -215,15 +226,7 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 		}
 	}()
 
-	startedAt := time.Now()
-	topic := purpose
-	created, err := m.createSession(m.repoPath, item.ID, wsName, topic, startedAt)
-	if err != nil {
-		reset := todo.StatusOpen
-		_, _ = m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &reset})
-		return nil, err
-	}
-
+	startedAt := created.StartedAt
 	execCmd := exec.Command(opts.Command[0], opts.Command[1:]...)
 	execCmd.Dir = wsPath
 	execCmd.Stdin = os.Stdin

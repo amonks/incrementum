@@ -178,6 +178,38 @@ func TestManager_StartNormalizesTopic(t *testing.T) {
 	_, _ = manager.Fail(created.ID, FinalizeOptions{WorkspacePath: result.WorkspacePath})
 }
 
+func TestManager_RunNormalizesTopic(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	created, err := store.Create("Run topic", todo.CreateOptions{Priority: todo.PriorityPtr(todo.PriorityMedium)})
+	if err != nil {
+		store.Release()
+		t.Fatalf("create todo: %v", err)
+	}
+	store.Release()
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	command := []string{"sh", "-c", "printf 'hi'   > /dev/null"}
+	result, err := manager.Run(created.ID, RunOptions{Command: command, Rev: "@"})
+	if err != nil {
+		t.Fatalf("run session: %v", err)
+	}
+	if result.Session.Topic != "sh -c printf 'hi' > /dev/null" {
+		t.Fatalf("expected normalized topic, got %q", result.Session.Topic)
+	}
+}
+
 func TestManager_RunReleasesWorkspaceOnSessionUpdateError(t *testing.T) {
 	repoPath := setupSessionRepo(t)
 
