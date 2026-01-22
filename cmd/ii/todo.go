@@ -30,8 +30,8 @@ var todoCreateCmd = &cobra.Command{
 	Long: `Create a new todo.
 
 By default, opens $EDITOR to edit a TOML representation of the todo
-when running interactively. Use --no-edit to skip the editor, or
---edit to force opening the editor even when not interactive.`,
+when running interactively and no create flags are provided. Use --no-edit
+to skip the editor, or --edit to force opening the editor even when not interactive.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runTodoCreate,
 }
@@ -192,7 +192,7 @@ func init() {
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description (use '-' to read from stdin)")
 	todoCreateCmd.Flags().StringVar(&todoCreateDescription, "desc", "", "Description (use '-' to read from stdin)")
 	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
-	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
+	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	todoCreateCmd.Flags().BoolVar(&todoCreateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
 	// todo update flags
@@ -271,8 +271,7 @@ func resolveDescriptionFromStdin(description string, reader io.Reader) (string, 
 		return "", fmt.Errorf("read description from stdin: %w", err)
 	}
 
-	value := strings.TrimSuffix(string(input), "\n")
-	value = strings.TrimSuffix(value, "\r")
+	value := strings.TrimRight(string(input), "\r\n")
 	return value, nil
 }
 
@@ -281,6 +280,15 @@ func todoCreatePriorityValue(cmd *cobra.Command) *int {
 		return todo.PriorityPtr(todoCreatePriority)
 	}
 	return nil
+}
+
+func todoCreateHasCreateFlags(cmd *cobra.Command, args []string) bool {
+	return len(args) > 0 ||
+		cmd.Flags().Changed("type") ||
+		cmd.Flags().Changed("priority") ||
+		cmd.Flags().Changed("description") ||
+		cmd.Flags().Changed("desc") ||
+		cmd.Flags().Changed("deps")
 }
 
 func runTodoCreate(cmd *cobra.Command, args []string) error {
@@ -295,8 +303,9 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	// Determine whether to open editor:
 	// - --edit forces editor
 	// - --no-edit skips editor
-	// - otherwise, open editor if interactive
-	useEditor := todoCreateEdit || (!todoCreateNoEdit && editor.IsInteractive())
+	// - otherwise, open editor only when no create fields and interactive
+	hasCreateFlags := todoCreateHasCreateFlags(cmd, args)
+	useEditor := shouldUseTodoCreateEditor(hasCreateFlags, todoCreateEdit, todoCreateNoEdit, editor.IsInteractive())
 
 	if useEditor {
 		// Pre-populate from flags/args if provided
@@ -500,6 +509,19 @@ func shouldUseTodoUpdateEditor(hasUpdateFlags bool, editFlag bool, noEditFlag bo
 		return false
 	}
 	if hasUpdateFlags {
+		return false
+	}
+	return interactive
+}
+
+func shouldUseTodoCreateEditor(hasCreateFlags bool, editFlag bool, noEditFlag bool, interactive bool) bool {
+	if editFlag {
+		return true
+	}
+	if noEditFlag {
+		return false
+	}
+	if hasCreateFlags {
 		return false
 	}
 	return interactive

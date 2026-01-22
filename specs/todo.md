@@ -68,6 +68,8 @@ Fields (JSON keys):
 - Title is required and validated.
 - Defaults: `type=task`, `priority=medium` (2), `status=open`.
 - Type and dependency type inputs are case-insensitive and stored as lowercase.
+- Editor mode is used by default only when no create fields are supplied; use `--edit` to force it or `--no-edit` to skip it.
+- CLI description input via `--description -` / `--desc -` trims trailing CR/LF characters.
 - Dependencies may be supplied as `type:id` pairs; each dependency must
   reference an existing todo.
 - Dependency IDs accept the same case-insensitive prefix matching as other
@@ -78,6 +80,7 @@ Fields (JSON keys):
 - Only fields explicitly provided are changed.
 - When `todo update` runs in editor mode for multiple IDs, the CLI opens one editor session per todo.
 - Editor mode is used by default only when no update fields are supplied; if update fields are provided, the editor opens only with `--edit`.
+- CLI description input via `--description -` / `--desc -` trims trailing CR/LF characters.
 - Status transitions automatically adjust timestamps:
   - `closed`/`done` sets `closed_at` and clears delete markers.
   - `open`/`in_progress` clears `closed_at` and delete markers.

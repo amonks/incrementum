@@ -32,6 +32,12 @@ func TestResolveDescriptionFromStdin(t *testing.T) {
 			want: "No newline",
 		},
 		{
+			name: "stdin with multiple newlines",
+			desc: "-",
+			in:   "Trim me\n\n\r\n",
+			want: "Trim me",
+		},
+		{
 			name: "literal description",
 			desc: "Already set",
 			in:   "ignored",
@@ -132,6 +138,69 @@ func TestShouldUseTodoUpdateEditor(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := shouldUseTodoUpdateEditor(tc.hasUpdateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
+			if got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestShouldUseTodoCreateEditor(t *testing.T) {
+	cases := []struct {
+		name           string
+		hasCreateFlags bool
+		editFlag       bool
+		noEditFlag     bool
+		interactive    bool
+		want           bool
+	}{
+		{
+			name:        "no flags interactive",
+			interactive: true,
+			want:        true,
+		},
+		{
+			name:        "no flags non-interactive",
+			interactive: false,
+			want:        false,
+		},
+		{
+			name:           "create flags interactive",
+			hasCreateFlags: true,
+			interactive:    true,
+			want:           false,
+		},
+		{
+			name:           "create flags with edit",
+			hasCreateFlags: true,
+			editFlag:       true,
+			interactive:    true,
+			want:           true,
+		},
+		{
+			name:        "no flags with edit",
+			editFlag:    true,
+			interactive: false,
+			want:        true,
+		},
+		{
+			name:        "no flags with no-edit",
+			noEditFlag:  true,
+			interactive: true,
+			want:        false,
+		},
+		{
+			name:           "create flags with no-edit",
+			hasCreateFlags: true,
+			noEditFlag:     true,
+			interactive:    true,
+			want:           false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldUseTodoCreateEditor(tc.hasCreateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
 			if got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, got)
 			}
