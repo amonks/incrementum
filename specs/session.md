@@ -47,6 +47,8 @@ Fields (JSON keys):
   3) otherwise error
 - Todo id matching for sessions uses case-insensitive prefix matching against
   active sessions in the repo.
+- Session commands that update todos (`start`, `run`, `done`, `fail`) prompt to
+  create the todo store when it is missing.
 
 ## Commands
 

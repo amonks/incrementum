@@ -124,10 +124,7 @@ func runSessionStart(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	manager, err := sessionpkg.Open(repoPath, sessionpkg.OpenOptions{
-		Todo:             todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
-		AllowMissingTodo: true,
-	})
+	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions())
 	if err != nil {
 		return err
 	}
@@ -245,7 +242,7 @@ func runSessionFinalize(args []string, todoStatus todo.Status, sessionStatus ses
 		return err
 	}
 
-	manager, err := sessionpkg.Open(repoPath, sessionListOpenOptions())
+	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions())
 	if err != nil {
 		return err
 	}
@@ -299,9 +296,7 @@ func runSessionRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	manager, err := sessionpkg.Open(repoPath, sessionpkg.OpenOptions{
-		Todo: todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true},
-	})
+	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions())
 	if err != nil {
 		return err
 	}
@@ -367,6 +362,13 @@ func sessionListOpenOptions() sessionpkg.OpenOptions {
 	return sessionpkg.OpenOptions{
 		Todo:             todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
 		AllowMissingTodo: true,
+	}
+}
+
+func sessionMutatingOpenOptions() sessionpkg.OpenOptions {
+	return sessionpkg.OpenOptions{
+		Todo:             todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true},
+		AllowMissingTodo: false,
 	}
 }
 
