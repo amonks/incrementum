@@ -2,6 +2,8 @@ package session
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/amonks/incrementum/workspace"
 )
@@ -16,3 +18,16 @@ var (
 	// ErrSessionNotActive indicates a session is not active.
 	ErrSessionNotActive = workspace.ErrSessionNotActive
 )
+
+func formatInvalidStatusError(status Status) error {
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validStatusList())
+}
+
+func validStatusList() string {
+	statuses := ValidStatuses()
+	values := make([]string, 0, len(statuses))
+	for _, status := range statuses {
+		values = append(values, string(status))
+	}
+	return strings.Join(values, ", ")
+}

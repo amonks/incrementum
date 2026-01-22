@@ -36,7 +36,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 	}
 	opts.Type = normalizeTodoType(opts.Type)
 	if !opts.Type.IsValid() {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidType, opts.Type)
+		return nil, formatInvalidTypeError(opts.Type)
 	}
 
 	priority := opts.Priority
@@ -163,7 +163,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		normalized := normalizeStatus(*opts.Status)
 		opts.Status = &normalized
 		if !opts.Status.IsValid() {
-			return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *opts.Status)
+			return nil, formatInvalidStatusError(*opts.Status)
 		}
 	}
 	if opts.Priority != nil {
@@ -175,7 +175,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		normalized := normalizeTodoType(*opts.Type)
 		opts.Type = &normalized
 		if !opts.Type.IsValid() {
-			return nil, fmt.Errorf("%w: %q", ErrInvalidType, *opts.Type)
+			return nil, formatInvalidTypeError(*opts.Type)
 		}
 	}
 
@@ -382,14 +382,14 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 		normalizedStatus := normalizeStatus(*filter.Status)
 		filter.Status = &normalizedStatus
 		if !filter.Status.IsValid() {
-			return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+			return nil, formatInvalidStatusError(*filter.Status)
 		}
 	}
 	if filter.Type != nil {
 		normalizedType := normalizeTodoType(*filter.Type)
 		filter.Type = &normalizedType
 		if !filter.Type.IsValid() {
-			return nil, fmt.Errorf("%w: %q", ErrInvalidType, *filter.Type)
+			return nil, formatInvalidTypeError(*filter.Type)
 		}
 	}
 	if filter.Priority != nil {

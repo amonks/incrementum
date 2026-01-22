@@ -295,7 +295,7 @@ func (m *Manager) List(filter ListFilter) ([]Session, error) {
 		normalized := Status(strings.ToLower(string(*filter.Status)))
 		filter.Status = &normalized
 		if !filter.Status.IsValid() {
-			return nil, fmt.Errorf("%w: %q", ErrInvalidStatus, *filter.Status)
+			return nil, formatInvalidStatusError(*filter.Status)
 		}
 	}
 

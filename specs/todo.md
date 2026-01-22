@@ -103,6 +103,7 @@ Fields (JSON keys):
   title substring, description substring.
 - Priority filters must be within 0..4; invalid values return an error.
 - Status and type filters are case-insensitive.
+- Invalid status or type filters return errors listing valid values.
 - Tombstones are excluded by default unless `IncludeTombstones` is set.
 - Setting `Status=tombstone` implicitly includes tombstones in list results.
 - CLI `todo list` includes tombstones when `--tombstones` is provided or when `--status tombstone` is specified.

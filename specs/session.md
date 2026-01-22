@@ -107,6 +107,7 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - Default behavior lists only `active` sessions unless `--status` or `--all` is provided.
 - `--status` filters to `active`, `completed`, or `failed`.
 - `--status` matching is case-insensitive.
+- Invalid `--status` values return errors listing valid statuses.
 - `--all` lists all statuses.
 - `--json` emits structured output.
 - Suggested columns: `SESSION`, `TODO`, `STATUS`, `WORKSPACE`, `AGE`, `TOPIC`, `EXIT`.

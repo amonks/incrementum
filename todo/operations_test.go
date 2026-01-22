@@ -2,6 +2,7 @@ package todo
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -827,11 +828,15 @@ func TestStore_List_InvalidFilters(t *testing.T) {
 	invalidStatus := Status("maybe")
 	if _, err := store.List(ListFilter{Status: &invalidStatus}); err == nil || !errors.Is(err, ErrInvalidStatus) {
 		t.Fatalf("expected invalid status error, got %v", err)
+	} else if !strings.Contains(err.Error(), "valid: open, in_progress, closed, done, tombstone") {
+		t.Fatalf("expected valid status hint, got %v", err)
 	}
 
 	invalidType := TodoType("oops")
 	if _, err := store.List(ListFilter{Type: &invalidType}); err == nil || !errors.Is(err, ErrInvalidType) {
 		t.Fatalf("expected invalid type error, got %v", err)
+	} else if !strings.Contains(err.Error(), "valid: task, bug, feature") {
+		t.Fatalf("expected valid type hint, got %v", err)
 	}
 
 	invalidPriority := 99

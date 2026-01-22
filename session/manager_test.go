@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -529,6 +530,8 @@ func TestManagerListFiltersByStatus(t *testing.T) {
 	invalid := Status("unknown")
 	if _, err := manager.List(ListFilter{Status: &invalid}); err == nil || !errors.Is(err, ErrInvalidStatus) {
 		t.Fatalf("expected invalid status error, got %v", err)
+	} else if !strings.Contains(err.Error(), "valid: active, completed, failed") {
+		t.Fatalf("expected valid status hint, got %v", err)
 	}
 }
 

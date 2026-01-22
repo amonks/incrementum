@@ -90,7 +90,7 @@ func ValidateTodo(t *Todo) error {
 	}
 
 	if !t.Status.IsValid() {
-		return fmt.Errorf("%w: %q", ErrInvalidStatus, t.Status)
+		return formatInvalidStatusError(t.Status)
 	}
 
 	if err := ValidatePriority(t.Priority); err != nil {
@@ -98,7 +98,7 @@ func ValidateTodo(t *Todo) error {
 	}
 
 	if !t.Type.IsValid() {
-		return fmt.Errorf("%w: %q", ErrInvalidType, t.Type)
+		return formatInvalidTypeError(t.Type)
 	}
 
 	// Check closed_at consistency
@@ -134,6 +134,32 @@ func ValidateTodo(t *Todo) error {
 	}
 
 	return nil
+}
+
+func formatInvalidStatusError(status Status) error {
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validStatusList())
+}
+
+func formatInvalidTypeError(todoType TodoType) error {
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidType, todoType, validTypeList())
+}
+
+func validStatusList() string {
+	statuses := ValidStatuses()
+	values := make([]string, 0, len(statuses))
+	for _, status := range statuses {
+		values = append(values, string(status))
+	}
+	return strings.Join(values, ", ")
+}
+
+func validTypeList() string {
+	types := ValidTodoTypes()
+	values := make([]string, 0, len(types))
+	for _, todoType := range types {
+		values = append(values, string(todoType))
+	}
+	return strings.Join(values, ", ")
 }
 
 // ValidateDependency checks if a dependency is valid.
