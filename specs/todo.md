@@ -81,6 +81,7 @@ Fields (JSON keys):
   - `closed`/`done` sets `closed_at` and clears delete markers.
   - `open`/`in_progress` clears `closed_at` and delete markers.
   - `tombstone` clears `closed_at`; `deleted_at` must be set.
+- Reapplying the current status does not reset timestamps unless explicitly provided.
 - `updated_at` always changes when a todo is updated.
 
 ### Close / Reopen / Start / Delete

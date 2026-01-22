@@ -193,21 +193,26 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 			todos[i].Description = *opts.Description
 		}
 		if opts.Status != nil {
-			todos[i].Status = *opts.Status
-			switch *opts.Status {
-			case StatusClosed, StatusDone:
-				todos[i].ClosedAt = &now
-				todos[i].DeletedAt = nil
-				todos[i].DeleteReason = ""
-			case StatusTombstone:
-				todos[i].ClosedAt = nil
-				if opts.DeletedAt == nil && todos[i].DeletedAt == nil {
-					todos[i].DeletedAt = &now
+			newStatus := *opts.Status
+			if newStatus != todos[i].Status {
+				todos[i].Status = newStatus
+				switch newStatus {
+				case StatusClosed, StatusDone:
+					todos[i].ClosedAt = &now
+					todos[i].DeletedAt = nil
+					todos[i].DeleteReason = ""
+				case StatusTombstone:
+					todos[i].ClosedAt = nil
+					if opts.DeletedAt == nil && todos[i].DeletedAt == nil {
+						todos[i].DeletedAt = &now
+					}
+				case StatusOpen, StatusInProgress:
+					todos[i].ClosedAt = nil
+					todos[i].DeletedAt = nil
+					todos[i].DeleteReason = ""
 				}
-			case StatusOpen, StatusInProgress:
-				todos[i].ClosedAt = nil
-				todos[i].DeletedAt = nil
-				todos[i].DeleteReason = ""
+			} else {
+				todos[i].Status = newStatus
 			}
 		}
 		if opts.Priority != nil {
