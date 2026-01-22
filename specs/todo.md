@@ -107,7 +107,7 @@ Fields (JSON keys):
 ### Ready
 
 - Returns `open` todos that have no unresolved `blocks` dependencies.
-- A blocker is unresolved when the blocking todo is not `closed`.
+- A blocker is unresolved when the blocking todo is not `closed`, `done`, or `tombstone`.
 - Results are ordered by priority (ascending), then type (bug, task, feature),
   then creation time (oldest first); an optional limit truncates the list.
 

@@ -788,6 +788,49 @@ func TestStore_Ready_WithBlockers(t *testing.T) {
 	}
 }
 
+func TestStore_Ready_IgnoresTombstonedBlockers(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	blocker, _ := store.Create("Blocker", CreateOptions{})
+	blocked, _ := store.Create("Blocked", CreateOptions{})
+
+	_, err = store.DepAdd(blocked.ID, blocker.ID, DepBlocks)
+	if err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	ready, err := store.Ready(10)
+	if err != nil {
+		t.Fatalf("failed to get ready: %v", err)
+	}
+	if len(ready) != 1 {
+		t.Fatalf("expected 1 ready todo before delete, got %d", len(ready))
+	}
+	if ready[0].ID != blocker.ID {
+		t.Fatalf("expected blocker to be ready before delete, got %q", ready[0].Title)
+	}
+
+	_, err = store.Delete([]string{blocker.ID}, "")
+	if err != nil {
+		t.Fatalf("failed to delete blocker: %v", err)
+	}
+
+	ready, err = store.Ready(10)
+	if err != nil {
+		t.Fatalf("failed to get ready after delete: %v", err)
+	}
+	if len(ready) != 1 {
+		t.Fatalf("expected 1 ready todo after delete, got %d", len(ready))
+	}
+	if ready[0].ID != blocked.ID {
+		t.Fatalf("expected blocked todo to be ready after delete, got %q", ready[0].Title)
+	}
+}
+
 func TestStore_Ready_Limit(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {

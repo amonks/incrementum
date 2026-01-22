@@ -459,7 +459,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		hasOpenBlocker := false
 		for _, blockerID := range blockers[todo.ID] {
 			blocker, ok := todoMap[blockerID]
-			if ok && blocker.Status != StatusClosed && blocker.Status != StatusDone {
+			if ok && blocker.Status != StatusClosed && blocker.Status != StatusDone && blocker.Status != StatusTombstone {
 				hasOpenBlocker = true
 				break
 			}
