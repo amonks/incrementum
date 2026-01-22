@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 var (
@@ -67,8 +68,9 @@ func ValidateTitle(title string) error {
 	if strings.TrimSpace(title) == "" {
 		return ErrEmptyTitle
 	}
-	if len(title) > MaxTitleLength {
-		return fmt.Errorf("%w: %d > %d", ErrTitleTooLong, len(title), MaxTitleLength)
+	length := utf8.RuneCountInString(title)
+	if length > MaxTitleLength {
+		return fmt.Errorf("%w: %d > %d", ErrTitleTooLong, length, MaxTitleLength)
 	}
 	return nil
 }

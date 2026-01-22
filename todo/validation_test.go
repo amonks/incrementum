@@ -15,9 +15,11 @@ func TestValidateTitle(t *testing.T) {
 	}{
 		{"valid short", "Fix bug", nil},
 		{"valid long", strings.Repeat("a", MaxTitleLength), nil},
+		{"valid long unicode", strings.Repeat("a", MaxTitleLength-1) + "\u00e9", nil},
 		{"empty", "", ErrEmptyTitle},
 		{"whitespace", "   ", ErrEmptyTitle},
 		{"too long", strings.Repeat("a", MaxTitleLength+1), ErrTitleTooLong},
+		{"too long unicode", strings.Repeat("a", MaxTitleLength) + "\u00e9", ErrTitleTooLong},
 	}
 
 	for _, tt := range tests {
