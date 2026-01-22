@@ -46,7 +46,7 @@ func TestSessionRunRevFlagSet(t *testing.T) {
 	}
 }
 
-func TestShouldUseSessionStartEditor(t *testing.T) {
+func TestShouldUseEditor(t *testing.T) {
 	cases := []struct {
 		name           string
 		hasCreateFlags bool
@@ -101,7 +101,7 @@ func TestShouldUseSessionStartEditor(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := shouldUseSessionStartEditor(tc.hasCreateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
+			got := shouldUseEditor(tc.hasCreateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
 			if got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, got)
 			}

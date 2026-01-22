@@ -137,7 +137,7 @@ func TestShouldUseTodoUpdateEditor(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := shouldUseTodoUpdateEditor(tc.hasUpdateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
+			got := shouldUseEditor(tc.hasUpdateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
 			if got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, got)
 			}
@@ -200,7 +200,7 @@ func TestShouldUseTodoCreateEditor(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := shouldUseTodoCreateEditor(tc.hasCreateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
+			got := shouldUseEditor(tc.hasCreateFlags, tc.editFlag, tc.noEditFlag, tc.interactive)
 			if got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, got)
 			}

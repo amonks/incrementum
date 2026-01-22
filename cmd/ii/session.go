@@ -140,7 +140,7 @@ func runSessionStart(cmd *cobra.Command, args []string) error {
 }
 
 func createTodoForSessionStart(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
-	useEditor := shouldUseSessionStartEditor(hasCreateFlags, sessionStartEdit, sessionStartNoEdit, editor.IsInteractive())
+	useEditor := shouldUseEditor(hasCreateFlags, sessionStartEdit, sessionStartNoEdit, editor.IsInteractive())
 	if useEditor {
 		data := editor.DefaultCreateData()
 		if cmd.Flags().Changed("title") {
@@ -206,19 +206,6 @@ func sessionStartHasCreateFlags(cmd *cobra.Command) bool {
 		cmd.Flags().Changed("description") ||
 		cmd.Flags().Changed("desc") ||
 		cmd.Flags().Changed("deps")
-}
-
-func shouldUseSessionStartEditor(hasCreateFlags bool, editFlag bool, noEditFlag bool, interactive bool) bool {
-	if editFlag {
-		return true
-	}
-	if noEditFlag {
-		return false
-	}
-	if hasCreateFlags {
-		return false
-	}
-	return interactive
 }
 
 func sessionStartPriorityValue(cmd *cobra.Command) *int {
