@@ -236,9 +236,7 @@ func runSessionFinalize(args []string, todoStatus todo.Status, sessionStatus ses
 		return err
 	}
 
-	manager, err := sessionpkg.Open(repoPath, sessionpkg.OpenOptions{
-		Todo: todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true},
-	})
+	manager, err := sessionpkg.Open(repoPath, sessionListOpenOptions())
 	if err != nil {
 		return err
 	}
@@ -356,6 +354,13 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 
 	fmt.Print(formatSessionTable(sessions, ui.HighlightID, time.Now(), todoPrefixLengths))
 	return nil
+}
+
+func sessionListOpenOptions() sessionpkg.OpenOptions {
+	return sessionpkg.OpenOptions{
+		Todo:             todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+		AllowMissingTodo: true,
+	}
 }
 
 func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, int) string, now time.Time, todoPrefixLengths map[string]int) string {
