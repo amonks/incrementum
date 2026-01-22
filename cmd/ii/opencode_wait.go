@@ -72,11 +72,12 @@ func runOpencodeWait(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	resolvedID := resolveOpencodeSessionID(sessionID, stored)
 	if stored.Status != workspace.OpencodeSessionActive {
 		return exitFromOpencodeSession(stored)
 	}
 
-	metadata, err := pollOpencodeSession(opencodeSessionListForWait, sessionID, time.Second)
+	metadata, err := pollOpencodeSession(opencodeSessionListForWait, resolvedID, time.Second)
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,7 @@ func runOpencodeWait(cmd *cobra.Command, args []string) error {
 		duration = int(completedAt.Sub(stored.StartedAt).Seconds())
 	}
 
-	updated, err := pool.CompleteOpencodeSession(repoPath, sessionID, status, completedAt, metadata.ExitCode, duration)
+	updated, err := pool.CompleteOpencodeSession(repoPath, resolvedID, status, completedAt, metadata.ExitCode, duration)
 	if err != nil {
 		if errors.Is(err, workspace.ErrOpencodeSessionNotActive) {
 			return exitFromOpencodeSession(stored)
