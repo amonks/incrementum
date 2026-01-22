@@ -391,8 +391,8 @@ func TestManager_StartReleasesWorkspaceOnSessionCreateError(t *testing.T) {
 	defer manager.Close()
 
 	createErr := errors.New("create session failed")
-	manager.createSession = func(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (workspace.Session, error) {
-		return workspace.Session{}, createErr
+	manager.createSession = func(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (Session, error) {
+		return Session{}, createErr
 	}
 
 	_, err = manager.Start(created.ID, StartOptions{Rev: "@"})
@@ -512,7 +512,7 @@ func TestManagerListFiltersByStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create completed session: %v", err)
 	}
-	if _, err := manager.pool.CompleteSession(repoPath, completedSession.ID, workspace.SessionCompleted, start.Add(20*time.Second), nil, 10); err != nil {
+	if _, err := manager.pool.CompleteSession(repoPath, completedSession.ID, StatusCompleted, start.Add(20*time.Second), nil, 10); err != nil {
 		t.Fatalf("complete session: %v", err)
 	}
 

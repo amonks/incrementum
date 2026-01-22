@@ -72,7 +72,7 @@ type Manager struct {
 	repoPath      string
 	store         *todo.Store
 	pool          *workspace.Pool
-	createSession func(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (workspace.Session, error)
+	createSession func(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (Session, error)
 }
 
 // Open creates a new session manager for a repo.
@@ -182,12 +182,12 @@ func (m *Manager) startSession(todoID string, opts sessionStartOptions) (*sessio
 
 // Done marks a session completed.
 func (m *Manager) Done(todoID string, opts FinalizeOptions) (*Session, error) {
-	return m.finalize(todoID, opts, todo.StatusDone, workspace.SessionCompleted)
+	return m.finalize(todoID, opts, todo.StatusDone, StatusCompleted)
 }
 
 // Fail marks a session failed.
 func (m *Manager) Fail(todoID string, opts FinalizeOptions) (*Session, error) {
-	return m.finalize(todoID, opts, todo.StatusOpen, workspace.SessionFailed)
+	return m.finalize(todoID, opts, todo.StatusOpen, StatusFailed)
 }
 
 // Run executes a command in a session workspace.
@@ -248,10 +248,10 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 	}
 
 	finalStatus := todo.StatusDone
-	sessionStatus := workspace.SessionCompleted
+	sessionStatus := StatusCompleted
 	if runErr != nil {
 		finalStatus = todo.StatusOpen
-		sessionStatus = workspace.SessionFailed
+		sessionStatus = StatusFailed
 	}
 
 	if _, err := m.store.Update([]string{item.ID}, todo.UpdateOptions{Status: &finalStatus}); err != nil {
@@ -367,11 +367,11 @@ func (m *Manager) resolveActiveSessionByTodoPrefix(todoID string) (*Session, err
 	}
 
 	needle := strings.ToLower(todoID)
-	var matched workspace.Session
+	var matched Session
 	found := false
 
 	for _, item := range items {
-		if item.Status != workspace.SessionActive {
+		if item.Status != StatusActive {
 			continue
 		}
 		if !strings.HasPrefix(strings.ToLower(item.TodoID), needle) {
@@ -403,7 +403,7 @@ func Age(item Session, now time.Time) time.Duration {
 	return age
 }
 
-func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.Status, sessionStatus workspace.SessionStatus) (*Session, error) {
+func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.Status, sessionStatus Status) (*Session, error) {
 	if err := m.requireStore(); err != nil {
 		return nil, err
 	}
@@ -462,7 +462,7 @@ func normalizeSessionTopic(value string) string {
 	return strings.Join(fields, " ")
 }
 
-func fromWorkspaceSession(item workspace.Session) Session {
+func fromWorkspaceSession(item Session) Session {
 	return item
 }
 

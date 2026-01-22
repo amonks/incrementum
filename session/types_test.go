@@ -3,17 +3,17 @@ package session
 import (
 	"testing"
 
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/internal/sessionmodel"
 )
 
-func TestStatusAndSessionAliasesWorkspace(t *testing.T) {
-	var status Status = workspace.SessionActive
+func TestStatusAndSessionAliasesModel(t *testing.T) {
+	var status Status = sessionmodel.SessionActive
 	if status != StatusActive {
-		t.Fatalf("expected status alias to match workspace")
+		t.Fatalf("expected status alias to match model")
 	}
 
-	var item Session = workspace.Session{}
+	var item Session = sessionmodel.Session{}
 	if item.ID != "" {
-		t.Fatalf("expected session alias to match workspace")
+		t.Fatalf("expected session alias to match model")
 	}
 }
