@@ -1211,6 +1211,61 @@ func TestStore_DepTree(t *testing.T) {
 	}
 }
 
+func TestStore_DepTree_ShowsSharedDependencies(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	root, _ := store.Create("Root", CreateOptions{})
+	child1, _ := store.Create("Child 1", CreateOptions{})
+	child2, _ := store.Create("Child 2", CreateOptions{})
+	shared, _ := store.Create("Shared", CreateOptions{})
+
+	store.DepAdd(root.ID, child1.ID, DepBlocks)
+	store.DepAdd(root.ID, child2.ID, DepBlocks)
+	store.DepAdd(child1.ID, shared.ID, DepBlocks)
+	store.DepAdd(child2.ID, shared.ID, DepBlocks)
+
+	tree, err := store.DepTree(root.ID)
+	if err != nil {
+		t.Fatalf("failed to get dep tree: %v", err)
+	}
+
+	if len(tree.Children) != 2 {
+		t.Fatalf("expected 2 children, got %d", len(tree.Children))
+	}
+
+	var child1Node *DepTreeNode
+	var child2Node *DepTreeNode
+	for _, child := range tree.Children {
+		switch child.Todo.ID {
+		case child1.ID:
+			child1Node = child
+		case child2.ID:
+			child2Node = child
+		}
+	}
+
+	if child1Node == nil || child2Node == nil {
+		t.Fatalf("expected both child nodes, got child1=%v child2=%v", child1Node != nil, child2Node != nil)
+	}
+
+	if len(child1Node.Children) != 1 {
+		t.Fatalf("expected child1 to have 1 shared dep, got %d", len(child1Node.Children))
+	}
+	if len(child2Node.Children) != 1 {
+		t.Fatalf("expected child2 to have 1 shared dep, got %d", len(child2Node.Children))
+	}
+	if child1Node.Children[0].Todo.ID != shared.ID {
+		t.Fatalf("expected child1 shared ID %q, got %q", shared.ID, child1Node.Children[0].Todo.ID)
+	}
+	if child2Node.Children[0].Todo.ID != shared.ID {
+		t.Fatalf("expected child2 shared ID %q, got %q", shared.ID, child2Node.Children[0].Todo.ID)
+	}
+}
+
 func TestStore_DepTree_NotFound(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {

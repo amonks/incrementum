@@ -137,7 +137,8 @@ Fields (JSON keys):
 - `discovered-from` links related work but does not affect readiness.
 - Self-dependencies and duplicates are rejected.
 - Dependency trees are computed by walking dependencies from a root todo;
-  cycles are avoided by tracking visited nodes.
+  cycles are avoided by tracking the current traversal path so shared
+  dependencies can appear under each branch.
 - When the todo store is missing, CLI dependency tree output does not prompt to
   create it and returns the store missing error.
 
