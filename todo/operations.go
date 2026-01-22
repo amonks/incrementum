@@ -99,6 +99,16 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		for i := range deps {
 			deps[i].ID = resolvedIDs[i]
 		}
+		seen := make(map[string]struct{})
+		for _, dep := range deps {
+			if dep.ID == todo.ID {
+				return nil, ErrSelfDependency
+			}
+			if _, ok := seen[dep.ID]; ok {
+				return nil, ErrDuplicateDependency
+			}
+			seen[dep.ID] = struct{}{}
+		}
 	}
 
 	// Add the new todo

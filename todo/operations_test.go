@@ -159,6 +159,29 @@ func TestStore_Create_NormalizesDependencyType(t *testing.T) {
 	}
 }
 
+func TestStore_Create_DuplicateDependencies(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	parent, err := store.Create("Parent task", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create parent: %v", err)
+	}
+
+	_, err = store.Create("Child task", CreateOptions{
+		Dependencies: []string{
+			"blocks:" + parent.ID,
+			"discovered-from:" + parent.ID,
+		},
+	})
+	if !errors.Is(err, ErrDuplicateDependency) {
+		t.Fatalf("expected duplicate dependency error, got %v", err)
+	}
+}
+
 func TestStore_Create_WithDependencyPrefix(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {
