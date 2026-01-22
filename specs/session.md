@@ -41,6 +41,7 @@ Fields (JSON keys):
 - `fail` sets todo status to `open`.
 - Session records own the workspace lease; `done`/`fail` release the workspace
   recorded in the session.
+- Session topics are normalized to a single line by collapsing whitespace.
 - Resolution for `done`/`fail`:
   1) if a todo id is provided, resolve the session by todo id
   2) else if the cwd is a workspace, resolve the session by workspace
@@ -66,6 +67,7 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - Update todo status to `in_progress`.
 - Create a session with status `active`.
 - Treat a whitespace-only `--topic` as empty and fall back to the todo title.
+- Normalize the topic to a single line by collapsing whitespace.
 - If updating the todo or creating the session fails, release the workspace (and reset todo status if needed).
 - Print the workspace path.
 
@@ -88,6 +90,7 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - Standard passthrough after `--`.
 - Acquire a workspace and create a session (same as `start`).
 - Set `topic` to the argv string.
+- Normalize the topic to a single line by collapsing whitespace.
 - Run the command in the workspace.
 - If exit code is 0:
   - mark the todo as `done`

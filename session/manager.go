@@ -115,9 +115,9 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		return nil, err
 	}
 
-	purpose := strings.TrimSpace(opts.Topic)
+	purpose := normalizeSessionTopic(opts.Topic)
 	if purpose == "" {
-		purpose = item.Title
+		purpose = normalizeSessionTopic(item.Title)
 	}
 
 	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: purpose})
@@ -184,7 +184,7 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 		return nil, err
 	}
 
-	purpose := strings.Join(opts.Command, " ")
+	purpose := normalizeSessionTopic(strings.Join(opts.Command, " "))
 	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: purpose})
 	if err != nil {
 		return nil, fmt.Errorf("acquire workspace: %w", err)
@@ -449,6 +449,14 @@ func validateTodoForSessionStart(item todo.Todo) error {
 	default:
 		return nil
 	}
+}
+
+func normalizeSessionTopic(value string) string {
+	fields := strings.Fields(value)
+	if len(fields) == 0 {
+		return ""
+	}
+	return strings.Join(fields, " ")
 }
 
 func fromWorkspaceSession(item workspace.Session) Session {
