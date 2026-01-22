@@ -1,10 +1,6 @@
 package workspace
 
-import (
-	"time"
-
-	"github.com/amonks/incrementum/internal/age"
-)
+import "time"
 
 // OpencodeDaemonStatus represents the state of an opencode daemon.
 type OpencodeDaemonStatus string
@@ -54,15 +50,4 @@ type OpencodeSession struct {
 	ExitCode        *int                  `json:"exit_code,omitempty"`
 	DurationSeconds int                   `json:"duration_seconds,omitempty"`
 	LogPath         string                `json:"log_path,omitempty"`
-}
-
-// OpencodeSessionAgeData computes the display age and whether timing data exists.
-func OpencodeSessionAgeData(session OpencodeSession, now time.Time) (time.Duration, bool) {
-	return age.DurationData(session.StartedAt, session.CompletedAt, session.DurationSeconds, session.Status == OpencodeSessionActive, now)
-}
-
-// OpencodeSessionAge computes the display age for an opencode session.
-func OpencodeSessionAge(session OpencodeSession, now time.Time) time.Duration {
-	age, _ := OpencodeSessionAgeData(session, now)
-	return age
 }

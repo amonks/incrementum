@@ -78,21 +78,6 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func filterOpencodeSessionsForList(sessions []workspace.OpencodeSession, includeAll bool) []workspace.OpencodeSession {
-	if includeAll {
-		return sessions
-	}
-
-	filtered := make([]workspace.OpencodeSession, 0, len(sessions))
-	for _, session := range sessions {
-		if session.Status != workspace.OpencodeSessionActive {
-			continue
-		}
-		filtered = append(filtered, session)
-	}
-	return filtered
-}
-
 func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 	pool, err := workspace.Open()
 	if err != nil {
@@ -171,7 +156,7 @@ func opencodePromptLine(prompt string) string {
 }
 
 func formatOpencodeAge(session workspace.OpencodeSession, now time.Time) string {
-	age, ok := workspace.OpencodeSessionAgeData(session, now)
+	age, ok := workspace.AgeData(session, now)
 	if !ok {
 		return "-"
 	}

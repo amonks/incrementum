@@ -25,3 +25,5 @@ This specification documents the overall CLI architecture and behavior expectati
 ## Testing Expectations
 
 - Each package that is wrapped into the CLI should have both regular tests _and_ an e2e test that builds and executes the cli binary
+- CLI e2e testscript suites live under `cmd/ii/testdata` and are executed from `cmd/ii/*_test.go`
+- CLI wrapper unit tests live under `cmd/ii`; go package APIs are tested in their respective module directories

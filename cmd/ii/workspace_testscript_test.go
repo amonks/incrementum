@@ -1,4 +1,4 @@
-package todo_test
+package main
 
 import (
 	"testing"
@@ -7,15 +7,14 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-func TestScripts(t *testing.T) {
+func TestWorkspaceScripts(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "testdata",
+		Dir: "testdata/workspace",
 		Setup: func(env *testscript.Env) error {
 			return testsupport.SetupScriptEnv(t, env)
 		},
 		Cmds: map[string]func(ts *testscript.TestScript, neg bool, args []string){
 			"envset": testsupport.CmdEnvSet,
-			"todoid": testsupport.CmdTodoID,
 		},
 	})
 }

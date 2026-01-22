@@ -50,23 +50,6 @@ func TestFormatSessionTablePreservesAlignmentWithANSI(t *testing.T) {
 	}
 }
 
-func TestSessionAgeUsesDurationSeconds(t *testing.T) {
-	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-10 * time.Minute)
-
-	session := sessionpkg.Session{
-		Status:          sessionpkg.StatusCompleted,
-		StartedAt:       start,
-		CompletedAt:     now,
-		DurationSeconds: 90,
-	}
-
-	age := sessionpkg.Age(session, now)
-	if age != 90*time.Second {
-		t.Fatalf("expected 90s duration, got %s", age)
-	}
-}
-
 func TestFormatSessionTableUsesTodoPrefixLengths(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	start := now.Add(-5 * time.Minute)
