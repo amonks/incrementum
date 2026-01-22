@@ -6,7 +6,7 @@ function fix --argument-names todo_id --argument-names move_main
     echo ">> fixing $todo_id"
     jj new main
     echo ">> made empty change"
-    set -l change_id (jj show @ -T change_id)
+    set -l change_id (jj show @ -T change_id --no-patch)
     echo ">> change_id=$change_id"
     set -l workspace_dir (ii session start "$todo_id" --rev=$change_id) || return 1
     echo ">> workspace_dir=$workspace_dir"
@@ -71,7 +71,7 @@ function improvement-loop
 end
 
 function wiggum --argument-names spec
-  set -l last_commit_id "$(jj show -T commit_id)"
+  set -l last_commit_id "$(jj show -T commit_id --no-patch)"
   set -l consecutive_failures 0
 
   while true
@@ -100,7 +100,7 @@ function wiggum --argument-names spec
 
     # the tests succeeded; check if we made any changes
     jj debug snapshot
-    set -l new_commit_id "$(jj show -T commit_id)"
+    set -l new_commit_id "$(jj show -T commit_id --no-patch)"
     echo ">> captured post-work snapshot. new_commit_id=$new_commit_id"
 
     # if we made no changes, the project is done. exit.
