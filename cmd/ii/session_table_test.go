@@ -110,6 +110,48 @@ func TestFormatSessionTableUsesTodoPrefixLengths(t *testing.T) {
 	}
 }
 
+func TestFormatSessionTableFallsBackForMissingTodoPrefixLengths(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-5 * time.Minute)
+
+	sessions := []sessionpkg.Session{
+		{
+			ID:            "sess-1",
+			TodoID:        "abc12345",
+			WorkspaceName: "ws-001",
+			Status:        sessionpkg.StatusActive,
+			Topic:         "One",
+			StartedAt:     start,
+			UpdatedAt:     start,
+		},
+		{
+			ID:            "sess-2",
+			TodoID:        "abd99999",
+			WorkspaceName: "ws-002",
+			Status:        sessionpkg.StatusCompleted,
+			Topic:         "Two",
+			StartedAt:     start,
+			UpdatedAt:     start,
+			CompletedAt:   now,
+		},
+	}
+
+	todoPrefixLengths := map[string]int{
+		"abc12345": 2,
+	}
+
+	output := formatSessionTable(sessions, func(id string, prefix int) string {
+		return id + ":" + strconv.Itoa(prefix)
+	}, now, todoPrefixLengths)
+
+	if !strings.Contains(output, "abc12345:2") {
+		t.Fatalf("expected todo prefix length 2, got: %q", output)
+	}
+	if !strings.Contains(output, "abd99999:3") {
+		t.Fatalf("expected fallback prefix length 3, got: %q", output)
+	}
+}
+
 func TestFormatSessionTableIncludesSessionID(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 

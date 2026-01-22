@@ -382,8 +382,20 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 		todoIDs = append(todoIDs, item.TodoID)
 	}
 	sessionPrefixLengths := ui.UniqueIDPrefixLengths(sessionIDs)
+	sessionTodoPrefixLengths := ui.UniqueIDPrefixLengths(todoIDs)
 	if todoPrefixLengths == nil {
-		todoPrefixLengths = ui.UniqueIDPrefixLengths(todoIDs)
+		todoPrefixLengths = sessionTodoPrefixLengths
+	} else {
+		merged := make(map[string]int, len(todoPrefixLengths)+len(sessionTodoPrefixLengths))
+		for key, value := range todoPrefixLengths {
+			merged[key] = value
+		}
+		for key, value := range sessionTodoPrefixLengths {
+			if _, ok := merged[key]; !ok {
+				merged[key] = value
+			}
+		}
+		todoPrefixLengths = merged
 	}
 
 	for _, item := range sessions {
