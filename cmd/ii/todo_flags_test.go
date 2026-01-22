@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -40,5 +41,15 @@ func TestTodoListHasTombstonesFlag(t *testing.T) {
 	}
 	if flag.DefValue != "false" {
 		t.Fatalf("expected todo list tombstones default false, got %q", flag.DefValue)
+	}
+}
+
+func TestTodoUpdateStatusMentionsTombstone(t *testing.T) {
+	flag := todoUpdateCmd.Flags().Lookup("status")
+	if flag == nil {
+		t.Fatal("expected todo update to have --status flag")
+	}
+	if !strings.Contains(flag.Usage, "tombstone") {
+		t.Fatalf("expected todo update status usage to mention tombstone, got %q", flag.Usage)
 	}
 }

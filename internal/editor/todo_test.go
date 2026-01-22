@@ -71,6 +71,9 @@ func TestRenderTodoTOML_Update(t *testing.T) {
 	if !strings.Contains(content, `status = "in_progress"`) {
 		t.Error("expected status to be in_progress")
 	}
+	if !strings.Contains(content, "tombstone") {
+		t.Error("expected status comment to mention tombstone")
+	}
 	if strings.Contains(content, "description =") {
 		t.Error("expected description to be in body")
 	}
