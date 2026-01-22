@@ -232,9 +232,6 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		if opts.DeleteReason != nil {
 			todos[i].DeleteReason = *opts.DeleteReason
 		}
-		if opts.DeletedAt != nil && opts.DeleteReason == nil {
-			todos[i].DeleteReason = ""
-		}
 		todos[i].UpdatedAt = now
 
 		if err := ValidateTodo(&todos[i]); err != nil {

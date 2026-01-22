@@ -305,6 +305,41 @@ func TestStore_Update_DeleteReasonKeepsDeletedAt(t *testing.T) {
 	}
 }
 
+func TestStore_Update_DeletedAtPreservesDeleteReason(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Old todo", CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	reason := "Superseded"
+	deleted, err := store.Delete([]string{created.ID}, reason)
+	if err != nil {
+		t.Fatalf("failed to delete todo: %v", err)
+	}
+	if deleted[0].DeletedAt == nil {
+		t.Fatal("expected DeletedAt to be set")
+	}
+
+	newDeletedAt := deleted[0].DeletedAt.Add(2 * time.Hour)
+	updated, err := store.Update([]string{created.ID}, UpdateOptions{DeletedAt: &newDeletedAt})
+	if err != nil {
+		t.Fatalf("failed to update deleted_at: %v", err)
+	}
+
+	if updated[0].DeleteReason != reason {
+		t.Errorf("expected delete reason %q, got %q", reason, updated[0].DeleteReason)
+	}
+	if updated[0].DeletedAt == nil || !updated[0].DeletedAt.Equal(newDeletedAt) {
+		t.Errorf("expected DeletedAt to be updated to %v, got %v", newDeletedAt, updated[0].DeletedAt)
+	}
+}
+
 func TestStore_Update_DeletedAtRequiresTombstone(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {
