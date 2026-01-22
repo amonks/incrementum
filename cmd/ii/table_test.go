@@ -25,6 +25,16 @@ func TestTruncateTableCellNormalizesLineBreaks(t *testing.T) {
 	}
 }
 
+func TestTruncateTableCellIgnoresANSICodes(t *testing.T) {
+	value := "\x1b[1m\x1b[36m" + strings.Repeat("a", tableCellMaxWidth) + "\x1b[0m"
+
+	got := truncateTableCell(value)
+
+	if got != value {
+		t.Fatalf("expected value to remain untruncated, got %q", got)
+	}
+}
+
 func TestFormatTableNormalizesLineBreaks(t *testing.T) {
 	headers := []string{"COL"}
 	rows := [][]string{{"Hello\nWorld\r\nAgain\tTab"}}

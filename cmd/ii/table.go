@@ -63,15 +63,15 @@ func formatTable(headers []string, rows [][]string) string {
 
 func truncateTableCell(value string) string {
 	value = normalizeTableCell(value)
-	if utf8.RuneCountInString(value) <= tableCellMaxWidth {
+	if displayWidth(value) <= tableCellMaxWidth {
 		return value
 	}
 
-	max := tableCellMaxWidth - utf8.RuneCountInString(tableCellEllipsis)
-	if max < 0 {
-		return string([]rune(value)[:tableCellMaxWidth])
+	max := tableCellMaxWidth - displayWidth(tableCellEllipsis)
+	if max <= 0 {
+		return tableCellEllipsis
 	}
-	return string([]rune(value)[:max]) + tableCellEllipsis
+	return truncateVisible(value, max) + tableCellEllipsis
 }
 
 func displayWidth(value string) int {
@@ -80,6 +80,49 @@ func displayWidth(value string) int {
 
 func normalizeTableCell(value string) string {
 	return strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\t", " ").Replace(value)
+}
+
+func truncateVisible(value string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	visible := 0
+	for i := 0; i < len(value); {
+		if value[i] == '\x1b' {
+			end := i + 1
+			if end < len(value) && value[end] == '[' {
+				end++
+				for end < len(value) && value[end] != 'm' {
+					end++
+				}
+				if end < len(value) {
+					end++
+				}
+				builder.WriteString(value[i:end])
+				i = end
+				continue
+			}
+		}
+		r, size := utf8.DecodeRuneInString(value[i:])
+		if r == utf8.RuneError && size == 1 {
+			if visible >= max {
+				break
+			}
+			builder.WriteByte(value[i])
+			visible++
+			i++
+			continue
+		}
+		if visible >= max {
+			break
+		}
+		builder.WriteRune(r)
+		visible++
+		i += size
+	}
+	return builder.String()
 }
 
 func stripANSICodes(input string) string {
