@@ -164,6 +164,21 @@ status = "bad"`,
 	}
 }
 
+func TestParseTodoTOML_InvalidStatusMentionsTombstone(t *testing.T) {
+	content := `title = "test"
+type = "task"
+priority = 2
+status = "bad"`
+
+	_, err := ParseTodoTOML(content)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "tombstone") {
+		t.Errorf("expected error to mention tombstone, got %q", err.Error())
+	}
+}
+
 func TestToCreateOptions(t *testing.T) {
 	parsed := &ParsedTodo{
 		Title:       "Test",

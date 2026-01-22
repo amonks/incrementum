@@ -109,7 +109,7 @@ func ParseTodoTOML(content string) (*ParsedTodo, error) {
 		return nil, err
 	}
 	if parsed.Status != nil && !todo.Status(*parsed.Status).IsValid() {
-		return nil, fmt.Errorf("invalid status %q: must be open, in_progress, closed, or done", *parsed.Status)
+		return nil, fmt.Errorf("invalid status %q: must be %s", *parsed.Status, todoValidStatusList())
 	}
 
 	return &parsed, nil
@@ -140,6 +140,15 @@ func splitFrontmatter(content string) (string, string) {
 
 func createTodoTempFile() (*os.File, error) {
 	return os.CreateTemp("", "ii-todo-*.md")
+}
+
+func todoValidStatusList() string {
+	valid := todo.ValidStatuses()
+	values := make([]string, 0, len(valid))
+	for _, status := range valid {
+		values = append(values, string(status))
+	}
+	return strings.Join(values, ", ")
 }
 
 // EditTodo opens the editor for a todo and returns the parsed result.
