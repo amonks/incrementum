@@ -28,7 +28,7 @@ func opencodeEmptyListMessage(total int, includeAll bool) string {
 	}
 
 	if !includeAll {
-		return "No active opencode sessions found. Use --all to include inactive sessions."
+		return "No active opencode sessions found. Use --all to include completed/failed/killed sessions."
 	}
 
 	return "No opencode sessions found."

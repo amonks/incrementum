@@ -32,7 +32,7 @@ func TestOpencodeEmptyListMessageNoSessions(t *testing.T) {
 
 func TestOpencodeEmptyListMessageSuggestsAll(t *testing.T) {
 	message := opencodeEmptyListMessage(2, false)
-	if message != "No active opencode sessions found. Use --all to include inactive sessions." {
+	if message != "No active opencode sessions found. Use --all to include completed/failed/killed sessions." {
 		t.Fatalf("expected opencode --all hint, got %q", message)
 	}
 }
