@@ -111,6 +111,7 @@ Fields (JSON keys):
 - Setting `Status=tombstone` implicitly includes tombstones in list results.
 - CLI `todo list` includes tombstones when `--tombstones` is provided or when `--status tombstone` is specified.
 - CLI `todo list` excludes `done` todos by default unless `--status` or `--all` is provided.
+- When `todo list` is empty but matching `done` or `tombstone` todos exist, the CLI prints a hint to use `--all` and/or `--tombstones`.
 - CLI ID highlighting uses the shortest unique prefix across all todos,
   including tombstones, so the display matches prefix resolution.
 - All CLI outputs that show todo IDs (create/update logs, show/detail views,

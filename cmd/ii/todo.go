@@ -693,9 +693,11 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	baseTodos := todos
 	if todoListStatus == "" && !todoListAll {
-		filtered := todos[:0]
-		for _, item := range todos {
+		filtered := baseTodos[:0]
+		for _, item := range baseTodos {
 			if item.Status != todo.StatusDone {
 				filtered = append(filtered, item)
 			}
@@ -707,6 +709,45 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		return enc.Encode(todos)
+	}
+
+	if len(todos) == 0 {
+		var total int
+		hasDone := false
+		hasTombstones := false
+
+		if todoListStatus != "" {
+			allFilter := filter
+			allFilter.Status = nil
+			allFilter.IncludeTombstones = true
+			allTodos, err := store.List(allFilter)
+			if err != nil {
+				return err
+			}
+			total = len(allTodos)
+		} else {
+			allTodos := baseTodos
+			if !filter.IncludeTombstones {
+				allFilter := filter
+				allFilter.IncludeTombstones = true
+				allTodos, err = store.List(allFilter)
+				if err != nil {
+					return err
+				}
+			}
+			total = len(allTodos)
+			for _, item := range allTodos {
+				if item.Status == todo.StatusDone {
+					hasDone = true
+				}
+				if item.Status == todo.StatusTombstone {
+					hasTombstones = true
+				}
+			}
+		}
+
+		fmt.Println(todoEmptyListMessage(total, todoListStatus, todoListAll, filter.IncludeTombstones, hasDone, hasTombstones))
+		return nil
 	}
 
 	index, err := store.IDIndex()
