@@ -63,6 +63,7 @@ When no id is provided, create a new todo using the same flags as `ii todo creat
 - Acquire a workspace.
 - Update todo status to `in_progress`.
 - Create a session with status `active`.
+- Treat a whitespace-only `--topic` as empty and fall back to the todo title.
 - If updating the todo or creating the session fails, release the workspace (and reset todo status if needed).
 - Print the workspace path.
 

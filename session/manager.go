@@ -101,7 +101,7 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		return nil, err
 	}
 
-	purpose := opts.Topic
+	purpose := strings.TrimSpace(opts.Topic)
 	if purpose == "" {
 		purpose = item.Title
 	}

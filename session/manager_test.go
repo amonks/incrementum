@@ -111,6 +111,39 @@ func TestManager_StartDone(t *testing.T) {
 	store.Release()
 }
 
+func TestManager_StartUsesTitleForBlankTopic(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	created, err := store.Create("Topic fallback", todo.CreateOptions{Priority: todo.PriorityMedium})
+	if err != nil {
+		store.Release()
+		t.Fatalf("create todo: %v", err)
+	}
+	store.Release()
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	result, err := manager.Start(created.ID, StartOptions{Rev: "@", Topic: "   "})
+	if err != nil {
+		t.Fatalf("start session: %v", err)
+	}
+	if result.Session.Topic != "Topic fallback" {
+		t.Fatalf("expected topic fallback, got %q", result.Session.Topic)
+	}
+
+	_, _ = manager.Fail(created.ID, FinalizeOptions{WorkspacePath: result.WorkspacePath})
+}
+
 func TestManager_RunReleasesWorkspaceOnSessionUpdateError(t *testing.T) {
 	repoPath := setupSessionRepo(t)
 
