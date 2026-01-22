@@ -1,0 +1,230 @@
+# Job Subcommand
+
+## Overview
+
+The job subcommand automates todo completion via opencode. A job creates a
+session, runs opencode to implement the todo, runs acceptance tests, runs
+opencode to review changes, generates a commit message, and describes the
+commit. Jobs retry on test failure or review rejection until opencode decides to
+abandon.
+
+## Storage
+
+- Job state stored in `~/.local/state/incrementum/state.json` alongside other
+  state.
+- Jobs are scoped per repo using the same repo slug as other state.
+- Each job references a session by ID; the session owns the workspace.
+- Job records track opencode sessions created during the job.
+
+## Job Model
+
+Fields (JSON keys):
+
+- `id`: job id (hash of todo_id + timestamp).
+- `repo`: repo slug.
+- `todo_id`: full resolved todo id.
+- `session_id`: the underlying session id.
+- `stage`: `implementing`, `testing`, `reviewing`, `committing`.
+- `attempt`: current attempt number (starts at 1, informational).
+- `feedback`: feedback from last failed stage (test results table or review
+  feedback).
+- `opencode_sessions`: list of `{"purpose": string, "id": string}` tracking
+  opencode sessions created during this job.
+- `status`: `active`, `completed`, `failed`, `abandoned`.
+- `started_at`: timestamp.
+- `updated_at`: timestamp.
+- `completed_at`: timestamp.
+
+## Feedback File
+
+Opencode communicates review outcomes by writing to `.incr-feedback` in the
+workspace root.
+
+Format:
+
+```
+<OUTCOME>
+
+<optional details>
+```
+
+Where `<OUTCOME>` (first line, trimmed) is one of:
+
+- `ACCEPT` - changes look good, proceed.
+- `ABANDON` - task is impossible or misguided, give up.
+- `REQUEST_CHANGES` - followed by blank line and feedback text.
+
+If the file doesn't exist after review, treat as `ACCEPT`.
+
+## Commit Message File
+
+Opencode writes the generated commit message to `.incr-commit-message` in the
+workspace root.
+
+## State Machine
+
+```
+implementing -> testing -> reviewing -> committing -> completed
+     ^             |            |
+     |             |            |
+     +-------------+------------+
+       (test failure or REQUEST_CHANGES)
+
+reviewing -> abandoned (ABANDON)
+any stage -> failed (unrecoverable error)
+```
+
+### implementing
+
+1. Delete `.incr-feedback` if it exists.
+2. Run opencode with `implement.tmpl` prompt.
+3. Template receives: `Todo`, `Attempt`, `Feedback` (empty string on first
+   attempt).
+4. Record opencode session in `opencode_sessions` with purpose `implement`.
+5. Wait for opencode completion.
+6. If opencode fails (nonzero exit): mark job `failed`.
+7. Transition to `testing`.
+
+### testing
+
+1. Run each test command from config sequentially.
+2. Capture exit code for each command.
+3. If any command fails (nonzero exit):
+   - Build feedback as markdown table with columns `Command` and `Exit Code`.
+   - Increment attempt.
+   - Transition to `implementing`.
+4. If all pass: transition to `reviewing`.
+
+### reviewing
+
+1. Delete `.incr-feedback` if it exists.
+2. Run opencode with `review.tmpl` prompt.
+3. Template receives: `Todo`.
+4. Template instructs opencode to inspect changes (e.g., `jj diff`) and write
+   outcome to `.incr-feedback`.
+5. Record opencode session in `opencode_sessions` with purpose `review`.
+6. Wait for opencode completion.
+7. If opencode fails (nonzero exit): mark job `failed`.
+8. Read `.incr-feedback`:
+   - Missing or first line is `ACCEPT`: transition to `committing`.
+   - First line is `ABANDON`: mark job `abandoned`.
+   - First line is `REQUEST_CHANGES`: extract feedback (lines after first blank
+     line), increment attempt, transition to `implementing`.
+   - Other first line: treat as invalid format, mark job `failed`.
+
+### committing
+
+1. Delete `.incr-commit-message` if it exists.
+2. Run opencode with `commit-message.tmpl` prompt.
+3. Template receives: `Todo`.
+4. Template instructs opencode to generate commit message and write to
+   `.incr-commit-message`.
+5. Record opencode session in `opencode_sessions` with purpose `commit-message`.
+6. Wait for opencode completion.
+7. If opencode fails (nonzero exit): mark job `failed`.
+8. Read `.incr-commit-message`.
+9. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
+10. Run `jj describe -m "<formatted message>"` in workspace.
+11. If describe fails: mark job `failed`.
+12. Call session `Done` (releases workspace, marks todo done).
+13. Mark job `completed`.
+
+## Failure Handling
+
+- `failed`: unrecoverable error (opencode daemon not running, can't acquire
+  workspace, describe fails, invalid feedback format).
+- `abandoned`: opencode decided the task is impossible.
+
+Both call session `Fail` (releases workspace, marks todo open).
+
+On interrupt (SIGINT), mark job `failed` and release workspace.
+
+## Config
+
+```toml
+[job]
+test-commands = [
+  "go test ./...",
+  "golangci-lint run",
+]
+```
+
+## Templates
+
+Bundled defaults via `//go:embed`, overridable by placing files in
+`.incr/prompts/`.
+
+| File                  | Stage        | Variables                    |
+| --------------------- | ------------ | ---------------------------- |
+| `implement.tmpl`      | implementing | `Todo`, `Attempt`, `Feedback` |
+| `review.tmpl`         | reviewing    | `Todo`                        |
+| `commit-message.tmpl` | committing   | `Todo`                        |
+| `commit.tmpl`         | committing   | `Todo`, `Message`             |
+
+Templates use Go `text/template` syntax.
+
+`Todo` exposes: `ID`, `Title`, `Description`, `Type`, `Priority`.
+
+## Commands
+
+### `ii job do [todo-id | creation-flags] [--rev <rev>]`
+
+Create and run a job to completion (blocking).
+
+- If todo-id provided: use existing todo.
+- If creation flags provided: create todo first (same flags as `ii todo create`:
+  `--title`, `--type`, `--priority`, `--description/--desc`, `--deps`,
+  `--edit/--no-edit`).
+- If no args and interactive: open $EDITOR to create todo.
+
+Behavior:
+
+1. Resolve or create todo.
+2. Create session via session manager (acquires workspace, marks todo
+   `in_progress`).
+3. Create job record with status `active`, stage `implementing`, attempt `1`.
+4. Run state machine to completion.
+5. Output progress: stage transitions and attempt numbers.
+6. On success: print final commit info.
+7. On failure/abandon: print reason.
+
+Exit codes:
+
+- 0: completed.
+- 1: failed or abandoned.
+
+### `ii job list [--status <s>] [--all] [--json]`
+
+List jobs for current repo.
+
+- Default: active jobs only.
+- `--status`: filter by status (case-insensitive).
+- `--all`: show all statuses.
+- `--json`: structured output.
+
+Columns: `JOB`, `TODO`, `STAGE`, `ATTEMPT`, `STATUS`, `AGE`.
+
+`JOB` highlights the shortest unique prefix across all jobs in the repo.
+
+`TODO` uses the same prefix highlighting as other todo output.
+
+When list is empty but jobs exist, print hint about `--all`.
+
+### `ii job show <job-id>`
+
+Show detailed job info.
+
+Output includes:
+
+- Job ID, status, stage, attempt.
+- Todo ID and title.
+- Session ID.
+- Feedback (if any).
+- Opencode sessions with purposes.
+
+### `ii job logs <job-id>`
+
+Show aggregated logs from all opencode sessions in the job.
+
+Concatenates logs in chronological order, with headers indicating purpose and
+session ID.
