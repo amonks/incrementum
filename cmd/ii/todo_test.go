@@ -3,7 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/amonks/incrementum/todo"
 )
 
 func TestResolveDescriptionFromStdin(t *testing.T) {
@@ -131,4 +136,55 @@ func TestShouldUseTodoUpdateEditor(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPrintTodoDetailIncludesDeleteMetadata(t *testing.T) {
+	deletedAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	item := todo.Todo{
+		ID:           "abc12345",
+		Title:        "Deprecated",
+		Type:         todo.TypeTask,
+		Status:       todo.StatusTombstone,
+		Priority:     todo.PriorityLow,
+		CreatedAt:    time.Date(2026, 1, 1, 1, 2, 3, 0, time.UTC),
+		UpdatedAt:    time.Date(2026, 1, 1, 2, 3, 4, 0, time.UTC),
+		DeletedAt:    &deletedAt,
+		DeleteReason: "no longer needed",
+	}
+
+	output := captureStdout(t, func() {
+		printTodoDetail(item, func(id string) string { return id })
+	})
+
+	if !strings.Contains(output, "Deleted:  2026-01-02 03:04:05") {
+		t.Fatalf("expected deleted timestamp in output, got: %q", output)
+	}
+	if !strings.Contains(output, "Delete Reason: no longer needed") {
+		t.Fatalf("expected delete reason in output, got: %q", output)
+	}
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe stdout: %v", err)
+	}
+	defer func() {
+		os.Stdout = old
+		_ = r.Close()
+	}()
+
+	os.Stdout = w
+	fn()
+	_ = w.Close()
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("read stdout: %v", err)
+	}
+
+	return buf.String()
 }

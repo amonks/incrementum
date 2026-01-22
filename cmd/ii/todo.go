@@ -857,6 +857,14 @@ func printTodoDetail(t todo.Todo, highlight func(string) string) {
 		fmt.Printf("Closed:   %s\n", t.ClosedAt.Format("2006-01-02 15:04:05"))
 	}
 
+	if t.DeletedAt != nil {
+		fmt.Printf("Deleted:  %s\n", t.DeletedAt.Format("2006-01-02 15:04:05"))
+	}
+
+	if t.DeleteReason != "" {
+		fmt.Printf("Delete Reason: %s\n", t.DeleteReason)
+	}
+
 	if t.Description != "" {
 		fmt.Printf("\nDescription:\n%s\n", t.Description)
 	}

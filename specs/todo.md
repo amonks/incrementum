@@ -104,6 +104,10 @@ Fields (JSON keys):
 - CLI table output includes created/updated age columns formatted as
   `<count><unit> ago`, using `s`, `m`, `h`, or `d` based on recency.
 
+### Show
+
+- CLI detail output includes deleted timestamps and delete reasons when present.
+
 ### Ready
 
 - Returns `open` todos that have no unresolved `blocks` dependencies.
