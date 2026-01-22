@@ -539,6 +539,20 @@ func TestAgeUsesDurationSeconds(t *testing.T) {
 	}
 }
 
+func TestAgeReturnsZeroWhenCompletedMissingTimingData(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	item := Session{
+		Status:    StatusCompleted,
+		StartedAt: now.Add(-10 * time.Minute),
+	}
+
+	age := Age(item, now)
+	if age != 0 {
+		t.Fatalf("expected zero duration, got %s", age)
+	}
+}
+
 func setupSessionRepo(t *testing.T) string {
 	t.Helper()
 

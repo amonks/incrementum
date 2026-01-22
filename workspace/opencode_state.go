@@ -69,8 +69,5 @@ func OpencodeSessionAge(session OpencodeSession, now time.Time) time.Duration {
 		return session.CompletedAt.Sub(session.StartedAt)
 	}
 
-	if session.StartedAt.IsZero() {
-		return 0
-	}
-	return now.Sub(session.StartedAt)
+	return 0
 }

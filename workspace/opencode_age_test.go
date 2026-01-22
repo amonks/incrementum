@@ -49,6 +49,14 @@ func TestOpencodeSessionAge(t *testing.T) {
 			},
 			want: 0,
 		},
+		{
+			name: "completed missing timestamps",
+			session: OpencodeSession{
+				Status:    OpencodeSessionCompleted,
+				StartedAt: start,
+			},
+			want: 0,
+		},
 	}
 
 	for _, tc := range cases {

@@ -205,6 +205,36 @@ func TestFormatSessionTableShowsMissingAgeAsDash(t *testing.T) {
 	}
 }
 
+func TestFormatSessionTableShowsMissingAgeForCompletedSession(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	sessions := []sessionpkg.Session{
+		{
+			ID:            "sess-complete",
+			TodoID:        "abc12345",
+			WorkspaceName: "ws-010",
+			Status:        sessionpkg.StatusCompleted,
+			Topic:         "Done",
+			StartedAt:     now.Add(-5 * time.Minute),
+		},
+	}
+
+	output := strings.TrimSpace(formatSessionTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	fields := strings.Fields(lines[1])
+	if len(fields) < 5 {
+		t.Fatalf("expected at least 5 columns, got: %q", lines[1])
+	}
+
+	if fields[4] != "-" {
+		t.Fatalf("expected missing age '-', got: %s", fields[4])
+	}
+}
+
 func intPtr(value int) *int {
 	return &value
 }

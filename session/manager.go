@@ -401,10 +401,7 @@ func Age(item Session, now time.Time) time.Duration {
 		return item.CompletedAt.Sub(item.StartedAt)
 	}
 
-	if item.StartedAt.IsZero() {
-		return 0
-	}
-	return now.Sub(item.StartedAt)
+	return 0
 }
 
 func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.Status, sessionStatus workspace.SessionStatus) (*Session, error) {
