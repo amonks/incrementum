@@ -167,7 +167,7 @@ test-commands = [
 ## Templates
 
 Bundled defaults via `//go:embed`, overridable by placing files in
-`.incr/prompts/`.
+`.incrementum/prompts/`.
 
 | File                  | Stage        | Variables                     |
 | --------------------- | ------------ | ----------------------------- |

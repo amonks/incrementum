@@ -12,7 +12,7 @@ import (
 	"github.com/amonks/incrementum/todo"
 )
 
-const promptOverrideDir = ".incr/prompts"
+const promptOverrideDir = ".incrementum/prompts"
 
 //go:embed prompts/*.tmpl
 var defaultPrompts embed.FS

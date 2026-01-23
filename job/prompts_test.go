@@ -11,7 +11,7 @@ import (
 
 func TestLoadPrompt_UsesOverride(t *testing.T) {
 	repoPath := t.TempDir()
-	promptDir := filepath.Join(repoPath, ".incr", "prompts")
+	promptDir := filepath.Join(repoPath, ".incrementum", "prompts")
 	if err := os.MkdirAll(promptDir, 0o755); err != nil {
 		t.Fatalf("create prompt dir: %v", err)
 	}
