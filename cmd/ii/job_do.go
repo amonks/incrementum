@@ -78,7 +78,12 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Stage: %s\n", stage)
 	}
 
-	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{Rev: jobDoRev, OnStageChange: onStageChange})
+	rev := jobDoRev
+	if !cmd.Flags().Changed("rev") {
+		rev = "trunk()"
+	}
+
+	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{Rev: rev, OnStageChange: onStageChange})
 	if err != nil {
 		return err
 	}

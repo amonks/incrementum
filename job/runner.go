@@ -94,11 +94,30 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	}
 	defer sessionManager.Close()
 
-	startResult, err := sessionManager.Start(item.ID, session.StartOptions{Rev: opts.Rev})
+	startResult, err := sessionManager.Start(item.ID, session.StartOptions{})
 	if err != nil {
 		return result, err
 	}
 	workspacePath := startResult.WorkspacePath
+	rev := strings.TrimSpace(opts.Rev)
+	if rev == "" {
+		rev = "@"
+	}
+	client := jj.New()
+	if _, err := client.NewChange(workspacePath, rev); err != nil {
+		if rev == "trunk()" && strings.Contains(err.Error(), "Revision `\"trunk()\"` doesn't exist") {
+			rev = "root()"
+			if _, retryErr := client.NewChange(workspacePath, rev); retryErr == nil {
+				err = nil
+			} else {
+				err = retryErr
+			}
+		}
+		if err != nil {
+			failErr := failSession(sessionManager, item.ID, workspacePath)
+			return result, errors.Join(err, failErr)
+		}
+	}
 
 	manager, err := Open(repoPath, OpenOptions{})
 	if err != nil {
