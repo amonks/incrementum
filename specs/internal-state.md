@@ -1,13 +1,12 @@
 # Internal State
 
 ## Overview
-The state package manages the shared incrementum state file (`~/.local/state/incrementum/state.json`). It provides persistence and locking for workspaces, sessions, and opencode daemons.
+The state package manages the shared incrementum state file (`~/.local/state/incrementum/state.json`). It provides persistence and locking for workspaces and opencode daemons.
 
 ## State File Structure
 The state file contains:
 - `repos`: maps repo names to source paths
 - `workspaces`: maps workspace keys to workspace info
-- `sessions`: maps session keys to session records
 - `opencode_daemons`: maps repo names to daemon state
 - `opencode_sessions`: maps session keys to opencode session records
 - `jobs`: maps job ids to job records
@@ -18,10 +17,6 @@ The state file contains:
 - `name`, `repo`, `path`, `purpose`, `status`, `acquired_by_pid`, `acquired_at`, `provisioned`
 - Status: `available` or `acquired`
 
-### Session
-- `id`, `repo`, `todo_id`, `workspace_name`, `status`, `topic`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`
-- Status: `active`, `completed`, or `failed`
-
 ### OpencodeDaemon
 - `repo`, `status`, `started_at`, `updated_at`, `pid`, `host`, `port`, `log_path`
 - Status: `running` or `stopped`
@@ -31,7 +26,7 @@ The state file contains:
 - Status: `active`, `completed`, `failed`, or `killed`
 
 ### Job
-- `id`, `repo`, `todo_id`, `session_id`, `stage`, `feedback`, `opencode_sessions`, `status`, `started_at`, `updated_at`, `completed_at`
+- `id`, `repo`, `todo_id`, `stage`, `feedback`, `opencode_sessions`, `status`, `started_at`, `updated_at`, `completed_at`
 - Stage: `implementing`, `testing`, `reviewing`, or `committing`
 - Status: `active`, `completed`, `failed`, or `abandoned`
 

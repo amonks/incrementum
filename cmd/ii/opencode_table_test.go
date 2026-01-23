@@ -203,3 +203,7 @@ func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 		t.Fatalf("expected session prefix length 3, got: %q", output)
 	}
 }
+
+func intPtr(value int) *int {
+	return &value
+}

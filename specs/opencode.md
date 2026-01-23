@@ -10,7 +10,7 @@ session state is scoped to a repo slug.
 ## Storage
 
 - Session state is stored in `~/.local/state/incrementum/state.json` alongside
-  workspace/session state.
+  workspace state.
 - Opencode session logs are stored under
   `~/.local/share/incrementum/opencode/<repo-slug>/<session-id>.log`.
 - Opencode session metadata uses the same repo slug naming rules as the
@@ -19,7 +19,7 @@ session state is scoped to a repo slug.
 
 ## State Model
 
-Opencode state is stored in the shared state file alongside workspace/session
+Opencode state is stored in the shared state file alongside workspace
 state. It adds two top-level collections:
 
 - `opencode_daemons`: map of `repo-slug` to daemon info.

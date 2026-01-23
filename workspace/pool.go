@@ -489,11 +489,6 @@ func (p *Pool) DestroyAll(repoPath string) error {
 			}
 		}
 
-		for key, session := range st.Sessions {
-			if session.Repo == repoName {
-				delete(st.Sessions, key)
-			}
-		}
 		return nil
 	})
 	if err != nil {

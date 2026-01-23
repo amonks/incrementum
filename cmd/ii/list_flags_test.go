@@ -12,7 +12,6 @@ func TestListCommandsHaveAllFlag(t *testing.T) {
 		cmd  *cobra.Command
 	}{
 		{name: "todo", cmd: todoListCmd},
-		{name: "session", cmd: sessionListCmd},
 		{name: "workspace", cmd: workspaceListCmd},
 		{name: "opencode", cmd: opencodeListCmd},
 	}
