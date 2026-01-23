@@ -184,21 +184,20 @@ func init() {
 	todoCmd.AddCommand(todoCreateCmd, todoUpdateCmd, todoStartCmd, todoCloseCmd, todoFinishCmd, todoReopenCmd,
 		todoDeleteCmd, todoShowCmd, todoListCmd, todoReadyCmd, todoDepCmd)
 	todoDepCmd.AddCommand(todoDepAddCmd, todoDepTreeCmd)
+	addDescriptionFlagAliases(todoCreateCmd, todoUpdateCmd, todoListCmd)
 
 	// todo create flags
 	todoCreateCmd.Flags().StringVar(&todoCreateTitle, "title", "", "Todo title")
 	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature)")
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description (use '-' to read from stdin)")
-	todoCreateCmd.Flags().StringVar(&todoCreateDescription, "desc", "", "Description (use '-' to read from stdin)")
 	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
 	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	todoCreateCmd.Flags().BoolVar(&todoCreateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
 	// todo update flags
 	todoUpdateCmd.Flags().StringVar(&todoUpdateTitle, "title", "", "New title")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "description", "", "New description (use '-' to read from stdin)")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateDescription, "desc", "", "New description (use '-' to read from stdin)")
+	todoUpdateCmd.Flags().StringVarP(&todoUpdateDescription, "description", "d", "", "New description (use '-' to read from stdin)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, in_progress, closed, done, tombstone)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
@@ -223,8 +222,7 @@ func init() {
 	todoListCmd.Flags().StringVar(&todoListType, "type", "", "Filter by type")
 	todoListCmd.Flags().StringVar(&todoListIDs, "id", "", "Filter by IDs (comma-separated)")
 	todoListCmd.Flags().StringVar(&todoListTitle, "title", "", "Filter by title substring")
-	todoListCmd.Flags().StringVar(&todoListDesc, "description", "", "Filter by description substring")
-	todoListCmd.Flags().StringVar(&todoListDesc, "desc", "", "Filter by description substring")
+	todoListCmd.Flags().StringVarP(&todoListDesc, "description", "d", "", "Filter by description substring")
 	todoListCmd.Flags().BoolVar(&todoListJSON, "json", false, "Output as JSON")
 	todoListCmd.Flags().BoolVar(&todoListTombstones, "tombstones", false, "Include tombstoned todos")
 	listflags.AddAllFlag(todoListCmd, &todoListAll)
@@ -300,12 +298,11 @@ func todoCreateHasCreateFlags(cmd *cobra.Command) bool {
 		cmd.Flags().Changed("type") ||
 		cmd.Flags().Changed("priority") ||
 		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("desc") ||
 		cmd.Flags().Changed("deps")
 }
 
 func runTodoCreate(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+	if cmd.Flags().Changed("description") {
 		desc, err := resolveDescriptionFromStdin(todoCreateDescription, os.Stdin)
 		if err != nil {
 			return err
@@ -332,7 +329,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("priority") {
 			data.Priority = todoCreatePriority
 		}
-		if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+		if cmd.Flags().Changed("description") {
 			data.Description = todoCreateDescription
 		}
 
@@ -401,7 +398,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+	if cmd.Flags().Changed("description") {
 		desc, err := resolveDescriptionFromStdin(todoUpdateDescription, os.Stdin)
 		if err != nil {
 			return err
@@ -411,7 +408,6 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 
 	hasFlags := cmd.Flags().Changed("title") ||
 		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("desc") ||
 		cmd.Flags().Changed("status") ||
 		cmd.Flags().Changed("priority") ||
 		cmd.Flags().Changed("type")
@@ -435,7 +431,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().Changed("title") {
 				data.Title = todoUpdateTitle
 			}
-			if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+			if cmd.Flags().Changed("description") {
 				data.Description = todoUpdateDescription
 			}
 
@@ -483,7 +479,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("title") {
 		opts.Title = &todoUpdateTitle
 	}
-	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+	if cmd.Flags().Changed("description") {
 		opts.Description = &todoUpdateDescription
 	}
 	if cmd.Flags().Changed("status") {

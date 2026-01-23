@@ -31,19 +31,19 @@ var (
 
 func init() {
 	jobCmd.AddCommand(jobDoCmd)
+	addDescriptionFlagAliases(jobDoCmd)
 
 	jobDoCmd.Flags().StringVar(&jobDoTitle, "title", "", "Todo title")
 	jobDoCmd.Flags().StringVarP(&jobDoType, "type", "t", "task", "Todo type (task, bug, feature)")
 	jobDoCmd.Flags().IntVarP(&jobDoPriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	jobDoCmd.Flags().StringVarP(&jobDoDescription, "description", "d", "", "Description (use '-' to read from stdin)")
-	jobDoCmd.Flags().StringVar(&jobDoDescription, "desc", "", "Description (use '-' to read from stdin)")
 	jobDoCmd.Flags().StringArrayVar(&jobDoDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
 	jobDoCmd.Flags().BoolVarP(&jobDoEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	jobDoCmd.Flags().BoolVar(&jobDoNoEdit, "no-edit", false, "Do not open $EDITOR")
 }
 
 func runJobDo(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+	if cmd.Flags().Changed("description") {
 		desc, err := resolveDescriptionFromStdin(jobDoDescription, os.Stdin)
 		if err != nil {
 			return err
@@ -109,7 +109,6 @@ func jobDoHasCreateFlags(cmd *cobra.Command) bool {
 		cmd.Flags().Changed("type") ||
 		cmd.Flags().Changed("priority") ||
 		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("desc") ||
 		cmd.Flags().Changed("deps")
 }
 
@@ -126,7 +125,7 @@ func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
 		if cmd.Flags().Changed("priority") {
 			data.Priority = jobDoPriority
 		}
-		if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+		if cmd.Flags().Changed("description") {
 			data.Description = jobDoDescription
 		}
 

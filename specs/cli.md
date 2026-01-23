@@ -15,6 +15,7 @@ This specification documents the overall CLI architecture and behavior expectati
 - Commands follow the pattern `ii <noun> <verb> [args] [flags]`.
 - The CLI layer is a thin wrapper around public packages; command handlers should delegate to package APIs with minimal logic.
 - Command interfaces should closely mirror the public APIs they wrap (1:1 when possible).
+- Flag aliases should be handled via normalization so help shows a single entry; prefer a short `-d` shorthand and accept `--desc` for description when needed.
 
 ## I/O and Formatting
 

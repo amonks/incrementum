@@ -77,6 +77,7 @@ var (
 func init() {
 	rootCmd.AddCommand(sessionCmd)
 	sessionCmd.AddCommand(sessionStartCmd, sessionDoneCmd, sessionFailCmd, sessionRunCmd, sessionListCmd)
+	addDescriptionFlagAliases(sessionStartCmd)
 
 	sessionStartCmd.Flags().StringVar(&sessionStartTopic, "topic", "", "Session topic")
 	sessionStartCmd.Flags().StringVar(&sessionStartRev, "rev", "@", "Revision to check out")
@@ -84,7 +85,6 @@ func init() {
 	sessionStartCmd.Flags().StringVarP(&sessionStartType, "type", "t", "task", "Todo type (task, bug, feature)")
 	sessionStartCmd.Flags().IntVarP(&sessionStartPriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	sessionStartCmd.Flags().StringVarP(&sessionStartDesc, "description", "d", "", "Description (use '-' to read from stdin)")
-	sessionStartCmd.Flags().StringVar(&sessionStartDesc, "desc", "", "Description (use '-' to read from stdin)")
 	sessionStartCmd.Flags().StringArrayVar(&sessionStartDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
 	sessionStartCmd.Flags().BoolVarP(&sessionStartEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	sessionStartCmd.Flags().BoolVar(&sessionStartNoEdit, "no-edit", false, "Do not open $EDITOR")
@@ -95,7 +95,7 @@ func init() {
 }
 
 func runSessionStart(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+	if cmd.Flags().Changed("description") {
 		desc, err := resolveDescriptionFromStdin(sessionStartDesc, os.Stdin)
 		if err != nil {
 			return err
@@ -152,7 +152,7 @@ func createTodoForSessionStart(cmd *cobra.Command, hasCreateFlags bool) (string,
 		if cmd.Flags().Changed("priority") {
 			data.Priority = sessionStartPriority
 		}
-		if cmd.Flags().Changed("description") || cmd.Flags().Changed("desc") {
+		if cmd.Flags().Changed("description") {
 			data.Description = sessionStartDesc
 		}
 
@@ -204,7 +204,6 @@ func sessionStartHasCreateFlags(cmd *cobra.Command) bool {
 		cmd.Flags().Changed("type") ||
 		cmd.Flags().Changed("priority") ||
 		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("desc") ||
 		cmd.Flags().Changed("deps")
 }
 
