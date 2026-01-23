@@ -33,7 +33,7 @@ function fix --argument-names todo_id --argument-names move_main
     echo ">> committing"
     jj commit --message="$todo_title"\n\n"$todo_description"
     echo ">> committed"
-    if test $move_main = true
+    if test "$move_main" = true
       jj bookmark move main --to @-
       echo ">> advanced main bookmark"
     end
