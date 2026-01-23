@@ -319,6 +319,59 @@ func TestManager_RunReleasesWorkspaceOnSessionUpdateError(t *testing.T) {
 	}
 }
 
+func TestManager_FailSkipsMissingTodo(t *testing.T) {
+	repoPath := setupSessionRepo(t)
+	homeDir := os.Getenv("HOME")
+	stateDir := filepath.Join(homeDir, ".local", "state", "incrementum")
+	workspacesDir := filepath.Join(homeDir, ".local", "share", "incrementum", "workspaces")
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	store.Release()
+
+	manager, err := Open(repoPath, OpenOptions{
+		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+		Workspace: workspace.Options{
+			StateDir:      stateDir,
+			WorkspacesDir: workspacesDir,
+		},
+	})
+	if err != nil {
+		t.Fatalf("open session manager: %v", err)
+	}
+	defer manager.Close()
+
+	workspacePath, err := manager.pool.Acquire(repoPath, workspace.AcquireOptions{Rev: "@", Purpose: "missing todo"})
+	if err != nil {
+		manager.Close()
+		t.Fatalf("acquire workspace: %v", err)
+	}
+
+	workspaceName := filepath.Base(workspacePath)
+
+	if _, err := manager.pool.CreateSession(repoPath, "missingtodo", workspaceName, "Missing todo", time.Now()); err != nil {
+		manager.Close()
+		t.Fatalf("create session: %v", err)
+	}
+
+	if _, err := manager.Fail("missingtodo", FinalizeOptions{WorkspacePath: workspacePath}); err != nil {
+		t.Fatalf("fail session: %v", err)
+	}
+
+	sessions, err := manager.pool.ListSessions(repoPath)
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(sessions))
+	}
+	if sessions[0].Status != StatusFailed {
+		t.Fatalf("expected failed session, got %q", sessions[0].Status)
+	}
+}
+
 func TestManager_StartReleasesWorkspaceOnTodoUpdateError(t *testing.T) {
 	repoPath := setupSessionRepo(t)
 

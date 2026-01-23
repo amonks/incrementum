@@ -40,6 +40,7 @@ Fields (JSON keys):
 - `start` sets todo status to `in_progress`.
 - `done` sets todo status to `done`.
 - `fail` sets todo status to `open`.
+- If the session's todo is missing from the store, `done`/`fail` still finalize the session and release the workspace (skipping the todo update).
 - Session records own the workspace lease; `done`/`fail` release the workspace
   recorded in the session.
 - Session topics are normalized to a single line by collapsing whitespace.

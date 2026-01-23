@@ -417,7 +417,9 @@ func (m *Manager) finalize(todoID string, opts FinalizeOptions, todoStatus todo.
 	}
 
 	if _, err := m.store.Update([]string{resolved.TodoID}, todo.UpdateOptions{Status: &todoStatus}); err != nil {
-		return nil, err
+		if !errors.Is(err, todo.ErrTodoNotFound) {
+			return nil, err
+		}
 	}
 
 	completedAt := time.Now()
