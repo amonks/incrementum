@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/age"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/workspace"
 )
@@ -149,9 +150,9 @@ func (m *Manager) startSession(todoID string, opts sessionStartOptions) (*sessio
 		return nil, err
 	}
 
-	topic := normalizeSessionTopic(opts.Topic)
+	topic := internalstrings.NormalizeWhitespace(opts.Topic)
 	if topic == "" && opts.UseTodoTitle {
-		topic = normalizeSessionTopic(item.Title)
+		topic = internalstrings.NormalizeWhitespace(item.Title)
 	}
 
 	wsPath, err := m.pool.Acquire(m.repoPath, workspace.AcquireOptions{Rev: opts.Rev, Purpose: topic})
@@ -204,7 +205,7 @@ func (m *Manager) Run(todoID string, opts RunOptions) (*RunResult, error) {
 	}
 
 	started, err := m.startSession(todoID, sessionStartOptions{
-		Topic: strings.Join(opts.Command, " "),
+		Topic: internalstrings.NormalizeWhitespace(strings.Join(opts.Command, " ")),
 		Rev:   opts.Rev,
 	})
 	if err != nil {
@@ -461,14 +462,6 @@ func validateTodoForSessionStart(item todo.Todo) error {
 	default:
 		return nil
 	}
-}
-
-func normalizeSessionTopic(value string) string {
-	fields := strings.Fields(value)
-	if len(fields) == 0 {
-		return ""
-	}
-	return strings.Join(fields, " ")
 }
 
 func fromWorkspaceSession(item Session) Session {

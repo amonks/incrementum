@@ -9,10 +9,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/amonks/incrementum/internal/jj"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/workspace"
 	"golang.org/x/term"
 )
@@ -99,7 +99,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 		opts.Prompter = StdioPrompter{}
 	}
 
-	purpose := normalizePurpose(opts.Purpose)
+	purpose := internalstrings.NormalizeWhitespace(opts.Purpose)
 	if purpose == "" {
 		purpose = "todo store"
 	}
@@ -199,14 +199,6 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 			return pool.Release(wsPath)
 		},
 	}, nil
-}
-
-func normalizePurpose(value string) string {
-	fields := strings.Fields(value)
-	if len(fields) == 0 {
-		return ""
-	}
-	return strings.Join(fields, " ")
 }
 
 // Release releases the workspace back to the pool.

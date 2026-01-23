@@ -23,6 +23,7 @@
 | [internal-listflags.md](./internal-listflags.md)       | [internal/listflags/](../internal/listflags/)       | Shared Cobra list flags                              |
 | [internal-paths.md](./internal-paths.md)               | [internal/paths/](../internal/paths/)               | Default state and workspace paths                    |
 | [internal-state.md](./internal-state.md)               | [internal/state/](../internal/state/)               | Shared state file management                         |
+| [internal-strings.md](./internal-strings.md)           | [internal/strings/](../internal/strings/)           | Shared whitespace normalization helpers              |
 | [internal-testsupport.md](./internal-testsupport.md)   | [internal/testsupport/](../internal/testsupport/)   | Integration test helpers for ii/testscript           |
 | [internal-ui.md](./internal-ui.md)                     | [internal/ui/](../internal/ui/)                     | CLI formatting helpers for durations and IDs         |
 | [internal-validation.md](./internal-validation.md)     | [internal/validation/](../internal/validation/)     | Shared validation formatting helpers                 |
