@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/amonks/incrementum/internal/validation"
 )
 
 var (
@@ -140,42 +142,15 @@ func ValidateTodo(t *Todo) error {
 }
 
 func formatInvalidStatusError(status Status) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validStatusList())
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validation.FormatValidValues(ValidStatuses()))
 }
 
 func formatInvalidTypeError(todoType TodoType) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidType, todoType, validTypeList())
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidType, todoType, validation.FormatValidValues(ValidTodoTypes()))
 }
 
 func formatInvalidDependencyTypeError(depType DependencyType) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidDependencyType, depType, validDependencyTypeList())
-}
-
-func validStatusList() string {
-	statuses := ValidStatuses()
-	values := make([]string, 0, len(statuses))
-	for _, status := range statuses {
-		values = append(values, string(status))
-	}
-	return strings.Join(values, ", ")
-}
-
-func validTypeList() string {
-	types := ValidTodoTypes()
-	values := make([]string, 0, len(types))
-	for _, todoType := range types {
-		values = append(values, string(todoType))
-	}
-	return strings.Join(values, ", ")
-}
-
-func validDependencyTypeList() string {
-	types := ValidDependencyTypes()
-	values := make([]string, 0, len(types))
-	for _, depType := range types {
-		values = append(values, string(depType))
-	}
-	return strings.Join(values, ", ")
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidDependencyType, depType, validation.FormatValidValues(ValidDependencyTypes()))
 }
 
 // ValidateDependency checks if a dependency is valid.

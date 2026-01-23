@@ -24,3 +24,4 @@
 | [internal-state.md](./internal-state.md)               | [internal/state/](../internal/state/)               | Shared state file management                         |
 | [internal-testsupport.md](./internal-testsupport.md)   | [internal/testsupport/](../internal/testsupport/)   | Integration test helpers for ii/testscript           |
 | [internal-ui.md](./internal-ui.md)                     | [internal/ui/](../internal/ui/)                     | CLI formatting helpers for durations and IDs         |
+| [internal-validation.md](./internal-validation.md)     | [internal/validation/](../internal/validation/)     | Shared validation formatting helpers                 |

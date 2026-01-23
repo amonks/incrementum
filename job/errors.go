@@ -3,7 +3,8 @@ package job
 import (
 	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/amonks/incrementum/internal/validation"
 )
 
 var (
@@ -22,27 +23,9 @@ var (
 )
 
 func formatInvalidStatusError(status Status) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validStatusList())
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validation.FormatValidValues(ValidStatuses()))
 }
 
 func formatInvalidStageError(stage Stage) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStage, stage, validStageList())
-}
-
-func validStatusList() string {
-	statuses := ValidStatuses()
-	values := make([]string, 0, len(statuses))
-	for _, status := range statuses {
-		values = append(values, string(status))
-	}
-	return strings.Join(values, ", ")
-}
-
-func validStageList() string {
-	stages := ValidStages()
-	values := make([]string, 0, len(stages))
-	for _, stage := range stages {
-		values = append(values, string(stage))
-	}
-	return strings.Join(values, ", ")
+	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStage, stage, validation.FormatValidValues(ValidStages()))
 }
