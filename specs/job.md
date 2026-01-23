@@ -115,6 +115,7 @@ any stage -> failed (unrecoverable error)
 6. Wait for opencode completion.
 7. If opencode fails (nonzero exit): mark job `failed`.
 8. Read `.incrementum-feedback`:
+   - Delete `.incrementum-feedback` after reading.
    - Missing or first line is `ACCEPT`: transition to `committing`.
    - First line is `ABANDON`: mark job `abandoned`.
     - First line is `REQUEST_CHANGES`: extract feedback (lines after first blank
@@ -132,11 +133,12 @@ any stage -> failed (unrecoverable error)
 6. Wait for opencode completion.
 7. If opencode fails (nonzero exit): mark job `failed`.
 8. Read `.incrementum-commit-message`.
-9. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
-10. Run `jj describe -m "<formatted message>"` in workspace.
-11. If describe fails: mark job `failed`.
-12. Call session `Done` (releases workspace, marks todo done).
-13. Mark job `completed`.
+9. Delete `.incrementum-commit-message` after reading.
+10. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
+11. Run `jj describe -m "<formatted message>"` in workspace.
+12. If describe fails: mark job `failed`.
+13. Call session `Done` (releases workspace, marks todo done).
+14. Mark job `completed`.
 
 ## Failure Handling
 

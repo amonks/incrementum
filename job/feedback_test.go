@@ -2,6 +2,7 @@ package job
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -49,5 +50,21 @@ func TestReadReviewFeedbackMissingFile(t *testing.T) {
 	}
 	if feedback.Outcome != ReviewOutcomeAccept {
 		t.Fatalf("expected ACCEPT, got %q", feedback.Outcome)
+	}
+}
+
+func TestReadReviewFeedbackDeletesFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "feedback")
+	if err := os.WriteFile(path, []byte("ACCEPT"), 0o644); err != nil {
+		t.Fatalf("write feedback: %v", err)
+	}
+
+	_, err := ReadReviewFeedback(path)
+	if err != nil {
+		t.Fatalf("read feedback: %v", err)
+	}
+
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("expected feedback file to be deleted")
 	}
 }

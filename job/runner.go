@@ -440,9 +440,16 @@ func readCommitMessage(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read commit message: %w", err)
 	}
+	removeErr := removeFileIfExists(path)
+	if removeErr != nil {
+		removeErr = fmt.Errorf("remove commit message: %w", removeErr)
+	}
 	message := strings.TrimRight(string(data), "\r\n")
 	if strings.TrimSpace(message) == "" {
-		return "", fmt.Errorf("commit message is empty")
+		return "", errors.Join(fmt.Errorf("commit message is empty"), removeErr)
+	}
+	if removeErr != nil {
+		return "", removeErr
 	}
 	return message, nil
 }

@@ -1,6 +1,7 @@
 package job
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -34,7 +35,19 @@ func ReadReviewFeedback(path string) (ReviewFeedback, error) {
 		}
 		return ReviewFeedback{}, fmt.Errorf("read feedback: %w", err)
 	}
-	return ParseReviewFeedback(string(data))
+	removeErr := removeFileIfExists(path)
+	if removeErr != nil {
+		removeErr = fmt.Errorf("remove feedback: %w", removeErr)
+	}
+
+	feedback, parseErr := ParseReviewFeedback(string(data))
+	if removeErr != nil {
+		if parseErr != nil {
+			return ReviewFeedback{}, errors.Join(parseErr, removeErr)
+		}
+		return feedback, removeErr
+	}
+	return feedback, parseErr
 }
 
 // ParseReviewFeedback parses the feedback file contents.
