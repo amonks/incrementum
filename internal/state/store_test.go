@@ -1,9 +1,11 @@
 package state
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestStore_LoadEmpty(t *testing.T) {
@@ -122,6 +124,43 @@ func TestStore_SaveLoad(t *testing.T) {
 	}
 	if job.Status != JobStatusActive {
 		t.Errorf("expected job status active, got %s", job.Status)
+	}
+}
+
+func TestStore_SaveNoChange(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewStore(tmpDir)
+
+	st := &State{
+		Repos:            make(map[string]RepoInfo),
+		Workspaces:       make(map[string]WorkspaceInfo),
+		Sessions:         make(map[string]Session),
+		OpencodeDaemons:  make(map[string]OpencodeDaemon),
+		OpencodeSessions: make(map[string]OpencodeSession),
+		Jobs:             make(map[string]Job),
+	}
+
+	if err := store.Save(st); err != nil {
+		t.Fatalf("failed to save initial state: %v", err)
+	}
+
+	statePath := store.statePath()
+	oldTime := time.Unix(1, 0)
+	if err := os.Chtimes(statePath, oldTime, oldTime); err != nil {
+		t.Fatalf("failed to set mod time: %v", err)
+	}
+
+	if err := store.Save(st); err != nil {
+		t.Fatalf("failed to save identical state: %v", err)
+	}
+
+	info, err := os.Stat(statePath)
+	if err != nil {
+		t.Fatalf("failed to stat state file: %v", err)
+	}
+
+	if !info.ModTime().Equal(oldTime) {
+		t.Errorf("expected mod time to stay %v, got %v", oldTime, info.ModTime())
 	}
 }
 

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -90,14 +91,31 @@ func (s *Store) Save(st *State) error {
 		return fmt.Errorf("marshal state: %w", err)
 	}
 
+	if existing, err := os.ReadFile(s.statePath()); err == nil {
+		if bytes.Equal(existing, data) {
+			return nil
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("read state file: %w", err)
+	}
+
 	// Write atomically via temp file
-	tmpPath := s.statePath() + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	tmpFile, err := os.CreateTemp(s.dir, filepath.Base(s.statePath())+".tmp")
+	if err != nil {
+		return fmt.Errorf("create temp state file: %w", err)
+	}
+	name := tmpFile.Name()
+	_, err = tmpFile.Write(data)
+	if err1 := tmpFile.Close(); err1 != nil && err == nil {
+		err = err1
+	}
+	if err != nil {
+		os.Remove(name)
 		return fmt.Errorf("write temp state file: %w", err)
 	}
 
-	if err := os.Rename(tmpPath, s.statePath()); err != nil {
-		os.Remove(tmpPath)
+	if err := os.Rename(name, s.statePath()); err != nil {
+		os.Remove(name)
 		return fmt.Errorf("rename state file: %w", err)
 	}
 

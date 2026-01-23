@@ -41,7 +41,7 @@ All state updates use advisory file locking via `state.lock` to serialize concur
 ## API
 - `NewStore(dir)`: create a store for the given directory
 - `Load()`: read current state
-- `Save(state)`: write state atomically
+- `Save(state)`: write state atomically, skipping disk writes when no changes
 - `Update(fn)`: read-modify-write with locking
 - `GetOrCreateRepoName(path)`: get or create repo name for path
 - `RepoPathForWorkspace(wsPath)`: resolve workspace path to source repo
