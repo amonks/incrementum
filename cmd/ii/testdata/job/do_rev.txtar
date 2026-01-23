@@ -1,0 +1,99 @@
+# setup repo
+mkdir repo
+cd repo
+exec jj git init
+
+# create history with trunk
+exec jj describe -m 'base'
+exec jj bookmark create trunk -r @
+exec jj new
+exec jj describe -m 'feature'
+
+exec jj log -r trunk() -T change_id --no-graph
+envset TRUNK_ID stdout
+
+exec jj log -r @ -T change_id --no-graph
+envset REV_ID stdout
+
+# stub opencode
+chmod 755 $WORK/bin/opencode
+env PATH=$WORK/bin${:}$PATH
+
+# run opencode server
+exec $II opencode serve &serve&
+exec sleep 1
+
+# run job with default rev
+exec env EXPECTED_PARENT=$TRUNK_ID $II job do --title 'Default rev job' --type task --priority 2 --description 'touch default.txt' --no-edit
+stdout 'Stage: implementing'
+stdout 'Stage: committing'
+
+# run job with explicit rev
+exec env EXPECTED_PARENT=$REV_ID $II job do --title 'Flag rev job' --type task --priority 2 --description 'touch flag.txt' --no-edit --rev $REV_ID
+stdout 'Stage: implementing'
+stdout 'Stage: committing'
+
+-- bin/opencode --
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import sys
+import time
+
+
+def run_serve():
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        return
+
+
+def extract_workspace_root(prompt: str) -> str:
+    for line in prompt.splitlines():
+        if line.startswith("Workspace root:"):
+            return line.split(":", 1)[1].strip()
+    raise RuntimeError("workspace root missing from prompt")
+
+
+def check_parent(workspace_root: str):
+    expected = os.environ.get("EXPECTED_PARENT", "").strip()
+    if not expected:
+        return
+    parent = subprocess.check_output(
+        ["jj", "log", "-r", "@-", "-T", "change_id", "--no-graph"],
+        cwd=workspace_root,
+    ).decode("utf-8").strip()
+    if parent != expected:
+        raise RuntimeError(f"expected parent {expected}, got {parent}")
+
+
+def run_job(prompt: str):
+    workspace_root = extract_workspace_root(prompt)
+    pwd = os.environ.get("PWD", "")
+    if not pwd:
+        raise RuntimeError("PWD not set")
+    if pwd != workspace_root:
+        raise RuntimeError(f"PWD {pwd} does not match workspace root {workspace_root}")
+    check_parent(workspace_root)
+    open(os.path.join(workspace_root, "hello-world.txt"), "a").close()
+    with open(os.path.join(workspace_root, ".incrementum-commit-message"), "w") as handle:
+        handle.write("Test commit message\n")
+
+
+def main():
+    if len(sys.argv) < 2:
+        return
+    cmd = sys.argv[1]
+    if cmd == "serve":
+        run_serve()
+        return
+    if cmd == "run":
+        prompt = sys.argv[-1] if len(sys.argv) > 2 else ""
+        run_job(prompt)
+        return
+
+
+if __name__ == "__main__":
+    main()

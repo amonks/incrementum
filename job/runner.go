@@ -99,24 +99,9 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, err
 	}
 	workspacePath := startResult.WorkspacePath
-	rev := strings.TrimSpace(opts.Rev)
-	if rev == "" {
-		rev = "@"
-	}
-	client := jj.New()
-	if _, err := client.NewChange(workspacePath, rev); err != nil {
-		if rev == "trunk()" && strings.Contains(err.Error(), "Revision `\"trunk()\"` doesn't exist") {
-			rev = "root()"
-			if _, retryErr := client.NewChange(workspacePath, rev); retryErr == nil {
-				err = nil
-			} else {
-				err = retryErr
-			}
-		}
-		if err != nil {
-			failErr := failSession(sessionManager, item.ID, workspacePath)
-			return result, errors.Join(err, failErr)
-		}
+	if err := createJobChange(workspacePath, opts.Rev); err != nil {
+		failErr := failSession(sessionManager, item.ID, workspacePath)
+		return result, errors.Join(err, failErr)
 	}
 
 	manager, err := Open(repoPath, OpenOptions{})
@@ -226,6 +211,9 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 }
 
 func normalizeRunOptions(opts RunOptions) RunOptions {
+	if strings.TrimSpace(opts.Rev) == "" {
+		opts.Rev = "trunk()"
+	}
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
@@ -249,6 +237,25 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		opts.UpdateStale = client.WorkspaceUpdateStale
 	}
 	return opts
+}
+
+func createJobChange(workspacePath, rev string) error {
+	rev = strings.TrimSpace(rev)
+	if rev == "" {
+		rev = "trunk()"
+	}
+	client := jj.New()
+	if _, err := client.NewChange(workspacePath, rev); err != nil {
+		if rev == "trunk()" && strings.Contains(err.Error(), "Revision `\"trunk()\"` doesn't exist") {
+			if _, retryErr := client.NewChange(workspacePath, "root()"); retryErr == nil {
+				return nil
+			} else {
+				err = retryErr
+			}
+		}
+		return fmt.Errorf("create job change: %w", err)
+	}
+	return nil
 }
 
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (Job, error) {

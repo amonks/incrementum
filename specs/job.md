@@ -194,6 +194,7 @@ Create and run a job to completion (blocking).
   `--title`, `--type`, `--priority`, `--description/--desc`, `--deps`,
   `--edit/--no-edit`).
 - If no args and interactive: open $EDITOR to create todo.
+- If `--rev` is omitted, default to `trunk()`.
 
 Behavior:
 

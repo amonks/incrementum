@@ -41,7 +41,7 @@ func init() {
 	jobDoCmd.Flags().StringArrayVar(&jobDoDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
 	jobDoCmd.Flags().BoolVarP(&jobDoEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	jobDoCmd.Flags().BoolVar(&jobDoNoEdit, "no-edit", false, "Do not open $EDITOR")
-	jobDoCmd.Flags().StringVar(&jobDoRev, "rev", "@", "Revision to check out")
+	jobDoCmd.Flags().StringVar(&jobDoRev, "rev", "trunk()", "Revision to base the new change on")
 }
 
 func runJobDo(cmd *cobra.Command, args []string) error {
