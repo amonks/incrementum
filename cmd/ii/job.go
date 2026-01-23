@@ -221,7 +221,7 @@ func formatJobTable(opts TableFormatOptions) string {
 	now := opts.Now
 	todoPrefixLengths := opts.TodoPrefixLengths
 	jobPrefixLengths := opts.JobPrefixLengths
-	rows := make([][]string, 0, len(jobs))
+	builder := ui.NewTableBuilder([]string{"JOB", "TODO", "STAGE", "STATUS", "AGE"}, len(jobs))
 
 	jobIDs := make([]string, 0, len(jobs))
 	todoIDs := make([]string, 0, len(jobs))
@@ -262,10 +262,10 @@ func formatJobTable(opts TableFormatOptions) string {
 			string(item.Status),
 			age,
 		}
-		rows = append(rows, row)
+		builder.AddRow(row)
 	}
 
-	return formatTable([]string{"JOB", "TODO", "STAGE", "STATUS", "AGE"}, rows)
+	return builder.String()
 }
 
 func formatJobAge(item jobpkg.Job, now time.Time) string {

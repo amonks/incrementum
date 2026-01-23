@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"strings"
@@ -8,7 +8,29 @@ import (
 const tableCellMaxWidth = 50
 const tableCellEllipsis = "..."
 
-func formatTable(headers []string, rows [][]string) string {
+// TableBuilder collects rows and renders a formatted table.
+type TableBuilder struct {
+	headers []string
+	rows    [][]string
+}
+
+// NewTableBuilder returns a builder with preallocated rows.
+func NewTableBuilder(headers []string, capacity int) *TableBuilder {
+	return &TableBuilder{headers: headers, rows: make([][]string, 0, capacity)}
+}
+
+// AddRow appends a row to the table.
+func (builder *TableBuilder) AddRow(row []string) {
+	builder.rows = append(builder.rows, row)
+}
+
+// String renders the table output.
+func (builder *TableBuilder) String() string {
+	return FormatTable(builder.headers, builder.rows)
+}
+
+// FormatTable renders headers and rows as an aligned table.
+func FormatTable(headers []string, rows [][]string) string {
 	normalizedHeaders := make([]string, len(headers))
 	for i, header := range headers {
 		normalizedHeaders[i] = normalizeTableCell(header)
@@ -61,7 +83,8 @@ func formatTable(headers []string, rows [][]string) string {
 	return builder.String()
 }
 
-func truncateTableCell(value string) string {
+// TruncateTableCell limits cell width while preserving visible characters.
+func TruncateTableCell(value string) string {
 	value = normalizeTableCell(value)
 	if displayWidth(value) <= tableCellMaxWidth {
 		return value

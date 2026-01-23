@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"strings"
@@ -8,7 +8,7 @@ import (
 func TestTruncateTableCellCountsRunes(t *testing.T) {
 	value := strings.Repeat("a", tableCellMaxWidth-1) + "\u00e9"
 
-	got := truncateTableCell(value)
+	got := TruncateTableCell(value)
 
 	if got != value {
 		t.Fatalf("expected value to remain untruncated, got %q", got)
@@ -18,7 +18,7 @@ func TestTruncateTableCellCountsRunes(t *testing.T) {
 func TestTruncateTableCellNormalizesLineBreaks(t *testing.T) {
 	value := "Hello\nWorld\r\nAgain\tTab"
 
-	got := truncateTableCell(value)
+	got := TruncateTableCell(value)
 
 	if got != "Hello World Again Tab" {
 		t.Fatalf("expected line breaks to normalize, got %q", got)
@@ -28,7 +28,7 @@ func TestTruncateTableCellNormalizesLineBreaks(t *testing.T) {
 func TestTruncateTableCellIgnoresANSICodes(t *testing.T) {
 	value := "\x1b[1m\x1b[36m" + strings.Repeat("a", tableCellMaxWidth) + "\x1b[0m"
 
-	got := truncateTableCell(value)
+	got := TruncateTableCell(value)
 
 	if got != value {
 		t.Fatalf("expected value to remain untruncated, got %q", got)
@@ -39,7 +39,7 @@ func TestFormatTableNormalizesLineBreaks(t *testing.T) {
 	headers := []string{"COL"}
 	rows := [][]string{{"Hello\nWorld\r\nAgain\tTab"}}
 
-	got := formatTable(headers, rows)
+	got := FormatTable(headers, rows)
 
 	expected := "COL\nHello World Again Tab\n"
 	if got != expected {

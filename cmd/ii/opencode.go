@@ -115,7 +115,7 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 
 	for _, session := range sessions {
 		prompt := opencodePromptLine(session.Prompt)
-		prompt = truncateTableCell(prompt)
+		prompt = ui.TruncateTableCell(prompt)
 		age := formatOpencodeAge(session, now)
 		exit := "-"
 		if session.ExitCode != nil {
@@ -132,7 +132,7 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 		})
 	}
 
-	return formatTable([]string{"SESSION", "STATUS", "AGE", "PROMPT", "EXIT"}, rows)
+	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "PROMPT", "EXIT"}, rows)
 }
 
 func opencodeSessionPrefixLengths(sessions []workspace.OpencodeSession) map[string]int {

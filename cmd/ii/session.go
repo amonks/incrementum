@@ -381,7 +381,7 @@ func sessionIDPrefixLengths(sessions []sessionpkg.Session) map[string]int {
 }
 
 func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, int) string, now time.Time, todoPrefixLengths map[string]int, sessionPrefixLengths map[string]int) string {
-	rows := make([][]string, 0, len(sessions))
+	builder := ui.NewTableBuilder([]string{"SESSION", "TODO", "STATUS", "WORKSPACE", "AGE", "TOPIC", "EXIT"}, len(sessions))
 
 	sessionIDs := make([]string, 0, len(sessions))
 	todoIDs := make([]string, 0, len(sessions))
@@ -418,7 +418,7 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 		if topic == "" {
 			topic = "-"
 		}
-		topic = truncateTableCell(topic)
+		topic = ui.TruncateTableCell(topic)
 		age := formatSessionAge(item, now)
 		exit := "-"
 		if item.ExitCode != nil {
@@ -434,10 +434,10 @@ func formatSessionTable(sessions []sessionpkg.Session, highlight func(string, in
 			topic,
 			exit,
 		}
-		rows = append(rows, row)
+		builder.AddRow(row)
 	}
 
-	return formatTable([]string{"SESSION", "TODO", "STATUS", "WORKSPACE", "AGE", "TOPIC", "EXIT"}, rows)
+	return builder.String()
 }
 
 func formatSessionAge(item sessionpkg.Session, now time.Time) string {

@@ -215,10 +215,10 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string,
 			string(item.Status),
 			acquiredAge,
 			rev,
-			truncateTableCell(purpose),
-			truncateTableCell(item.Path),
+			ui.TruncateTableCell(purpose),
+			ui.TruncateTableCell(item.Path),
 		})
 	}
 
-	return formatTable([]string{"NAME", "STATUS", "ACQUIRED", "REV", "PURPOSE", "PATH"}, rows)
+	return ui.FormatTable([]string{"NAME", "STATUS", "ACQUIRED", "REV", "PURPOSE", "PATH"}, rows)
 }

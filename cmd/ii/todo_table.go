@@ -21,14 +21,14 @@ func printTodoTable(todos []todo.Todo, prefixLengths map[string]int, now time.Ti
 }
 
 func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight func(string, int) string, now time.Time) string {
-	rows := make([][]string, 0, len(todos))
+	builder := ui.NewTableBuilder([]string{"ID", "PRI", "TYPE", "STATUS", "CREATED", "UPDATED", "TITLE"}, len(todos))
 
 	if prefixLengths == nil {
 		prefixLengths = todoIDPrefixLengths(todos)
 	}
 
 	for _, t := range todos {
-		title := truncateTableCell(t.Title)
+		title := ui.TruncateTableCell(t.Title)
 		prefixLen := prefixLengths[strings.ToLower(t.ID)]
 		highlighted := highlight(t.ID, prefixLen)
 		createdAge := ui.FormatTimeAgeShort(t.CreatedAt, now)
@@ -42,10 +42,10 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 			updatedAge,
 			title,
 		}
-		rows = append(rows, row)
+		builder.AddRow(row)
 	}
 
-	return formatTable([]string{"ID", "PRI", "TYPE", "STATUS", "CREATED", "UPDATED", "TITLE"}, rows)
+	return builder.String()
 }
 
 func todoIDPrefixLengths(todos []todo.Todo) map[string]int {
