@@ -124,7 +124,7 @@ func runSessionStart(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions())
+	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func createTodoForSessionStart(cmd *cobra.Command, hasCreateFlags bool) (string,
 			return "", err
 		}
 
-		store, err := openTodoStore()
+		store, err := openTodoStore(cmd, nil)
 		if err != nil {
 			return "", err
 		}
@@ -181,7 +181,7 @@ func createTodoForSessionStart(cmd *cobra.Command, hasCreateFlags bool) (string,
 		return "", fmt.Errorf("title is required (use --edit to open editor)")
 	}
 
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, nil)
 	if err != nil {
 		return "", err
 	}
@@ -216,20 +216,20 @@ func sessionStartPriorityValue(cmd *cobra.Command) *int {
 }
 
 func runSessionDone(cmd *cobra.Command, args []string) error {
-	return runSessionFinalize(args, todo.StatusDone, sessionpkg.StatusCompleted)
+	return runSessionFinalize(cmd, args, todo.StatusDone, sessionpkg.StatusCompleted)
 }
 
 func runSessionFail(cmd *cobra.Command, args []string) error {
-	return runSessionFinalize(args, todo.StatusOpen, sessionpkg.StatusFailed)
+	return runSessionFinalize(cmd, args, todo.StatusOpen, sessionpkg.StatusFailed)
 }
 
-func runSessionFinalize(args []string, todoStatus todo.Status, sessionStatus sessionpkg.Status) error {
+func runSessionFinalize(cmd *cobra.Command, args []string, todoStatus todo.Status, sessionStatus sessionpkg.Status) error {
 	repoPath, err := getRepoPath()
 	if err != nil {
 		return err
 	}
 
-	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions())
+	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -283,7 +283,7 @@ func runSessionRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions())
+	manager, err := sessionOpen(repoPath, sessionMutatingOpenOptions(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	manager, err := sessionOpen(repoPath, sessionListOpenOptions())
+	manager, err := sessionOpen(repoPath, sessionListOpenOptions(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -358,16 +358,16 @@ func runSessionList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func sessionListOpenOptions() sessionpkg.OpenOptions {
+func sessionListOpenOptions(cmd *cobra.Command, args []string) sessionpkg.OpenOptions {
 	return sessionpkg.OpenOptions{
-		Todo:             todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
+		Todo:             todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false, Purpose: todoStorePurpose(cmd, args)},
 		AllowMissingTodo: true,
 	}
 }
 
-func sessionMutatingOpenOptions() sessionpkg.OpenOptions {
+func sessionMutatingOpenOptions(cmd *cobra.Command, args []string) sessionpkg.OpenOptions {
 	return sessionpkg.OpenOptions{
-		Todo:             todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true},
+		Todo:             todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true, Purpose: todoStorePurpose(cmd, args)},
 		AllowMissingTodo: false,
 	}
 }

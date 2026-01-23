@@ -238,27 +238,39 @@ func init() {
 }
 
 // openTodoStore opens the todo store, prompting to create if it doesn't exist.
-func openTodoStoreWithOptions(opts todo.OpenOptions) (*todo.Store, error) {
+func openTodoStoreWithOptions(cmd *cobra.Command, args []string, opts todo.OpenOptions) (*todo.Store, error) {
 	repoPath, err := getRepoPath()
 	if err != nil {
 		return nil, err
 	}
 
+	opts.Purpose = todoStorePurpose(cmd, args)
 	return todo.Open(repoPath, opts)
 }
 
-func openTodoStore() (*todo.Store, error) {
-	return openTodoStoreWithOptions(todo.OpenOptions{
+func openTodoStore(cmd *cobra.Command, args []string) (*todo.Store, error) {
+	return openTodoStoreWithOptions(cmd, args, todo.OpenOptions{
 		CreateIfMissing: true,
 		PromptToCreate:  true,
 	})
 }
 
-func openTodoStoreReadOnly() (*todo.Store, error) {
-	return openTodoStoreWithOptions(todo.OpenOptions{
+func openTodoStoreReadOnly(cmd *cobra.Command, args []string) (*todo.Store, error) {
+	return openTodoStoreWithOptions(cmd, args, todo.OpenOptions{
 		CreateIfMissing: false,
 		PromptToCreate:  false,
 	})
+}
+
+func todoStorePurpose(cmd *cobra.Command, args []string) string {
+	parts := []string{cmd.CommandPath()}
+	parts = append(parts, args...)
+	value := strings.Join(parts, " ")
+	value = strings.Join(strings.Fields(value), " ")
+	if value == "" {
+		return "todo store"
+	}
+	return fmt.Sprintf("todo store (%s)", value)
 }
 
 func resolveDescriptionFromStdin(description string, reader io.Reader) (string, error) {
@@ -328,7 +340,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		store, err := openTodoStore()
+		store, err := openTodoStore(cmd, args)
 		if err != nil {
 			return err
 		}
@@ -356,7 +368,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("title is required (use --edit to open editor)")
 	}
 
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -382,7 +394,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoUpdate(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -502,7 +514,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoClose(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -525,7 +537,7 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoStart(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -548,7 +560,7 @@ func runTodoStart(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoFinish(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -571,7 +583,7 @@ func runTodoFinish(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoReopen(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -594,7 +606,7 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoDelete(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -617,7 +629,7 @@ func runTodoDelete(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoShow(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStoreReadOnly()
+	store, err := openTodoStoreReadOnly(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -649,7 +661,7 @@ func runTodoShow(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoList(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStoreReadOnly()
+	store, err := openTodoStoreReadOnly(cmd, args)
 	if err != nil {
 		if errors.Is(err, todo.ErrNoTodoStore) {
 			if todoListJSON {
@@ -760,7 +772,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoReady(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStoreReadOnly()
+	store, err := openTodoStoreReadOnly(cmd, args)
 	if err != nil {
 		if errors.Is(err, todo.ErrNoTodoStore) {
 			if todoReadyJSON {
@@ -801,7 +813,7 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoDepAdd(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -822,7 +834,7 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoDepTree(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStoreReadOnly()
+	store, err := openTodoStoreReadOnly(cmd, args)
 	if err != nil {
 		return err
 	}

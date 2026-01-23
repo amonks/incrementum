@@ -8,7 +8,7 @@ import (
 )
 
 func TestSessionListOpenOptions(t *testing.T) {
-	opts := sessionListOpenOptions()
+	opts := sessionListOpenOptions(sessionListCmd, nil)
 	if opts.Todo.CreateIfMissing {
 		t.Fatal("expected session list to avoid creating todo store")
 	}
@@ -17,6 +17,9 @@ func TestSessionListOpenOptions(t *testing.T) {
 	}
 	if !opts.AllowMissingTodo {
 		t.Fatal("expected session list to allow missing todo store")
+	}
+	if opts.Todo.Purpose == "" {
+		t.Fatal("expected session list to set todo store purpose")
 	}
 }
 
@@ -33,7 +36,7 @@ func TestRunSessionListUsesListOpenOptions(t *testing.T) {
 		return nil, sentinel
 	}
 
-	err := runSessionList(nil, nil)
+	err := runSessionList(sessionListCmd, nil)
 	if !errors.Is(err, sentinel) {
 		t.Fatalf("expected sentinel error, got %v", err)
 	}
@@ -46,5 +49,8 @@ func TestRunSessionListUsesListOpenOptions(t *testing.T) {
 	}
 	if !got.AllowMissingTodo {
 		t.Fatal("expected session list to allow missing todo store")
+	}
+	if got.Todo.Purpose == "" {
+		t.Fatal("expected session list to set todo store purpose")
 	}
 }

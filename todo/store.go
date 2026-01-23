@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/amonks/incrementum/internal/jj"
@@ -75,6 +76,10 @@ type OpenOptions struct {
 	// PromptToCreate prompts the user before creating a new store.
 	// Only used when CreateIfMissing is true.
 	PromptToCreate bool
+
+	// Purpose describes why the store workspace is acquired.
+	// If empty, a default purpose is used.
+	Purpose string
 }
 
 // Open opens the todo store for the repository at repoPath.
@@ -84,6 +89,11 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 	usesStdioPrompter := opts.Prompter == nil
 	if opts.Prompter == nil {
 		opts.Prompter = StdioPrompter{}
+	}
+
+	purpose := normalizePurpose(opts.Purpose)
+	if purpose == "" {
+		purpose = "todo store"
 	}
 
 	pool, err := workspace.Open()
@@ -132,7 +142,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 
 	// Acquire a workspace. If the bookmark doesn't exist yet, we'll create
 	// the store in this workspace, then edit to it.
-	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: "todo store"})
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: purpose})
 	if err != nil {
 		return nil, fmt.Errorf("acquire workspace: %w", err)
 	}
@@ -168,6 +178,14 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 			return pool.Release(wsPath)
 		},
 	}, nil
+}
+
+func normalizePurpose(value string) string {
+	fields := strings.Fields(value)
+	if len(fields) == 0 {
+		return ""
+	}
+	return strings.Join(fields, " ")
 }
 
 // Release releases the workspace back to the pool.

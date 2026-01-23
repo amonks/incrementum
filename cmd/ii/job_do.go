@@ -120,7 +120,7 @@ func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
 			return "", err
 		}
 
-		store, err := openTodoStore()
+		store, err := openTodoStore(cmd, nil)
 		if err != nil {
 			return "", err
 		}
@@ -139,7 +139,7 @@ func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
 		return "", fmt.Errorf("title is required (use --edit to open editor)")
 	}
 
-	store, err := openTodoStore()
+	store, err := openTodoStore(cmd, nil)
 	if err != nil {
 		return "", err
 	}

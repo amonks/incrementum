@@ -61,7 +61,11 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	opts = normalizeRunOptions(opts)
 	result := &RunResult{}
 
-	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true})
+	store, err := todo.Open(repoPath, todo.OpenOptions{
+		CreateIfMissing: true,
+		PromptToCreate:  true,
+		Purpose:         fmt.Sprintf("todo store (job run %s)", todoID),
+	})
 	if err != nil {
 		return result, err
 	}
@@ -77,7 +81,11 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	item := items[0]
 
 	sessionManager, err := session.Open(repoPath, session.OpenOptions{
-		Todo:             todo.OpenOptions{CreateIfMissing: true, PromptToCreate: true},
+		Todo: todo.OpenOptions{
+			CreateIfMissing: true,
+			PromptToCreate:  true,
+			Purpose:         fmt.Sprintf("todo store (session for job %s)", todoID),
+		},
 		AllowMissingTodo: false,
 	})
 	if err != nil {

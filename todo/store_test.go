@@ -91,6 +91,38 @@ func TestOpen_CreateIfMissing(t *testing.T) {
 	}
 }
 
+func TestOpen_UsesPurpose(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	purpose := "todo store (purpose test)"
+	store, err := Open(repoPath, OpenOptions{
+		CreateIfMissing: true,
+		PromptToCreate:  false,
+		Purpose:         purpose,
+	})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	infos, err := store.pool.List(repoPath)
+	if err != nil {
+		t.Fatalf("list workspaces: %v", err)
+	}
+
+	for _, info := range infos {
+		if info.Path != store.wsPath {
+			continue
+		}
+		if info.Purpose != purpose {
+			t.Fatalf("expected purpose %q, got %q", purpose, info.Purpose)
+		}
+		return
+	}
+
+	t.Fatalf("workspace for store not found")
+}
+
 func TestOpen_PromptToCreate_Confirmed(t *testing.T) {
 	repoPath := setupTestRepo(t)
 

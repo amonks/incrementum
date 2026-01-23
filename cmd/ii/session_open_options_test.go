@@ -9,7 +9,7 @@ import (
 )
 
 func TestSessionMutatingOpenOptions(t *testing.T) {
-	opts := sessionMutatingOpenOptions()
+	opts := sessionMutatingOpenOptions(sessionStartCmd, []string{"todo123"})
 	if !opts.Todo.CreateIfMissing {
 		t.Fatal("expected session mutations to create missing todo store")
 	}
@@ -18,6 +18,9 @@ func TestSessionMutatingOpenOptions(t *testing.T) {
 	}
 	if opts.AllowMissingTodo {
 		t.Fatal("expected session mutations to require todo store")
+	}
+	if opts.Todo.Purpose == "" {
+		t.Fatal("expected session mutations to set todo store purpose")
 	}
 }
 
@@ -48,6 +51,9 @@ func TestRunSessionStartUsesMutatingOpenOptions(t *testing.T) {
 	if got.AllowMissingTodo {
 		t.Fatal("expected session start to require todo store")
 	}
+	if got.Todo.Purpose == "" {
+		t.Fatal("expected session start to set todo store purpose")
+	}
 }
 
 func TestRunSessionFinalizeUsesMutatingOpenOptions(t *testing.T) {
@@ -63,7 +69,7 @@ func TestRunSessionFinalizeUsesMutatingOpenOptions(t *testing.T) {
 		return nil, sentinel
 	}
 
-	err := runSessionFinalize([]string{"todo123"}, todo.StatusDone, sessionpkg.StatusCompleted)
+	err := runSessionFinalize(sessionDoneCmd, []string{"todo123"}, todo.StatusDone, sessionpkg.StatusCompleted)
 	if !errors.Is(err, sentinel) {
 		t.Fatalf("expected sentinel error, got %v", err)
 	}
@@ -76,5 +82,8 @@ func TestRunSessionFinalizeUsesMutatingOpenOptions(t *testing.T) {
 	}
 	if got.AllowMissingTodo {
 		t.Fatal("expected session finalize to require todo store")
+	}
+	if got.Todo.Purpose == "" {
+		t.Fatal("expected session finalize to set todo store purpose")
 	}
 }

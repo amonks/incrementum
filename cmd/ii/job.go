@@ -80,7 +80,7 @@ func runJobShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	todoTitle, todoPrefixLengths, err := jobShowTodoInfo(repoPath, item.TodoID)
+	todoTitle, todoPrefixLengths, err := jobShowTodoInfo(repoPath, item.TodoID, todoStorePurpose(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func runJobList(cmd *cobra.Command, args []string) error {
 		jobPrefixLengths = nil
 	}
 
-	todoPrefixLengths, err := jobTodoPrefixLengths(repoPath)
+	todoPrefixLengths, err := jobTodoPrefixLengths(repoPath, todoStorePurpose(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -184,8 +184,8 @@ func jobIDPrefixLengths(jobs []jobpkg.Job) map[string]int {
 	return ui.UniqueIDPrefixLengths(ids)
 }
 
-func jobTodoPrefixLengths(repoPath string) (map[string]int, error) {
-	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+func jobTodoPrefixLengths(repoPath string, purpose string) (map[string]int, error) {
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false, Purpose: purpose})
 	if err != nil {
 		if errors.Is(err, todo.ErrNoTodoStore) {
 			return nil, nil
@@ -309,8 +309,8 @@ func jobShowPrefixLengths(manager *jobpkg.Manager) (map[string]int, error) {
 	return jobIDPrefixLengths(allJobs), nil
 }
 
-func jobShowTodoInfo(repoPath string, todoID string) (string, map[string]int, error) {
-	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+func jobShowTodoInfo(repoPath string, todoID string, purpose string) (string, map[string]int, error) {
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false, Purpose: purpose})
 	if err != nil {
 		if errors.Is(err, todo.ErrNoTodoStore) {
 			return "", nil, nil
