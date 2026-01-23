@@ -3,7 +3,7 @@ cd repo
 exec jj git init
 
 stdin input.txt
-exec $II todo create 'Old task'
+exec $II todo create --title 'Old task'
 stdout 'Created todo'
 
 exec $II todo list --json

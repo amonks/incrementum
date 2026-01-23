@@ -54,6 +54,16 @@ func TestTodoUpdateStatusMentionsTombstone(t *testing.T) {
 	}
 }
 
+func TestTodoCreateHasTitleFlag(t *testing.T) {
+	flag := todoCreateCmd.Flags().Lookup("title")
+	if flag == nil {
+		t.Fatal("expected todo create to have --title flag")
+	}
+	if flag.DefValue != "" {
+		t.Fatalf("expected todo create title default empty, got %q", flag.DefValue)
+	}
+}
+
 func TestTodoFinishHasDoneAlias(t *testing.T) {
 	if !containsAlias(todoFinishCmd, "done") {
 		t.Fatalf("expected todo finish to have done alias, got %v", todoFinishCmd.Aliases)

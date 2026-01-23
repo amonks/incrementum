@@ -21,7 +21,7 @@ envset REV_ID stdout
 
 # create todo
 stdin input.txt
-exec $II todo create 'Session rev todo'
+exec $II todo create --title 'Session rev todo'
 
 exec $II todo list --json
 todoid stdout 'Session rev todo' TODO_ID

@@ -5,7 +5,7 @@ exec jj git init
 
 # create todo
 stdin input.txt
-exec $II todo create 'Session todo'
+exec $II todo create --title 'Session todo'
 
 exec $II todo list --json
 todoid stdout 'Session todo' TODO_ID

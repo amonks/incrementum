@@ -74,6 +74,7 @@ Fields (JSON keys):
 ### Create
 
 - Title is required and validated.
+- CLI `todo create` expects the title via `--title`; it is not positional.
 - Defaults: `type=task`, `priority=medium` (2), `status=open`.
 - Type and dependency type inputs are case-insensitive and stored as lowercase.
 - Editor mode is used by default only when no create fields are supplied; use `--edit` to force it or `--no-edit` to skip it.

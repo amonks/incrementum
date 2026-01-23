@@ -9,7 +9,7 @@ stdout 'No todos found\.'
 
 # create without prompt in non-tty
 stdin accept.txt
-exec $II todo create 'First todo'
+exec $II todo create --title 'First todo'
 stdout 'Created todo'
 
 -- repo/accept.txt --

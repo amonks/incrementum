@@ -5,8 +5,8 @@ exec jj git init
 
 # create todos
 stdin input.txt
-exec $II todo create 'Task 1'
-exec $II todo create 'Task 2'
+exec $II todo create --title 'Task 1'
+exec $II todo create --title 'Task 2'
 
 exec $II todo list --json
 todoid stdout 'Task 1' TASK1_ID

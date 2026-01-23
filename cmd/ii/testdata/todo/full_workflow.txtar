@@ -5,7 +5,7 @@ exec jj git init
 
 # create todo
 stdin input.txt
-exec $II todo create 'Fix the login bug' -t bug -p 1
+exec $II todo create --title 'Fix the login bug' -t bug -p 1
 stdout 'Created todo'
 stdout 'Fix the login bug'
 
@@ -28,14 +28,14 @@ exec $II todo list --json
 stdout '"status": "in_progress"'
 
 # create todo with dependency
-exec $II todo create 'Write tests' --deps discovered-from:$TODO_ID
+exec $II todo create --title 'Write tests' --deps discovered-from:$TODO_ID
 stdout 'Created todo'
 
 exec $II todo list --json
 todoid stdout 'Write tests' CHILD_ID
 
 # add dependency
-exec $II todo create 'Blocker task'
+exec $II todo create --title 'Blocker task'
 exec $II todo list --json
 todoid stdout 'Blocker task' BLOCKER_ID
 exec $II todo dep add $CHILD_ID $BLOCKER_ID --type blocks

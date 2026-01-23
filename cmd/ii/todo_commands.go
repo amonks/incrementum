@@ -23,18 +23,19 @@ var todoCmd = &cobra.Command{
 
 // todo create
 var todoCreateCmd = &cobra.Command{
-	Use:   "create [title]",
+	Use:   "create",
 	Short: "Create a new todo",
 	Long: `Create a new todo.
 
 By default, opens $EDITOR to edit a TOML representation of the todo
 when running interactively and no create flags are provided. Use --no-edit
 to skip the editor, or --edit to force opening the editor even when not interactive.`,
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.NoArgs,
 	RunE: runTodoCreate,
 }
 
 var (
+	todoCreateTitle       string
 	todoCreateType        string
 	todoCreatePriority    int
 	todoCreateDescription string
@@ -185,6 +186,7 @@ func init() {
 	todoDepCmd.AddCommand(todoDepAddCmd, todoDepTreeCmd)
 
 	// todo create flags
+	todoCreateCmd.Flags().StringVar(&todoCreateTitle, "title", "", "Todo title")
 	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature)")
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description (use '-' to read from stdin)")
@@ -293,8 +295,8 @@ func todoCreatePriorityValue(cmd *cobra.Command) *int {
 	return nil
 }
 
-func todoCreateHasCreateFlags(cmd *cobra.Command, args []string) bool {
-	return len(args) > 0 ||
+func todoCreateHasCreateFlags(cmd *cobra.Command) bool {
+	return cmd.Flags().Changed("title") ||
 		cmd.Flags().Changed("type") ||
 		cmd.Flags().Changed("priority") ||
 		cmd.Flags().Changed("description") ||
@@ -315,14 +317,14 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	// - --edit forces editor
 	// - --no-edit skips editor
 	// - otherwise, open editor only when no create fields and interactive
-	hasCreateFlags := todoCreateHasCreateFlags(cmd, args)
+	hasCreateFlags := todoCreateHasCreateFlags(cmd)
 	useEditor := shouldUseEditor(hasCreateFlags, todoCreateEdit, todoCreateNoEdit, editor.IsInteractive())
 
 	if useEditor {
-		// Pre-populate from flags/args if provided
+		// Pre-populate from flags if provided
 		data := editor.DefaultCreateData()
-		if len(args) > 0 {
-			data.Title = args[0]
+		if cmd.Flags().Changed("title") {
+			data.Title = todoCreateTitle
 		}
 		if cmd.Flags().Changed("type") {
 			data.Type = todoCreateType
@@ -363,7 +365,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Non-editor path: title is required
-	if len(args) == 0 {
+	if todoCreateTitle == "" {
 		return fmt.Errorf("title is required (use --edit to open editor)")
 	}
 
@@ -373,7 +375,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	created, err := store.Create(args[0], todo.CreateOptions{
+	created, err := store.Create(todoCreateTitle, todo.CreateOptions{
 		Type:         todo.TodoType(todoCreateType),
 		Priority:     todoCreatePriorityValue(cmd),
 		Description:  todoCreateDescription,

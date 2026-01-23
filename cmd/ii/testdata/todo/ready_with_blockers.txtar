@@ -5,8 +5,8 @@ exec jj git init
 
 # create blocker and blocked
 stdin input.txt
-exec $II todo create 'Blocker' -p 0
-exec $II todo create 'Blocked' -p 0
+exec $II todo create --title 'Blocker' -p 0
+exec $II todo create --title 'Blocked' -p 0
 
 exec $II todo list --json
 todoid stdout 'Blocker' BLOCKER_ID
