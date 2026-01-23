@@ -56,6 +56,8 @@ Fields (JSON keys):
 ## Rules
 
 - Opencode sessions are tracked per repo slug.
+- Opencode commands use the current working directory as the repo path; they do
+  not resolve jj workspace roots or session mappings.
 - The daemon is a foreground process invoked via `opencode serve`.
 - `ii opencode serve` records daemon state when the process starts and clears
   it when the process exits.

@@ -29,7 +29,7 @@ func runOpencodeTail(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	repoPath, err := getRepoPath()
+	repoPath, err := getOpencodeRepoPath()
 	if err != nil {
 		return err
 	}

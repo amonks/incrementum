@@ -1,6 +1,11 @@
 package main
 
-import "github.com/amonks/incrementum/workspace"
+import (
+	"fmt"
+	"os"
+
+	"github.com/amonks/incrementum/workspace"
+)
 
 func filterOpencodeSessionsForList(sessions []workspace.OpencodeSession, includeAll bool) []workspace.OpencodeSession {
 	if includeAll {
@@ -15,4 +20,12 @@ func filterOpencodeSessionsForList(sessions []workspace.OpencodeSession, include
 		filtered = append(filtered, session)
 	}
 	return filtered
+}
+
+func getOpencodeRepoPath() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory: %w", err)
+	}
+	return cwd, nil
 }
