@@ -34,7 +34,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 
 ### List
 - Listing returns every workspace for a repo when `--all` is provided.
-- Default CLI output lists acquired workspaces; if none are acquired, it falls back to available workspaces.
+- Default CLI output lists both acquired and available workspaces.
 - List output is ordered by status (acquired first), then by workspace name.
 - CLI table output includes an acquired age column showing how long each workspace has been held.
 

@@ -154,11 +154,14 @@ func filterWorkspaceList(items []workspace.Info, includeAll bool) []workspace.In
 		return items
 	}
 
-	acquired := filterWorkspaceListByStatus(items, workspace.StatusAcquired)
-	if len(acquired) > 0 {
-		return acquired
+	filtered := make([]workspace.Info, 0, len(items))
+	for _, item := range items {
+		switch item.Status {
+		case workspace.StatusAcquired, workspace.StatusAvailable:
+			filtered = append(filtered, item)
+		}
 	}
-	return filterWorkspaceListByStatus(items, workspace.StatusAvailable)
+	return filtered
 }
 
 func filterWorkspaceListByStatus(items []workspace.Info, status workspace.Status) []workspace.Info {

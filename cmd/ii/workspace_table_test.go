@@ -80,30 +80,21 @@ func TestFormatWorkspaceTableShowsAcquiredAge(t *testing.T) {
 	}
 }
 
-func TestFilterWorkspaceListDefaultsToAcquiredWhenPresent(t *testing.T) {
+func TestFilterWorkspaceListDefaultsToAvailableAndAcquired(t *testing.T) {
 	items := []workspace.Info{
 		{Name: "ws-001", Status: workspace.StatusAvailable},
 		{Name: "ws-002", Status: workspace.StatusAcquired},
 	}
 
 	filtered := filterWorkspaceList(items, false)
-	if len(filtered) != 1 {
-		t.Fatalf("expected 1 acquired workspace, got %d", len(filtered))
-	}
-	if filtered[0].Name != "ws-002" {
-		t.Fatalf("expected ws-002, got %q", filtered[0].Name)
-	}
-}
-
-func TestFilterWorkspaceListFallsBackToAvailable(t *testing.T) {
-	items := []workspace.Info{
-		{Name: "ws-001", Status: workspace.StatusAvailable},
-		{Name: "ws-002", Status: workspace.StatusAvailable},
-	}
-
-	filtered := filterWorkspaceList(items, false)
 	if len(filtered) != 2 {
-		t.Fatalf("expected 2 available workspaces, got %d", len(filtered))
+		t.Fatalf("expected 2 workspaces, got %d", len(filtered))
+	}
+	if filtered[0].Name != "ws-001" {
+		t.Fatalf("expected ws-001, got %q", filtered[0].Name)
+	}
+	if filtered[1].Name != "ws-002" {
+		t.Fatalf("expected ws-002, got %q", filtered[1].Name)
 	}
 }
 
