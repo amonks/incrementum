@@ -4,6 +4,9 @@ import (
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
+// DefaultOpencodePort is the default port for the opencode daemon.
+const DefaultOpencodePort = 19283
+
 // OpencodeDaemonStatus represents the state of an opencode daemon.
 type OpencodeDaemonStatus = statestore.OpencodeDaemonStatus
 

@@ -320,3 +320,41 @@ func TestPool_FindOpencodeDaemonStopsWhenPIDMissing(t *testing.T) {
 		t.Fatalf("expected status stopped, got %q", found.Status)
 	}
 }
+
+func TestDaemonAttachURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		daemon OpencodeDaemon
+		want   string
+	}{
+		{
+			name:   "explicit host and port",
+			daemon: OpencodeDaemon{Host: "localhost", Port: 8080},
+			want:   "http://localhost:8080",
+		},
+		{
+			name:   "default host when empty",
+			daemon: OpencodeDaemon{Host: "", Port: 8080},
+			want:   "http://127.0.0.1:8080",
+		},
+		{
+			name:   "default port when zero",
+			daemon: OpencodeDaemon{Host: "localhost", Port: 0},
+			want:   "http://localhost:19283",
+		},
+		{
+			name:   "all defaults",
+			daemon: OpencodeDaemon{Host: "", Port: 0},
+			want:   "http://127.0.0.1:19283",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DaemonAttachURL(tt.daemon)
+			if got != tt.want {
+				t.Errorf("DaemonAttachURL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

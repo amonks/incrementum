@@ -114,3 +114,16 @@ func processRunning(pid int) bool {
 	}
 	return true
 }
+
+// DaemonAttachURL returns the URL to attach to the daemon.
+func DaemonAttachURL(daemon OpencodeDaemon) string {
+	host := daemon.Host
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	port := daemon.Port
+	if port == 0 {
+		port = DefaultOpencodePort
+	}
+	return fmt.Sprintf("http://%s:%d", host, port)
+}

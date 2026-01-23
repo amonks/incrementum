@@ -57,12 +57,14 @@ func runOpencodeServe(cmd *cobra.Command, args []string) error {
 	}
 	defer logFile.Close()
 
-	serveArgs := []string{"serve"}
-	if opencodeServeHost != "" {
-		serveArgs = append(serveArgs, "--host", opencodeServeHost)
+	port := opencodeServePort
+	if port == 0 {
+		port = workspace.DefaultOpencodePort
 	}
-	if opencodeServePort != 0 {
-		serveArgs = append(serveArgs, "--port", strconv.Itoa(opencodeServePort))
+
+	serveArgs := []string{"serve", "--port", strconv.Itoa(port)}
+	if opencodeServeHost != "" {
+		serveArgs = append(serveArgs, "--hostname", opencodeServeHost)
 	}
 
 	serveCmd := exec.Command("opencode", serveArgs...)
@@ -75,7 +77,7 @@ func runOpencodeServe(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("start opencode serve: %w", err)
 	}
 
-	if _, err := pool.RecordOpencodeDaemon(repoPath, serveCmd.Process.Pid, opencodeServeHost, opencodeServePort, logPath, startedAt); err != nil {
+	if _, err := pool.RecordOpencodeDaemon(repoPath, serveCmd.Process.Pid, opencodeServeHost, port, logPath, startedAt); err != nil {
 		_ = serveCmd.Process.Kill()
 		_ = serveCmd.Wait()
 		return err

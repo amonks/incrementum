@@ -68,7 +68,8 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 	}
 	defer logFile.Close()
 
-	runArgs := []string{"run", "--attach", prompt}
+	attachURL := workspace.DaemonAttachURL(daemon)
+	runArgs := []string{"run", "--attach", attachURL, prompt}
 
 	runCmd := exec.Command("opencode", runArgs...)
 	runCmd.Stdout = io.MultiWriter(os.Stdout, logFile)

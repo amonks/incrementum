@@ -59,9 +59,8 @@ Fields (JSON keys):
 - The daemon is a foreground process invoked via `opencode serve`.
 - `ii opencode serve` records daemon state when the process starts and clears
   it when the process exits.
-- Daemon metadata comes from explicit `ii opencode serve` flags; if host/port
-  are not provided, they are left empty and the daemon is still considered
-  running.
+- Daemon uses port 19283 by default; can be overridden with `--port`.
+- Daemon uses host 127.0.0.1 by default; can be overridden with `--host`.
 - Session IDs accept case-insensitive prefix matching; prefixes must be
   unambiguous.
 - When listing or validating daemon state, verify the stored pid is still
@@ -90,7 +89,8 @@ Fields (JSON keys):
 - Accepts `--attach` for compatibility; it is always treated as enabled.
 - Creates a new opencode session record with status `active`.
 - Creates a log file at `~/.local/share/incrementum/opencode/<repo-slug>/<session-id>.log`.
-- Executes `opencode run --attach` and tees stdout/stderr to the log file.
+- Executes `opencode run --attach <url> <prompt>` where url is constructed from
+  daemon host/port, and tees stdout/stderr to the log file.
 - Uses only the provided prompt/flags; no implicit config overrides.
 - Prints the session id only.
 - Returns immediately after the opencode session is created.

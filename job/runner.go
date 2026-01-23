@@ -481,7 +481,8 @@ func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (Opencode
 		return OpencodeRunResult{}, fmt.Errorf("opencode session id mismatch")
 	}
 
-	runCmd := exec.Command("opencode", "run", "--attach", opts.Prompt)
+	attachURL := workspace.DaemonAttachURL(daemon)
+	runCmd := exec.Command("opencode", "run", "--attach", attachURL, opts.Prompt)
 	runCmd.Dir = opts.WorkspacePath
 	runCmd.Stdout = io.MultiWriter(os.Stdout, logFile)
 	runCmd.Stderr = io.MultiWriter(os.Stderr, logFile)

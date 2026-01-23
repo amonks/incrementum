@@ -124,4 +124,11 @@ func TestOpencodeRunAcceptsAttachFalse(t *testing.T) {
 	if !strings.Contains(args, "--attach") {
 		t.Fatalf("expected opencode run to include --attach, got %q", args)
 	}
+	expectedURL := fmt.Sprintf("http://127.0.0.1:%d", workspace.DefaultOpencodePort)
+	if !strings.Contains(args, expectedURL) {
+		t.Fatalf("expected opencode run to include attach URL %q, got %q", expectedURL, args)
+	}
+	if !strings.Contains(args, "Test prompt") {
+		t.Fatalf("expected opencode run to include prompt, got %q", args)
+	}
 }
