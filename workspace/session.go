@@ -1,14 +1,12 @@
 package workspace
 
 import (
-	"crypto/sha256"
-	"encoding/base32"
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/ids"
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
@@ -193,7 +191,5 @@ func (p *Pool) ListSessions(repoPath string) ([]Session, error) {
 
 func generateSessionID(todoID string, startedAt time.Time) string {
 	input := todoID + startedAt.Format(time.RFC3339Nano)
-	hash := sha256.Sum256([]byte(input))
-	encoded := base32.StdEncoding.EncodeToString(hash[:])
-	return strings.ToLower(encoded[:10])
+	return ids.Generate(input, 10)
 }
