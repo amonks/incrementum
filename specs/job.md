@@ -205,11 +205,12 @@ Behavior:
 3. Create session via session manager (acquires workspace, marks todo
    `in_progress`).
 4. In the session workspace, create a new change with `jj new <base-rev>`.
-5. Create job record with status `active`, stage `implementing`.
-6. Run state machine to completion.
-7. Output progress: stage transitions.
-8. On success: print final commit info.
-9. On failure/abandon: print reason.
+5. Output job context: workspace name, session id, change id, workspace path, and full todo details.
+6. Create job record with status `active`, stage `implementing`.
+7. Run state machine to completion.
+8. Output progress: stage transitions.
+9. On success: print final commit info.
+10. On failure/abandon: print reason.
 
 Exit codes:
 

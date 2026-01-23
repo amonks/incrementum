@@ -77,13 +77,16 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	onStageChange := func(stage jobpkg.Stage) {
 		fmt.Printf("Stage: %s\n", stage)
 	}
+	onStart := func(info jobpkg.StartInfo) {
+		printJobStart(info)
+	}
 
 	rev := jobDoRev
 	if !cmd.Flags().Changed("rev") {
 		rev = "trunk()"
 	}
 
-	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{Rev: rev, OnStageChange: onStageChange})
+	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{Rev: rev, OnStart: onStart, OnStageChange: onStageChange})
 	if err != nil {
 		return err
 	}
@@ -92,6 +95,23 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 		fmt.Printf("\nCommit message:\n%s\n", result.CommitMessage)
 	}
 	return nil
+}
+
+func printJobStart(info jobpkg.StartInfo) {
+	fmt.Printf("Workspace: %s\n", info.WorkspaceName)
+	fmt.Printf("Session: %s\n", info.SessionID)
+	fmt.Printf("Change: %s\n", info.ChangeID)
+	fmt.Printf("Workdir: %s\n", info.WorkspacePath)
+	fmt.Println("Todo:")
+	fmt.Printf("- ID: %s\n", info.Todo.ID)
+	fmt.Printf("- Title: %s\n", info.Todo.Title)
+	fmt.Printf("- Type: %s\n", info.Todo.Type)
+	fmt.Printf("- Priority: %d (%s)\n", info.Todo.Priority, todo.PriorityName(info.Todo.Priority))
+	fmt.Println("- Description:")
+	if info.Todo.Description != "" {
+		fmt.Printf("%s\n", info.Todo.Description)
+	}
+	fmt.Println()
 }
 
 func jobDoHasCreateFlags(cmd *cobra.Command) bool {

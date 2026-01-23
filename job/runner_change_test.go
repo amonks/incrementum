@@ -35,7 +35,11 @@ func TestCreateJobChangeFallsBackToRoot(t *testing.T) {
 	pathValue := binDir + string(os.PathListSeparator) + os.Getenv("PATH")
 	t.Setenv("PATH", pathValue)
 
-	if err := createJobChange(t.TempDir(), "trunk()"); err != nil {
+	changeID, err := createJobChange(t.TempDir(), "trunk()")
+	if err != nil {
 		t.Fatalf("expected fallback to root: %v", err)
+	}
+	if changeID != "change-id" {
+		t.Fatalf("expected change-id, got %q", changeID)
 	}
 }

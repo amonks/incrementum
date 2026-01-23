@@ -25,11 +25,33 @@ exec sleep 1
 
 # run job with default rev
 exec env EXPECTED_PARENT=$TRUNK_ID $II job do --title 'Default rev job' --type task --priority 2 --description 'touch default.txt' --no-edit
+stdout 'Workspace: .+'
+stdout 'Session: [a-z0-9]+'
+stdout 'Change: [a-z0-9]+'
+stdout 'Workdir: .+'
+stdout 'Todo:'
+stdout '- ID: [a-z0-9]+'
+stdout '- Title: Default rev job'
+stdout '- Type: task'
+stdout '- Priority: 2 \(medium\)'
+stdout '- Description:'
+stdout 'touch default.txt'
 stdout 'Stage: implementing'
 stdout 'Stage: committing'
 
 # run job with explicit rev
 exec env EXPECTED_PARENT=$REV_ID $II job do --title 'Flag rev job' --type task --priority 2 --description 'touch flag.txt' --no-edit --rev $REV_ID
+stdout 'Workspace: .+'
+stdout 'Session: [a-z0-9]+'
+stdout 'Change: [a-z0-9]+'
+stdout 'Workdir: .+'
+stdout 'Todo:'
+stdout '- ID: [a-z0-9]+'
+stdout '- Title: Flag rev job'
+stdout '- Type: task'
+stdout '- Priority: 2 \(medium\)'
+stdout '- Description:'
+stdout 'touch flag.txt'
 stdout 'Stage: implementing'
 stdout 'Stage: committing'
 

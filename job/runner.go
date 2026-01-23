@@ -26,6 +26,7 @@ const (
 // RunOptions configures job execution.
 type RunOptions struct {
 	Rev           string
+	OnStart       func(StartInfo)
 	OnStageChange func(Stage)
 	Now           func() time.Time
 	LoadConfig    func(string) (*config.Config, error)
@@ -99,9 +100,25 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, err
 	}
 	workspacePath := startResult.WorkspacePath
-	if err := createJobChange(workspacePath, opts.Rev); err != nil {
+	changeID, err := createJobChange(workspacePath, opts.Rev)
+	if err != nil {
 		failErr := failSession(sessionManager, item.ID, workspacePath)
 		return result, errors.Join(err, failErr)
+	}
+
+	workspaceName := filepath.Base(workspacePath)
+	workspaceAbs := workspacePath
+	if abs, absErr := filepath.Abs(workspacePath); absErr == nil {
+		workspaceAbs = abs
+	}
+	if opts.OnStart != nil {
+		opts.OnStart(StartInfo{
+			WorkspaceName: workspaceName,
+			WorkspacePath: workspaceAbs,
+			SessionID:     startResult.Session.ID,
+			ChangeID:      changeID,
+			Todo:          item,
+		})
 	}
 
 	manager, err := Open(repoPath, OpenOptions{})
@@ -239,23 +256,24 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	return opts
 }
 
-func createJobChange(workspacePath, rev string) error {
+func createJobChange(workspacePath, rev string) (string, error) {
 	rev = strings.TrimSpace(rev)
 	if rev == "" {
 		rev = "trunk()"
 	}
 	client := jj.New()
-	if _, err := client.NewChange(workspacePath, rev); err != nil {
+	changeID, err := client.NewChange(workspacePath, rev)
+	if err != nil {
 		if rev == "trunk()" && strings.Contains(err.Error(), "Revision `\"trunk()\"` doesn't exist") {
-			if _, retryErr := client.NewChange(workspacePath, "root()"); retryErr == nil {
-				return nil
+			if retryChangeID, retryErr := client.NewChange(workspacePath, "root()"); retryErr == nil {
+				return retryChangeID, nil
 			} else {
 				err = retryErr
 			}
 		}
-		return fmt.Errorf("create job change: %w", err)
+		return "", fmt.Errorf("create job change: %w", err)
 	}
-	return nil
+	return changeID, nil
 }
 
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (Job, error) {

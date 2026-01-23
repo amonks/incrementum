@@ -1,6 +1,9 @@
 package job
 
-import statestore "github.com/amonks/incrementum/internal/state"
+import (
+	statestore "github.com/amonks/incrementum/internal/state"
+	"github.com/amonks/incrementum/todo"
+)
 
 // Status represents the job lifecycle state.
 type Status = statestore.JobStatus
@@ -45,3 +48,12 @@ type OpencodeSession = statestore.JobOpencodeSession
 
 // Job captures job metadata for a todo.
 type Job = statestore.Job
+
+// StartInfo captures context when starting a job run.
+type StartInfo struct {
+	WorkspaceName string
+	WorkspacePath string
+	SessionID     string
+	ChangeID      string
+	Todo          todo.Todo
+}
