@@ -26,6 +26,8 @@ type OpenOptions struct {
 type StartOptions struct {
 	Topic string
 	Rev   string
+	// StartedAt overrides the session start timestamp when non-zero.
+	StartedAt time.Time
 }
 
 // FinalizeOptions configures done/fail.
@@ -43,6 +45,7 @@ type sessionStartOptions struct {
 	Topic        string
 	Rev          string
 	UseTodoTitle bool
+	StartedAt    time.Time
 }
 
 type sessionStartData struct {
@@ -115,6 +118,7 @@ func (m *Manager) Start(todoID string, opts StartOptions) (*StartResult, error) 
 		Topic:        opts.Topic,
 		Rev:          opts.Rev,
 		UseTodoTitle: true,
+		StartedAt:    opts.StartedAt,
 	})
 	if err != nil {
 		return nil, err
@@ -163,7 +167,10 @@ func (m *Manager) startSession(todoID string, opts sessionStartOptions) (*sessio
 		return nil, err
 	}
 
-	startedAt := time.Now()
+	startedAt := opts.StartedAt
+	if startedAt.IsZero() {
+		startedAt = time.Now()
+	}
 	created, err := m.createSession(m.repoPath, item.ID, wsName, topic, startedAt)
 	if err != nil {
 		reset := todo.StatusOpen

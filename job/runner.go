@@ -81,6 +81,9 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, fmt.Errorf("todo not found: %s", todoID)
 	}
 	item := items[0]
+	startedAt := opts.Now()
+	jobID := GenerateID(item.ID, startedAt)
+	jobTopic := fmt.Sprintf("job %s: %s", jobID, item.Title)
 
 	sessionManager, err := session.Open(repoPath, session.OpenOptions{
 		Todo: todo.OpenOptions{
@@ -95,7 +98,7 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	}
 	defer sessionManager.Close()
 
-	startResult, err := sessionManager.Start(item.ID, session.StartOptions{})
+	startResult, err := sessionManager.Start(item.ID, session.StartOptions{Topic: jobTopic, StartedAt: startedAt})
 	if err != nil {
 		return result, err
 	}

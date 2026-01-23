@@ -203,7 +203,7 @@ Behavior:
    - If `--rev` is provided, use that.
    - Otherwise use `trunk()` (fall back to `root()` if `trunk()` is missing).
 3. Create session via session manager (acquires workspace, marks todo
-   `in_progress`).
+   `in_progress`), using a topic that includes the job id.
 4. In the session workspace, create a new change with `jj new <base-rev>`.
 5. Output job context: workspace name, session id, change id, workspace path, and full todo details.
 6. Create job record with status `active`, stage `implementing`.
