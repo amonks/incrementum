@@ -12,7 +12,7 @@ exec $II opencode serve &serve&
 exec sleep 1
 
 # run job
-exec $II job do --title 'Touch file' --type task --priority 2 --description 'In the bash tool, run touch hello-world.txt' --no-edit
+exec env PWD=$WORK $II job do --title 'Touch file' --type task --priority 2 --description 'In the bash tool, run touch hello-world.txt' --no-edit
 stdout 'Stage: implementing'
 stdout 'Stage: testing'
 stdout 'Stage: reviewing'
@@ -20,25 +20,56 @@ stdout 'Stage: committing'
 stdout 'Commit message:'
 stdout 'Test commit message'
 stdout 'Refs:'
+! exists hello-world.txt
+! exists $WORK/hello-world.txt
 
 -- bin/opencode --
-#!/bin/sh
+#!/usr/bin/env python3
 
-cmd="$1"
+import os
+import sys
+import time
 
-case "$cmd" in
-  serve)
-    trap 'exit 0' INT TERM
-    while true; do
-      sleep 1
-    done
-    ;;
-  run)
-    touch hello-world.txt
-    printf '%s\n' "Test commit message" > .incrementum-commit-message
-    exit 0
-    ;;
-  *)
-    exit 0
-    ;;
-esac
+
+def run_serve():
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        return
+
+
+def extract_workspace_root(prompt: str) -> str:
+    for line in prompt.splitlines():
+        if line.startswith("Workspace root:"):
+            return line.split(":", 1)[1].strip()
+    raise RuntimeError("workspace root missing from prompt")
+
+
+def run_job(prompt: str):
+    workspace_root = extract_workspace_root(prompt)
+    pwd = os.environ.get("PWD", "")
+    if not pwd:
+        raise RuntimeError("PWD not set")
+    if pwd != workspace_root:
+        raise RuntimeError(f"PWD {pwd} does not match workspace root {workspace_root}")
+    open(os.path.join(workspace_root, "hello-world.txt"), "a").close()
+    with open(os.path.join(workspace_root, ".incrementum-commit-message"), "w") as handle:
+        handle.write("Test commit message\n")
+
+
+def main():
+    if len(sys.argv) < 2:
+        return
+    cmd = sys.argv[1]
+    if cmd == "serve":
+        run_serve()
+        return
+    if cmd == "run":
+        prompt = sys.argv[-1] if len(sys.argv) > 2 else ""
+        run_job(prompt)
+        return
+
+
+if __name__ == "__main__":
+    main()

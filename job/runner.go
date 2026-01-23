@@ -330,7 +330,8 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, fmt.Errorf("opencode review failed with exit code %d", opencodeResult.ExitCode)
 	}
 
-	feedback, err := ReadReviewFeedback(feedbackPath)
+	fallbackFeedbackPath := filepath.Join(repoPath, feedbackFilename)
+	feedback, err := readReviewFeedbackWithFallback(feedbackPath, fallbackFeedbackPath)
 	if err != nil {
 		return Job{}, err
 	}
@@ -394,7 +395,8 @@ func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath,
 		return Job{}, fmt.Errorf("opencode commit message failed with exit code %d", opencodeResult.ExitCode)
 	}
 
-	message, err := readCommitMessage(messagePath)
+	fallbackMessagePath := filepath.Join(repoPath, commitMessageFilename)
+	message, err := readCommitMessageWithFallback(messagePath, fallbackMessagePath)
 	if err != nil {
 		return Job{}, err
 	}
@@ -441,15 +443,19 @@ func renderPromptTemplate(item todo.Todo, feedback, message, name, workspacePath
 	if err != nil {
 		return "", err
 	}
-	return RenderPrompt(prompt, PromptData{Todo: item, Feedback: feedback, Message: message})
+	return RenderPrompt(prompt, PromptData{Todo: item, Feedback: feedback, Message: message, WorkspacePath: workspacePath})
 }
 
 func readCommitMessage(path string) (string, error) {
-	data, err := os.ReadFile(path)
+	return readCommitMessageWithFallback(path, "")
+}
+
+func readCommitMessageWithFallback(path, fallbackPath string) (string, error) {
+	data, usedPath, err := readFileWithFallback(path, fallbackPath)
 	if err != nil {
 		return "", fmt.Errorf("read commit message: %w", err)
 	}
-	removeErr := removeFileIfExists(path)
+	removeErr := removeFileIfExists(usedPath)
 	if removeErr != nil {
 		removeErr = fmt.Errorf("remove commit message: %w", removeErr)
 	}
@@ -515,6 +521,7 @@ func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (Opencode
 	attachURL := workspace.DaemonAttachURL(daemon)
 	runCmd := exec.Command("opencode", "run", "--attach", attachURL, opts.Prompt)
 	runCmd.Dir = opts.WorkspacePath
+	runCmd.Env = replaceEnvVar(os.Environ(), "PWD", opts.WorkspacePath)
 	runCmd.Stdout = io.MultiWriter(os.Stdout, logFile)
 	runCmd.Stderr = io.MultiWriter(os.Stderr, logFile)
 	runCmd.Stdin = os.Stdin
@@ -533,6 +540,19 @@ func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (Opencode
 		return OpencodeRunResult{}, runErr
 	}
 	return OpencodeRunResult{SessionID: sessionID, ExitCode: exitCode}, nil
+}
+
+func replaceEnvVar(env []string, key, value string) []string {
+	prefix := key + "="
+	updated := make([]string, 0, len(env)+1)
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			continue
+		}
+		updated = append(updated, entry)
+	}
+	updated = append(updated, prefix+value)
+	return updated
 }
 
 func runExitCode(cmd *exec.Cmd) (int, error) {

@@ -28,14 +28,18 @@ type ReviewFeedback struct {
 // ReadReviewFeedback loads feedback from a file.
 // Missing files are treated as ACCEPT.
 func ReadReviewFeedback(path string) (ReviewFeedback, error) {
-	data, err := os.ReadFile(path)
+	return readReviewFeedbackWithFallback(path, "")
+}
+
+func readReviewFeedbackWithFallback(path, fallbackPath string) (ReviewFeedback, error) {
+	data, usedPath, err := readFileWithFallback(path, fallbackPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ReviewFeedback{Outcome: ReviewOutcomeAccept}, nil
 		}
 		return ReviewFeedback{}, fmt.Errorf("read feedback: %w", err)
 	}
-	removeErr := removeFileIfExists(path)
+	removeErr := removeFileIfExists(usedPath)
 	if removeErr != nil {
 		removeErr = fmt.Errorf("remove feedback: %w", removeErr)
 	}

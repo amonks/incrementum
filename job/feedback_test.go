@@ -68,3 +68,30 @@ func TestReadReviewFeedbackDeletesFile(t *testing.T) {
 		t.Fatalf("expected feedback file to be deleted")
 	}
 }
+
+func TestReadReviewFeedbackFallsBackToRepoRoot(t *testing.T) {
+	workspaceDir := t.TempDir()
+	repoDir := t.TempDir()
+	primary := filepath.Join(workspaceDir, feedbackFilename)
+	fallback := filepath.Join(repoDir, feedbackFilename)
+
+	contents := "REQUEST_CHANGES\n\nUse the workspace path."
+	if err := os.WriteFile(fallback, []byte(contents), 0o644); err != nil {
+		t.Fatalf("write feedback: %v", err)
+	}
+
+	feedback, err := readReviewFeedbackWithFallback(primary, fallback)
+	if err != nil {
+		t.Fatalf("read feedback: %v", err)
+	}
+	if feedback.Outcome != ReviewOutcomeRequestChanges {
+		t.Fatalf("expected REQUEST_CHANGES, got %q", feedback.Outcome)
+	}
+	if feedback.Details != "Use the workspace path." {
+		t.Fatalf("expected details %q, got %q", "Use the workspace path.", feedback.Details)
+	}
+
+	if _, err := os.Stat(fallback); !os.IsNotExist(err) {
+		t.Fatalf("expected feedback fallback to be deleted")
+	}
+}

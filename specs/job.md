@@ -49,7 +49,8 @@ Fields (JSON keys):
 ## Feedback File
 
 Opencode communicates review outcomes by writing to `.incrementum-feedback` in the
-workspace root.
+workspace root. If the file is missing there, fall back to the repo root (in case
+opencode ran from the default workspace).
 
 Format:
 
@@ -70,7 +71,8 @@ If the file doesn't exist after review, treat as `ACCEPT`.
 ## Commit Message File
 
 Opencode writes the generated commit message to `.incrementum-commit-message` in the
-workspace root.
+workspace root. If the file is missing there, fall back to the repo root (in case
+opencode ran from the default workspace).
 
 ## State Machine
 
@@ -89,7 +91,7 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the workspace.
 2. Delete `.incrementum-feedback` if it exists.
-3. Run opencode with `implement.tmpl` prompt.
+3. Run opencode with `implement.tmpl` prompt from the workspace root (PWD set to the workspace).
 4. Template receives: `Todo`, `Feedback` (empty string on initial run).
 5. Record opencode session in `opencode_sessions` with purpose `implement`.
 6. Wait for opencode completion.
@@ -109,7 +111,7 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the workspace.
 2. Delete `.incrementum-feedback` if it exists.
-3. Run opencode with `review.tmpl` prompt.
+3. Run opencode with `review.tmpl` prompt from the workspace root (PWD set to the workspace).
 4. Template receives: `Todo`.
 5. Template instructs opencode to inspect changes (e.g., `jj diff`) and write
    outcome to `.incrementum-feedback`.
@@ -128,7 +130,7 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the workspace.
 2. Delete `.incrementum-commit-message` if it exists.
-3. Run opencode with `commit-message.tmpl` prompt.
+3. Run opencode with `commit-message.tmpl` prompt from the workspace root (PWD set to the workspace).
 4. Template receives: `Todo`.
 5. Template instructs opencode to generate commit message and write to
    `.incrementum-commit-message`.
@@ -171,14 +173,15 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 
 | File                  | Stage        | Variables                     |
 | --------------------- | ------------ | ----------------------------- |
-| `implement.tmpl`      | implementing | `Todo`, `Feedback` |
-| `review.tmpl`         | reviewing    | `Todo`                        |
-| `commit-message.tmpl` | committing   | `Todo`                        |
-| `commit.tmpl`         | committing   | `Todo`, `Message`             |
+| `implement.tmpl`      | implementing | `Todo`, `Feedback`, `WorkspacePath` |
+| `review.tmpl`         | reviewing    | `Todo`, `WorkspacePath`                        |
+| `commit-message.tmpl` | committing   | `Todo`, `WorkspacePath`                        |
+| `commit.tmpl`         | committing   | `Todo`, `Message`, `WorkspacePath`             |
 
 Templates use Go `text/template` syntax.
 
 `Todo` exposes: `ID`, `Title`, `Description`, `Type`, `Priority`.
+`WorkspacePath` is the absolute path to the job's workspace root.
 
 ## Commands
 

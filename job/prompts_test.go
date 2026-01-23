@@ -68,3 +68,16 @@ func TestRenderPrompt_InterpolatesFields(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expected, rendered)
 	}
 }
+
+func TestRenderPrompt_InterpolatesWorkspacePath(t *testing.T) {
+	data := PromptData{WorkspacePath: "/tmp/ws-123"}
+
+	rendered, err := RenderPrompt("{{.WorkspacePath}}", data)
+	if err != nil {
+		t.Fatalf("render prompt: %v", err)
+	}
+
+	if strings.TrimSpace(rendered) != "/tmp/ws-123" {
+		t.Fatalf("expected workspace path to render, got %q", rendered)
+	}
+}

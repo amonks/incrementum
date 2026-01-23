@@ -19,9 +19,10 @@ var defaultPrompts embed.FS
 
 // PromptData supplies values for job prompt templates.
 type PromptData struct {
-	Todo     todo.Todo
-	Feedback string
-	Message  string
+	Todo          todo.Todo
+	Feedback      string
+	Message       string
+	WorkspacePath string
 }
 
 // LoadPrompt loads a prompt template for the repo.

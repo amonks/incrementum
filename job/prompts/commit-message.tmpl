@@ -1,5 +1,8 @@
 Generate a concise commit message for the following todo.
-Write the message to .incrementum-commit-message.
+Write the message to {{.WorkspacePath}}/.incrementum-commit-message.
+
+Workspace root: {{.WorkspacePath}}
+Use this path as the repo root for all commands and file edits.
 
 Todo:
 - ID: {{.Todo.ID}}
