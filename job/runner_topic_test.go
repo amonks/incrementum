@@ -4,16 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/amonks/incrementum/internal/config"
-	"github.com/amonks/incrementum/session"
 	"github.com/amonks/incrementum/todo"
 )
 
-func TestRunIncludesJobIDInSessionTopic(t *testing.T) {
+func TestRunMarksTodoInProgress(t *testing.T) {
 	repoPath := setupJobRepo(t)
 
 	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
@@ -30,7 +28,7 @@ func TestRunIncludesJobIDInSessionTopic(t *testing.T) {
 	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 	opencodeCount := 0
 
-	result, err := Run(repoPath, created.ID, RunOptions{
+	_, err = Run(repoPath, created.ID, RunOptions{
 		Now: func() time.Time { return now },
 		LoadConfig: func(string) (*config.Config, error) {
 			return &config.Config{}, nil
@@ -49,36 +47,39 @@ func TestRunIncludesJobIDInSessionTopic(t *testing.T) {
 			}
 			return OpencodeRunResult{SessionID: fmt.Sprintf("opencode-%d", opencodeCount), ExitCode: 0}, nil
 		},
+		OnStart: func(StartInfo) {
+			store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+			if err != nil {
+				t.Fatalf("open todo store: %v", err)
+			}
+			items, err := store.Show([]string{created.ID})
+			if err != nil {
+				store.Release()
+				t.Fatalf("show todo: %v", err)
+			}
+			status := items[0].Status
+			store.Release()
+			if status != todo.StatusInProgress {
+				t.Fatalf("expected todo in progress, got %q", status)
+			}
+		},
 	})
 	if err != nil {
 		t.Fatalf("run job: %v", err)
 	}
 
-	manager, err := session.Open(repoPath, session.OpenOptions{
-		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
-	})
+	store, err = todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
 	if err != nil {
-		t.Fatalf("open session manager: %v", err)
+		t.Fatalf("open todo store: %v", err)
 	}
-	defer manager.Close()
-
-	sessions, err := manager.List(session.ListFilter{IncludeAll: true})
+	items, err := store.Show([]string{created.ID})
 	if err != nil {
-		t.Fatalf("list sessions: %v", err)
+		store.Release()
+		t.Fatalf("show todo: %v", err)
 	}
-
-	var matched *session.Session
-	for _, item := range sessions {
-		if item.ID == result.Job.SessionID {
-			entry := item
-			matched = &entry
-			break
-		}
-	}
-	if matched == nil {
-		t.Fatalf("expected session %q", result.Job.SessionID)
-	}
-	if !strings.Contains(matched.Topic, result.Job.ID) {
-		t.Fatalf("expected topic %q to include job id %q", matched.Topic, result.Job.ID)
+	status := items[0].Status
+	store.Release()
+	if status != todo.StatusDone {
+		t.Fatalf("expected todo done, got %q", status)
 	}
 }

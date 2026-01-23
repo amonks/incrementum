@@ -13,7 +13,6 @@ import (
 
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/jj"
-	"github.com/amonks/incrementum/session"
 	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/workspace"
 )
@@ -25,7 +24,6 @@ const (
 
 // RunOptions configures job execution.
 type RunOptions struct {
-	Rev           string
 	OnStart       func(StartInfo)
 	OnStageChange func(Stage)
 	Now           func() time.Time
@@ -62,6 +60,10 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 
 	opts = normalizeRunOptions(opts)
 	result := &RunResult{}
+	repoPath = filepath.Clean(repoPath)
+	if abs, absErr := filepath.Abs(repoPath); absErr == nil {
+		repoPath = abs
+	}
 
 	store, err := todo.Open(repoPath, todo.OpenOptions{
 		CreateIfMissing: true,
@@ -73,6 +75,16 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	}
 
 	items, err := store.Show([]string{todoID})
+	if err != nil {
+		releaseErr := store.Release()
+		return result, errors.Join(err, releaseErr)
+	}
+	if len(items) == 0 {
+		releaseErr := store.Release()
+		return result, errors.Join(fmt.Errorf("todo not found: %s", todoID), releaseErr)
+	}
+	item := items[0]
+	_, err = store.Start([]string{item.ID})
 	releaseErr := store.Release()
 	if err != nil {
 		return result, errors.Join(err, releaseErr)
@@ -80,63 +92,26 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	if releaseErr != nil {
 		return result, releaseErr
 	}
-	if len(items) == 0 {
-		return result, fmt.Errorf("todo not found: %s", todoID)
-	}
-	item := items[0]
 	startedAt := opts.Now()
-	jobID := GenerateID(item.ID, startedAt)
-	jobTopic := fmt.Sprintf("job %s: %s", jobID, item.Title)
-
-	sessionManager, err := session.Open(repoPath, session.OpenOptions{
-		Todo: todo.OpenOptions{
-			CreateIfMissing: true,
-			PromptToCreate:  true,
-			Purpose:         fmt.Sprintf("todo store (session for job %s)", todoID),
-		},
-		AllowMissingTodo: false,
-	})
-	if err != nil {
-		return result, err
-	}
-	defer sessionManager.Close()
-
-	startResult, err := sessionManager.Start(item.ID, session.StartOptions{Topic: jobTopic, StartedAt: startedAt})
-	if err != nil {
-		return result, err
-	}
-	workspacePath := startResult.WorkspacePath
-	changeID, err := createJobChange(workspacePath, opts.Rev)
-	if err != nil {
-		failErr := failSession(sessionManager, item.ID, workspacePath)
-		return result, errors.Join(err, failErr)
-	}
-
-	workspaceName := filepath.Base(workspacePath)
-	workspaceAbs := workspacePath
-	if abs, absErr := filepath.Abs(workspacePath); absErr == nil {
-		workspaceAbs = abs
-	}
+	workspacePath := repoPath
+	workspaceAbs := repoPath
 	if opts.OnStart != nil {
 		opts.OnStart(StartInfo{
-			WorkspaceName: workspaceName,
-			WorkspacePath: workspaceAbs,
-			SessionID:     startResult.Session.ID,
-			ChangeID:      changeID,
-			Todo:          item,
+			Workdir: workspaceAbs,
+			Todo:    item,
 		})
 	}
 
 	manager, err := Open(repoPath, OpenOptions{})
 	if err != nil {
-		failErr := failSession(sessionManager, item.ID, workspacePath)
-		return result, errors.Join(err, failErr)
+		reopenErr := reopenTodo(repoPath, item.ID)
+		return result, errors.Join(err, reopenErr)
 	}
 
-	created, err := manager.Create(item.ID, startResult.Session.ID, startResult.Session.StartedAt)
+	created, err := manager.Create(item.ID, startedAt)
 	if err != nil {
-		failErr := failSession(sessionManager, item.ID, workspacePath)
-		return result, errors.Join(err, failErr)
+		reopenErr := reopenTodo(repoPath, item.ID)
+		return result, errors.Join(err, reopenErr)
 	}
 	result.Job = created
 	if opts.OnStageChange != nil {
@@ -148,27 +123,32 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	defer signal.Stop(interrupts)
 
 	runCtx := runContext{
-		repoPath:       repoPath,
-		workspacePath:  workspacePath,
-		item:           item,
-		opts:           opts,
-		manager:        manager,
-		sessionManager: sessionManager,
-		result:         result,
+		repoPath:      repoPath,
+		workspacePath: workspacePath,
+		item:          item,
+		opts:          opts,
+		manager:       manager,
+		result:        result,
 	}
 	finalJob, err := runJobStages(runCtx, created, interrupts)
 	result.Job = finalJob
-	return result, err
+	statusErr := finalizeTodo(repoPath, item.ID, finalJob.Status)
+	if err != nil {
+		return result, errors.Join(err, statusErr)
+	}
+	if statusErr != nil {
+		return result, statusErr
+	}
+	return result, nil
 }
 
 type runContext struct {
-	repoPath       string
-	workspacePath  string
-	item           todo.Todo
-	opts           RunOptions
-	manager        *Manager
-	sessionManager *session.Manager
-	result         *RunResult
+	repoPath      string
+	workspacePath string
+	item          todo.Todo
+	opts          RunOptions
+	manager       *Manager
+	result        *RunResult
 }
 
 func runJobStages(ctx runContext, current Job, interrupts <-chan os.Signal) (Job, error) {
@@ -209,7 +189,7 @@ func (ctx runContext) stageRunner(current Job) (func() (Job, error), error) {
 		}, nil
 	case StageCommitting:
 		return func() (Job, error) {
-			return runCommittingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.sessionManager, ctx.opts, ctx.result)
+			return runCommittingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.result)
 		}, nil
 	default:
 		return nil, fmt.Errorf("invalid job stage: %s", current.Stage)
@@ -240,21 +220,18 @@ func (ctx runContext) runStageWithInterrupt(current Job, stageFn func() (Job, er
 func (ctx runContext) handleInterrupt(current Job) (Job, error) {
 	status := StatusFailed
 	updated, updateErr := ctx.manager.Update(current.ID, UpdateOptions{Status: &status}, ctx.opts.Now())
-	failErr := failSession(ctx.sessionManager, ctx.item.ID, ctx.workspacePath)
-	return updated, errors.Join(ErrJobInterrupted, updateErr, failErr)
+	return updated, errors.Join(ErrJobInterrupted, updateErr)
 }
 
 func (ctx runContext) handleStageOutcome(current, next Job, stageErr error) (Job, error) {
 	if stageErr != nil {
 		if next.Status == StatusAbandoned {
 			ctx.result.Job = next
-			failErr := failSession(ctx.sessionManager, ctx.item.ID, ctx.workspacePath)
-			return next, errors.Join(stageErr, failErr)
+			return next, stageErr
 		}
 		updated, updateErr := ctx.manager.Update(current.ID, UpdateOptions{Status: statusPtr(StatusFailed)}, ctx.opts.Now())
 		ctx.result.Job = updated
-		failErr := failSession(ctx.sessionManager, ctx.item.ID, ctx.workspacePath)
-		return updated, errors.Join(stageErr, updateErr, failErr)
+		return updated, errors.Join(stageErr, updateErr)
 	}
 	if next.ID != "" {
 		if next.Stage != current.Stage && ctx.opts.OnStageChange != nil {
@@ -267,9 +244,6 @@ func (ctx runContext) handleStageOutcome(current, next Job, stageErr error) (Job
 }
 
 func normalizeRunOptions(opts RunOptions) RunOptions {
-	if strings.TrimSpace(opts.Rev) == "" {
-		opts.Rev = "trunk()"
-	}
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
@@ -293,26 +267,6 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		opts.UpdateStale = client.WorkspaceUpdateStale
 	}
 	return opts
-}
-
-func createJobChange(workspacePath, rev string) (string, error) {
-	rev = strings.TrimSpace(rev)
-	if rev == "" {
-		rev = "trunk()"
-	}
-	client := jj.New()
-	changeID, err := client.NewChange(workspacePath, rev)
-	if err != nil {
-		if rev == "trunk()" && strings.Contains(err.Error(), "Revision `\"trunk()\"` doesn't exist") {
-			if retryChangeID, retryErr := client.NewChange(workspacePath, "root()"); retryErr == nil {
-				return retryChangeID, nil
-			} else {
-				err = retryErr
-			}
-		}
-		return "", fmt.Errorf("create job change: %w", err)
-	}
-	return changeID, nil
 }
 
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (Job, error) {
@@ -447,7 +401,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	}
 }
 
-func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, sessionManager *session.Manager, opts RunOptions, result *RunResult) (Job, error) {
+func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, result *RunResult) (Job, error) {
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	messagePath := filepath.Join(workspacePath, commitMessageFilename)
 	if err := removeFileIfExists(messagePath); err != nil {
@@ -493,10 +447,6 @@ func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath,
 	client := jj.New()
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	if err := client.Describe(workspacePath, finalMessage); err != nil {
-		return Job{}, err
-	}
-
-	if _, err := sessionManager.Done(item.ID, session.FinalizeOptions{WorkspacePath: workspacePath}); err != nil {
 		return Job{}, err
 	}
 
@@ -686,10 +636,39 @@ func statusPtr(status Status) *Status {
 	return &status
 }
 
-func failSession(manager *session.Manager, todoID, workspacePath string) error {
-	if manager == nil {
+func finalizeTodo(repoPath, todoID string, status Status) error {
+	switch status {
+	case StatusCompleted:
+		return finishTodo(repoPath, todoID)
+	case StatusFailed, StatusAbandoned:
+		return reopenTodo(repoPath, todoID)
+	default:
 		return nil
 	}
-	_, err := manager.Fail(todoID, session.FinalizeOptions{WorkspacePath: workspacePath})
-	return err
+}
+
+func finishTodo(repoPath, todoID string) error {
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+	if err != nil {
+		return err
+	}
+	_, err = store.Finish([]string{todoID})
+	releaseErr := store.Release()
+	if err != nil {
+		return errors.Join(err, releaseErr)
+	}
+	return releaseErr
+}
+
+func reopenTodo(repoPath, todoID string) error {
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+	if err != nil {
+		return err
+	}
+	_, err = store.Reopen([]string{todoID})
+	releaseErr := store.Release()
+	if err != nil {
+		return errors.Join(err, releaseErr)
+	}
+	return releaseErr
 }

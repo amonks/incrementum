@@ -69,12 +69,11 @@ func TestStore_SaveLoad(t *testing.T) {
 		OpencodeSessions: make(map[string]OpencodeSession),
 		Jobs: map[string]Job{
 			"job-123": {
-				ID:        "job-123",
-				Repo:      "my-project",
-				TodoID:    "todo-1",
-				SessionID: "session-1",
-				Stage:     JobStageImplementing,
-				Status:    JobStatusActive,
+				ID:     "job-123",
+				Repo:   "my-project",
+				TodoID: "todo-1",
+				Stage:  JobStageImplementing,
+				Status: JobStatusActive,
 			},
 		},
 	}

@@ -11,12 +11,11 @@ import (
 func TestPrintJobDetailIncludesFeedbackAndSessions(t *testing.T) {
 	startedAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 	job := jobpkg.Job{
-		ID:        "job-123",
-		TodoID:    "todo-abc",
-		SessionID: "session-xyz",
-		Stage:     jobpkg.StageImplementing,
-		Status:    jobpkg.StatusActive,
-		Feedback:  "Please address lint failures.",
+		ID:       "job-123",
+		TodoID:   "todo-abc",
+		Stage:    jobpkg.StageImplementing,
+		Status:   jobpkg.StatusActive,
+		Feedback: "Please address lint failures.",
 		OpencodeSessions: []jobpkg.OpencodeSession{
 			{Purpose: "implement", ID: "open-1"},
 			{Purpose: "review", ID: "open-2"},
@@ -34,9 +33,6 @@ func TestPrintJobDetailIncludesFeedbackAndSessions(t *testing.T) {
 	}
 	if !strings.Contains(output, "Todo:    todo-abc - Improve CLI") {
 		t.Fatalf("expected todo line with title, got: %q", output)
-	}
-	if !strings.Contains(output, "Session: session-xyz") {
-		t.Fatalf("expected session id in output, got: %q", output)
 	}
 	if !strings.Contains(output, "Stage:   implementing") {
 		t.Fatalf("expected stage in output, got: %q", output)

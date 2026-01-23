@@ -206,7 +206,6 @@ type Job struct {
 	ID               string               `json:"id"`
 	Repo             string               `json:"repo"`
 	TodoID           string               `json:"todo_id"`
-	SessionID        string               `json:"session_id"`
 	Stage            JobStage             `json:"stage"`
 	Feedback         string               `json:"feedback,omitempty"`
 	OpencodeSessions []JobOpencodeSession `json:"opencode_sessions,omitempty"`

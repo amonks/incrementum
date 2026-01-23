@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/jj"
-	"github.com/amonks/incrementum/session"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -85,21 +84,6 @@ func TestRunInterruptMarksJobFailed(t *testing.T) {
 	}
 	store.Release()
 
-	sessionManager, err := session.Open(repoPath, session.OpenOptions{
-		Todo: todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false},
-	})
-	if err != nil {
-		t.Fatalf("open session manager: %v", err)
-	}
-	defer sessionManager.Close()
-
-	sessions, err := sessionManager.List(session.ListFilter{})
-	if err != nil {
-		t.Fatalf("list sessions: %v", err)
-	}
-	if len(sessions) != 0 {
-		t.Fatalf("expected no active sessions, got %d", len(sessions))
-	}
 }
 
 func setupJobRepo(t *testing.T) string {

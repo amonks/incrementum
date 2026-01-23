@@ -3,10 +3,10 @@
 ## Overview
 
 The job package and subcommand automate todo completion via opencode. A job
-creates a session, runs opencode to implement the todo, runs acceptance tests,
-runs opencode to review changes, generates a commit message, and describes the
-commit. Jobs retry on test failure or review rejection until opencode decides
-to abandon.
+runs from the current working directory, invokes opencode to implement the
+todo, runs acceptance tests, runs opencode to review changes, generates a commit
+message, and describes the commit. Jobs retry on test failure or review
+rejection until opencode decides to abandon.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ Follow our usual testing practice:
 - Job state stored in `~/.local/state/incrementum/state.json` alongside other
   state.
 - Jobs are scoped per repo using the same repo slug as other state.
-- Each job references a session by ID; the session owns the workspace.
+- Jobs do not create sessions or workspaces.
 - Job records track opencode sessions created during the job.
 
 ## Job Model
@@ -35,7 +35,6 @@ Fields (JSON keys):
 - `id`: job id (hash of todo_id + timestamp).
 - `repo`: repo slug.
 - `todo_id`: full resolved todo id.
-- `session_id`: the underlying session id.
 - `stage`: `implementing`, `testing`, `reviewing`, `committing`.
 - `feedback`: feedback from last failed stage (test results table or review
   feedback).
@@ -49,8 +48,8 @@ Fields (JSON keys):
 ## Feedback File
 
 Opencode communicates review outcomes by writing to `.incrementum-feedback` in the
-workspace root. If the file is missing there, fall back to the repo root (in case
-opencode ran from the default workspace).
+job working directory (the repo root). If the file is missing there, fall back to
+the repo root (for backwards compatibility).
 
 Format:
 
@@ -71,8 +70,8 @@ If the file doesn't exist after review, treat as `ACCEPT`.
 ## Commit Message File
 
 Opencode writes the generated commit message to `.incrementum-commit-message` in the
-workspace root. If the file is missing there, fall back to the repo root (in case
-opencode ran from the default workspace).
+job working directory (the repo root). If the file is missing there, fall back to
+the repo root (for backwards compatibility).
 
 ## State Machine
 
@@ -89,9 +88,9 @@ any stage -> failed (unrecoverable error)
 
 ### implementing
 
-1. Best-effort `jj workspace update-stale` in the workspace.
+1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` if it exists.
-3. Run opencode with `implement.tmpl` prompt from the workspace root (PWD set to the workspace).
+3. Run opencode with `implement.tmpl` prompt from the repo root (PWD set to the repo root).
 4. Template receives: `Todo`, `Feedback` (empty string on initial run).
 5. Record opencode session in `opencode_sessions` with purpose `implement`.
 6. Wait for opencode completion.
@@ -109,9 +108,9 @@ any stage -> failed (unrecoverable error)
 
 ### reviewing
 
-1. Best-effort `jj workspace update-stale` in the workspace.
+1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` if it exists.
-3. Run opencode with `review.tmpl` prompt from the workspace root (PWD set to the workspace).
+3. Run opencode with `review.tmpl` prompt from the repo root (PWD set to the repo root).
 4. Template receives: `Todo`.
 5. Template instructs opencode to inspect changes (e.g., `jj diff`) and write
    outcome to `.incrementum-feedback`.
@@ -128,9 +127,9 @@ any stage -> failed (unrecoverable error)
 
 ### committing
 
-1. Best-effort `jj workspace update-stale` in the workspace.
+1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-commit-message` if it exists.
-3. Run opencode with `commit-message.tmpl` prompt from the workspace root (PWD set to the workspace).
+3. Run opencode with `commit-message.tmpl` prompt from the repo root (PWD set to the repo root).
 4. Template receives: `Todo`.
 5. Template instructs opencode to generate commit message and write to
    `.incrementum-commit-message`.
@@ -140,21 +139,26 @@ any stage -> failed (unrecoverable error)
 9. Read `.incrementum-commit-message`.
 10. Delete `.incrementum-commit-message` after reading.
 11. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
-12. Best-effort `jj workspace update-stale` in the workspace.
-13. Run `jj describe -m "<formatted message>"` in workspace.
+12. Best-effort `jj workspace update-stale` in the repo working directory.
+13. Run `jj describe -m "<formatted message>"` in the repo working directory.
 14. If describe fails: mark job `failed`.
-15. Call session `Done` (releases workspace, marks todo done).
-16. Mark job `completed`.
+15. Mark job `completed`.
 
 ## Failure Handling
 
-- `failed`: unrecoverable error (opencode daemon not running, can't acquire
-  workspace, describe fails, invalid feedback format).
+- `failed`: unrecoverable error (opencode daemon not running, describe fails,
+  invalid feedback format).
 - `abandoned`: opencode decided the task is impossible.
 
-Both call session `Fail` (releases workspace, marks todo open).
+Both reopen the todo.
 
-On interrupt (SIGINT), mark job `failed` and release workspace.
+On interrupt (SIGINT), mark job `failed` and reopen the todo.
+
+## Todo Status Updates
+
+- Before running, mark the todo `in_progress`.
+- When a job completes successfully, mark the todo `done`.
+- When a job fails or is abandoned, reopen the todo (`open`).
 
 ## Config
 
@@ -185,7 +189,7 @@ Templates use Go `text/template` syntax.
 
 ## Commands
 
-### `ii job do [todo-id | creation-flags] [--rev <rev>]`
+### `ii job do [todo-id | creation-flags]`
 
 Create and run a job to completion (blocking).
 
@@ -200,18 +204,14 @@ Behavior:
 
 1. Resolve or create todo.
 2. Release the todo store workspace once the todo is loaded.
-3. Determine the base revision:
-   - If `--rev` is provided, use that.
-   - Otherwise use `trunk()` (fall back to `root()` if `trunk()` is missing).
-4. Create session via session manager (acquires workspace, marks todo
-   `in_progress`), using a topic that includes the job id.
-5. In the session workspace, create a new change with `jj new <base-rev>`.
-6. Output job context: workspace name, session id, change id, workspace path, and full todo details.
-7. Create job record with status `active`, stage `implementing`.
-8. Run state machine to completion.
-9. Output progress: stage transitions.
-10. On success: print final commit info.
-11. On failure/abandon: print reason.
+3. Mark the todo `in_progress`.
+4. Run the job from the repo root (no session/workspace or new change is created).
+5. Output job context: workdir and full todo details.
+6. Create job record with status `active`, stage `implementing`.
+7. Run state machine to completion.
+8. Output progress: stage transitions.
+9. On success: mark todo done and print final commit info.
+10. On failure/abandon: reopen todo and print reason.
 
 Exit codes:
 
@@ -227,7 +227,7 @@ List jobs for current repo.
 - `--all`: show all statuses.
 - `--json`: structured output.
 
-Columns: `JOB`, `TODO`, `SESSION`, `STAGE`, `STATUS`, `AGE`.
+Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`.
 
 `JOB` highlights the shortest unique prefix across all jobs in the repo.
 
@@ -245,7 +245,6 @@ Output includes:
 
 - Job ID, status, stage.
 - Todo ID and title.
-- Session ID.
 - Feedback (if any).
 - Opencode sessions with purposes.
 

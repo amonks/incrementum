@@ -51,9 +51,6 @@ type Job = statestore.Job
 
 // StartInfo captures context when starting a job run.
 type StartInfo struct {
-	WorkspaceName string
-	WorkspacePath string
-	SessionID     string
-	ChangeID      string
-	Todo          todo.Todo
+	Workdir string
+	Todo    todo.Todo
 }

@@ -27,7 +27,6 @@ var (
 	jobDoDeps        []string
 	jobDoEdit        bool
 	jobDoNoEdit      bool
-	jobDoRev         string
 )
 
 func init() {
@@ -41,7 +40,6 @@ func init() {
 	jobDoCmd.Flags().StringArrayVar(&jobDoDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
 	jobDoCmd.Flags().BoolVarP(&jobDoEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	jobDoCmd.Flags().BoolVar(&jobDoNoEdit, "no-edit", false, "Do not open $EDITOR")
-	jobDoCmd.Flags().StringVar(&jobDoRev, "rev", "trunk()", "Revision to base the new change on")
 }
 
 func runJobDo(cmd *cobra.Command, args []string) error {
@@ -81,12 +79,7 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 		printJobStart(info)
 	}
 
-	rev := jobDoRev
-	if !cmd.Flags().Changed("rev") {
-		rev = "trunk()"
-	}
-
-	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{Rev: rev, OnStart: onStart, OnStageChange: onStageChange})
+	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{OnStart: onStart, OnStageChange: onStageChange})
 	if err != nil {
 		return err
 	}
@@ -98,10 +91,7 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 }
 
 func printJobStart(info jobpkg.StartInfo) {
-	fmt.Printf("Workspace: %s\n", info.WorkspaceName)
-	fmt.Printf("Session: %s\n", info.SessionID)
-	fmt.Printf("Change: %s\n", info.ChangeID)
-	fmt.Printf("Workdir: %s\n", info.WorkspacePath)
+	fmt.Printf("Workdir: %s\n", info.Workdir)
 	fmt.Println("Todo:")
 	fmt.Printf("- ID: %s\n", info.Todo.ID)
 	fmt.Printf("- Title: %s\n", info.Todo.Title)

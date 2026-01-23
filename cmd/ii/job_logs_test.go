@@ -52,7 +52,6 @@ func TestJobLogSnapshotOrdersBySessionStart(t *testing.T) {
 		ID:        "job-logs",
 		Repo:      repoSlug,
 		TodoID:    "todo-1",
-		SessionID: "session-1",
 		Stage:     jobpkg.StageImplementing,
 		Status:    jobpkg.StatusActive,
 		StartedAt: startedAt,

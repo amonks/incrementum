@@ -17,7 +17,7 @@ func TestManager_CreateAndFind(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 4, 10, 8, 30, 0, 0, time.UTC)
-	created, err := manager.Create("todo-123", "session-123", startedAt)
+	created, err := manager.Create("todo-123", startedAt)
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -38,9 +38,6 @@ func TestManager_CreateAndFind(t *testing.T) {
 	}
 	if created.TodoID != "todo-123" {
 		t.Fatalf("expected todo id todo-123, got %q", created.TodoID)
-	}
-	if created.SessionID != "session-123" {
-		t.Fatalf("expected session id session-123, got %q", created.SessionID)
 	}
 	if created.Status != StatusActive {
 		t.Fatalf("expected status active, got %q", created.Status)
@@ -83,7 +80,6 @@ func TestManager_Find_PrefixAmbiguous(t *testing.T) {
 		ID:        "alpha-123",
 		Repo:      repoSlug,
 		TodoID:    "todo-1",
-		SessionID: "session-1",
 		Stage:     statestore.JobStageImplementing,
 		Status:    statestore.JobStatusActive,
 		StartedAt: startedAt,
@@ -93,7 +89,6 @@ func TestManager_Find_PrefixAmbiguous(t *testing.T) {
 		ID:        "alpha-456",
 		Repo:      repoSlug,
 		TodoID:    "todo-2",
-		SessionID: "session-2",
 		Stage:     statestore.JobStageImplementing,
 		Status:    statestore.JobStatusActive,
 		StartedAt: startedAt.Add(2 * time.Minute),
@@ -139,7 +134,6 @@ func TestManager_List_Filtering(t *testing.T) {
 		ID:        "job-active",
 		Repo:      repoSlug,
 		TodoID:    "todo-active",
-		SessionID: "session-active",
 		Stage:     statestore.JobStageTesting,
 		Status:    statestore.JobStatusActive,
 		StartedAt: startedAt,
@@ -149,7 +143,6 @@ func TestManager_List_Filtering(t *testing.T) {
 		ID:          "job-completed",
 		Repo:        repoSlug,
 		TodoID:      "todo-completed",
-		SessionID:   "session-completed",
 		Stage:       statestore.JobStageCommitting,
 		Status:      statestore.JobStatusCompleted,
 		StartedAt:   startedAt.Add(2 * time.Hour),
@@ -160,7 +153,6 @@ func TestManager_List_Filtering(t *testing.T) {
 		ID:        "job-other",
 		Repo:      otherRepo,
 		TodoID:    "todo-other",
-		SessionID: "session-other",
 		Stage:     statestore.JobStageImplementing,
 		Status:    statestore.JobStatusActive,
 		StartedAt: startedAt.Add(30 * time.Minute),
@@ -215,7 +207,7 @@ func TestManager_Update(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 6, 1, 9, 30, 0, 0, time.UTC)
-	created, err := manager.Create("todo-456", "session-456", startedAt)
+	created, err := manager.Create("todo-456", startedAt)
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -276,7 +268,7 @@ func TestManager_Update_InvalidStage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 6, 2, 11, 0, 0, 0, time.UTC)
-	created, err := manager.Create("todo-789", "session-789", startedAt)
+	created, err := manager.Create("todo-789", startedAt)
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -300,7 +292,7 @@ func TestManager_Update_InvalidStatus(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 6, 2, 12, 0, 0, 0, time.UTC)
-	created, err := manager.Create("todo-790", "session-790", startedAt)
+	created, err := manager.Create("todo-790", startedAt)
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}

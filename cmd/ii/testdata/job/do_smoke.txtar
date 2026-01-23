@@ -13,9 +13,6 @@ exec sleep 1
 
 # run job
 exec env PWD=$WORK $II job do --title 'Touch file' --type task --priority 2 --description 'In the bash tool, run touch hello-world.txt' --no-edit
-stdout 'Workspace: .+'
-stdout 'Session: [a-z0-9]+'
-stdout 'Change: [a-z0-9]+'
 stdout 'Workdir: .+'
 stdout 'Todo:'
 stdout '- ID: [a-z0-9]+'
@@ -31,8 +28,7 @@ stdout 'Stage: committing'
 stdout 'Commit message:'
 stdout 'Test commit message'
 stdout 'Refs:'
-! exists hello-world.txt
-! exists $WORK/hello-world.txt
+exists hello-world.txt
 
 -- bin/opencode --
 #!/usr/bin/env python3
