@@ -10,6 +10,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/jj"
+	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
@@ -44,19 +45,22 @@ func Open() (*Pool, error) {
 
 // OpenWithOptions creates a new Pool with custom options.
 func OpenWithOptions(opts Options) (*Pool, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("get home directory: %w", err)
-	}
-
 	stateDir := opts.StateDir
 	if stateDir == "" {
-		stateDir = filepath.Join(home, ".local", "state", "incrementum")
+		var err error
+		stateDir, err = paths.DefaultStateDir()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	workspacesDir := opts.WorkspacesDir
 	if workspacesDir == "" {
-		workspacesDir = filepath.Join(home, ".local", "share", "incrementum", "workspaces")
+		var err error
+		workspacesDir, err = paths.DefaultWorkspacesDir()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Pool{

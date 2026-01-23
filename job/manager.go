@@ -2,12 +2,11 @@ package job
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
@@ -244,10 +243,5 @@ func resolveStateDir(opts OpenOptions) (string, error) {
 		return opts.StateDir, nil
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("get home directory: %w", err)
-	}
-
-	return filepath.Join(home, ".local", "state", "incrementum"), nil
+	return paths.DefaultStateDir()
 }

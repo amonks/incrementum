@@ -21,6 +21,7 @@
 | [internal-ids.md](./internal-ids.md)                   | [internal/ids/](../internal/ids/)                   | Unique prefix length calculation for IDs             |
 | [internal-jj.md](./internal-jj.md)                     | [internal/jj/](../internal/jj/)                     | Go wrapper around jj CLI commands                    |
 | [internal-listflags.md](./internal-listflags.md)       | [internal/listflags/](../internal/listflags/)       | Shared Cobra list flags                              |
+| [internal-paths.md](./internal-paths.md)               | [internal/paths/](../internal/paths/)               | Default state and workspace paths                    |
 | [internal-state.md](./internal-state.md)               | [internal/state/](../internal/state/)               | Shared state file management                         |
 | [internal-testsupport.md](./internal-testsupport.md)   | [internal/testsupport/](../internal/testsupport/)   | Integration test helpers for ii/testscript           |
 | [internal-ui.md](./internal-ui.md)                     | [internal/ui/](../internal/ui/)                     | CLI formatting helpers for durations and IDs         |
