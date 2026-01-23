@@ -4,13 +4,11 @@ end
 
 function fix --argument-names todo_id --argument-names move_main
     echo ">> fixing $todo_id"
+    ii todo start "$todo_id"
     jj new main
     echo ">> made empty change"
     set -l change_id (jj show @ -T change_id --no-patch)
     echo ">> change_id=$change_id"
-    set -l workspace_dir (ii session start "$todo_id" --rev=$change_id) || return 1
-    echo ">> workspace_dir=$workspace_dir"
-    pushd $workspace_dir
     set -l prompt "complete this task:"\n\n"$(ii todo show $todo_id)"
     echo ">> prompt:"
     echo "$prompt"
@@ -19,7 +17,7 @@ function fix --argument-names todo_id --argument-names move_main
     echo ">> opencode done"
 
     if ! go test ./...
-      ii session fail $todo_id
+      ii todo reopen "$todo_id"
       echo "tests failed; rejecting change"
       popd
       return 1
@@ -38,9 +36,8 @@ function fix --argument-names todo_id --argument-names move_main
       echo ">> advanced main bookmark"
     end
 
-    ii session done $todo_id
-    echo ">> closed session"
-    popd
+    ii todo finish "$todo_id"
+    echo ">> closed todo"
 end
 
 function fix-all
