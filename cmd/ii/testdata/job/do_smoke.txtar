@@ -1,0 +1,44 @@
+# setup repo
+mkdir repo
+cd repo
+exec jj git init
+
+# stub opencode
+chmod 755 $WORK/bin/opencode
+env PATH=$WORK/bin${:}$PATH
+
+# run opencode server
+exec $II opencode serve &serve&
+exec sleep 1
+
+# run job
+exec $II job do --title 'Touch file' --type task --priority 2 --description 'In the bash tool, run touch hello-world.txt' --no-edit
+stdout 'Stage: implementing'
+stdout 'Stage: testing'
+stdout 'Stage: reviewing'
+stdout 'Stage: committing'
+stdout 'Commit message:'
+stdout 'Test commit message'
+stdout 'Refs:'
+
+-- bin/opencode --
+#!/bin/sh
+
+cmd="$1"
+
+case "$cmd" in
+  serve)
+    trap 'exit 0' INT TERM
+    while true; do
+      sleep 1
+    done
+    ;;
+  run)
+    touch hello-world.txt
+    printf '%s\n' "Test commit message" > .incrementum-commit-message
+    exit 0
+    ;;
+  *)
+    exit 0
+    ;;
+esac
