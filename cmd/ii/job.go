@@ -142,7 +142,13 @@ func runJobList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Print(formatJobTable(jobs, ui.HighlightID, time.Now(), todoPrefixLengths, jobPrefixLengths))
+	fmt.Print(formatJobTable(TableFormatOptions{
+		Jobs:              jobs,
+		Highlight:         ui.HighlightID,
+		Now:               time.Now(),
+		TodoPrefixLengths: todoPrefixLengths,
+		JobPrefixLengths:  jobPrefixLengths,
+	}))
 	return nil
 }
 
@@ -201,7 +207,20 @@ func jobTodoPrefixLengths(repoPath string, purpose string) (map[string]int, erro
 	return index.PrefixLengths(), nil
 }
 
-func formatJobTable(jobs []jobpkg.Job, highlight func(string, int) string, now time.Time, todoPrefixLengths map[string]int, jobPrefixLengths map[string]int) string {
+type TableFormatOptions struct {
+	Jobs              []jobpkg.Job
+	Highlight         func(string, int) string
+	Now               time.Time
+	TodoPrefixLengths map[string]int
+	JobPrefixLengths  map[string]int
+}
+
+func formatJobTable(opts TableFormatOptions) string {
+	jobs := opts.Jobs
+	highlight := opts.Highlight
+	now := opts.Now
+	todoPrefixLengths := opts.TodoPrefixLengths
+	jobPrefixLengths := opts.JobPrefixLengths
 	rows := make([][]string, 0, len(jobs))
 
 	jobIDs := make([]string, 0, len(jobs))

@@ -189,7 +189,15 @@ func (ctx runContext) stageRunner(current Job) (func() (Job, error), error) {
 		}, nil
 	case StageCommitting:
 		return func() (Job, error) {
-			return runCommittingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.result)
+			return runCommittingStage(CommittingStageOptions{
+				Manager:       ctx.manager,
+				Current:       current,
+				Item:          ctx.item,
+				RepoPath:      ctx.repoPath,
+				WorkspacePath: ctx.workspacePath,
+				RunOptions:    ctx.opts,
+				Result:        ctx.result,
+			})
 		}, nil
 	default:
 		return nil, fmt.Errorf("invalid job stage: %s", current.Stage)
@@ -401,30 +409,40 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	}
 }
 
-func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, result *RunResult) (Job, error) {
-	updateStaleWorkspace(opts.UpdateStale, workspacePath)
-	messagePath := filepath.Join(workspacePath, commitMessageFilename)
+type CommittingStageOptions struct {
+	Manager       *Manager
+	Current       Job
+	Item          todo.Todo
+	RepoPath      string
+	WorkspacePath string
+	RunOptions    RunOptions
+	Result        *RunResult
+}
+
+func runCommittingStage(opts CommittingStageOptions) (Job, error) {
+	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
+	messagePath := filepath.Join(opts.WorkspacePath, commitMessageFilename)
 	if err := removeFileIfExists(messagePath); err != nil {
 		return Job{}, err
 	}
 
-	prompt, err := renderPromptTemplate(item, "", "", "commit-message.tmpl", workspacePath)
+	prompt, err := renderPromptTemplate(opts.Item, "", "", "commit-message.tmpl", opts.WorkspacePath)
 	if err != nil {
 		return Job{}, err
 	}
 
-	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
-		RepoPath:      repoPath,
-		WorkspacePath: workspacePath,
+	opencodeResult, err := opts.RunOptions.RunOpencode(opencodeRunOptions{
+		RepoPath:      opts.RepoPath,
+		WorkspacePath: opts.WorkspacePath,
 		Prompt:        prompt,
-		StartedAt:     opts.Now(),
+		StartedAt:     opts.RunOptions.Now(),
 	})
 	if err != nil {
 		return Job{}, err
 	}
 
 	append := OpencodeSession{Purpose: "commit-message", ID: opencodeResult.SessionID}
-	updated, err := manager.Update(current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
+	updated, err := opts.Manager.Update(opts.Current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.RunOptions.Now())
 	if err != nil {
 		return Job{}, err
 	}
@@ -432,26 +450,26 @@ func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath,
 		return Job{}, fmt.Errorf("opencode commit message failed with exit code %d", opencodeResult.ExitCode)
 	}
 
-	fallbackMessagePath := filepath.Join(repoPath, commitMessageFilename)
+	fallbackMessagePath := filepath.Join(opts.RepoPath, commitMessageFilename)
 	message, err := readCommitMessageWithFallback(messagePath, fallbackMessagePath)
 	if err != nil {
 		return Job{}, err
 	}
 
-	finalMessage, err := renderPromptTemplate(item, "", message, "commit.tmpl", workspacePath)
+	finalMessage, err := renderPromptTemplate(opts.Item, "", message, "commit.tmpl", opts.WorkspacePath)
 	if err != nil {
 		return Job{}, err
 	}
-	result.CommitMessage = finalMessage
+	opts.Result.CommitMessage = finalMessage
 
 	client := jj.New()
-	updateStaleWorkspace(opts.UpdateStale, workspacePath)
-	if err := client.Describe(workspacePath, finalMessage); err != nil {
+	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
+	if err := client.Describe(opts.WorkspacePath, finalMessage); err != nil {
 		return Job{}, err
 	}
 
 	status := StatusCompleted
-	updated, err = manager.Update(updated.ID, UpdateOptions{Status: &status}, opts.Now())
+	updated, err = opts.Manager.Update(updated.ID, UpdateOptions{Status: &status}, opts.RunOptions.Now())
 	if err != nil {
 		return Job{}, err
 	}

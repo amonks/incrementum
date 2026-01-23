@@ -33,13 +33,21 @@ func TestFormatJobTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 	}
 
-	plain := formatJobTable(jobs, func(id string, prefix int) string { return id }, now, nil, nil)
-	ansi := formatJobTable(jobs, func(id string, prefix int) string {
-		if prefix <= 0 || prefix > len(id) {
-			return id
-		}
-		return "\x1b[1m\x1b[36m" + id[:prefix] + "\x1b[0m" + id[prefix:]
-	}, now, nil, nil)
+	plain := formatJobTable(TableFormatOptions{
+		Jobs:      jobs,
+		Highlight: func(id string, prefix int) string { return id },
+		Now:       now,
+	})
+	ansi := formatJobTable(TableFormatOptions{
+		Jobs: jobs,
+		Highlight: func(id string, prefix int) string {
+			if prefix <= 0 || prefix > len(id) {
+				return id
+			}
+			return "\x1b[1m\x1b[36m" + id[:prefix] + "\x1b[0m" + id[prefix:]
+		},
+		Now: now,
+	})
 
 	if stripANSICodes(ansi) != plain {
 		t.Fatalf("expected ANSI output to align with plain output\nplain:\n%s\nansi:\n%s", plain, ansi)
@@ -74,9 +82,14 @@ func TestFormatJobTableUsesProvidedJobPrefixLengths(t *testing.T) {
 		"job-beta":  3,
 	}
 
-	output := formatJobTable(jobs, func(id string, prefix int) string {
-		return id + ":" + strconv.Itoa(prefix)
-	}, now, nil, jobPrefixes)
+	output := formatJobTable(TableFormatOptions{
+		Jobs: jobs,
+		Highlight: func(id string, prefix int) string {
+			return id + ":" + strconv.Itoa(prefix)
+		},
+		Now:              now,
+		JobPrefixLengths: jobPrefixes,
+	})
 
 	if !strings.Contains(output, "job-alpha:2") {
 		t.Fatalf("expected job prefix length 2, got: %q", output)
@@ -101,7 +114,11 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatJobTable(jobs, func(id string, prefix int) string { return id }, now, nil, nil))
+	output := strings.TrimSpace(formatJobTable(TableFormatOptions{
+		Jobs:      jobs,
+		Highlight: func(id string, prefix int) string { return id },
+		Now:       now,
+	}))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
