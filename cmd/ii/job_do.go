@@ -105,11 +105,7 @@ func printJobStart(info jobpkg.StartInfo) {
 }
 
 func jobDoHasCreateFlags(cmd *cobra.Command) bool {
-	return cmd.Flags().Changed("title") ||
-		cmd.Flags().Changed("type") ||
-		cmd.Flags().Changed("priority") ||
-		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("deps")
+	return hasChangedFlags(cmd, "title", "type", "priority", "description", "deps")
 }
 
 func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {

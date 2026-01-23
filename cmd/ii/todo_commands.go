@@ -294,11 +294,7 @@ func todoCreatePriorityValue(cmd *cobra.Command) *int {
 }
 
 func todoCreateHasCreateFlags(cmd *cobra.Command) bool {
-	return cmd.Flags().Changed("title") ||
-		cmd.Flags().Changed("type") ||
-		cmd.Flags().Changed("priority") ||
-		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("deps")
+	return hasChangedFlags(cmd, "title", "type", "priority", "description", "deps")
 }
 
 func runTodoCreate(cmd *cobra.Command, args []string) error {

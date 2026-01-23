@@ -200,11 +200,7 @@ func createTodoForSessionStart(cmd *cobra.Command, hasCreateFlags bool) (string,
 }
 
 func sessionStartHasCreateFlags(cmd *cobra.Command) bool {
-	return cmd.Flags().Changed("title") ||
-		cmd.Flags().Changed("type") ||
-		cmd.Flags().Changed("priority") ||
-		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("deps")
+	return hasChangedFlags(cmd, "title", "type", "priority", "description", "deps")
 }
 
 func sessionStartPriorityValue(cmd *cobra.Command) *int {
