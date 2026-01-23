@@ -58,9 +58,9 @@ func TestResolveDescriptionFromStdin(t *testing.T) {
 	}
 }
 
-func TestTodoLogHighlighterUsesProvidedPrefixLengths(t *testing.T) {
+func TestLogHighlighterUsesProvidedPrefixLengths(t *testing.T) {
 	prefixLengths := map[string]int{"abc123": 4, "abd456": 3}
-	highlight := todoLogHighlighter(prefixLengths, func(id string, prefix int) string {
+	highlight := logHighlighter(prefixLengths, func(id string, prefix int) string {
 		return fmt.Sprintf("%s:%d", id, prefix)
 	})
 
@@ -72,9 +72,9 @@ func TestTodoLogHighlighterUsesProvidedPrefixLengths(t *testing.T) {
 	}
 }
 
-func TestTodoLogHighlighterHandlesMissingID(t *testing.T) {
+func TestLogHighlighterHandlesMissingID(t *testing.T) {
 	prefixLengths := map[string]int{"abc123": 4}
-	highlight := todoLogHighlighter(prefixLengths, func(id string, prefix int) string {
+	highlight := logHighlighter(prefixLengths, func(id string, prefix int) string {
 		return fmt.Sprintf("%s:%d", id, prefix)
 	})
 

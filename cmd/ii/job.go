@@ -85,8 +85,8 @@ func runJobShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	jobHighlight := jobLogHighlighter(jobPrefixLengths, ui.HighlightID)
-	todoHighlight := todoLogHighlighter(todoPrefixLengths, ui.HighlightID)
+	jobHighlight := logHighlighter(jobPrefixLengths, ui.HighlightID)
+	todoHighlight := logHighlighter(todoPrefixLengths, ui.HighlightID)
 	printJobDetail(item, todoTitle, jobHighlight, todoHighlight)
 	return nil
 }
@@ -296,22 +296,6 @@ func printJobDetail(item jobpkg.Job, todoTitle string, highlightJob func(string)
 
 	if item.Feedback != "" {
 		fmt.Printf("\nFeedback:\n%s\n", item.Feedback)
-	}
-}
-
-func jobLogHighlighter(prefixLengths map[string]int, highlight func(string, int) string) func(string) string {
-	if prefixLengths == nil {
-		prefixLengths = map[string]int{}
-	}
-	return func(id string) string {
-		if id == "" {
-			return id
-		}
-		prefixLen, ok := prefixLengths[strings.ToLower(id)]
-		if !ok {
-			return highlight(id, 0)
-		}
-		return highlight(id, prefixLen)
 	}
 }
 

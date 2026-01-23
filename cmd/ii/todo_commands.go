@@ -359,7 +359,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+		highlight := logHighlighter(prefixLengths, ui.HighlightID)
 		fmt.Printf("Created todo %s: %s\n", highlight(created.ID), created.Title)
 		return nil
 	}
@@ -389,7 +389,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	fmt.Printf("Created todo %s: %s\n", highlight(created.ID), created.Title)
 	return nil
 }
@@ -466,7 +466,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+		highlight := logHighlighter(prefixLengths, ui.HighlightID)
 		for _, item := range updatedItems {
 			fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
 		}
@@ -507,7 +507,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	for _, item := range updated {
 		fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
 	}
@@ -530,7 +530,7 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range closed {
 		fmt.Printf("Closed %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -553,7 +553,7 @@ func runTodoStart(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range started {
 		fmt.Printf("Started %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -576,7 +576,7 @@ func runTodoFinish(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range finished {
 		fmt.Printf("Finished %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -599,7 +599,7 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range reopened {
 		fmt.Printf("Reopened %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -622,7 +622,7 @@ func runTodoDelete(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	for _, t := range deleted {
 		fmt.Printf("Deleted %s: %s\n", highlight(t.ID), t.Title)
 	}
@@ -651,7 +651,7 @@ func runTodoShow(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	for i, t := range todos {
 		if i > 0 {
 			fmt.Println("---")
@@ -829,7 +829,7 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	fmt.Printf("Added dependency: %s %s %s\n", highlight(dep.TodoID), dep.Type, highlight(dep.DependsOnID))
 	return nil
 }
@@ -850,7 +850,7 @@ func runTodoDepTree(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	highlight := todoLogHighlighter(prefixLengths, ui.HighlightID)
+	highlight := logHighlighter(prefixLengths, ui.HighlightID)
 	printDepTree(tree, "", true, highlight)
 	return nil
 }
@@ -880,22 +880,6 @@ func todoIDPrefixLengthsForStore(store *todo.Store) (map[string]int, error) {
 		return nil, err
 	}
 	return index.PrefixLengths(), nil
-}
-
-func todoLogHighlighter(prefixLengths map[string]int, highlight func(string, int) string) func(string) string {
-	if prefixLengths == nil {
-		prefixLengths = map[string]int{}
-	}
-	return func(id string) string {
-		if id == "" {
-			return id
-		}
-		prefixLen, ok := prefixLengths[strings.ToLower(id)]
-		if !ok {
-			return highlight(id, 0)
-		}
-		return highlight(id, prefixLen)
-	}
 }
 
 func todoListPriorityFilter(priority int, changed bool) (*int, error) {
