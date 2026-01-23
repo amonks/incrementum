@@ -138,6 +138,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 				// Acquire it
 				ws.Status = statestore.WorkspaceStatusAcquired
 				ws.Purpose = opts.Purpose
+				ws.Rev = opts.Rev
 				ws.AcquiredByPID = os.Getpid()
 				ws.AcquiredAt = now
 				st.Workspaces[key] = ws
@@ -157,6 +158,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 			Repo:          repoName,
 			Path:          wsPath,
 			Purpose:       opts.Purpose,
+			Rev:           opts.Rev,
 			Status:        statestore.WorkspaceStatusAcquired,
 			AcquiredByPID: os.Getpid(),
 			AcquiredAt:    now,
@@ -240,6 +242,7 @@ func (p *Pool) releaseToAvailable(wsPath string) error {
 			if ws.Path == wsPath {
 				ws.Status = statestore.WorkspaceStatusAvailable
 				ws.Purpose = ""
+				ws.Rev = ""
 				ws.AcquiredByPID = 0
 				ws.AcquiredAt = time.Time{}
 				st.Workspaces[key] = ws
@@ -294,6 +297,9 @@ type Info struct {
 	// Purpose describes why the workspace was acquired.
 	Purpose string
 
+	// Rev is the jj revision the workspace was opened to.
+	Rev string
+
 	// Status indicates whether the workspace is available or acquired.
 	Status Status
 
@@ -332,6 +338,7 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 			Name:          ws.Name,
 			Path:          ws.Path,
 			Purpose:       ws.Purpose,
+			Rev:           ws.Rev,
 			Status:        ws.Status,
 			AcquiredByPID: ws.AcquiredByPID,
 			AcquiredAt:    ws.AcquiredAt,

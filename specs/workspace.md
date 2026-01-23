@@ -13,7 +13,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 
 ## State Model
 - State is managed by `internal/state`. See [internal-state.md](./internal-state.md) for details.
-- Workspace-specific state includes: path, repo name, purpose, status, acquisition PID/time, and provisioning status.
+- Workspace-specific state includes: path, repo name, purpose, revision, status, acquisition PID/time, and provisioning status.
 - Workspace names are sequential `ws-###` values allocated per repo.
 
 ## Workspace Lifecycle
@@ -36,7 +36,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 - Listing returns every workspace for a repo when `--all` is provided.
 - Default CLI output lists both acquired and available workspaces.
 - List output is ordered by status (acquired first), then by workspace name.
-- CLI table output includes an acquired age column showing how long each workspace has been held.
+- CLI table output includes an acquired age column showing how long each workspace has been held, plus the revision each workspace was opened to.
 
 ### Destroy All
 - Destroy-all removes workspaces for a repo from state, forgets each workspace from jj (best-effort), deletes the workspace directories, and removes the repo workspaces directory if empty.

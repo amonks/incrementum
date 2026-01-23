@@ -201,6 +201,11 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string,
 			purpose = "-"
 		}
 
+		rev := item.Rev
+		if rev == "" {
+			rev = "-"
+		}
+
 		acquiredAge := "-"
 		if item.Status == workspace.StatusAcquired {
 			acquiredAge = ui.FormatTimeAgeShort(item.AcquiredAt, now)
@@ -209,10 +214,11 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string,
 			highlight(item.Name),
 			string(item.Status),
 			acquiredAge,
+			rev,
 			truncateTableCell(purpose),
 			truncateTableCell(item.Path),
 		})
 	}
 
-	return formatTable([]string{"NAME", "STATUS", "ACQUIRED", "PURPOSE", "PATH"}, rows)
+	return formatTable([]string{"NAME", "STATUS", "ACQUIRED", "REV", "PURPOSE", "PATH"}, rows)
 }

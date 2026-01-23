@@ -39,6 +39,7 @@ type WorkspaceInfo struct {
 	Repo          string          `json:"repo"`
 	Path          string          `json:"path"`
 	Purpose       string          `json:"purpose,omitempty"`
+	Rev           string          `json:"rev,omitempty"`
 	Status        WorkspaceStatus `json:"status"`
 	AcquiredByPID int             `json:"acquired_by_pid,omitempty"`
 	AcquiredAt    time.Time       `json:"acquired_at,omitempty"`

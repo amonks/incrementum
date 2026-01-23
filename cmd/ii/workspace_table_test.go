@@ -80,6 +80,24 @@ func TestFormatWorkspaceTableShowsAcquiredAge(t *testing.T) {
 	}
 }
 
+func TestFormatWorkspaceTableShowsRevision(t *testing.T) {
+	now := time.Date(2026, 1, 23, 3, 0, 0, 0, time.UTC)
+	items := []workspace.Info{
+		{
+			Name:    "ws-004",
+			Path:    "/tmp/ws-004",
+			Purpose: "rev-check",
+			Status:  workspace.StatusAcquired,
+			Rev:     "main~2",
+		},
+	}
+
+	output := formatWorkspaceTable(items, nil, now)
+	if !strings.Contains(output, "main~2") {
+		t.Fatalf("expected revision %q in output: %s", "main~2", output)
+	}
+}
+
 func TestFilterWorkspaceListDefaultsToAvailableAndAcquired(t *testing.T) {
 	items := []workspace.Info{
 		{Name: "ws-001", Status: workspace.StatusAvailable},

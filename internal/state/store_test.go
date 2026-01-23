@@ -60,6 +60,7 @@ func TestStore_SaveLoad(t *testing.T) {
 				Repo:        "my-project",
 				Path:        "/Users/test/.local/share/incrementum/workspaces/my-project/ws-001",
 				Purpose:     "initial sync",
+				Rev:         "@",
 				Status:      WorkspaceStatusAcquired,
 				Provisioned: true,
 			},
@@ -105,6 +106,9 @@ func TestStore_SaveLoad(t *testing.T) {
 	}
 	if ws.Purpose != "initial sync" {
 		t.Errorf("expected purpose to persist, got %q", ws.Purpose)
+	}
+	if ws.Rev != "@" {
+		t.Errorf("expected rev to persist, got %q", ws.Rev)
 	}
 	if ws.Status != WorkspaceStatusAcquired {
 		t.Errorf("expected status acquired, got %s", ws.Status)
