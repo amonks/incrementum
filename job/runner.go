@@ -147,90 +147,123 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	signal.Notify(interrupts, os.Interrupt)
 	defer signal.Stop(interrupts)
 
-	handleInterrupt := func() (Job, error) {
-		status := StatusFailed
-		updated, updateErr := manager.Update(created.ID, UpdateOptions{Status: &status}, opts.Now())
-		failErr := failSession(sessionManager, item.ID, workspacePath)
-		return updated, errors.Join(ErrJobInterrupted, updateErr, failErr)
+	runCtx := runContext{
+		repoPath:       repoPath,
+		workspacePath:  workspacePath,
+		item:           item,
+		opts:           opts,
+		manager:        manager,
+		sessionManager: sessionManager,
+		result:         result,
 	}
+	finalJob, err := runJobStages(runCtx, created, interrupts)
+	result.Job = finalJob
+	return result, err
+}
 
-	current := created
+type runContext struct {
+	repoPath       string
+	workspacePath  string
+	item           todo.Todo
+	opts           RunOptions
+	manager        *Manager
+	sessionManager *session.Manager
+	result         *RunResult
+}
+
+func runJobStages(ctx runContext, current Job, interrupts <-chan os.Signal) (Job, error) {
 	for current.Status == StatusActive {
-		var (
-			next     Job
-			stageErr error
-			stageFn  func() (Job, error)
-		)
-		switch current.Stage {
-		case StageImplementing:
-			stageFn = func() (Job, error) {
-				return runImplementingStage(manager, current, item, repoPath, workspacePath, opts)
-			}
-		case StageTesting:
-			stageFn = func() (Job, error) {
-				return runTestingStage(manager, current, repoPath, workspacePath, opts)
-			}
-		case StageReviewing:
-			stageFn = func() (Job, error) {
-				return runReviewingStage(manager, current, item, repoPath, workspacePath, opts)
-			}
-		case StageCommitting:
-			stageFn = func() (Job, error) {
-				return runCommittingStage(manager, current, item, repoPath, workspacePath, sessionManager, opts, result)
-			}
-		default:
-			stageErr = fmt.Errorf("invalid job stage: %s", current.Stage)
-		}
-
+		stageFn, stageErr := ctx.stageRunner(current)
+		next := Job{}
 		if stageFn != nil {
-			stageResult := make(chan struct {
-				job Job
-				err error
-			}, 1)
-			go func() {
-				job, err := stageFn()
-				stageResult <- struct {
-					job Job
-					err error
-				}{job: job, err: err}
-			}()
-
-			select {
-			case <-interrupts:
-				interrupted, interruptErr := handleInterrupt()
-				result.Job = interrupted
-				return result, interruptErr
-			case res := <-stageResult:
-				next = res.job
-				stageErr = res.err
-			}
+			next, stageErr = ctx.runStageWithInterrupt(current, stageFn, interrupts)
 		}
-
-		err = stageErr
-		if err != nil {
-			if next.Status == StatusAbandoned {
-				result.Job = next
-				failErr := failSession(sessionManager, item.ID, workspacePath)
-				return result, errors.Join(err, failErr)
-			}
-			updated, updateErr := manager.Update(current.ID, UpdateOptions{Status: statusPtr(StatusFailed)}, opts.Now())
-			result.Job = updated
-			failErr := failSession(sessionManager, item.ID, workspacePath)
-			return result, errors.Join(err, updateErr, failErr)
+		if stageErr != nil && errors.Is(stageErr, ErrJobInterrupted) {
+			return next, stageErr
 		}
-		if next.ID != "" {
-			if next.Stage != current.Stage && opts.OnStageChange != nil {
-				opts.OnStageChange(next.Stage)
-			}
-			current = next
-			result.Job = next
+		current, stageErr = ctx.handleStageOutcome(current, next, stageErr)
+		if stageErr != nil {
+			return current, stageErr
 		}
 		if current.Status != StatusActive {
 			break
 		}
 	}
 
-	return result, nil
+	return current, nil
+}
+
+func (ctx runContext) stageRunner(current Job) (func() (Job, error), error) {
+	switch current.Stage {
+	case StageImplementing:
+		return func() (Job, error) {
+			return runImplementingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts)
+		}, nil
+	case StageTesting:
+		return func() (Job, error) {
+			return runTestingStage(ctx.manager, current, ctx.repoPath, ctx.workspacePath, ctx.opts)
+		}, nil
+	case StageReviewing:
+		return func() (Job, error) {
+			return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts)
+		}, nil
+	case StageCommitting:
+		return func() (Job, error) {
+			return runCommittingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.sessionManager, ctx.opts, ctx.result)
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid job stage: %s", current.Stage)
+	}
+}
+
+func (ctx runContext) runStageWithInterrupt(current Job, stageFn func() (Job, error), interrupts <-chan os.Signal) (Job, error) {
+	stageResult := make(chan struct {
+		job Job
+		err error
+	}, 1)
+	go func() {
+		job, err := stageFn()
+		stageResult <- struct {
+			job Job
+			err error
+		}{job: job, err: err}
+	}()
+
+	select {
+	case <-interrupts:
+		return ctx.handleInterrupt(current)
+	case res := <-stageResult:
+		return res.job, res.err
+	}
+}
+
+func (ctx runContext) handleInterrupt(current Job) (Job, error) {
+	status := StatusFailed
+	updated, updateErr := ctx.manager.Update(current.ID, UpdateOptions{Status: &status}, ctx.opts.Now())
+	failErr := failSession(ctx.sessionManager, ctx.item.ID, ctx.workspacePath)
+	return updated, errors.Join(ErrJobInterrupted, updateErr, failErr)
+}
+
+func (ctx runContext) handleStageOutcome(current, next Job, stageErr error) (Job, error) {
+	if stageErr != nil {
+		if next.Status == StatusAbandoned {
+			ctx.result.Job = next
+			failErr := failSession(ctx.sessionManager, ctx.item.ID, ctx.workspacePath)
+			return next, errors.Join(stageErr, failErr)
+		}
+		updated, updateErr := ctx.manager.Update(current.ID, UpdateOptions{Status: statusPtr(StatusFailed)}, ctx.opts.Now())
+		ctx.result.Job = updated
+		failErr := failSession(ctx.sessionManager, ctx.item.ID, ctx.workspacePath)
+		return updated, errors.Join(stageErr, updateErr, failErr)
+	}
+	if next.ID != "" {
+		if next.Stage != current.Stage && ctx.opts.OnStageChange != nil {
+			ctx.opts.OnStageChange(next.Stage)
+		}
+		current = next
+		ctx.result.Job = next
+	}
+	return current, nil
 }
 
 func normalizeRunOptions(opts RunOptions) RunOptions {
