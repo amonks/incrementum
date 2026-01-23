@@ -1,4 +1,4 @@
-// Package config handles loading .incr.toml configuration files.
+// Package config handles loading incrementum.toml configuration files.
 package config
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Config represents the .incr.toml configuration file.
+// Config represents the incrementum.toml configuration file.
 type Config struct {
 	Workspace Workspace `toml:"workspace"`
 	Job       Job       `toml:"job"`
@@ -34,10 +34,10 @@ type Job struct {
 	TestCommands []string `toml:"test-commands"`
 }
 
-// Load loads the .incr.toml configuration from the given directory.
+// Load loads the incrementum.toml configuration from the given directory.
 // Returns an empty config if the file doesn't exist.
 func Load(repoPath string) (*Config, error) {
-	configPath := filepath.Join(repoPath, ".incr.toml")
+	configPath := filepath.Join(repoPath, "incrementum.toml")
 
 	data, err := os.ReadFile(configPath)
 	if os.IsNotExist(err) {

@@ -98,7 +98,7 @@ type AcquireOptions struct {
 // The returned path is the root directory of the acquired workspace.
 // Call Release when done to return the workspace to the pool.
 //
-// If the repository contains a .incr.toml configuration file, the on-create
+// If the repository contains a incrementum.toml configuration file, the on-create
 // hooks run on every acquire.
 
 func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {

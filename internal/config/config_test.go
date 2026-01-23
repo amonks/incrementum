@@ -41,7 +41,7 @@ go mod download
 on-acquire = "npm install"
 `
 
-	if err := os.WriteFile(filepath.Join(tmpDir, ".incr.toml"), []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "incrementum.toml"), []byte(configContent), 0644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -70,7 +70,7 @@ print("hello from python")
 """
 `
 
-	if err := os.WriteFile(filepath.Join(tmpDir, ".incr.toml"), []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "incrementum.toml"), []byte(configContent), 0644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -89,7 +89,7 @@ func TestLoad_InvalidTOML(t *testing.T) {
 
 	configContent := `this is not valid toml [`
 
-	if err := os.WriteFile(filepath.Join(tmpDir, ".incr.toml"), []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "incrementum.toml"), []byte(configContent), 0644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -107,7 +107,7 @@ func TestLoad_JobConfig(t *testing.T) {
 test-commands = ["go test ./...", "golangci-lint run"]
 `
 
-	if err := os.WriteFile(filepath.Join(tmpDir, ".incr.toml"), []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "incrementum.toml"), []byte(configContent), 0644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 

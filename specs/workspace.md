@@ -9,7 +9,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 - State is persisted via `internal/state` which manages `~/.local/state/incrementum/state.json` with advisory file locking.
 - Workspaces live under a shared base directory (`~/.local/share/incrementum/workspaces` by default).
 - Jujutsu operations are delegated to `internal/jj` (workspace add/forget, edit, and new change).
-- Configuration hooks are loaded from `.incr.toml` via `internal/config` and executed on each acquire.
+- Configuration hooks are loaded from `incrementum.toml` via `internal/config` and executed on each acquire.
 
 ## State Model
 - State is managed by `internal/state`. See [internal-state.md](./internal-state.md) for details.
@@ -25,7 +25,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 - If a new workspace is allocated, `jj workspace add` is executed and the workspace directory is created.
 - The workspace is checked out to the requested revision with `jj edit`.
 - A new change is created and the workspace is edited back to the requested revision to ensure a clean release change.
-- `.incr.toml` is loaded from the source repo and the workspace `on-create` hook runs for every acquire (including reuse).
+- `incrementum.toml` is loaded from the source repo and the workspace `on-create` hook runs for every acquire (including reuse).
 - A workspace is marked `Provisioned` once the hooks run successfully.
 
 ### Release

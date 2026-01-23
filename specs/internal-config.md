@@ -1,7 +1,7 @@
 # Internal Config
 
 ## Overview
-The config package loads `.incr.toml` files and runs hook scripts.
+The config package loads `incrementum.toml` files and runs hook scripts.
 
 ## Configuration Model
 - `Config` holds workspace and job configuration.
@@ -9,7 +9,7 @@ The config package loads `.incr.toml` files and runs hook scripts.
 - `Job` defines `test-commands` used by the job workflow.
 
 ## Behavior
-- `Load` reads `.incr.toml` from the repo root and returns an empty config if missing.
+- `Load` reads `incrementum.toml` from the repo root and returns an empty config if missing.
 - TOML decoding errors are surfaced with context.
 - `RunScript` executes hook scripts in a target directory.
 - Scripts honor a shebang line; otherwise `/bin/bash` is used.
