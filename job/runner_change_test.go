@@ -12,7 +12,7 @@ func TestCreateJobChangeFallsBackToRoot(t *testing.T) {
 	script := "#!/bin/sh\n" +
 		"if [ \"$1\" = \"new\" ]; then\n" +
 		"  if [ \"$2\" = \"trunk()\" ]; then\n" +
-		"    echo 'Revision `\"trunk()\"` doesn't exist' >&2\n" +
+		"    echo \"Revision \\`\\\"trunk()\\\"\\` doesn't exist\" >&2\n" +
 		"    exit 1\n" +
 		"  fi\n" +
 		"  if [ \"$2\" = \"root()\" ]; then\n" +
