@@ -42,7 +42,7 @@ Fields (JSON keys):
 
 Fields (JSON keys):
 
-- `id`: session id (hash prefix of prompt + timestamp).
+- `id`: 8-character session id (hash prefix of prompt + timestamp).
 - `repo`: repo slug.
 - `status`: `active`, `completed`, `failed`, or `killed`.
 - `prompt`: full prompt string that was provided to `run`.

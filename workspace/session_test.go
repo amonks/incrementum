@@ -28,6 +28,9 @@ func TestPool_CreateSessionAndFind(t *testing.T) {
 	if session.ID == "" {
 		t.Fatal("expected session ID")
 	}
+	if len(session.ID) != 8 {
+		t.Fatalf("expected 8-char session ID, got %q", session.ID)
+	}
 	if session.Status != SessionActive {
 		t.Fatalf("expected status active, got %q", session.Status)
 	}

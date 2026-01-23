@@ -181,5 +181,5 @@ func (p *Pool) ListSessions(repoPath string) ([]Session, error) {
 
 func generateSessionID(todoID string, startedAt time.Time) string {
 	input := todoID + startedAt.Format(time.RFC3339Nano)
-	return ids.Generate(input, 10)
+	return ids.Generate(input, ids.DefaultLength)
 }

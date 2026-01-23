@@ -32,7 +32,7 @@ Follow our usual testing practice:
 
 Fields (JSON keys):
 
-- `id`: job id (hash of todo_id + timestamp).
+- `id`: 8-character job id (hash of todo_id + timestamp).
 - `repo`: repo slug.
 - `todo_id`: full resolved todo id.
 - `stage`: `implementing`, `testing`, `reviewing`, `committing`.

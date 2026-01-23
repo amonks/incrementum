@@ -10,5 +10,5 @@ import (
 // The ID is derived from SHA-256 hash of the title concatenated with the timestamp.
 func GenerateID(title string, timestamp time.Time) string {
 	input := title + timestamp.Format(time.RFC3339Nano)
-	return ids.Generate(input, 8)
+	return ids.Generate(input, ids.DefaultLength)
 }

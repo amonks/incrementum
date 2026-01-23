@@ -10,8 +10,8 @@ func TestGenerateID(t *testing.T) {
 
 	id := GenerateID("todo-123", timestamp)
 
-	if len(id) != 10 {
-		t.Errorf("expected ID length 10, got %d: %q", len(id), id)
+	if len(id) != 8 {
+		t.Errorf("expected ID length 8, got %d: %q", len(id), id)
 	}
 
 	for _, c := range id {

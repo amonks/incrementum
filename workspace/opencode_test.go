@@ -30,6 +30,9 @@ func TestPool_CreateOpencodeSessionAndList(t *testing.T) {
 	if session.ID == "" {
 		t.Fatal("expected session ID")
 	}
+	if len(session.ID) != 8 {
+		t.Fatalf("expected 8-char opencode session ID, got %q", session.ID)
+	}
 	if session.Status != OpencodeSessionActive {
 		t.Fatalf("expected status active, got %q", session.Status)
 	}

@@ -1,13 +1,12 @@
 package workspace
 
 import (
-	"crypto/sha256"
-	"encoding/base32"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/ids"
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
@@ -159,7 +158,5 @@ func GenerateOpencodeSessionID(prompt string, startedAt time.Time) string {
 
 func generateOpencodeSessionID(prompt string, startedAt time.Time) string {
 	input := prompt + startedAt.Format(time.RFC3339Nano)
-	hash := sha256.Sum256([]byte(input))
-	encoded := base32.StdEncoding.EncodeToString(hash[:])
-	return strings.ToLower(encoded[:10])
+	return ids.Generate(input, ids.DefaultLength)
 }

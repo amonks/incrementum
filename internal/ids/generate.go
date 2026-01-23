@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// DefaultLength is the standard length for generated IDs.
+const DefaultLength = 8
+
 // Generate creates a deterministic, lowercase base32 ID derived from input.
 func Generate(input string, length int) string {
 	hash := sha256.Sum256([]byte(input))

@@ -9,5 +9,5 @@ import (
 // GenerateID creates a unique ID from a todo ID and timestamp.
 func GenerateID(todoID string, timestamp time.Time) string {
 	input := todoID + timestamp.Format(time.RFC3339Nano)
-	return ids.Generate(input, 10)
+	return ids.Generate(input, ids.DefaultLength)
 }
