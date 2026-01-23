@@ -87,13 +87,14 @@ any stage -> failed (unrecoverable error)
 
 ### implementing
 
-1. Delete `.incrementum-feedback` if it exists.
-2. Run opencode with `implement.tmpl` prompt.
-3. Template receives: `Todo`, `Feedback` (empty string on initial run).
-4. Record opencode session in `opencode_sessions` with purpose `implement`.
-5. Wait for opencode completion.
-6. If opencode fails (nonzero exit): mark job `failed`.
-7. Transition to `testing`.
+1. Best-effort `jj workspace update-stale` in the workspace.
+2. Delete `.incrementum-feedback` if it exists.
+3. Run opencode with `implement.tmpl` prompt.
+4. Template receives: `Todo`, `Feedback` (empty string on initial run).
+5. Record opencode session in `opencode_sessions` with purpose `implement`.
+6. Wait for opencode completion.
+7. If opencode fails (nonzero exit): mark job `failed`.
+8. Transition to `testing`.
 
 ### testing
 
@@ -106,15 +107,16 @@ any stage -> failed (unrecoverable error)
 
 ### reviewing
 
-1. Delete `.incrementum-feedback` if it exists.
-2. Run opencode with `review.tmpl` prompt.
-3. Template receives: `Todo`.
-4. Template instructs opencode to inspect changes (e.g., `jj diff`) and write
+1. Best-effort `jj workspace update-stale` in the workspace.
+2. Delete `.incrementum-feedback` if it exists.
+3. Run opencode with `review.tmpl` prompt.
+4. Template receives: `Todo`.
+5. Template instructs opencode to inspect changes (e.g., `jj diff`) and write
    outcome to `.incrementum-feedback`.
-5. Record opencode session in `opencode_sessions` with purpose `review`.
-6. Wait for opencode completion.
-7. If opencode fails (nonzero exit): mark job `failed`.
-8. Read `.incrementum-feedback`:
+6. Record opencode session in `opencode_sessions` with purpose `review`.
+7. Wait for opencode completion.
+8. If opencode fails (nonzero exit): mark job `failed`.
+9. Read `.incrementum-feedback`:
    - Delete `.incrementum-feedback` after reading.
    - Missing or first line is `ACCEPT`: transition to `committing`.
    - First line is `ABANDON`: mark job `abandoned`.
@@ -124,21 +126,23 @@ any stage -> failed (unrecoverable error)
 
 ### committing
 
-1. Delete `.incrementum-commit-message` if it exists.
-2. Run opencode with `commit-message.tmpl` prompt.
-3. Template receives: `Todo`.
-4. Template instructs opencode to generate commit message and write to
+1. Best-effort `jj workspace update-stale` in the workspace.
+2. Delete `.incrementum-commit-message` if it exists.
+3. Run opencode with `commit-message.tmpl` prompt.
+4. Template receives: `Todo`.
+5. Template instructs opencode to generate commit message and write to
    `.incrementum-commit-message`.
-5. Record opencode session in `opencode_sessions` with purpose `commit-message`.
-6. Wait for opencode completion.
-7. If opencode fails (nonzero exit): mark job `failed`.
-8. Read `.incrementum-commit-message`.
-9. Delete `.incrementum-commit-message` after reading.
-10. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
-11. Run `jj describe -m "<formatted message>"` in workspace.
-12. If describe fails: mark job `failed`.
-13. Call session `Done` (releases workspace, marks todo done).
-14. Mark job `completed`.
+6. Record opencode session in `opencode_sessions` with purpose `commit-message`.
+7. Wait for opencode completion.
+8. If opencode fails (nonzero exit): mark job `failed`.
+9. Read `.incrementum-commit-message`.
+10. Delete `.incrementum-commit-message` after reading.
+11. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
+12. Best-effort `jj workspace update-stale` in the workspace.
+13. Run `jj describe -m "<formatted message>"` in workspace.
+14. If describe fails: mark job `failed`.
+15. Call session `Done` (releases workspace, marks todo done).
+16. Mark job `completed`.
 
 ## Failure Handling
 

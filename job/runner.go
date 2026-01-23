@@ -31,6 +31,7 @@ type RunOptions struct {
 	LoadConfig    func(string) (*config.Config, error)
 	RunTests      func(string, []string) ([]TestCommandResult, error)
 	RunOpencode   func(opencodeRunOptions) (OpencodeRunResult, error)
+	UpdateStale   func(string) error
 }
 
 // RunResult captures the output of running a job.
@@ -224,10 +225,15 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 			return runOpencodeSession(pool, runOpts)
 		}
 	}
+	if opts.UpdateStale == nil {
+		client := jj.New()
+		opts.UpdateStale = client.WorkspaceUpdateStale
+	}
 	return opts
 }
 
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (Job, error) {
+	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
 		return Job{}, err
@@ -293,6 +299,7 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 }
 
 func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (Job, error) {
+	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
 		return Job{}, err
@@ -357,6 +364,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 }
 
 func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, sessionManager *session.Manager, opts RunOptions, result *RunResult) (Job, error) {
+	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	messagePath := filepath.Join(workspacePath, commitMessageFilename)
 	if err := removeFileIfExists(messagePath); err != nil {
 		return Job{}, err
@@ -398,6 +406,7 @@ func runCommittingStage(manager *Manager, current Job, item todo.Todo, repoPath,
 	result.CommitMessage = finalMessage
 
 	client := jj.New()
+	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	if err := client.Describe(workspacePath, finalMessage); err != nil {
 		return Job{}, err
 	}
@@ -462,6 +471,13 @@ func removeFileIfExists(path string) error {
 		return err
 	}
 	return nil
+}
+
+func updateStaleWorkspace(update func(string) error, workspacePath string) {
+	if update == nil {
+		return
+	}
+	_ = update(workspacePath)
 }
 
 func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (OpencodeRunResult, error) {
