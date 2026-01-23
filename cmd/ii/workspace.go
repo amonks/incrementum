@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
+	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
@@ -143,7 +145,7 @@ func runWorkspaceList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Print(formatWorkspaceTable(items, nil))
+	fmt.Print(formatWorkspaceTable(items, nil, time.Now()))
 	return nil
 }
 
@@ -184,7 +186,7 @@ func runWorkspaceDestroyAll(cmd *cobra.Command, args []string) error {
 	return pool.DestroyAll(repoPath)
 }
 
-func formatWorkspaceTable(items []workspace.Info, highlight func(string) string) string {
+func formatWorkspaceTable(items []workspace.Info, highlight func(string) string, now time.Time) string {
 	if highlight == nil {
 		highlight = func(value string) string { return value }
 	}
@@ -195,13 +197,19 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string)
 		if purpose == "" {
 			purpose = "-"
 		}
+
+		acquiredAge := "-"
+		if item.Status == workspace.StatusAcquired {
+			acquiredAge = ui.FormatTimeAgeShort(item.AcquiredAt, now)
+		}
 		rows = append(rows, []string{
 			highlight(item.Name),
 			string(item.Status),
+			acquiredAge,
 			truncateTableCell(purpose),
 			truncateTableCell(item.Path),
 		})
 	}
 
-	return formatTable([]string{"NAME", "STATUS", "PURPOSE", "PATH"}, rows)
+	return formatTable([]string{"NAME", "STATUS", "ACQUIRED", "PURPOSE", "PATH"}, rows)
 }

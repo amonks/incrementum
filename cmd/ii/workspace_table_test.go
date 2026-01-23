@@ -3,7 +3,9 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -23,10 +25,12 @@ func TestFormatWorkspaceTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 	}
 
-	plain := formatWorkspaceTable(items, func(value string) string { return value })
+	now := time.Date(2026, 1, 23, 1, 0, 0, 0, time.UTC)
+
+	plain := formatWorkspaceTable(items, func(value string) string { return value }, now)
 	ansi := formatWorkspaceTable(items, func(value string) string {
 		return "\x1b[1m\x1b[36m" + value + "\x1b[0m"
-	})
+	}, now)
 
 	if stripANSICodes(ansi) != plain {
 		t.Fatalf("expected ANSI output to align with plain output\nplain:\n%s\nansi:\n%s", plain, ansi)
@@ -44,13 +48,35 @@ func TestFormatWorkspaceTableTruncatesLongPaths(t *testing.T) {
 		},
 	}
 
-	output := formatWorkspaceTable(items, nil)
+	now := time.Date(2026, 1, 23, 1, 0, 0, 0, time.UTC)
+
+	output := formatWorkspaceTable(items, nil, now)
 	expected := longPath[:47] + "..."
 	if !strings.Contains(output, expected) {
 		t.Fatalf("expected truncated path %q in output: %s", expected, output)
 	}
 	if strings.Contains(output, longPath) {
 		t.Fatalf("expected long path to be truncated, got: %s", output)
+	}
+}
+
+func TestFormatWorkspaceTableShowsAcquiredAge(t *testing.T) {
+	now := time.Date(2026, 1, 23, 2, 0, 0, 0, time.UTC)
+	acquiredAt := now.Add(-2 * time.Hour)
+	items := []workspace.Info{
+		{
+			Name:       "ws-003",
+			Path:       "/tmp/ws-003",
+			Purpose:    "age-check",
+			Status:     workspace.StatusAcquired,
+			AcquiredAt: acquiredAt,
+		},
+	}
+
+	output := formatWorkspaceTable(items, nil, now)
+	expected := ui.FormatTimeAgeShort(acquiredAt, now)
+	if !strings.Contains(output, expected) {
+		t.Fatalf("expected acquired age %q in output: %s", expected, output)
 	}
 }
 
