@@ -33,6 +33,21 @@ const (
 	WorkspaceStatusAcquired WorkspaceStatus = "acquired"
 )
 
+// ValidWorkspaceStatuses returns all valid workspace status values.
+func ValidWorkspaceStatuses() []WorkspaceStatus {
+	return []WorkspaceStatus{WorkspaceStatusAvailable, WorkspaceStatusAcquired}
+}
+
+// IsValid returns true if the status is a known value.
+func (s WorkspaceStatus) IsValid() bool {
+	for _, valid := range ValidWorkspaceStatuses() {
+		if s == valid {
+			return true
+		}
+	}
+	return false
+}
+
 // WorkspaceInfo stores information about a workspace.
 type WorkspaceInfo struct {
 	Name          string          `json:"name"`

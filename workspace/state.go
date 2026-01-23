@@ -14,3 +14,8 @@ const (
 	// StatusAcquired indicates the workspace is currently in use.
 	StatusAcquired Status = statestore.WorkspaceStatusAcquired
 )
+
+// ValidStatuses returns all valid workspace status values.
+func ValidStatuses() []Status {
+	return statestore.ValidWorkspaceStatuses()
+}
