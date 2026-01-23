@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/internal/ui"
-
-	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/todo"
 	"github.com/spf13/cobra"
 )
@@ -874,49 +872,6 @@ func parseIDList(value string) []string {
 	return ids
 }
 
-// printTodoTable prints todos in a table format.
-func printTodoTable(todos []todo.Todo, prefixLengths map[string]int, now time.Time) {
-	if len(todos) == 0 {
-		fmt.Println("No todos found.")
-		return
-	}
-
-	fmt.Print(formatTodoTable(todos, prefixLengths, ui.HighlightID, now))
-}
-
-func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight func(string, int) string, now time.Time) string {
-	rows := make([][]string, 0, len(todos))
-
-	if prefixLengths == nil {
-		prefixLengths = todoIDPrefixLengths(todos)
-	}
-
-	for _, t := range todos {
-		title := truncateTableCell(t.Title)
-		prefixLen := prefixLengths[strings.ToLower(t.ID)]
-		highlighted := highlight(t.ID, prefixLen)
-		createdAge := ui.FormatTimeAgeShort(t.CreatedAt, now)
-		updatedAge := ui.FormatTimeAgeShort(t.UpdatedAt, now)
-		row := []string{
-			highlighted,
-			priorityShort(t.Priority),
-			string(t.Type),
-			string(t.Status),
-			createdAge,
-			updatedAge,
-			title,
-		}
-		rows = append(rows, row)
-	}
-
-	return formatTable([]string{"ID", "PRI", "TYPE", "STATUS", "CREATED", "UPDATED", "TITLE"}, rows)
-}
-
-func todoIDPrefixLengths(todos []todo.Todo) map[string]int {
-	index := todo.NewIDIndex(todos)
-	return index.PrefixLengths()
-}
-
 func todoIDPrefixLengthsForStore(store *todo.Store) (map[string]int, error) {
 	index, err := store.IDIndex()
 	if err != nil {
@@ -949,103 +904,4 @@ func todoListPriorityFilter(priority int, changed bool) (*int, error) {
 		return nil, err
 	}
 	return &priority, nil
-}
-
-// printTodoDetail prints detailed information about a todo.
-func printTodoDetail(t todo.Todo, highlight func(string) string) {
-	fmt.Printf("ID:       %s\n", highlight(t.ID))
-	fmt.Printf("Title:    %s\n", t.Title)
-	fmt.Printf("Type:     %s\n", t.Type)
-	fmt.Printf("Status:   %s\n", t.Status)
-	fmt.Printf("Priority: %s (%d)\n", todo.PriorityName(t.Priority), t.Priority)
-	fmt.Printf("Created:  %s\n", t.CreatedAt.Format("2006-01-02 15:04:05"))
-	fmt.Printf("Updated:  %s\n", t.UpdatedAt.Format("2006-01-02 15:04:05"))
-
-	if t.ClosedAt != nil {
-		fmt.Printf("Closed:   %s\n", t.ClosedAt.Format("2006-01-02 15:04:05"))
-	}
-
-	if t.DeletedAt != nil {
-		fmt.Printf("Deleted:  %s\n", t.DeletedAt.Format("2006-01-02 15:04:05"))
-	}
-
-	if t.DeleteReason != "" {
-		fmt.Printf("Delete Reason: %s\n", t.DeleteReason)
-	}
-
-	if t.Description != "" {
-		fmt.Printf("\nDescription:\n%s\n", t.Description)
-	}
-}
-
-// printDepTree prints a dependency tree with ASCII art.
-func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool, highlight func(string) string) {
-	// Print current node
-	connector := "├── "
-	if isLast {
-		connector = "└── "
-	}
-	if prefix == "" {
-		connector = ""
-	}
-
-	statusIcon := statusIcon(node.Todo.Status)
-	typeStr := ""
-	if node.Type != "" {
-		typeStr = fmt.Sprintf(" [%s]", node.Type)
-	}
-
-	fmt.Printf("%s%s%s %s%s (%s)\n",
-		prefix, connector, statusIcon, node.Todo.Title, typeStr, highlight(node.Todo.ID))
-
-	// Print children
-	childPrefix := prefix
-	if prefix != "" {
-		if isLast {
-			childPrefix += "    "
-		} else {
-			childPrefix += "│   "
-		}
-	}
-
-	for i, child := range node.Children {
-		isLastChild := i == len(node.Children)-1
-		printDepTree(child, childPrefix, isLastChild, highlight)
-	}
-}
-
-// priorityShort returns a short representation of priority.
-func priorityShort(p int) string {
-	switch p {
-	case 0:
-		return "P0"
-	case 1:
-		return "P1"
-	case 2:
-		return "P2"
-	case 3:
-		return "P3"
-	case 4:
-		return "P4"
-	default:
-		return "P" + strconv.Itoa(p)
-	}
-}
-
-// statusIcon returns an icon for the status.
-func statusIcon(s todo.Status) string {
-	switch s {
-	case todo.StatusOpen:
-		return "[ ]"
-	case todo.StatusInProgress:
-		return "[~]"
-	case todo.StatusClosed:
-		return "[x]"
-	case todo.StatusDone:
-		return "[d]"
-	case todo.StatusTombstone:
-		return "[-]"
-	default:
-		return "[?]"
-	}
 }

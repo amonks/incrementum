@@ -1,0 +1,61 @@
+package main
+
+import (
+	"fmt"
+
+	"github.com/amonks/incrementum/todo"
+)
+
+// printDepTree prints a dependency tree with ASCII art.
+func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool, highlight func(string) string) {
+	// Print current node
+	connector := "├── "
+	if isLast {
+		connector = "└── "
+	}
+	if prefix == "" {
+		connector = ""
+	}
+
+	statusIcon := statusIcon(node.Todo.Status)
+	typeStr := ""
+	if node.Type != "" {
+		typeStr = fmt.Sprintf(" [%s]", node.Type)
+	}
+
+	fmt.Printf("%s%s%s %s%s (%s)\n",
+		prefix, connector, statusIcon, node.Todo.Title, typeStr, highlight(node.Todo.ID))
+
+	// Print children
+	childPrefix := prefix
+	if prefix != "" {
+		if isLast {
+			childPrefix += "    "
+		} else {
+			childPrefix += "│   "
+		}
+	}
+
+	for i, child := range node.Children {
+		isLastChild := i == len(node.Children)-1
+		printDepTree(child, childPrefix, isLastChild, highlight)
+	}
+}
+
+// statusIcon returns an icon for the status.
+func statusIcon(s todo.Status) string {
+	switch s {
+	case todo.StatusOpen:
+		return "[ ]"
+	case todo.StatusInProgress:
+		return "[~]"
+	case todo.StatusClosed:
+		return "[x]"
+	case todo.StatusDone:
+		return "[d]"
+	case todo.StatusTombstone:
+		return "[-]"
+	default:
+		return "[?]"
+	}
+}
