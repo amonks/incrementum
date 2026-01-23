@@ -199,18 +199,19 @@ Create and run a job to completion (blocking).
 Behavior:
 
 1. Resolve or create todo.
-2. Determine the base revision:
+2. Release the todo store workspace once the todo is loaded.
+3. Determine the base revision:
    - If `--rev` is provided, use that.
    - Otherwise use `trunk()` (fall back to `root()` if `trunk()` is missing).
-3. Create session via session manager (acquires workspace, marks todo
+4. Create session via session manager (acquires workspace, marks todo
    `in_progress`), using a topic that includes the job id.
-4. In the session workspace, create a new change with `jj new <base-rev>`.
-5. Output job context: workspace name, session id, change id, workspace path, and full todo details.
-6. Create job record with status `active`, stage `implementing`.
-7. Run state machine to completion.
-8. Output progress: stage transitions.
-9. On success: print final commit info.
-10. On failure/abandon: print reason.
+5. In the session workspace, create a new change with `jj new <base-rev>`.
+6. Output job context: workspace name, session id, change id, workspace path, and full todo details.
+7. Create job record with status `active`, stage `implementing`.
+8. Run state machine to completion.
+9. Output progress: stage transitions.
+10. On success: print final commit info.
+11. On failure/abandon: print reason.
 
 Exit codes:
 

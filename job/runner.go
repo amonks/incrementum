@@ -71,11 +71,14 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	if err != nil {
 		return result, err
 	}
-	defer store.Release()
 
 	items, err := store.Show([]string{todoID})
+	releaseErr := store.Release()
 	if err != nil {
-		return result, err
+		return result, errors.Join(err, releaseErr)
+	}
+	if releaseErr != nil {
+		return result, releaseErr
 	}
 	if len(items) == 0 {
 		return result, fmt.Errorf("todo not found: %s", todoID)
