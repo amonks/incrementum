@@ -3,6 +3,7 @@ package jj
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -10,6 +11,9 @@ import (
 
 // Client wraps the jj CLI.
 type Client struct{}
+
+// ErrFileNotFound indicates a file or path is missing at a revision.
+var ErrFileNotFound = errors.New("jj file not found")
 
 // New creates a new jj client.
 func New() *Client {
@@ -207,4 +211,25 @@ func (c *Client) WorkspaceForget(repoPath, workspaceName string) error {
 		return fmt.Errorf("jj workspace forget: %w: %s", err, output)
 	}
 	return nil
+}
+
+// FileShow returns the contents of a file at the given revision.
+func (c *Client) FileShow(repoPath, rev, path string) ([]byte, error) {
+	cmd := exec.Command("jj", "file", "show", "-r", rev, path)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if isFileNotFoundOutput(output) {
+			return nil, ErrFileNotFound
+		}
+		return nil, fmt.Errorf("jj file show: %w: %s", err, output)
+	}
+	return output, nil
+}
+
+func isFileNotFoundOutput(output []byte) bool {
+	message := strings.ToLower(string(output))
+	return strings.Contains(message, "no such file") ||
+		strings.Contains(message, "path does not exist") ||
+		strings.Contains(message, "path doesn't exist")
 }

@@ -41,6 +41,9 @@ var (
 	// ErrNoTodoStore is returned when the todo store bookmark doesn't exist.
 	ErrNoTodoStore = errors.New("no todo store found (bookmark incr/tasks does not exist)")
 
+	// ErrReadOnlyStore is returned when attempting to write using a read-only store.
+	ErrReadOnlyStore = errors.New("todo store opened read-only")
+
 	// ErrClosedTodoMissingClosedAt is returned when a closed or done todo has no closed_at timestamp.
 	ErrClosedTodoMissingClosedAt = errors.New("closed or done todo must have closed_at timestamp")
 

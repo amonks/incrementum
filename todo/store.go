@@ -2,9 +2,11 @@ package todo
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,6 +38,8 @@ type Store struct {
 	pool      *workspace.Pool
 	snapshot  Snapshotter
 	prompter  Prompter
+	client    *jj.Client
+	readOnly  bool
 	wsRelease func() error
 }
 
@@ -80,6 +84,10 @@ type OpenOptions struct {
 	// Purpose describes why the store workspace is acquired.
 	// If empty, a default purpose is used.
 	Purpose string
+
+	// ReadOnly opens the store without acquiring a workspace.
+	// Read-only mode cannot create missing stores.
+	ReadOnly bool
 }
 
 // Open opens the todo store for the repository at repoPath.
@@ -94,11 +102,6 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 	purpose := normalizePurpose(opts.Purpose)
 	if purpose == "" {
 		purpose = "todo store"
-	}
-
-	pool, err := workspace.Open()
-	if err != nil {
-		return nil, fmt.Errorf("open workspace pool: %w", err)
 	}
 
 	client := jj.New()
@@ -122,6 +125,9 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 	}
 
 	if !hasBookmark {
+		if opts.ReadOnly {
+			return nil, ErrNoTodoStore
+		}
 		if !opts.CreateIfMissing {
 			return nil, ErrNoTodoStore
 		}
@@ -138,6 +144,20 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 				}
 			}
 		}
+	}
+
+	if opts.ReadOnly {
+		return &Store{
+			repoPath: repoPath,
+			client:   client,
+			prompter: opts.Prompter,
+			readOnly: true,
+		}, nil
+	}
+
+	pool, err := workspace.Open()
+	if err != nil {
+		return nil, fmt.Errorf("open workspace pool: %w", err)
 	}
 
 	// Acquire a workspace. If the bookmark doesn't exist yet, we'll create
@@ -174,6 +194,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 		pool:     pool,
 		snapshot: client,
 		prompter: opts.Prompter,
+		client:   client,
 		wsRelease: func() error {
 			return pool.Release(wsPath)
 		},
@@ -256,6 +277,7 @@ func withFileLock(path string, fn func() error) error {
 }
 
 // readJSONL reads all JSON objects from a JSONL file into a slice.
+
 func readJSONL[T any](path string) ([]T, error) {
 	f, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -266,8 +288,12 @@ func readJSONL[T any](path string) ([]T, error) {
 	}
 	defer f.Close()
 
+	return readJSONLFromReader[T](f)
+}
+
+func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 0, 64*1024), maxJSONLineBytes)
 	lineNum := 0
 	for scanner.Scan() {
@@ -325,6 +351,10 @@ func writeJSONL[T any](path string, items []T) error {
 
 // readTodos reads all todos from the store.
 func (s *Store) readTodos() ([]Todo, error) {
+	if s.readOnly {
+		return readJSONLAtBookmark[Todo](s.client, s.repoPath, TodosFile)
+	}
+
 	var todos []Todo
 	err := withFileLock(s.todosPath(), func() error {
 		var err error
@@ -345,6 +375,10 @@ func (s *Store) IDIndex() (IDIndex, error) {
 
 // writeTodos writes all todos to the store and runs jj snapshot.
 func (s *Store) writeTodos(todos []Todo) error {
+	if err := s.ensureWritable(); err != nil {
+		return err
+	}
+
 	err := withFileLock(s.todosPath(), func() error {
 		return writeJSONL(s.todosPath(), todos)
 	})
@@ -361,6 +395,10 @@ func (s *Store) writeTodos(todos []Todo) error {
 
 // readDependencies reads all dependencies from the store.
 func (s *Store) readDependencies() ([]Dependency, error) {
+	if s.readOnly {
+		return readJSONLAtBookmark[Dependency](s.client, s.repoPath, DependenciesFile)
+	}
+
 	var deps []Dependency
 	err := withFileLock(s.dependenciesPath(), func() error {
 		var err error
@@ -372,6 +410,10 @@ func (s *Store) readDependencies() ([]Dependency, error) {
 
 // writeDependencies writes all dependencies to the store and runs jj snapshot.
 func (s *Store) writeDependencies(deps []Dependency) error {
+	if err := s.ensureWritable(); err != nil {
+		return err
+	}
+
 	err := withFileLock(s.dependenciesPath(), func() error {
 		return writeJSONL(s.dependenciesPath(), deps)
 	})
@@ -439,4 +481,28 @@ func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
 	}
 
 	return resolved, nil
+}
+
+func readJSONLAtBookmark[T any](client *jj.Client, repoPath, path string) ([]T, error) {
+	if client == nil {
+		return nil, fmt.Errorf("todo store is missing jj client")
+	}
+	output, err := client.FileShow(repoPath, BookmarkName, path)
+	if errors.Is(err, jj.ErrFileNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return readJSONLFromReader[T](bytes.NewReader(output))
+}
+
+func (s *Store) ensureWritable() error {
+	if s.readOnly {
+		return ErrReadOnlyStore
+	}
+	if s.wsPath == "" {
+		return fmt.Errorf("todo store workspace is not available")
+	}
+	return nil
 }

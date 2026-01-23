@@ -259,6 +259,7 @@ func openTodoStoreReadOnly(cmd *cobra.Command, args []string) (*todo.Store, erro
 	return openTodoStoreWithOptions(cmd, args, todo.OpenOptions{
 		CreateIfMissing: false,
 		PromptToCreate:  false,
+		ReadOnly:        true,
 	})
 }
 

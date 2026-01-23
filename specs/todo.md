@@ -10,8 +10,10 @@ across workspaces without polluting the code history.
 
 - Storage lives in a special orphan change parented at `root()` and
   referenced by the jj bookmark `incr/tasks`.
-- The store is accessed through a background workspace from the workspace
+- Writes access the store through a background workspace from the workspace
   pool; operations never mutate the user's working copy.
+- Read-only access does not require a workspace. Reads use
+  `jj file show -r incr/tasks <file>` to fetch JSONL data directly.
 - Data is stored as JSONL files in the store workspace:
   - `todos.jsonl` holds one JSON object per todo.
   - `dependencies.jsonl` holds one JSON object per dependency.
@@ -22,6 +24,8 @@ across workspaces without polluting the code history.
   user before creating the bookmark.
 - `todo.Open` acquires a workspace with a purpose string from
   `OpenOptions.Purpose`, defaulting to `todo store`.
+- `OpenOptions.ReadOnly` skips workspace acquisition and opens the store
+  for read-only access.
 - Prompting via stdin only happens when stdin is a TTY; non-interactive calls
   skip the prompt and proceed with creation unless a custom prompter is used.
 

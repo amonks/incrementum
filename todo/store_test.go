@@ -226,6 +226,51 @@ func TestOpen_ExistingStore(t *testing.T) {
 	defer store2.Release()
 }
 
+func TestOpen_ReadOnlyDoesNotAcquireWorkspace(t *testing.T) {
+	repoPath := setupTestRepo(t)
+
+	store, err := Open(repoPath, OpenOptions{
+		CreateIfMissing: true,
+		PromptToCreate:  false,
+	})
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+
+	_, err = store.Create("Test todo", CreateOptions{})
+	if err != nil {
+		store.Release()
+		t.Fatalf("failed to create todo: %v", err)
+	}
+	store.Release()
+
+	readStore, err := Open(repoPath, OpenOptions{
+		ReadOnly: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to open read-only store: %v", err)
+	}
+	defer readStore.Release()
+
+	if readStore.wsPath != "" {
+		t.Fatalf("expected read-only store to have empty workspace path, got %q", readStore.wsPath)
+	}
+	if readStore.pool != nil {
+		t.Fatalf("expected read-only store to not have a workspace pool")
+	}
+
+	todos, err := readStore.List(ListFilter{})
+	if err != nil {
+		t.Fatalf("failed to list todos: %v", err)
+	}
+	if len(todos) != 1 {
+		t.Fatalf("expected 1 todo, got %d", len(todos))
+	}
+	if todos[0].Title != "Test todo" {
+		t.Fatalf("expected todo title %q, got %q", "Test todo", todos[0].Title)
+	}
+}
+
 func TestStore_ReadWriteTodos(t *testing.T) {
 	store := newTestStore(t)
 
