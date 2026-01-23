@@ -1,7 +1,6 @@
 package workspace
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -29,15 +28,6 @@ func ValidSessionStatuses() []SessionStatus {
 
 // Session represents an active or completed session.
 type Session = statestore.Session
-
-// ErrSessionAlreadyActive indicates a todo already has an active session.
-var ErrSessionAlreadyActive = errors.New("session already active")
-
-// ErrSessionNotFound indicates the requested session is missing.
-var ErrSessionNotFound = errors.New("session not found")
-
-// ErrSessionNotActive indicates a session is not active.
-var ErrSessionNotActive = errors.New("session is not active")
 
 // CreateSession creates a new active session for the given todo.
 func (p *Pool) CreateSession(repoPath, todoID, workspaceName, topic string, startedAt time.Time) (Session, error) {

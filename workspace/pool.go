@@ -380,9 +380,6 @@ func RepoRoot(path string) (string, error) {
 	return client.WorkspaceRoot(path)
 }
 
-// ErrWorkspaceRootNotFound indicates a path is not in a jj workspace.
-var ErrWorkspaceRootNotFound = fmt.Errorf("workspace root not found")
-
 // RepoRootFromPath returns the source repo root for a workspace or repo path.
 // If the path is a workspace, it resolves to the original repo using state.
 func RepoRootFromPath(path string) (string, error) {

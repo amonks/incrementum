@@ -9,9 +9,6 @@ import (
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
-// ErrOpencodeDaemonNotFound indicates the requested daemon is missing.
-var ErrOpencodeDaemonNotFound = errors.New("opencode daemon not found")
-
 // RecordOpencodeDaemon stores a running opencode daemon for a repo.
 func (p *Pool) RecordOpencodeDaemon(repoPath string, pid int, host string, port int, logPath string, startedAt time.Time) (OpencodeDaemon, error) {
 	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)

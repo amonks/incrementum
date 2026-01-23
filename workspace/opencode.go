@@ -3,7 +3,6 @@ package workspace
 import (
 	"crypto/sha256"
 	"encoding/base32"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,15 +10,6 @@ import (
 
 	statestore "github.com/amonks/incrementum/internal/state"
 )
-
-// ErrOpencodeSessionNotFound indicates the requested session is missing.
-var ErrOpencodeSessionNotFound = errors.New("opencode session not found")
-
-// ErrAmbiguousOpencodeSessionIDPrefix indicates a prefix matches multiple sessions.
-var ErrAmbiguousOpencodeSessionIDPrefix = errors.New("ambiguous opencode session id prefix")
-
-// ErrOpencodeSessionNotActive indicates a session is not active.
-var ErrOpencodeSessionNotActive = errors.New("opencode session is not active")
 
 // CreateOpencodeSession creates a new active opencode session.
 func (p *Pool) CreateOpencodeSession(repoPath, prompt, logPath string, startedAt time.Time) (OpencodeSession, error) {
