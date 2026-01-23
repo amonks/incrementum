@@ -142,7 +142,12 @@ func runJobList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Print(formatJobTable(jobs, ui.HighlightID, time.Now(), todoPrefixLengths, jobPrefixLengths))
+	sessionPrefixLengths := jobSessionPrefixLengths(allJobs)
+	if len(sessionPrefixLengths) == 0 {
+		sessionPrefixLengths = nil
+	}
+
+	fmt.Print(formatJobTable(jobs, ui.HighlightID, time.Now(), todoPrefixLengths, jobPrefixLengths, sessionPrefixLengths))
 	return nil
 }
 
@@ -201,18 +206,35 @@ func jobTodoPrefixLengths(repoPath string, purpose string) (map[string]int, erro
 	return index.PrefixLengths(), nil
 }
 
-func formatJobTable(jobs []jobpkg.Job, highlight func(string, int) string, now time.Time, todoPrefixLengths map[string]int, jobPrefixLengths map[string]int) string {
+func jobSessionPrefixLengths(jobs []jobpkg.Job) map[string]int {
+	ids := make([]string, 0, len(jobs))
+	for _, item := range jobs {
+		if item.SessionID != "" {
+			ids = append(ids, item.SessionID)
+		}
+	}
+	return ui.UniqueIDPrefixLengths(ids)
+}
+
+func formatJobTable(jobs []jobpkg.Job, highlight func(string, int) string, now time.Time, todoPrefixLengths map[string]int, jobPrefixLengths map[string]int, sessionPrefixLengths map[string]int) string {
 	rows := make([][]string, 0, len(jobs))
 
 	jobIDs := make([]string, 0, len(jobs))
 	todoIDs := make([]string, 0, len(jobs))
+	sessionIDs := make([]string, 0, len(jobs))
 	for _, item := range jobs {
 		jobIDs = append(jobIDs, item.ID)
 		todoIDs = append(todoIDs, item.TodoID)
+		if item.SessionID != "" {
+			sessionIDs = append(sessionIDs, item.SessionID)
+		}
 	}
 
 	if jobPrefixLengths == nil {
 		jobPrefixLengths = ui.UniqueIDPrefixLengths(jobIDs)
+	}
+	if sessionPrefixLengths == nil {
+		sessionPrefixLengths = ui.UniqueIDPrefixLengths(sessionIDs)
 	}
 
 	todoFallback := ui.UniqueIDPrefixLengths(todoIDs)
@@ -235,11 +257,17 @@ func formatJobTable(jobs []jobpkg.Job, highlight func(string, int) string, now t
 			todoPrefixLen = length
 		}
 		todoID := highlight(item.TodoID, todoPrefixLen)
+		sessionID := "-"
+		if item.SessionID != "" {
+			sessionPrefixLen := sessionPrefixLengths[strings.ToLower(item.SessionID)]
+			sessionID = highlight(item.SessionID, sessionPrefixLen)
+		}
 		age := formatJobAge(item, now)
 
 		row := []string{
 			jobID,
 			todoID,
+			sessionID,
 			string(item.Stage),
 			string(item.Status),
 			age,
@@ -247,7 +275,7 @@ func formatJobTable(jobs []jobpkg.Job, highlight func(string, int) string, now t
 		rows = append(rows, row)
 	}
 
-	return formatTable([]string{"JOB", "TODO", "STAGE", "STATUS", "AGE"}, rows)
+	return formatTable([]string{"JOB", "TODO", "SESSION", "STAGE", "STATUS", "AGE"}, rows)
 }
 
 func formatJobAge(item jobpkg.Job, now time.Time) string {

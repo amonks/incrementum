@@ -211,11 +211,13 @@ List jobs for current repo.
 - `--all`: show all statuses.
 - `--json`: structured output.
 
-Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`.
+Columns: `JOB`, `TODO`, `SESSION`, `STAGE`, `STATUS`, `AGE`.
 
 `JOB` highlights the shortest unique prefix across all jobs in the repo.
 
 `TODO` uses the same prefix highlighting as other todo output.
+
+`SESSION` uses the shortest unique prefix across job session IDs in the repo.
 
 When list is empty but jobs exist, print hint about `--all`.
 
