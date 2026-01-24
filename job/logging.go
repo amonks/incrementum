@@ -170,10 +170,10 @@ func formatLogLabel(label string, indent int) string {
 }
 
 func formatLogBody(body string, indent int, wrap bool) string {
-	if wrap {
-		body = reflowParagraphs(body, lineWidth-indent)
-	}
 	body = normalizeLogBody(body)
+	if wrap {
+		return reflowIndentedText(body, lineWidth, indent)
+	}
 	return indentBlock(body, indent)
 }
 

@@ -92,6 +92,24 @@ func TestConsoleLoggerReflowsParagraphs(t *testing.T) {
 	}
 }
 
+func TestConsoleLoggerPreservesPromptIndentation(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewConsoleLogger(&buf)
+
+	logger.Prompt(PromptLog{
+		Purpose: "implement",
+		Prompt:  "Summary:\n    Detail one\n    Detail two",
+	})
+
+	output := stripANSI(buf.String())
+	if !strings.Contains(output, "\n        Summary:") {
+		t.Fatalf("expected summary indentation, got %q", output)
+	}
+	if !strings.Contains(output, "\n            Detail one Detail two") {
+		t.Fatalf("expected nested indentation, got %q", output)
+	}
+}
+
 func TestConsoleLoggerPreservesFormattedCommitMessageIndentation(t *testing.T) {
 	var buf bytes.Buffer
 	logger := NewConsoleLogger(&buf)

@@ -70,3 +70,60 @@ func indentBlock(value string, spaces int) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
+func reflowIndentedText(value string, width int, baseIndent int) string {
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\r", "\n")
+	value = strings.TrimRight(value, "\n")
+	if strings.TrimSpace(value) == "" {
+		return indentBlock("-", baseIndent)
+	}
+
+	lines := strings.Split(value, "\n")
+	var out []string
+	for i := 0; i < len(lines); {
+		line := lines[i]
+		if strings.TrimSpace(line) == "" {
+			out = append(out, strings.Repeat(" ", baseIndent))
+			i++
+			continue
+		}
+		indent := leadingSpaces(line)
+		var parts []string
+		for i < len(lines) {
+			line = lines[i]
+			if strings.TrimSpace(line) == "" {
+				break
+			}
+			if leadingSpaces(line) != indent {
+				break
+			}
+			parts = append(parts, strings.TrimSpace(line[indent:]))
+			i++
+		}
+		normalized := internalstrings.NormalizeWhitespace(strings.Join(parts, " "))
+		if normalized == "" {
+			out = append(out, strings.Repeat(" ", baseIndent+indent)+"-")
+			continue
+		}
+		wrapWidth := width - baseIndent - indent
+		if wrapWidth < 1 {
+			wrapWidth = 1
+		}
+		wrapped := wordwrap.String(normalized, wrapWidth)
+		wrapped = indentBlock(wrapped, baseIndent+indent)
+		out = append(out, strings.Split(wrapped, "\n")...)
+	}
+	return strings.Join(out, "\n")
+}
+
+func leadingSpaces(value string) int {
+	count := 0
+	for _, char := range value {
+		if char != ' ' {
+			break
+		}
+		count++
+	}
+	return count
+}
