@@ -9,19 +9,8 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/jj"
+	"github.com/creack/pty"
 )
-
-// mockPrompter implements Prompter for testing.
-type mockPrompter struct {
-	response bool
-	err      error
-	called   bool
-}
-
-func (m *mockPrompter) Confirm(message string) (bool, error) {
-	m.called = true
-	return m.response, m.err
-}
 
 // setupTestRepo creates a temporary jj repository for testing.
 // It also sets HOME to a temp directory to prevent leaking state into
@@ -45,6 +34,28 @@ func setupTestRepo(t *testing.T) string {
 	}
 
 	return tmpDir
+}
+
+func setTTYInput(t *testing.T, input string) {
+	t.Helper()
+
+	master, slave, err := pty.Open()
+	if err != nil {
+		t.Fatalf("open tty: %v", err)
+	}
+	oldStdin := os.Stdin
+	os.Stdin = slave
+	if _, err := master.Write([]byte(input)); err != nil {
+		_ = master.Close()
+		_ = slave.Close()
+		os.Stdin = oldStdin
+		t.Fatalf("write tty input: %v", err)
+	}
+	t.Cleanup(func() {
+		os.Stdin = oldStdin
+		_ = master.Close()
+		_ = slave.Close()
+	})
 }
 
 func TestOpen_NoBookmark(t *testing.T) {
@@ -125,11 +136,9 @@ func TestOpen_UsesPurpose(t *testing.T) {
 
 func TestOpen_PromptToCreate_Confirmed(t *testing.T) {
 	repoPath := setupTestRepo(t)
-
-	prompter := &mockPrompter{response: true}
+	setTTYInput(t, "y\n")
 
 	store, err := Open(repoPath, OpenOptions{
-		Prompter:        prompter,
 		CreateIfMissing: true,
 		PromptToCreate:  true,
 	})
@@ -137,28 +146,18 @@ func TestOpen_PromptToCreate_Confirmed(t *testing.T) {
 		t.Fatalf("failed to open store: %v", err)
 	}
 	defer store.Release()
-
-	if !prompter.called {
-		t.Error("prompter was not called")
-	}
 }
 
 func TestOpen_PromptToCreate_Declined(t *testing.T) {
 	repoPath := setupTestRepo(t)
-
-	prompter := &mockPrompter{response: false}
+	setTTYInput(t, "n\n")
 
 	_, err := Open(repoPath, OpenOptions{
-		Prompter:        prompter,
 		CreateIfMissing: true,
 		PromptToCreate:  true,
 	})
 	if !errors.Is(err, ErrNoTodoStore) {
 		t.Errorf("expected ErrNoTodoStore, got %v", err)
-	}
-
-	if !prompter.called {
-		t.Error("prompter was not called")
 	}
 }
 

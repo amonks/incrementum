@@ -1,12 +1,47 @@
 # Specifications
 
+## Architecture
+
+### System Principles
+
+- The specifications are the source of truth for system behavior; update them alongside code changes.
+- Keep the domain model coherent and favor clear factoring over shortcuts.
+- Treat the system as single-version: remove or migrate old behavior instead of preserving backward compatibility.
+- Practice test-driven development: write a failing test before implementing the behavior.
+- Never mock: tests must exercise real integrations, especially when shelling out to third-party binaries.
+- When you spot unrelated issues, capture them as new todos instead of piggybacking on the current change.
+
+### CLI Architecture
+
+- The CLI is structured as a single entry point that dispatches subcommands.
+- Subcommands validate inputs before performing state changes.
+- Errors are reported consistently, using a human-readable message and a non-zero exit code.
+- Commands follow the pattern `ii <noun> <verb> [args] [flags]`.
+- The CLI layer is a thin wrapper around public packages; command handlers delegate to package APIs with minimal logic.
+- Command interfaces should mirror the public APIs they wrap (1:1 when possible).
+- Flag aliases should be handled via normalization so help shows a single entry; prefer `-d` and accept `--desc` for description when needed.
+
+### CLI I/O & Testing
+
+- Machine-readable output is only emitted when explicitly requested (for example via `--json`).
+- Table output aligns and truncates by visible characters instead of raw byte length.
+- Table output normalizes line breaks and tabs to spaces to keep rows single-line.
+- Each package wrapped into the CLI has both regular tests and an end-to-end test that builds and executes the CLI binary.
+- CLI e2e testscript suites live under `cmd/ii/testdata` and are executed from `cmd/ii/*_test.go`.
+- CLI wrapper unit tests live under `cmd/ii`; go package APIs are tested in their respective module directories.
+
+### No-Mock Test Audit
+
+- 2026-01-24: Audited all `*_test.go` files under `cmd/ii`, `job`, `opencode`, `todo`, `workspace`, and `internal`; tests rely on real integrations or local helpers with no mock binaries.
+- Opencode integration tests assert stdin prompt handling and confirm attach/event stream logs are recorded.
+
 ## Public Packages
 
 | Spec                           | Code                        | Purpose                                                                                                      |
 | ------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | [workspace.md](./workspace.md) | [workspace/](../workspace/) | Jujutsu workspace pool: acquire a workspace to do some isolated work, then release it                        |
 | [todo.md](./todo.md)           | [todo/](../todo/)           | Task tracking: command-line JIRA with TODOs stored in a special branch                                       |
-| [cli.md](./cli.md)             | [cmd/ii/](../cmd/ii/)       | Describes our architecture: the cli package is a thin wrapper over a go package per-subcommand               |
+| [cli.md](./cli.md)             | [cmd/ii/](../cmd/ii/)       | CLI conventions and behavior notes                                                                             |
 | [opencode.md](./opencode.md)   | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
 | [job.md](./job.md)             | [job/](../job/)             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
 

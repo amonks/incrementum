@@ -1,101 +1,60 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/amonks/incrementum/opencode"
 )
 
-func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
-	root := t.TempDir()
-	home := filepath.Join(root, "home")
-	if err := os.MkdirAll(home, 0o755); err != nil {
-		t.Fatalf("create home: %v", err)
+func requireOpencode(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("opencode"); err != nil {
+		t.Skipf("opencode binary is required for integration tests: %v", err)
 	}
-	t.Setenv("HOME", home)
+}
 
+func prepareOpencodeHome(t *testing.T) string {
+	t.Helper()
+
+	configHome := os.Getenv("XDG_CONFIG_HOME")
+	if configHome == "" {
+		if currentHome := os.Getenv("HOME"); currentHome != "" {
+			configHome = filepath.Join(currentHome, ".config")
+		}
+	}
+	if configHome == "" {
+		t.Skip("opencode config home is not set")
+	}
+	configDir := filepath.Join(configHome, "opencode")
+	entries, err := os.ReadDir(configDir)
+	if err != nil {
+		t.Skipf("opencode config not found at %s: %v", configDir, err)
+	}
+	if len(entries) == 0 {
+		t.Skipf("opencode config directory %s is empty", configDir)
+	}
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, ".local", "share"))
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+
+	return home
+}
+
+func prepareOpencodeRepo(t *testing.T) string {
+	t.Helper()
+
+	root := t.TempDir()
 	repoPath := filepath.Join(root, "repo")
 	if err := os.MkdirAll(repoPath, 0o755); err != nil {
 		t.Fatalf("create repo: %v", err)
 	}
-
-	binDir := filepath.Join(root, "bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatalf("create bin dir: %v", err)
-	}
-
-	serveArgsFile := filepath.Join(root, "opencode-serve-args.txt")
-	runArgsFile := filepath.Join(root, "opencode-run-args.txt")
-	runStdinFile := filepath.Join(root, "opencode-run-stdin.txt")
-	eventFile := filepath.Join(root, "opencode-events.txt")
-	eventData := "event: log\ndata: hello from opencode\n\n"
-	if err := os.WriteFile(eventFile, []byte(eventData), 0o644); err != nil {
-		t.Fatalf("write event data: %v", err)
-	}
-	projectID := "proj_123"
-	sessionID := "ses_123"
-
-	opencodePath := filepath.Join(binDir, "opencode")
-	opencodeScript := fmt.Sprintf(`#!/bin/sh
-if [ "$1" = "serve" ]; then
-  shift
-  echo "serve $@" > "%s"
-  port=""
-  for arg in "$@"; do
-    case "$arg" in
-      --port=*)
-        port="${arg#--port=}"
-        ;;
-    esac
-  done
-  exec python3 - "$port" "%s" <<'PY'
-import sys
-import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
-
-port = int(sys.argv[1])
-event_path = sys.argv[2]
-
-class Handler(BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-    def do_GET(self):
-        if self.path != "/event":
-            self.send_response(404)
-            self.end_headers()
-            return
-        self.send_response(200)
-        self.send_header("Content-Type", "text/event-stream")
-        self.end_headers()
-        with open(event_path, "rb") as handle:
-            self.wfile.write(handle.read())
-        self.wfile.flush()
-        while True:
-            time.sleep(0.1)
-
-server = HTTPServer(("localhost", port), Handler)
-server.serve_forever()
-PY
-fi
-if [ "$1" = "run" ]; then
-  shift
-  echo "run $@" > "%s"
-  cat - > "%s"
-  exit 0
-fi
-exit 0
- `, serveArgsFile, eventFile, runArgsFile, runStdinFile)
-	if err := os.WriteFile(opencodePath, []byte(opencodeScript), 0o755); err != nil {
-		t.Fatalf("write opencode stub: %v", err)
-	}
-
-	pathEnv := os.Getenv("PATH")
-	t.Setenv("PATH", fmt.Sprintf("%s:%s", binDir, pathEnv))
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -108,90 +67,17 @@ exit 0
 		_ = os.Chdir(cwd)
 	})
 
-	repoPath, err = os.Getwd()
-	if err != nil {
-		t.Fatalf("get repo cwd: %v", err)
-	}
-	storageRoot := filepath.Join(home, ".local", "share", "opencode", "storage")
-	projectDir := filepath.Join(storageRoot, "project")
-	sessionDir := filepath.Join(storageRoot, "session", projectID)
-	messageDir := filepath.Join(storageRoot, "message", sessionID)
-	partDir := filepath.Join(storageRoot, "part", "msg_"+sessionID)
-	if err := os.MkdirAll(projectDir, 0o755); err != nil {
-		t.Fatalf("create project dir: %v", err)
-	}
-	projectFile := filepath.Join(projectDir, projectID+".json")
-	projectJSON := fmt.Sprintf("{\"id\":\"%s\",\"worktree\":\"%s\"}", projectID, repoPath)
-	if err := os.WriteFile(projectFile, []byte(projectJSON), 0o644); err != nil {
-		t.Fatalf("write project file: %v", err)
-	}
-	if err := os.MkdirAll(sessionDir, 0o755); err != nil {
-		t.Fatalf("create session dir: %v", err)
-	}
-	if err := os.MkdirAll(messageDir, 0o755); err != nil {
-		t.Fatalf("create message dir: %v", err)
-	}
-	if err := os.MkdirAll(partDir, 0o755); err != nil {
-		t.Fatalf("create part dir: %v", err)
-	}
+	return repoPath
+}
 
-	created := time.Now().Add(10 * time.Second).UnixMilli()
-	sessionJSON := fmt.Sprintf("{\"id\":\"%s\",\"projectID\":\"%s\",\"directory\":\"%s\",\"time\":{\"created\":%d}}", sessionID, projectID, repoPath, created)
-	if err := os.WriteFile(filepath.Join(sessionDir, sessionID+".json"), []byte(sessionJSON), 0o644); err != nil {
-		t.Fatalf("write session file: %v", err)
-	}
-	messageJSON := fmt.Sprintf("{\"id\":\"msg_%s\",\"sessionID\":\"%s\",\"role\":\"user\",\"time\":{\"created\":%d}}", sessionID, sessionID, created)
-	if err := os.WriteFile(filepath.Join(messageDir, "msg_"+sessionID+".json"), []byte(messageJSON), 0o644); err != nil {
-		t.Fatalf("write message file: %v", err)
-	}
-	partJSON := fmt.Sprintf("{\"id\":\"prt_%s\",\"sessionID\":\"%s\",\"messageID\":\"msg_%s\",\"type\":\"text\",\"text\":\"Test prompt\"}", sessionID, sessionID, sessionID)
-	if err := os.WriteFile(filepath.Join(partDir, "prt_"+sessionID+".json"), []byte(partJSON), 0o644); err != nil {
-		t.Fatalf("write part file: %v", err)
-	}
+func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
+	requireOpencode(t)
+	prepareOpencodeHome(t)
+	repoPath := prepareOpencodeRepo(t)
 
-	if err := runOpencodeRun(opencodeRunCmd, []string{"Test prompt"}); err != nil {
+	prompt := "Test prompt"
+	if err := runOpencodeRun(opencodeRunCmd, []string{prompt}); err != nil {
 		t.Fatalf("run opencode: %v", err)
-	}
-
-	serveData, err := os.ReadFile(serveArgsFile)
-	if err != nil {
-		t.Fatalf("read serve args: %v", err)
-	}
-	serveArgs := strings.Fields(strings.TrimSpace(string(serveData)))
-	if len(serveArgs) == 0 || serveArgs[0] != "serve" {
-		t.Fatalf("expected opencode serve args, got %q", serveArgs)
-	}
-	var port string
-	for _, arg := range serveArgs {
-		if strings.HasPrefix(arg, "--port=") {
-			port = strings.TrimPrefix(arg, "--port=")
-		}
-	}
-	if port == "" {
-		t.Fatalf("expected opencode serve port, got %q", serveArgs)
-	}
-
-	runData, err := os.ReadFile(runArgsFile)
-	if err != nil {
-		t.Fatalf("read run args: %v", err)
-	}
-	runArgs := strings.TrimSpace(string(runData))
-	if !strings.Contains(runArgs, "run") {
-		t.Fatalf("expected opencode run args, got %q", runArgs)
-	}
-	if !strings.Contains(runArgs, "--attach=http://localhost:"+port) {
-		t.Fatalf("expected opencode run to attach to server, got %q", runArgs)
-	}
-	if strings.Contains(runArgs, "Test prompt") {
-		t.Fatalf("expected prompt not to be passed as arg, got %q", runArgs)
-	}
-
-	runInput, err := os.ReadFile(runStdinFile)
-	if err != nil {
-		t.Fatalf("read run stdin: %v", err)
-	}
-	if strings.TrimSpace(string(runInput)) != "Test prompt" {
-		t.Fatalf("expected prompt via stdin, got %q", string(runInput))
 	}
 
 	store, err := opencode.Open()
@@ -203,24 +89,86 @@ exit 0
 	if err != nil {
 		t.Fatalf("list sessions: %v", err)
 	}
-	if len(sessions) != 1 {
-		t.Fatalf("expected 1 session, got %d", len(sessions))
+	if len(sessions) == 0 {
+		t.Fatalf("expected at least 1 session, got 0")
 	}
-	if sessions[0].ID != sessionID {
-		t.Fatalf("expected session id %q, got %q", sessionID, sessions[0].ID)
+	var matched *opencode.OpencodeSession
+	for i := range sessions {
+		if sessions[i].Prompt == prompt {
+			matched = &sessions[i]
+			break
+		}
 	}
-	if sessions[0].Status != opencode.OpencodeSessionCompleted {
-		t.Fatalf("expected status completed, got %q", sessions[0].Status)
+	if matched == nil {
+		t.Fatalf("expected session prompt %q, got %+v", prompt, sessions)
 	}
-	if sessions[0].ExitCode == nil || *sessions[0].ExitCode != 0 {
-		t.Fatalf("expected exit code 0, got %v", sessions[0].ExitCode)
+	if matched.Status != opencode.OpencodeSessionCompleted {
+		t.Fatalf("expected status completed, got %q", matched.Status)
 	}
-
-	snapshot, err := store.Logs(repoPath, sessionID)
+	if matched.ExitCode == nil || *matched.ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %v", matched.ExitCode)
+	}
+	logs, err := store.Logs(repoPath, matched.ID)
 	if err != nil {
 		t.Fatalf("read logs: %v", err)
 	}
-	if snapshot != eventData {
-		t.Fatalf("expected event log %q, got %q", eventData, snapshot)
+	if strings.TrimSpace(logs) == "" {
+		t.Fatalf("expected opencode event log content")
+	}
+	if !strings.Contains(logs, "data:") {
+		t.Fatalf("expected opencode event log to include data lines")
+	}
+}
+
+func TestOpencodeRunUsesStdinPrompt(t *testing.T) {
+	requireOpencode(t)
+	prepareOpencodeHome(t)
+	repoPath := prepareOpencodeRepo(t)
+
+	prompt := "Prompt from stdin"
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe stdin: %v", err)
+	}
+	_, err = writer.WriteString(prompt + "\n")
+	if err != nil {
+		_ = reader.Close()
+		_ = writer.Close()
+		t.Fatalf("write stdin: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		_ = reader.Close()
+		t.Fatalf("close stdin writer: %v", err)
+	}
+
+	originalStdin := os.Stdin
+	os.Stdin = reader
+	t.Cleanup(func() {
+		os.Stdin = originalStdin
+		_ = reader.Close()
+	})
+
+	if err := runOpencodeRun(opencodeRunCmd, nil); err != nil {
+		t.Fatalf("run opencode: %v", err)
+	}
+
+	store, err := opencode.Open()
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+
+	sessions, err := store.ListSessions(repoPath)
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	var matched *opencode.OpencodeSession
+	for i := range sessions {
+		if sessions[i].Prompt == prompt {
+			matched = &sessions[i]
+			break
+		}
+	}
+	if matched == nil {
+		t.Fatalf("expected session prompt %q, got %+v", prompt, sessions)
 	}
 }
