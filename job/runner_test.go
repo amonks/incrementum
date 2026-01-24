@@ -94,7 +94,7 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 		},
 	}
 
-	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil)
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil, "")
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}
@@ -134,6 +134,8 @@ func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *tes
 		Priority:    todo.PriorityMedium,
 	}
 
+	previousMessage := "feat: earlier draft"
+
 	commitCalls := 0
 	var seenPrompt string
 	opts := RunOptions{
@@ -156,13 +158,16 @@ func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *tes
 		},
 	}
 
-	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil)
+	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil, previousMessage)
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}
 
 	if !strings.Contains(seenPrompt, "write a multi-line commit message") {
 		t.Fatalf("expected prompt to request commit message, got %q", seenPrompt)
+	}
+	if !strings.Contains(seenPrompt, previousMessage) {
+		t.Fatalf("expected prompt to include previous commit message, got %q", seenPrompt)
 	}
 }
 
@@ -216,7 +221,7 @@ func TestRunImplementingStageIncludesCommitLog(t *testing.T) {
 		},
 	}
 
-	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts, commitLog)
+	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts, commitLog, "")
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}

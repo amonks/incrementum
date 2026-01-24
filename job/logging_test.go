@@ -123,7 +123,7 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 		Logger: logger,
 	}
 
-	_, err = runImplementingStage(manager, current, item, repoPath, workspacePath, opts, nil)
+	_, err = runImplementingStage(manager, current, item, repoPath, workspacePath, opts, nil, "")
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}

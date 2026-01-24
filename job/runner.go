@@ -297,7 +297,7 @@ func (ctx *runContext) handleStageOutcome(current, next Job, stageErr error) (Jo
 
 func (ctx *runContext) runImplementingStage(current Job) func() (Job, error) {
 	return func() (Job, error) {
-		result, err := runImplementingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.result.CommitLog)
+		result, err := runImplementingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.result.CommitLog, ctx.commitMessage)
 		if err != nil {
 			return Job{}, err
 		}
@@ -378,7 +378,7 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	return opts
 }
 
-func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitLog []CommitLogEntry) (ImplementingStageResult, error) {
+func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitLog []CommitLogEntry, previousMessage string) (ImplementingStageResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = noopLogger{}
@@ -394,7 +394,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
-	prompt, err := renderPromptTemplate(item, current.Feedback, "", commitLog, nil, "prompt-implementation.tmpl", workspacePath)
+	prompt, err := renderPromptTemplate(item, current.Feedback, previousMessage, commitLog, nil, "prompt-implementation.tmpl", workspacePath)
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}

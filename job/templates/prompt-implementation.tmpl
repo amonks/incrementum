@@ -7,6 +7,13 @@ completion of a todo.
 <feedback>
 {{.Feedback}}
 </feedback>
+{{if .Message}}
+
+Commit message from the previous version:
+<commit_message>
+{{.Message}}
+</commit_message>
+{{end}}
 {{else}}
 You are implementing the next step of a todo.
 

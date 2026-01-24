@@ -70,7 +70,7 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 		Priority:    todo.PriorityMedium,
 	}
 
-	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil)
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil, "")
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}

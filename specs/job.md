@@ -97,7 +97,8 @@ any stage -> failed (unrecoverable error)
 2. Delete `.incrementum-feedback` if it exists.
 3. Record the current working copy commit id.
 4. Run opencode with `prompt-implementation.tmpl` prompt from the repo root (PWD set to the repo root).
-5. Template receives: `Todo`, `Feedback` (empty string on initial run).
+5. Template receives: `Todo`, `Feedback` (empty string on initial run), and
+   `Message` (previous commit message when responding to feedback).
 6. Record opencode session in `opencode_sessions` with purpose `implement`.
 7. Run opencode to completion.
 8. If opencode fails (nonzero exit): mark job `failed`.
@@ -194,7 +195,7 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 
 | File                   | Stage        | Variables                             |
 | ---------------------- | ------------ | ------------------------------------- |
-| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `CommitLog`, `WorkspacePath`   |
+| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`   |
 | `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`    |
 | `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`               |
 | `commit-message.tmpl`         | committing   | `Todo`, `Message`, `CommitLog`, `OpencodeTranscripts`, `WorkspacePath` |

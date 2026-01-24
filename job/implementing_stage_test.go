@@ -47,7 +47,7 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 		},
 	}
 
-	_, err = runImplementingStage(manager, current, item, repoPath, repoPath, opts, nil)
+	_, err = runImplementingStage(manager, current, item, repoPath, repoPath, opts, nil, "")
 	if err == nil {
 		t.Fatal("expected missing commit message error")
 	}
