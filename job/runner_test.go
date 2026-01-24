@@ -108,6 +108,63 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 	}
 }
 
+func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 11, 10, 0, 0, time.UTC)
+	created, err := manager.Create("todo-111", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+	created.Feedback = "Tests failed"
+
+	item := todo.Todo{
+		ID:          "todo-111",
+		Title:       "Retry with feedback",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	commitCalls := 0
+	var seenPrompt string
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			commitCalls++
+			if commitCalls > 2 {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			return "same", nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			seenPrompt = runOpts.Prompt
+			return OpencodeRunResult{SessionID: "oc-111", ExitCode: 0}, nil
+		},
+	}
+
+	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts)
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+
+	if !strings.Contains(seenPrompt, "write a multi-line commit message") {
+		t.Fatalf("expected prompt to request commit message, got %q", seenPrompt)
+	}
+}
+
 func TestRunReviewingStagePassesCommitMessage(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := "/Users/test/repo"
