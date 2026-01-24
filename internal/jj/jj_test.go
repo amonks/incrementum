@@ -2,7 +2,9 @@ package jj_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/amonks/incrementum/internal/jj"
@@ -289,6 +291,16 @@ func TestDescribe(t *testing.T) {
 	if err := client.Describe(tmpDir, "test description"); err != nil {
 		t.Fatalf("failed to describe: %v", err)
 	}
+
+	cmd := exec.Command("jj", "log", "-r", "@", "-T", "description", "--no-graph")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("failed to read description: %v: %s", err, output)
+	}
+	if strings.TrimSpace(string(output)) != "test description" {
+		t.Fatalf("expected description to be set")
+	}
 }
 
 func TestCommit(t *testing.T) {
@@ -302,5 +314,15 @@ func TestCommit(t *testing.T) {
 	// Commit the current change
 	if err := client.Commit(tmpDir, "test commit"); err != nil {
 		t.Fatalf("failed to commit: %v", err)
+	}
+
+	cmd := exec.Command("jj", "log", "-r", "@-", "-T", "description", "--no-graph")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("failed to read commit description: %v: %s", err, output)
+	}
+	if strings.TrimSpace(string(output)) != "test commit" {
+		t.Fatalf("expected commit description to be set")
 	}
 }

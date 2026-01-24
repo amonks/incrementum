@@ -210,8 +210,9 @@ func (c *Client) Snapshot(workspacePath string) error {
 
 // Describe sets the description for the current change.
 func (c *Client) Describe(workspacePath, message string) error {
-	cmd := exec.Command("jj", "describe", "-m", message)
+	cmd := exec.Command("jj", "describe", "--stdin")
 	cmd.Dir = workspacePath
+	cmd.Stdin = strings.NewReader(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("jj describe: %w: %s", err, output)
@@ -221,11 +222,11 @@ func (c *Client) Describe(workspacePath, message string) error {
 
 // Commit commits the current change and leaves a new empty change.
 func (c *Client) Commit(workspacePath, message string) error {
-	cmd := exec.Command("jj", "commit", "-m", message)
-	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj commit: %w: %s", err, output)
+	if err := c.Describe(workspacePath, message); err != nil {
+		return fmt.Errorf("jj commit: %w", err)
+	}
+	if _, err := c.NewChange(workspacePath, "@"); err != nil {
+		return fmt.Errorf("jj commit: %w", err)
 	}
 	return nil
 }
