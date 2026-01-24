@@ -163,15 +163,15 @@ func formatLogLabel(label string, indent int) string {
 	if strings.TrimSpace(label) == "" {
 		return ""
 	}
-	return indentBlock(label, indent)
+	return IndentBlock(label, indent)
 }
 
 func formatLogBody(body string, indent int, wrap bool) string {
 	body = normalizeLogBody(body)
 	if wrap {
-		return reflowIndentedText(body, lineWidth, indent)
+		return ReflowIndentedText(body, lineWidth, indent)
 	}
-	return indentBlock(body, indent)
+	return IndentBlock(body, indent)
 }
 
 func promptLabel(purpose string) string {

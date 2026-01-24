@@ -104,16 +104,16 @@ func formatCommitMessagesOutput(entries []jobpkg.CommitLogEntry) string {
 		if strings.TrimSpace(entry.ID) != "" {
 			label = fmt.Sprintf("Commit %s", entry.ID)
 		}
-		out.WriteString(indentBlock(label+":", jobDocumentIndent))
+		out.WriteString(jobpkg.IndentBlock(label+":", jobDocumentIndent))
 		out.WriteString("\n")
-		out.WriteString(reflowIndentedText(entry.Message, jobLineWidth, jobSubdocumentIndent))
+		out.WriteString(jobpkg.ReflowIndentedText(entry.Message, jobLineWidth, jobSubdocumentIndent))
 		out.WriteString("\n")
 	}
 	return strings.TrimRight(out.String(), "\n")
 }
 
 func formatCommitMessageOutput(message string) string {
-	formatted := reflowIndentedText(message, jobLineWidth, jobDocumentIndent)
+	formatted := jobpkg.ReflowIndentedText(message, jobLineWidth, jobDocumentIndent)
 	return fmt.Sprintf("Commit message:\n\n%s", formatted)
 }
 
@@ -128,7 +128,7 @@ func printJobStart(info jobpkg.StartInfo) {
 	fmt.Printf("%s\n", formatJobField("Priority", fmt.Sprintf("%d (%s)", info.Todo.Priority, todo.PriorityName(info.Todo.Priority))))
 	fmt.Printf("%sDescription:\n", indent)
 	description := reflowJobText(info.Todo.Description, jobLineWidth-jobSubdocumentIndent)
-	fmt.Printf("%s\n\n", indentBlock(description, jobSubdocumentIndent))
+	fmt.Printf("%s\n\n", jobpkg.IndentBlock(description, jobSubdocumentIndent))
 }
 
 func jobDoHasCreateFlags(cmd *cobra.Command) bool {
@@ -251,117 +251,13 @@ func formatJobField(label, value string) string {
 		}
 		lines[i] = strings.Repeat(" ", len(prefix)) + line
 	}
-	return indentBlock(strings.Join(lines, "\n"), jobDocumentIndent)
+	return jobpkg.IndentBlock(strings.Join(lines, "\n"), jobDocumentIndent)
 }
 
 func reflowJobText(value string, width int) string {
-	value = strings.TrimSpace(value)
-	if value == "" {
+	formatted := jobpkg.ReflowParagraphs(value, width)
+	if strings.TrimSpace(formatted) == "" {
 		return "-"
 	}
-	paragraphs := splitJobParagraphs(value)
-	wrapped := make([]string, 0, len(paragraphs))
-	for _, paragraph := range paragraphs {
-		normalized := internalstrings.NormalizeWhitespace(paragraph)
-		if normalized == "" {
-			continue
-		}
-		wrapped = append(wrapped, wordwrap.String(normalized, width))
-	}
-	if len(wrapped) == 0 {
-		return "-"
-	}
-	return strings.Join(wrapped, "\n\n")
-}
-
-func reflowIndentedText(value string, width int, baseIndent int) string {
-	value = strings.ReplaceAll(value, "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "\n")
-	value = strings.TrimRight(value, "\n")
-	if strings.TrimSpace(value) == "" {
-		return indentBlock("-", baseIndent)
-	}
-
-	lines := strings.Split(value, "\n")
-	var out []string
-	for i := 0; i < len(lines); {
-		line := lines[i]
-		if strings.TrimSpace(line) == "" {
-			out = append(out, strings.Repeat(" ", baseIndent))
-			i++
-			continue
-		}
-		indent := leadingSpaces(line)
-		var parts []string
-		for i < len(lines) {
-			line = lines[i]
-			if strings.TrimSpace(line) == "" {
-				break
-			}
-			if leadingSpaces(line) != indent {
-				break
-			}
-			parts = append(parts, strings.TrimSpace(line[indent:]))
-			i++
-		}
-		normalized := internalstrings.NormalizeWhitespace(strings.Join(parts, " "))
-		if normalized == "" {
-			out = append(out, strings.Repeat(" ", baseIndent+indent)+"-")
-			continue
-		}
-		wrapWidth := width - baseIndent - indent
-		if wrapWidth < 1 {
-			wrapWidth = 1
-		}
-		wrapped := wordwrap.String(normalized, wrapWidth)
-		wrapped = indentBlock(wrapped, baseIndent+indent)
-		out = append(out, strings.Split(wrapped, "\n")...)
-	}
-	return strings.Join(out, "\n")
-}
-
-func leadingSpaces(value string) int {
-	count := 0
-	for _, char := range value {
-		if char != ' ' {
-			break
-		}
-		count++
-	}
-	return count
-}
-
-func splitJobParagraphs(value string) []string {
-	lines := strings.Split(value, "\n")
-	var paragraphs []string
-	var current []string
-	flush := func() {
-		if len(current) == 0 {
-			return
-		}
-		paragraphs = append(paragraphs, strings.Join(current, " "))
-		current = nil
-	}
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
-			flush()
-			continue
-		}
-		current = append(current, line)
-	}
-	flush()
-	return paragraphs
-}
-
-func indentBlock(value string, spaces int) string {
-	value = strings.TrimRight(value, "\r\n")
-	if spaces <= 0 {
-		return value
-	}
-	prefix := strings.Repeat(" ", spaces)
-	lines := strings.Split(value, "\n")
-	for i, line := range lines {
-		lines[i] = prefix + line
-	}
-	return strings.Join(lines, "\n")
+	return formatted
 }

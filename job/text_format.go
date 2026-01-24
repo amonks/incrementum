@@ -19,7 +19,8 @@ func wrapLines(value string, width int) string {
 	return wordwrap.String(value, width)
 }
 
-func reflowParagraphs(value string, width int) string {
+// ReflowParagraphs wraps and normalizes paragraph text.
+func ReflowParagraphs(value string, width int) string {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return ""
@@ -58,7 +59,8 @@ func splitParagraphs(value string) []string {
 	return paragraphs
 }
 
-func indentBlock(value string, spaces int) string {
+// IndentBlock prefixes each line with spaces.
+func IndentBlock(value string, spaces int) string {
 	value = strings.TrimRight(value, "\r\n")
 	if spaces <= 0 {
 		return value
@@ -71,12 +73,13 @@ func indentBlock(value string, spaces int) string {
 	return strings.Join(lines, "\n")
 }
 
-func reflowIndentedText(value string, width int, baseIndent int) string {
+// ReflowIndentedText wraps and preserves indentation levels.
+func ReflowIndentedText(value string, width int, baseIndent int) string {
 	value = strings.ReplaceAll(value, "\r\n", "\n")
 	value = strings.ReplaceAll(value, "\r", "\n")
 	value = strings.TrimRight(value, "\n")
 	if strings.TrimSpace(value) == "" {
-		return indentBlock("-", baseIndent)
+		return IndentBlock("-", baseIndent)
 	}
 
 	lines := strings.Split(value, "\n")
@@ -111,7 +114,7 @@ func reflowIndentedText(value string, width int, baseIndent int) string {
 			wrapWidth = 1
 		}
 		wrapped := wordwrap.String(normalized, wrapWidth)
-		wrapped = indentBlock(wrapped, baseIndent+indent)
+		wrapped = IndentBlock(wrapped, baseIndent+indent)
 		out = append(out, strings.Split(wrapped, "\n")...)
 	}
 	return strings.Join(out, "\n")

@@ -15,12 +15,12 @@ func formatCommitMessageWithWidth(item todo.Todo, message string, width int) str
 	summary, body := splitCommitMessage(message)
 	formatted := wrapLines(summary, width)
 
-	bodyText := reflowParagraphs(body, width-documentIndent)
+	bodyText := ReflowParagraphs(body, width-documentIndent)
 	if strings.TrimSpace(bodyText) == "" {
 		bodyText = "-"
 	}
 	formatted += "\n\nHere is a generated commit message:\n\n"
-	formatted += indentBlock(bodyText, documentIndent)
+	formatted += IndentBlock(bodyText, documentIndent)
 
 	formatted += "\n\nThis commit is a step towards implementing this todo:\n\n"
 	formatted += formatCommitTodoWithWidth(item, width)
@@ -51,16 +51,16 @@ func formatCommitTodoWithWidth(item todo.Todo, width int) string {
 		"Description:",
 	}
 	fieldBlock := wrapLines(strings.Join(fields, "\n"), width-documentIndent)
-	fieldBlock = indentBlock(fieldBlock, documentIndent)
+	fieldBlock = IndentBlock(fieldBlock, documentIndent)
 
 	description := strings.TrimSpace(item.Description)
 	if description == "" {
 		description = "-"
 	}
-	description = reflowParagraphs(description, width-subdocumentIndent)
+	description = ReflowParagraphs(description, width-subdocumentIndent)
 	if description == "" {
 		description = "-"
 	}
-	description = indentBlock(description, subdocumentIndent)
+	description = IndentBlock(description, subdocumentIndent)
 	return fieldBlock + "\n" + description
 }
