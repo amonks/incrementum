@@ -28,7 +28,7 @@ exec $II todo list --json
 stdout '"status": "in_progress"'
 
 # create todo with dependency
-exec $II todo create --title 'Write tests' --deps discovered-from:$TODO_ID
+exec $II todo create --title 'Write tests' --deps $TODO_ID
 stdout 'Created todo'
 
 exec $II todo list --json
@@ -38,13 +38,12 @@ todoid stdout 'Write tests' CHILD_ID
 exec $II todo create --title 'Blocker task'
 exec $II todo list --json
 todoid stdout 'Blocker task' BLOCKER_ID
-exec $II todo dep add $CHILD_ID $BLOCKER_ID --type blocks
+exec $II todo dep add $CHILD_ID $BLOCKER_ID
 stdout 'Added dependency'
 
 # dep tree
 exec $II todo dep tree $CHILD_ID
 stdout 'Write tests'
-stdout 'discovered-from'
 
 # ready
 exec $II todo ready --json

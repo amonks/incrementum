@@ -52,7 +52,6 @@ Fields (JSON keys):
 
 - `todo_id`: todo that owns the dependency.
 - `depends_on_id`: todo that must be resolved first.
-- `type`: `blocks` or `discovered-from`.
 - `created_at`: timestamp.
 
 ## Semantics
@@ -76,11 +75,11 @@ Fields (JSON keys):
 - Title is required and validated.
 - CLI `todo create` expects the title via `--title`; it is not positional.
 - Defaults: `type=task`, `priority=medium` (2), `status=open`.
-- Type and dependency type inputs are case-insensitive and stored as lowercase.
+- Type inputs are case-insensitive and stored as lowercase.
 - Editor mode is used by default only when no create fields are supplied; use `--edit` to force it or `--no-edit` to skip it.
 - CLI description input via `--description -` / `--desc -` trims trailing CR/LF characters.
-- Dependencies may be supplied as `type:id` pairs; each dependency must
-  reference an existing todo.
+- Dependencies may be supplied as IDs; each dependency must reference an
+  existing todo.
 - Dependency IDs accept the same case-insensitive prefix matching as other
   commands.
 
@@ -140,8 +139,8 @@ Fields (JSON keys):
 
 ### Ready
 
-- Returns `open` todos that have no unresolved `blocks` dependencies.
-- A blocker is unresolved when the blocking todo is not `closed`, `done`, or `tombstone`.
+- Returns `open` todos that have no unresolved dependencies.
+- A dependency is unresolved when the depended-on todo is not `closed`, `done`, or `tombstone`.
 - Results are ordered by priority (ascending), then type (bug, task, feature),
   then creation time (oldest first); an optional limit truncates the list.
 - When the todo store is missing, CLI `todo ready` does not prompt to create it
@@ -149,10 +148,9 @@ Fields (JSON keys):
 
 ### Dependencies
 
-- `blocks` means `depends_on_id` must be closed before `todo_id` is ready.
-- `discovered-from` links related work but does not affect readiness.
+- Dependencies mean `depends_on_id` must be closed before `todo_id` is ready.
 - Self-dependencies and duplicates are rejected.
-- Invalid dependency type inputs return an error listing valid values.
+- Dependency inputs must be IDs.
 - Dependency trees are computed by walking dependencies from a root todo;
   cycles are avoided by tracking the current traversal path so shared
   dependencies can appear under each branch.

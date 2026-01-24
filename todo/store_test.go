@@ -414,7 +414,6 @@ func TestStore_ReadWriteDependencies(t *testing.T) {
 		{
 			TodoID:      "abc12345",
 			DependsOnID: "def67890",
-			Type:        DepBlocks,
 			CreatedAt:   now,
 		},
 	}

@@ -9,7 +9,3 @@ func normalizeStatus(status Status) Status {
 func normalizeTodoType(todoType TodoType) TodoType {
 	return TodoType(strings.ToLower(string(todoType)))
 }
-
-func normalizeDependencyType(depType DependencyType) DependencyType {
-	return DependencyType(strings.ToLower(string(depType)))
-}

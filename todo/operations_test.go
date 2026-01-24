@@ -96,7 +96,7 @@ func TestStore_Create_WithDependency(t *testing.T) {
 
 	// Create child with dependency
 	child, err := store.Create("Child task", CreateOptions{
-		Dependencies: []string{"discovered-from:" + parent.ID},
+		Dependencies: []string{parent.ID},
 	})
 	if err != nil {
 		t.Fatalf("failed to create child: %v", err)
@@ -117,12 +117,9 @@ func TestStore_Create_WithDependency(t *testing.T) {
 	if deps[0].DependsOnID != parent.ID {
 		t.Errorf("expected DependsOnID %q, got %q", parent.ID, deps[0].DependsOnID)
 	}
-	if deps[0].Type != DepDiscoveredFrom {
-		t.Errorf("expected type 'discovered-from', got %q", deps[0].Type)
-	}
 }
 
-func TestStore_Create_NormalizesDependencyType(t *testing.T) {
+func TestStore_Create_RejectsTypedDependency(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
@@ -134,28 +131,11 @@ func TestStore_Create_NormalizesDependencyType(t *testing.T) {
 		t.Fatalf("failed to create parent: %v", err)
 	}
 
-	child, err := store.Create("Child task", CreateOptions{
-		Dependencies: []string{"BLOCKS:" + parent.ID},
+	_, err = store.Create("Child task", CreateOptions{
+		Dependencies: []string{"blocks:" + parent.ID},
 	})
-	if err != nil {
-		t.Fatalf("failed to create child: %v", err)
-	}
-
-	deps, err := store.readDependencies()
-	if err != nil {
-		t.Fatalf("failed to read dependencies: %v", err)
-	}
-	if len(deps) != 1 {
-		t.Fatalf("expected 1 dependency, got %d", len(deps))
-	}
-	if deps[0].TodoID != child.ID {
-		t.Errorf("expected TodoID %q, got %q", child.ID, deps[0].TodoID)
-	}
-	if deps[0].DependsOnID != parent.ID {
-		t.Errorf("expected DependsOnID %q, got %q", parent.ID, deps[0].DependsOnID)
-	}
-	if deps[0].Type != DepBlocks {
-		t.Errorf("expected type 'blocks', got %q", deps[0].Type)
+	if err == nil {
+		t.Fatal("expected typed dependency error, got nil")
 	}
 }
 
@@ -173,8 +153,8 @@ func TestStore_Create_DuplicateDependencies(t *testing.T) {
 
 	_, err = store.Create("Child task", CreateOptions{
 		Dependencies: []string{
-			"blocks:" + parent.ID,
-			"discovered-from:" + parent.ID,
+			parent.ID,
+			parent.ID,
 		},
 	})
 	if !errors.Is(err, ErrDuplicateDependency) {
@@ -196,7 +176,7 @@ func TestStore_Create_WithDependencyPrefix(t *testing.T) {
 
 	prefix := parent.ID[:4]
 	child, err := store.Create("Child task", CreateOptions{
-		Dependencies: []string{"blocks:" + prefix},
+		Dependencies: []string{prefix},
 	})
 	if err != nil {
 		t.Fatalf("failed to create child: %v", err)
@@ -215,9 +195,6 @@ func TestStore_Create_WithDependencyPrefix(t *testing.T) {
 	}
 	if deps[0].DependsOnID != parent.ID {
 		t.Errorf("expected DependsOnID %q, got %q", parent.ID, deps[0].DependsOnID)
-	}
-	if deps[0].Type != DepBlocks {
-		t.Errorf("expected type 'blocks', got %q", deps[0].Type)
 	}
 }
 
@@ -1000,7 +977,7 @@ func TestStore_Ready_WithBlockers(t *testing.T) {
 	_, _ = store.Create("Unblocked", CreateOptions{})
 
 	// Add blocking dependency
-	_, err = store.DepAdd(blocked.ID, blocker.ID, DepBlocks)
+	_, err = store.DepAdd(blocked.ID, blocker.ID)
 	if err != nil {
 		t.Fatalf("failed to add dependency: %v", err)
 	}
@@ -1049,7 +1026,7 @@ func TestStore_Ready_IgnoresTombstonedBlockers(t *testing.T) {
 	blocker, _ := store.Create("Blocker", CreateOptions{})
 	blocked, _ := store.Create("Blocked", CreateOptions{})
 
-	_, err = store.DepAdd(blocked.ID, blocker.ID, DepBlocks)
+	_, err = store.DepAdd(blocked.ID, blocker.ID)
 	if err != nil {
 		t.Fatalf("failed to add dependency: %v", err)
 	}
@@ -1115,7 +1092,7 @@ func TestStore_DepAdd(t *testing.T) {
 	todo2, _ := store.Create("Todo 2", CreateOptions{})
 
 	// Add dependency
-	dep, err := store.DepAdd(todo1.ID, todo2.ID, DepBlocks)
+	dep, err := store.DepAdd(todo1.ID, todo2.ID)
 	if err != nil {
 		t.Fatalf("failed to add dependency: %v", err)
 	}
@@ -1125,28 +1102,6 @@ func TestStore_DepAdd(t *testing.T) {
 	}
 	if dep.DependsOnID != todo2.ID {
 		t.Errorf("expected DependsOnID %q, got %q", todo2.ID, dep.DependsOnID)
-	}
-	if dep.Type != DepBlocks {
-		t.Errorf("expected type 'blocks', got %q", dep.Type)
-	}
-}
-
-func TestStore_DepAdd_NormalizesType(t *testing.T) {
-	store, err := openTestStore(t)
-	if err != nil {
-		t.Fatalf("failed to open store: %v", err)
-	}
-	defer store.Release()
-
-	todo1, _ := store.Create("Todo 1", CreateOptions{})
-	todo2, _ := store.Create("Todo 2", CreateOptions{})
-
-	dep, err := store.DepAdd(todo1.ID, todo2.ID, DependencyType("BLOCKS"))
-	if err != nil {
-		t.Fatalf("failed to add dependency: %v", err)
-	}
-	if dep.Type != DepBlocks {
-		t.Errorf("expected type 'blocks', got %q", dep.Type)
 	}
 }
 
@@ -1160,19 +1115,13 @@ func TestStore_DepAdd_Validation(t *testing.T) {
 	todo, _ := store.Create("Todo", CreateOptions{})
 
 	// Self dependency
-	_, err = store.DepAdd(todo.ID, todo.ID, DepBlocks)
+	_, err = store.DepAdd(todo.ID, todo.ID)
 	if !errors.Is(err, ErrSelfDependency) {
 		t.Errorf("expected ErrSelfDependency, got %v", err)
 	}
 
-	// Invalid type
-	_, err = store.DepAdd(todo.ID, "other", DependencyType("invalid"))
-	if !errors.Is(err, ErrInvalidDependencyType) {
-		t.Errorf("expected ErrInvalidDependencyType, got %v", err)
-	}
-
 	// Nonexistent todo
-	_, err = store.DepAdd("nonexistent", todo.ID, DepBlocks)
+	_, err = store.DepAdd("nonexistent", todo.ID)
 	if !errors.Is(err, ErrTodoNotFound) {
 		t.Errorf("expected ErrTodoNotFound, got %v", err)
 	}
@@ -1189,10 +1138,10 @@ func TestStore_DepAdd_Duplicate(t *testing.T) {
 	todo2, _ := store.Create("Todo 2", CreateOptions{})
 
 	// Add dependency
-	store.DepAdd(todo1.ID, todo2.ID, DepBlocks)
+	store.DepAdd(todo1.ID, todo2.ID)
 
 	// Try to add again
-	_, err = store.DepAdd(todo1.ID, todo2.ID, DepBlocks)
+	_, err = store.DepAdd(todo1.ID, todo2.ID)
 	if !errors.Is(err, ErrDuplicateDependency) {
 		t.Errorf("expected ErrDuplicateDependency, got %v", err)
 	}
@@ -1207,17 +1156,17 @@ func TestStore_DepTree(t *testing.T) {
 
 	// Create tree:
 	//   root
-	//   ├── child1 (blocks)
-	//   │   └── grandchild (blocks)
-	//   └── child2 (discovered-from)
+	//   ├── child1
+	//   │   └── grandchild
+	//   └── child2
 	root, _ := store.Create("Root", CreateOptions{})
 	child1, _ := store.Create("Child 1", CreateOptions{})
 	child2, _ := store.Create("Child 2", CreateOptions{})
 	grandchild, _ := store.Create("Grandchild", CreateOptions{})
 
-	store.DepAdd(root.ID, child1.ID, DepBlocks)
-	store.DepAdd(root.ID, child2.ID, DepDiscoveredFrom)
-	store.DepAdd(child1.ID, grandchild.ID, DepBlocks)
+	store.DepAdd(root.ID, child1.ID)
+	store.DepAdd(root.ID, child2.ID)
+	store.DepAdd(child1.ID, grandchild.ID)
 
 	// Get tree from root
 	tree, err := store.DepTree(root.ID)
@@ -1263,10 +1212,10 @@ func TestStore_DepTree_ShowsSharedDependencies(t *testing.T) {
 	child2, _ := store.Create("Child 2", CreateOptions{})
 	shared, _ := store.Create("Shared", CreateOptions{})
 
-	store.DepAdd(root.ID, child1.ID, DepBlocks)
-	store.DepAdd(root.ID, child2.ID, DepBlocks)
-	store.DepAdd(child1.ID, shared.ID, DepBlocks)
-	store.DepAdd(child2.ID, shared.ID, DepBlocks)
+	store.DepAdd(root.ID, child1.ID)
+	store.DepAdd(root.ID, child2.ID)
+	store.DepAdd(child1.ID, shared.ID)
+	store.DepAdd(child2.ID, shared.ID)
 
 	tree, err := store.DepTree(root.ID)
 	if err != nil {

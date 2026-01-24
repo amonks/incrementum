@@ -169,8 +169,6 @@ var todoDepAddCmd = &cobra.Command{
 	RunE:  runTodoDepAdd,
 }
 
-var todoDepAddType string
-
 // todo dep tree
 var todoDepTreeCmd = &cobra.Command{
 	Use:   "tree <id>",
@@ -191,7 +189,7 @@ func init() {
 	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature)")
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description (use '-' to read from stdin)")
-	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format type:id (e.g., blocks:abc123)")
+	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format <id> (e.g., abc123)")
 	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	todoCreateCmd.Flags().BoolVar(&todoCreateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
@@ -231,8 +229,6 @@ func init() {
 	todoReadyCmd.Flags().IntVar(&todoReadyLimit, "limit", 20, "Maximum number of todos to show")
 	todoReadyCmd.Flags().BoolVar(&todoReadyJSON, "json", false, "Output as JSON")
 
-	// todo dep add flags
-	todoDepAddCmd.Flags().StringVar(&todoDepAddType, "type", "blocks", "Dependency type (blocks, discovered-from)")
 }
 
 // openTodoStore opens the todo store, prompting to create if it doesn't exist.
@@ -812,7 +808,7 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	dep, err := store.DepAdd(args[0], args[1], todo.DependencyType(todoDepAddType))
+	dep, err := store.DepAdd(args[0], args[1])
 	if err != nil {
 		return err
 	}
@@ -822,7 +818,7 @@ func runTodoDepAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	highlight := logHighlighter(prefixLengths, ui.HighlightID)
-	fmt.Printf("Added dependency: %s %s %s\n", highlight(dep.TodoID), dep.Type, highlight(dep.DependsOnID))
+	fmt.Printf("Added dependency: %s depends on %s\n", highlight(dep.TodoID), highlight(dep.DependsOnID))
 	return nil
 }
 

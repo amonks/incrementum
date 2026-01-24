@@ -18,13 +18,9 @@ func printDepTree(node *todo.DepTreeNode, prefix string, isLast bool, highlight 
 	}
 
 	statusIcon := statusIcon(node.Todo.Status)
-	typeStr := ""
-	if node.Type != "" {
-		typeStr = fmt.Sprintf(" [%s]", node.Type)
-	}
 
-	fmt.Printf("%s%s%s %s%s (%s)\n",
-		prefix, connector, statusIcon, node.Todo.Title, typeStr, highlight(node.Todo.ID))
+	fmt.Printf("%s%s%s %s (%s)\n",
+		prefix, connector, statusIcon, node.Todo.Title, highlight(node.Todo.ID))
 
 	// Print children
 	childPrefix := prefix

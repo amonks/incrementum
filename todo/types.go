@@ -98,33 +98,6 @@ func TodoTypeRank(t TodoType) int {
 	}
 }
 
-// DependencyType represents the relationship between two todos.
-type DependencyType string
-
-const (
-	// DepBlocks indicates that DependsOnID blocks TodoID.
-	// The TodoID cannot be completed until DependsOnID is done.
-	DepBlocks DependencyType = "blocks"
-
-	// DepDiscoveredFrom indicates that TodoID was discovered while working on DependsOnID.
-	DepDiscoveredFrom DependencyType = "discovered-from"
-)
-
-// ValidDependencyTypes returns all valid dependency type values.
-func ValidDependencyTypes() []DependencyType {
-	return []DependencyType{DepBlocks, DepDiscoveredFrom}
-}
-
-// IsValid returns true if the dependency type is a known valid value.
-func (d DependencyType) IsValid() bool {
-	for _, valid := range ValidDependencyTypes() {
-		if d == valid {
-			return true
-		}
-	}
-	return false
-}
-
 // Priority constants for todos.
 const (
 	PriorityCritical = 0

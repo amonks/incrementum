@@ -68,26 +68,6 @@ func TestTodoType_IsValid(t *testing.T) {
 	}
 }
 
-func TestDependencyType_IsValid(t *testing.T) {
-	tests := []struct {
-		typ   DependencyType
-		valid bool
-	}{
-		{DepBlocks, true},
-		{DepDiscoveredFrom, true},
-		{DependencyType("invalid"), false},
-		{DependencyType(""), false},
-	}
-
-	for _, tt := range tests {
-		t.Run(string(tt.typ), func(t *testing.T) {
-			if got := tt.typ.IsValid(); got != tt.valid {
-				t.Errorf("DependencyType(%q).IsValid() = %v, want %v", tt.typ, got, tt.valid)
-			}
-		})
-	}
-}
-
 func TestPriorityName(t *testing.T) {
 	tests := []struct {
 		priority int

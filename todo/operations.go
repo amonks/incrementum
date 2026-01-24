@@ -18,8 +18,7 @@ type CreateOptions struct {
 	// Description provides additional context.
 	Description string
 
-	// Dependencies is a list of dependency specifications in the format "type:id".
-	// For example: "blocks:abc123" or "discovered-from:def456".
+	// Dependencies is a list of dependency IDs.
 	Dependencies []string
 }
 
@@ -51,22 +50,15 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 
 	// Parse and validate dependencies
 	var deps []struct {
-		Type DependencyType
-		ID   string
+		ID string
 	}
-	for _, depSpec := range opts.Dependencies {
-		parts := strings.SplitN(depSpec, ":", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid dependency format %q: expected 'type:id'", depSpec)
-		}
-		depType := normalizeDependencyType(DependencyType(parts[0]))
-		if !depType.IsValid() {
-			return nil, formatInvalidDependencyTypeError(depType)
+	for _, depID := range opts.Dependencies {
+		if strings.Contains(depID, ":") {
+			return nil, fmt.Errorf("invalid dependency format %q: expected '<id>'", depID)
 		}
 		deps = append(deps, struct {
-			Type DependencyType
-			ID   string
-		}{Type: depType, ID: parts[1]})
+			ID string
+		}{ID: depID})
 	}
 
 	now := time.Now()
@@ -130,7 +122,6 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 			existingDeps = append(existingDeps, Dependency{
 				TodoID:      todo.ID,
 				DependsOnID: dep.ID,
-				Type:        dep.Type,
 				CreatedAt:   now,
 			})
 		}
@@ -489,9 +480,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 	// Build map of todo ID -> blocking todo IDs
 	blockers := make(map[string][]string)
 	for _, dep := range deps {
-		if dep.Type == DepBlocks {
-			blockers[dep.TodoID] = append(blockers[dep.TodoID], dep.DependsOnID)
-		}
+		blockers[dep.TodoID] = append(blockers[dep.TodoID], dep.DependsOnID)
 	}
 
 	// Filter to open todos with no open blockers
@@ -536,13 +525,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 }
 
 // DepAdd adds a dependency between two todos.
-func (s *Store) DepAdd(todoID, dependsOnID string, depType DependencyType) (*Dependency, error) {
-	// Validate dependency type
-	depType = normalizeDependencyType(depType)
-	if !depType.IsValid() {
-		return nil, formatInvalidDependencyTypeError(depType)
-	}
-
+func (s *Store) DepAdd(todoID, dependsOnID string) (*Dependency, error) {
 	resolvedIDs, err := s.resolveTodoIDs([]string{todoID, dependsOnID})
 	if err != nil {
 		return nil, err
@@ -572,7 +555,6 @@ func (s *Store) DepAdd(todoID, dependsOnID string, depType DependencyType) (*Dep
 	dep := Dependency{
 		TodoID:      todoID,
 		DependsOnID: dependsOnID,
-		Type:        depType,
 		CreatedAt:   time.Now(),
 	}
 	deps = append(deps, dep)
@@ -625,22 +607,21 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 
 	// Build tree recursively
 	path := make(map[string]bool)
-	return buildDepTree(rootTodo, "", depsByTodo, todoMap, path), nil
+	return buildDepTree(rootTodo, depsByTodo, todoMap, path), nil
 }
 
 // buildDepTree recursively builds a dependency tree node.
 
-func buildDepTree(todo *Todo, depType DependencyType, depsByTodo map[string][]Dependency, todoMap map[string]*Todo, path map[string]bool) *DepTreeNode {
+func buildDepTree(todo *Todo, depsByTodo map[string][]Dependency, todoMap map[string]*Todo, path map[string]bool) *DepTreeNode {
 	if path[todo.ID] {
 		// Avoid cycles
-		return &DepTreeNode{Todo: todo, Type: depType}
+		return &DepTreeNode{Todo: todo}
 	}
 	path[todo.ID] = true
 	defer delete(path, todo.ID)
 
 	node := &DepTreeNode{
 		Todo: todo,
-		Type: depType,
 	}
 
 	for _, dep := range depsByTodo[todo.ID] {
@@ -648,7 +629,7 @@ func buildDepTree(todo *Todo, depType DependencyType, depsByTodo map[string][]De
 		if !ok {
 			continue
 		}
-		childNode := buildDepTree(childTodo, dep.Type, depsByTodo, todoMap, path)
+		childNode := buildDepTree(childTodo, depsByTodo, todoMap, path)
 		node.Children = append(node.Children, childNode)
 	}
 

@@ -313,17 +313,6 @@ func TestValidateDependency(t *testing.T) {
 			dep: Dependency{
 				TodoID:      "abc12345",
 				DependsOnID: "def67890",
-				Type:        DepBlocks,
-				CreatedAt:   now,
-			},
-			wantErr: nil,
-		},
-		{
-			name: "valid discovered-from dependency",
-			dep: Dependency{
-				TodoID:      "abc12345",
-				DependsOnID: "def67890",
-				Type:        DepDiscoveredFrom,
 				CreatedAt:   now,
 			},
 			wantErr: nil,
@@ -333,20 +322,9 @@ func TestValidateDependency(t *testing.T) {
 			dep: Dependency{
 				TodoID:      "abc12345",
 				DependsOnID: "abc12345",
-				Type:        DepBlocks,
 				CreatedAt:   now,
 			},
 			wantErr: ErrSelfDependency,
-		},
-		{
-			name: "invalid type",
-			dep: Dependency{
-				TodoID:      "abc12345",
-				DependsOnID: "def67890",
-				Type:        DependencyType("invalid"),
-				CreatedAt:   now,
-			},
-			wantErr: ErrInvalidDependencyType,
 		},
 	}
 
@@ -363,22 +341,5 @@ func TestValidateDependency(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestValidateDependencyInvalidTypeListsValidValues(t *testing.T) {
-	dep := Dependency{
-		TodoID:      "abc12345",
-		DependsOnID: "def67890",
-		Type:        DependencyType("invalid"),
-		CreatedAt:   time.Now(),
-	}
-
-	err := ValidateDependency(&dep)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !strings.Contains(err.Error(), "valid: blocks, discovered-from") {
-		t.Fatalf("expected valid values in error, got %q", err.Error())
 	}
 }

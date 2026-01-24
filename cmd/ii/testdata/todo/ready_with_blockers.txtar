@@ -12,7 +12,7 @@ exec $II todo list --json
 todoid stdout 'Blocker' BLOCKER_ID
 todoid stdout 'Blocked' BLOCKED_ID
 
-exec $II todo dep add $BLOCKED_ID $BLOCKER_ID --type blocks
+exec $II todo dep add $BLOCKED_ID $BLOCKER_ID
 
 # only blocker should be ready
 exec $II todo ready --json

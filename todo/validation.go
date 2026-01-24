@@ -25,9 +25,6 @@ var (
 	// ErrInvalidType is returned when an invalid todo type is provided.
 	ErrInvalidType = errors.New("invalid todo type")
 
-	// ErrInvalidDependencyType is returned when an invalid dependency type is provided.
-	ErrInvalidDependencyType = errors.New("invalid dependency type")
-
 	// ErrTodoNotFound is returned when a todo with the given ID doesn't exist.
 	ErrTodoNotFound = errors.New("todo not found")
 
@@ -149,10 +146,6 @@ func formatInvalidTypeError(todoType TodoType) error {
 	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidType, todoType, validation.FormatValidValues(ValidTodoTypes()))
 }
 
-func formatInvalidDependencyTypeError(depType DependencyType) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidDependencyType, depType, validation.FormatValidValues(ValidDependencyTypes()))
-}
-
 // ValidateDependency checks if a dependency is valid.
 func ValidateDependency(d *Dependency) error {
 	if d.TodoID == "" {
@@ -163,9 +156,6 @@ func ValidateDependency(d *Dependency) error {
 	}
 	if d.TodoID == d.DependsOnID {
 		return ErrSelfDependency
-	}
-	if !d.Type.IsValid() {
-		return formatInvalidDependencyTypeError(d.Type)
 	}
 	return nil
 }
