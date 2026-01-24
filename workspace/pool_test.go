@@ -3,11 +3,11 @@ package workspace_test
 import (
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/amonks/incrementum/internal/jj"
 	statestore "github.com/amonks/incrementum/internal/state"
 	"github.com/amonks/incrementum/workspace"
 )
@@ -18,17 +18,12 @@ func setupTestRepo(t *testing.T) string {
 	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
 
 	// Init a jj repo
-	if err := runJJ(tmpDir, "git", "init"); err != nil {
+	client := jj.New()
+	if err := client.Init(tmpDir); err != nil {
 		t.Fatalf("failed to init jj repo: %v", err)
 	}
 
 	return tmpDir
-}
-
-func runJJ(dir string, args ...string) error {
-	cmd := exec.Command("jj", args...)
-	cmd.Dir = dir
-	return cmd.Run()
 }
 
 func acquireOptions() workspace.AcquireOptions {

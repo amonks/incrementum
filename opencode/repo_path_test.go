@@ -2,10 +2,10 @@ package opencode
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"github.com/amonks/incrementum/internal/jj"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -78,17 +78,12 @@ func setupTestRepo(t *testing.T) string {
 	tmpDir := t.TempDir()
 	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
 
-	if err := runJJ(tmpDir, "git", "init"); err != nil {
+	client := jj.New()
+	if err := client.Init(tmpDir); err != nil {
 		t.Fatalf("failed to init jj repo: %v", err)
 	}
 
 	return tmpDir
-}
-
-func runJJ(dir string, args ...string) error {
-	cmd := exec.Command("jj", args...)
-	cmd.Dir = dir
-	return cmd.Run()
 }
 
 func withCwd(t *testing.T, dir string, fn func()) {

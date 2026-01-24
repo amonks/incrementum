@@ -2,7 +2,6 @@ package jj_test
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -292,13 +291,11 @@ func TestDescribe(t *testing.T) {
 		t.Fatalf("failed to describe: %v", err)
 	}
 
-	cmd := exec.Command("jj", "log", "-r", "@", "-T", "description", "--no-graph")
-	cmd.Dir = tmpDir
-	output, err := cmd.CombinedOutput()
+	description, err := client.DescriptionAt(tmpDir, "@")
 	if err != nil {
-		t.Fatalf("failed to read description: %v: %s", err, output)
+		t.Fatalf("failed to read description: %v", err)
 	}
-	if strings.TrimSpace(string(output)) != "test description" {
+	if strings.TrimSpace(description) != "test description" {
 		t.Fatalf("expected description to be set")
 	}
 }
@@ -316,13 +313,11 @@ func TestCommit(t *testing.T) {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
-	cmd := exec.Command("jj", "log", "-r", "@-", "-T", "description", "--no-graph")
-	cmd.Dir = tmpDir
-	output, err := cmd.CombinedOutput()
+	description, err := client.DescriptionAt(tmpDir, "@-")
 	if err != nil {
-		t.Fatalf("failed to read commit description: %v: %s", err, output)
+		t.Fatalf("failed to read commit description: %v", err)
 	}
-	if strings.TrimSpace(string(output)) != "test commit" {
+	if strings.TrimSpace(description) != "test commit" {
 		t.Fatalf("expected commit description to be set")
 	}
 }
