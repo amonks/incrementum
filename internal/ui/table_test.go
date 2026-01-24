@@ -41,8 +41,30 @@ func TestFormatTableNormalizesLineBreaks(t *testing.T) {
 
 	got := FormatTable(headers, rows)
 
-	expected := "COL\nHello World Again Tab\n"
+	expected := "COL                  \nHello World Again Tab\n"
 	if got != expected {
 		t.Fatalf("expected normalized table output, got %q", got)
+	}
+}
+
+func TestFormatTableUsesViewportWidth(t *testing.T) {
+	originalWidth := tableViewportWidth
+	tableViewportWidth = func() int {
+		return 10
+	}
+	t.Cleanup(func() {
+		tableViewportWidth = originalWidth
+	})
+
+	headers := []string{"COL1", "COL2"}
+	rows := [][]string{{"A", "B"}}
+
+	got := FormatTable(headers, rows)
+
+	lines := strings.Split(strings.TrimSuffix(got, "\n"), "\n")
+	for _, line := range lines {
+		if width := displayWidth(line); width != 10 {
+			t.Fatalf("expected table width 10, got %d in %q", width, line)
+		}
 	}
 }

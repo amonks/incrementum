@@ -1,12 +1,19 @@
 package ui
 
 import (
+	"os"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
+	"golang.org/x/term"
 )
 
 const tableCellMaxWidth = 50
 const tableCellEllipsis = "..."
+
+var tableViewportWidth = detectTableViewportWidth
 
 // TableBuilder collects rows and renders a formatted table.
 type TableBuilder struct {
@@ -37,50 +44,44 @@ func FormatTable(headers []string, rows [][]string) string {
 	}
 
 	normalizedRows := make([][]string, 0, len(rows))
+	columnCount := len(normalizedHeaders)
 	for _, row := range rows {
 		normalizedRow := make([]string, len(row))
 		for i, cell := range row {
 			normalizedRow[i] = normalizeTableCell(cell)
 		}
 		normalizedRows = append(normalizedRows, normalizedRow)
-	}
-
-	widths := make([]int, len(normalizedHeaders))
-	for i, header := range normalizedHeaders {
-		widths[i] = displayWidth(header)
-	}
-
-	for _, row := range normalizedRows {
-		for i, cell := range row {
-			if i >= len(widths) {
-				break
-			}
-			if displayLen := displayWidth(cell); displayLen > widths[i] {
-				widths[i] = displayLen
-			}
+		if len(normalizedRow) > columnCount {
+			columnCount = len(normalizedRow)
 		}
 	}
 
-	var builder strings.Builder
-	writeRow := func(row []string) {
-		for i, cell := range row {
-			cellWidth := displayWidth(cell)
-			builder.WriteString(cell)
-			if i == len(row)-1 {
-				builder.WriteByte('\n')
-				continue
+	builder := table.New().
+		Headers(normalizedHeaders...).
+		Rows(normalizedRows...).
+		BorderTop(false).
+		BorderBottom(false).
+		BorderLeft(false).
+		BorderRight(false).
+		BorderHeader(false).
+		BorderColumn(false).
+		BorderRow(false).
+		StyleFunc(func(_, col int) lipgloss.Style {
+			if columnCount > 1 && col < columnCount-1 {
+				return lipgloss.NewStyle().PaddingRight(2)
 			}
-			padding := widths[i] - cellWidth
-			builder.WriteString(strings.Repeat(" ", padding+2))
-		}
+			return lipgloss.NewStyle()
+		})
+
+	if width := tableViewportWidth(); width > 0 {
+		builder.Width(width)
 	}
 
-	writeRow(normalizedHeaders)
-	for _, row := range normalizedRows {
-		writeRow(row)
+	output := builder.String()
+	if !strings.HasSuffix(output, "\n") {
+		output += "\n"
 	}
-
-	return builder.String()
+	return output
 }
 
 // TruncateTableCell limits cell width while preserving visible characters.
@@ -166,4 +167,15 @@ func stripANSICodes(input string) string {
 		builder.WriteByte(char)
 	}
 	return builder.String()
+}
+
+func detectTableViewportWidth() int {
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		return 0
+	}
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || width <= 0 {
+		return 0
+	}
+	return width
 }
