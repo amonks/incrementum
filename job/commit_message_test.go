@@ -1,8 +1,10 @@
 package job
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -60,5 +62,26 @@ func TestReadCommitMessageFallsBackToRepoRoot(t *testing.T) {
 
 	if _, err := os.Stat(fallback); !os.IsNotExist(err) {
 		t.Fatalf("expected commit message fallback to be deleted")
+	}
+}
+
+func TestReadCommitMessageWithFallbackMissingExplainsPaths(t *testing.T) {
+	workspaceDir := t.TempDir()
+	repoDir := t.TempDir()
+	primary := filepath.Join(workspaceDir, commitMessageFilename)
+	fallback := filepath.Join(repoDir, commitMessageFilename)
+
+	_, err := readCommitMessageWithFallback(primary, fallback)
+	if err == nil {
+		t.Fatal("expected missing commit message error")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected missing file error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "commit message missing") {
+		t.Fatalf("expected context in error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), primary) || !strings.Contains(err.Error(), fallback) {
+		t.Fatalf("expected paths in error, got %v", err)
 	}
 }

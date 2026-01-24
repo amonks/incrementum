@@ -131,7 +131,8 @@ func TestRunReviewingStageUpdatesStaleWorkspace(t *testing.T) {
 		Priority:    todo.PriorityMedium,
 	}
 
-	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, "", reviewScopeStep)
+	commitMessage := "fix: stale review"
+	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}

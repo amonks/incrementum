@@ -636,9 +636,29 @@ func readCommitMessage(path string) (string, error) {
 	return readCommitMessageWithFallback(path, "")
 }
 
+type commitMessageMissingError struct {
+	Path         string
+	FallbackPath string
+	Err          error
+}
+
+func (err commitMessageMissingError) Error() string {
+	if strings.TrimSpace(err.FallbackPath) == "" {
+		return fmt.Sprintf("commit message missing; expected at %s: %v", err.Path, err.Err)
+	}
+	return fmt.Sprintf("commit message missing; expected at %s or %s: %v", err.Path, err.FallbackPath, err.Err)
+}
+
+func (err commitMessageMissingError) Unwrap() error {
+	return err.Err
+}
+
 func readCommitMessageWithFallback(path, fallbackPath string) (string, error) {
 	data, usedPath, err := readFileWithFallback(path, fallbackPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return "", commitMessageMissingError{Path: path, FallbackPath: fallbackPath, Err: err}
+		}
 		return "", fmt.Errorf("read commit message: %w", err)
 	}
 	removeErr := removeFileIfExists(usedPath)
