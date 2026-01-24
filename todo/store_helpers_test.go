@@ -26,6 +26,29 @@ func openTestStore(t *testing.T) (*Store, error) {
 	return newTestStore(t), nil
 }
 
+func (s *Store) getTodoByID(id string) (*Todo, error) {
+	todos, err := s.readTodos()
+	if err != nil {
+		return nil, err
+	}
+
+	resolved, err := resolveTodoIDsWithTodos([]string{id}, todos)
+	if err != nil {
+		return nil, err
+	}
+	if len(resolved) == 0 {
+		return nil, ErrTodoNotFound
+	}
+
+	for i := range todos {
+		if todos[i].ID == resolved[0] {
+			return &todos[i], nil
+		}
+	}
+
+	return nil, ErrTodoNotFound
+}
+
 type snapshotterFunc func(string) error
 
 func (fn snapshotterFunc) Snapshot(workspacePath string) error {
