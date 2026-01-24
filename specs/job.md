@@ -10,6 +10,9 @@ continues until opencode makes no changes, then the job runs tests and a final
 project review before completing. Jobs retry on test failure or review rejection
 until opencode decides to abandon.
 
+Jobs can optionally run from a separate workspace path (used by swarm
+orchestration). When unspecified, jobs run from the repo root.
+
 ## Architecture
 
 The job implementation lives in a Go package with clean exports; the `cmd/ii`

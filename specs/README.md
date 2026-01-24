@@ -45,6 +45,7 @@
 | [cli.md](./cli.md)             | [cmd/ii/](../cmd/ii/)       | CLI conventions and behavior notes                                                                             |
 | [opencode.md](./opencode.md)   | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
 | [job.md](./job.md)             | [job/](../job/)             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
+| [swarm.md](./swarm.md)         | [swarm/](../swarm/)         | Swarm orchestration: run many jobs concurrently through a shared server                                       |
 
 ## Internal Packages
 

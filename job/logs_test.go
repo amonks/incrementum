@@ -108,3 +108,23 @@ func TestLogSnapshotHandlesLargeEvent(t *testing.T) {
 		t.Fatalf("expected large prompt content, got %q", snapshot)
 	}
 }
+
+func TestEventFormatterAppendsOutput(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	chunk, err := formatter.Append(Event{Name: "job.stage", Data: "{\"stage\":\"implementing\"}"})
+	if err != nil {
+		t.Fatalf("append stage event: %v", err)
+	}
+	if !strings.Contains(chunk, "Running implementation prompt:") {
+		t.Fatalf("expected stage output, got %q", chunk)
+	}
+
+	chunk, err = formatter.Append(Event{Name: "job.prompt", Data: "{\"purpose\":\"implement\",\"prompt\":\"Hello\"}"})
+	if err != nil {
+		t.Fatalf("append prompt event: %v", err)
+	}
+	if !strings.Contains(chunk, "Implementation prompt:") {
+		t.Fatalf("expected prompt output, got %q", chunk)
+	}
+}

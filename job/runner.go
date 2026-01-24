@@ -26,8 +26,14 @@ var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.Message[^}]*\}\}`)
 
 // RunOptions configures job execution.
 type RunOptions struct {
-	OnStart             func(StartInfo)
-	OnStageChange       func(Stage)
+	OnStart       func(StartInfo)
+	OnStageChange func(Stage)
+	// WorkspacePath is the path to run the job from.
+	// Defaults to repoPath when empty.
+	WorkspacePath string
+	// Interrupts delivers signals that should interrupt the job.
+	// If nil, os.Interrupt is used.
+	Interrupts          <-chan os.Signal
 	Now                 func() time.Time
 	LoadConfig          func(string) (*config.Config, error)
 	RunTests            func(string, []string) ([]TestCommandResult, error)
@@ -38,6 +44,7 @@ type RunOptions struct {
 	UpdateStale         func(string) error
 	OpencodeTranscripts func(string, []OpencodeSession) ([]OpencodeTranscript, error)
 	EventLog            *EventLog
+	EventLogOptions     EventLogOptions
 	Logger              Logger
 }
 
@@ -117,7 +124,15 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	}
 	startedAt := opts.Now()
 	workspacePath := repoPath
-	workspaceAbs := repoPath
+	if strings.TrimSpace(opts.WorkspacePath) != "" {
+		workspacePath = opts.WorkspacePath
+	}
+	workspacePath = filepath.Clean(workspacePath)
+	workspaceAbs := workspacePath
+	if abs, absErr := filepath.Abs(workspacePath); absErr == nil {
+		workspaceAbs = abs
+	}
+	workspacePath = workspaceAbs
 	manager, err := Open(repoPath, OpenOptions{})
 	if err != nil {
 		reopenErr := reopenTodo(repoPath, item.ID)
@@ -141,7 +156,7 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 
 	createdEventLog := false
 	if opts.EventLog == nil {
-		eventLog, err := OpenEventLog(created.ID, EventLogOptions{})
+		eventLog, err := OpenEventLog(created.ID, opts.EventLogOptions)
 		if err != nil {
 			status := StatusFailed
 			updated, updateErr := manager.Update(created.ID, UpdateOptions{Status: &status}, opts.Now())
@@ -168,9 +183,13 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		opts.OnStageChange(created.Stage)
 	}
 
-	interrupts := make(chan os.Signal, 1)
-	signal.Notify(interrupts, os.Interrupt)
-	defer signal.Stop(interrupts)
+	interrupts := opts.Interrupts
+	if interrupts == nil {
+		localInterrupts := make(chan os.Signal, 1)
+		signal.Notify(localInterrupts, os.Interrupt)
+		defer signal.Stop(localInterrupts)
+		interrupts = localInterrupts
+	}
 
 	runCtx := runContext{
 		repoPath:      repoPath,

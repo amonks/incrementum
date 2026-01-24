@@ -41,6 +41,50 @@ func TestEventLogAppendsEvents(t *testing.T) {
 	}
 }
 
+func TestEventSnapshotReadsEvents(t *testing.T) {
+	eventsDir := t.TempDir()
+	log, err := OpenEventLog("job-snapshot", EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("open event log: %v", err)
+	}
+	if err := log.Append(Event{Name: "job.stage", Data: "{\"stage\":\"implementing\"}"}); err != nil {
+		_ = log.Close()
+		t.Fatalf("append event: %v", err)
+	}
+	if err := log.Append(Event{Name: "job.prompt", Data: "prompt"}); err != nil {
+		_ = log.Close()
+		t.Fatalf("append event: %v", err)
+	}
+	if err := log.Close(); err != nil {
+		t.Fatalf("close event log: %v", err)
+	}
+
+	events, err := EventSnapshot("job-snapshot", EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("event snapshot: %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected 2 events, got %d", len(events))
+	}
+	if events[0].Name != "job.stage" {
+		t.Fatalf("unexpected first event: %#v", events[0])
+	}
+}
+
+func TestEventSnapshotMissingFileReturnsEmpty(t *testing.T) {
+	eventsDir := t.TempDir()
+	events, err := EventSnapshot("missing-log", EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("event snapshot: %v", err)
+	}
+	if events == nil {
+		t.Fatal("expected empty events slice, got nil")
+	}
+	if len(events) != 0 {
+		t.Fatalf("expected 0 events, got %d", len(events))
+	}
+}
+
 func readEventLog(t *testing.T, path string) []Event {
 	t.Helper()
 	file, err := os.Open(path)

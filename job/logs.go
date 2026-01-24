@@ -164,6 +164,36 @@ func (writer *logSnapshotWriter) String() string {
 	return writer.builder.String()
 }
 
+func (writer *logSnapshotWriter) Len() int {
+	return writer.builder.Len()
+}
+
+// EventFormatter formats job events incrementally.
+type EventFormatter struct {
+	writer logSnapshotWriter
+}
+
+// NewEventFormatter creates a new EventFormatter.
+func NewEventFormatter() *EventFormatter {
+	return &EventFormatter{}
+}
+
+// Append formats a job event and returns the newly added output.
+func (formatter *EventFormatter) Append(event Event) (string, error) {
+	if formatter == nil {
+		return "", nil
+	}
+	start := formatter.writer.Len()
+	if err := formatter.writer.Append(event); err != nil {
+		return "", err
+	}
+	output := formatter.writer.String()
+	if len(output) <= start {
+		return "", nil
+	}
+	return output[start:], nil
+}
+
 func decodeEventData[T any](payload string) (T, error) {
 	var data T
 	if strings.TrimSpace(payload) == "" {

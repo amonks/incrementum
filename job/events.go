@@ -1,10 +1,14 @@
 package job
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/amonks/incrementum/internal/paths"
@@ -99,6 +103,57 @@ func eventLogPath(jobID string, opts EventLogOptions) (string, error) {
 		}
 	}
 	return filepath.Join(root, jobID+".jsonl"), nil
+}
+
+// EventLogPath returns the path to the job event log.
+func EventLogPath(jobID string, opts EventLogOptions) (string, error) {
+	return eventLogPath(jobID, opts)
+}
+
+// ReadEvents reads job events from a JSONL reader.
+func ReadEvents(reader io.Reader) ([]Event, error) {
+	events := make([]Event, 0)
+	if reader == nil {
+		return events, nil
+	}
+	buffer := bufio.NewReader(reader)
+	for {
+		line, err := buffer.ReadString('\n')
+		if err != nil && !errors.Is(err, io.EOF) {
+			return nil, err
+		}
+		line = strings.TrimSpace(line)
+		if line != "" {
+			var event Event
+			if unmarshalErr := json.Unmarshal([]byte(line), &event); unmarshalErr != nil {
+				return nil, fmt.Errorf("decode job event: %w", unmarshalErr)
+			}
+			events = append(events, event)
+		}
+		if errors.Is(err, io.EOF) {
+			break
+		}
+	}
+	return events, nil
+}
+
+// EventSnapshot returns the stored job events.
+func EventSnapshot(jobID string, opts EventLogOptions) ([]Event, error) {
+	path, err := eventLogPath(jobID, opts)
+	if err != nil {
+		return nil, err
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []Event{}, nil
+		}
+		return nil, err
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+	return ReadEvents(file)
 }
 
 func appendJobEvent(log *EventLog, name string, payload any) error {
