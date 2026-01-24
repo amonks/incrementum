@@ -76,7 +76,7 @@ function wiggum-todo --argument-names todo_id
     echo ">> last_commit_id=$last_commit_id"
 
     # run opencode against the todo
-    set -l prompt "Figure out what the highest priority task is towards implementing the todo below, and complete it. Do tdd (write a failing test, watch it fail, make it pass). If there's nothing left to do, that's ok: exit without making changes.
+    set -l prompt "Figure out what the highest priority task is towards implementing the todo below, and complete it. Do tdd (write a failing test, watch it fail, make it pass). Make sure 'go test ./...' passes. If there's nothing left to do, that's ok: exit without making changes.
 
 $(ii todo show $todo_id)"
     echo "$prompt" | opencode run
