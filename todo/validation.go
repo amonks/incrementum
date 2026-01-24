@@ -158,6 +158,22 @@ func ValidateTodo(t *Todo) error {
 	return nil
 }
 
+func normalizeStatusInput(status Status) (Status, error) {
+	normalized := normalizeStatus(status)
+	if !normalized.IsValid() {
+		return "", formatInvalidStatusError(normalized)
+	}
+	return normalized, nil
+}
+
+func normalizeTodoTypeInput(todoType TodoType) (TodoType, error) {
+	normalized := normalizeTodoType(todoType)
+	if !normalized.IsValid() {
+		return "", formatInvalidTypeError(normalized)
+	}
+	return normalized, nil
+}
+
 func formatInvalidStatusError(status Status) error {
 	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validation.FormatValidValues(ValidStatuses()))
 }

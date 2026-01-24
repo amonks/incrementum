@@ -33,10 +33,11 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 	if opts.Type == "" {
 		opts.Type = TypeTask
 	}
-	opts.Type = normalizeTodoType(opts.Type)
-	if !opts.Type.IsValid() {
-		return nil, formatInvalidTypeError(opts.Type)
+	normalizedType, err := normalizeTodoTypeInput(opts.Type)
+	if err != nil {
+		return nil, err
 	}
+	opts.Type = normalizedType
 
 	priority := opts.Priority
 	if priority == nil {
@@ -161,11 +162,11 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		}
 	}
 	if opts.Status != nil {
-		normalized := normalizeStatus(*opts.Status)
-		opts.Status = &normalized
-		if !opts.Status.IsValid() {
-			return nil, formatInvalidStatusError(*opts.Status)
+		normalized, err := normalizeStatusInput(*opts.Status)
+		if err != nil {
+			return nil, err
 		}
+		opts.Status = &normalized
 	}
 	if opts.Priority != nil {
 		if err := ValidatePriority(*opts.Priority); err != nil {
@@ -173,11 +174,11 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		}
 	}
 	if opts.Type != nil {
-		normalized := normalizeTodoType(*opts.Type)
-		opts.Type = &normalized
-		if !opts.Type.IsValid() {
-			return nil, formatInvalidTypeError(*opts.Type)
+		normalized, err := normalizeTodoTypeInput(*opts.Type)
+		if err != nil {
+			return nil, err
 		}
+		opts.Type = &normalized
 	}
 
 	todos, err := s.readTodos()
@@ -400,18 +401,18 @@ type ListFilter struct {
 // List returns todos matching the filter.
 func (s *Store) List(filter ListFilter) ([]Todo, error) {
 	if filter.Status != nil {
-		normalizedStatus := normalizeStatus(*filter.Status)
-		filter.Status = &normalizedStatus
-		if !filter.Status.IsValid() {
-			return nil, formatInvalidStatusError(*filter.Status)
+		normalized, err := normalizeStatusInput(*filter.Status)
+		if err != nil {
+			return nil, err
 		}
+		filter.Status = &normalized
 	}
 	if filter.Type != nil {
-		normalizedType := normalizeTodoType(*filter.Type)
-		filter.Type = &normalizedType
-		if !filter.Type.IsValid() {
-			return nil, formatInvalidTypeError(*filter.Type)
+		normalized, err := normalizeTodoTypeInput(*filter.Type)
+		if err != nil {
+			return nil, err
 		}
+		filter.Type = &normalized
 	}
 	if filter.Priority != nil {
 		if err := ValidatePriority(*filter.Priority); err != nil {
