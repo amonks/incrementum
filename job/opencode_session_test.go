@@ -21,25 +21,34 @@ func requireOpencode(t *testing.T) {
 func prepareOpencodeHome(t *testing.T) string {
 	t.Helper()
 
-	configHome := os.Getenv("XDG_CONFIG_HOME")
-	if configHome == "" {
-		if currentHome := os.Getenv("HOME"); currentHome != "" {
-			configHome = filepath.Join(currentHome, ".config")
+	realConfigHome := os.Getenv("XDG_CONFIG_HOME")
+	if realConfigHome == "" {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			t.Fatalf("resolve user home: %v", err)
 		}
+		realConfigHome = filepath.Join(userHome, ".config")
 	}
-	if configHome == "" {
-		t.Skip("opencode config home is not set")
-	}
-	configDir := filepath.Join(configHome, "opencode")
-	entries, err := os.ReadDir(configDir)
+	realConfigPath := filepath.Join(realConfigHome, "opencode", "opencode.json")
+	configContents, err := os.ReadFile(realConfigPath)
 	if err != nil {
-		t.Skipf("opencode config not found at %s: %v", configDir, err)
-	}
-	if len(entries) == 0 {
-		t.Skipf("opencode config directory %s is empty", configDir)
+		if os.IsNotExist(err) {
+			t.Skipf("opencode config %s is required for integration tests", realConfigPath)
+		}
+		t.Fatalf("read config file: %v", err)
 	}
 
 	home := t.TempDir()
+	configHome := filepath.Join(home, ".config")
+	configDir := filepath.Join(configHome, "opencode")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	configPath := filepath.Join(configDir, "opencode.json")
+	if err := os.WriteFile(configPath, configContents, 0o644); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
 	t.Setenv("XDG_DATA_HOME", filepath.Join(home, ".local", "share"))
@@ -64,6 +73,7 @@ func TestRunOpencodeSessionRecordsSession(t *testing.T) {
 	}
 
 	startedAt := time.Now()
+	prompt := "Test prompt"
 	type runOutcome struct {
 		result OpencodeRunResult
 		err    error
@@ -73,51 +83,63 @@ func TestRunOpencodeSessionRecordsSession(t *testing.T) {
 		result, err := runOpencodeSession(store, opencodeRunOptions{
 			RepoPath:      repoPath,
 			WorkspacePath: repoPath,
-			Prompt:        "Test prompt",
+			Prompt:        prompt,
 			StartedAt:     startedAt,
 		})
 		resultCh <- runOutcome{result: result, err: err}
 	}()
 
 	deadline := time.Now().Add(5 * time.Second)
-	activeSessionID := ""
-	for activeSessionID == "" {
+	var result OpencodeRunResult
+	resultReady := false
+	observedSession := opencode.OpencodeSession{}
+	observedActive := false
+	for !observedActive && !resultReady {
 		if time.Now().After(deadline) {
-			t.Fatalf("expected active opencode session before completion")
+			t.Fatalf("expected opencode session to reach active state before completion")
 		}
 		select {
 		case outcome := <-resultCh:
 			if outcome.err != nil {
 				t.Fatalf("run opencode session: %v", outcome.err)
 			}
-			t.Fatalf("opencode session %q completed before active status was observed", outcome.result.SessionID)
+			result = outcome.result
+			resultReady = true
 		default:
-			sessions, err := store.ListSessions(repoPath)
-			if err != nil {
-				t.Fatalf("list sessions: %v", err)
-			}
-			for i := range sessions {
-				if sessions[i].Status == opencode.OpencodeSessionActive {
-					activeSessionID = sessions[i].ID
-					break
-				}
-			}
-			if activeSessionID == "" {
-				time.Sleep(50 * time.Millisecond)
+		}
+
+		sessions, err := store.ListSessions(repoPath)
+		if err != nil {
+			t.Fatalf("list sessions: %v", err)
+		}
+		for i := range sessions {
+			session := sessions[i]
+			if !resultReady && session.Prompt == prompt && session.Status == opencode.OpencodeSessionActive {
+				observedSession = session
+				observedActive = true
+				break
 			}
 		}
+		if !observedActive && !resultReady {
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+	if !observedActive {
+		t.Fatalf("expected opencode session to reach active state before completion")
 	}
 
-	outcome := <-resultCh
-	if outcome.err != nil {
-		t.Fatalf("run opencode session: %v", outcome.err)
+	if !resultReady {
+		outcome := <-resultCh
+		if outcome.err != nil {
+			t.Fatalf("run opencode session: %v", outcome.err)
+		}
+		result = outcome.result
 	}
-	result := outcome.result
 	if result.ExitCode != 0 {
 		t.Fatalf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if activeSessionID != result.SessionID {
-		t.Fatalf("expected active session %q, got %q", result.SessionID, activeSessionID)
+	if observedSession.ID != result.SessionID {
+		t.Fatalf("expected session %q, got %q", result.SessionID, observedSession.ID)
 	}
 
 	sessions, err := store.ListSessions(repoPath)

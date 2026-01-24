@@ -29,6 +29,7 @@
 - Each package wrapped into the CLI has both regular tests and an end-to-end test that builds and executes the CLI binary.
 - CLI e2e testscript suites live under `cmd/ii/testdata` and are executed from `cmd/ii/*_test.go`.
 - CLI wrapper unit tests live under `cmd/ii`; go package APIs are tested in their respective module directories.
+- Opencode integration tests copy the user's real config into a temp `XDG_CONFIG_HOME`, skipping when no config exists.
 
 ### No-Mock Test Audit
 

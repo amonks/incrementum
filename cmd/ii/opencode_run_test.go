@@ -20,25 +20,34 @@ func requireOpencode(t *testing.T) {
 func prepareOpencodeHome(t *testing.T) string {
 	t.Helper()
 
-	configHome := os.Getenv("XDG_CONFIG_HOME")
-	if configHome == "" {
-		if currentHome := os.Getenv("HOME"); currentHome != "" {
-			configHome = filepath.Join(currentHome, ".config")
+	realConfigHome := os.Getenv("XDG_CONFIG_HOME")
+	if realConfigHome == "" {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			t.Fatalf("resolve user home: %v", err)
 		}
+		realConfigHome = filepath.Join(userHome, ".config")
 	}
-	if configHome == "" {
-		t.Skip("opencode config home is not set")
-	}
-	configDir := filepath.Join(configHome, "opencode")
-	entries, err := os.ReadDir(configDir)
+	realConfigPath := filepath.Join(realConfigHome, "opencode", "opencode.json")
+	configContents, err := os.ReadFile(realConfigPath)
 	if err != nil {
-		t.Skipf("opencode config not found at %s: %v", configDir, err)
-	}
-	if len(entries) == 0 {
-		t.Skipf("opencode config directory %s is empty", configDir)
+		if os.IsNotExist(err) {
+			t.Skipf("opencode config %s is required for integration tests", realConfigPath)
+		}
+		t.Fatalf("read config file: %v", err)
 	}
 
 	home := t.TempDir()
+	configHome := filepath.Join(home, ".config")
+	configDir := filepath.Join(configHome, "opencode")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	configPath := filepath.Join(configDir, "opencode.json")
+	if err := os.WriteFile(configPath, configContents, 0o644); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
 	t.Setenv("XDG_DATA_HOME", filepath.Join(home, ".local", "share"))
