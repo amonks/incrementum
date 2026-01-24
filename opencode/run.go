@@ -71,10 +71,11 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 		return nil, err
 	}
 
-	serverURL := fmt.Sprintf("http://localhost:%d", port)
+	serverHost := "127.0.0.1"
+	serverURL := fmt.Sprintf("http://%s:%d", serverHost, port)
 	eventURL := serverURL + "/event"
 
-	serveCmd := exec.Command("opencode", "serve", "--port="+strconv.Itoa(port), "--hostname=localhost")
+	serveCmd := exec.Command("opencode", "serve", "--port="+strconv.Itoa(port), "--hostname="+serverHost)
 	serveCmd.Dir = workDir
 	serveCmd.Env = env
 	serveCmd.Stdout = runStderr

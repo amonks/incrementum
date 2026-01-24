@@ -85,10 +85,13 @@ def run_job(prompt: str):
 
 def run_serve(args):
     port = 0
+    host = "localhost"
     for arg in args:
         if arg.startswith("--port="):
             port = int(arg.split("=", 1)[1])
-            break
+            continue
+        if arg.startswith("--hostname="):
+            host = arg.split("=", 1)[1]
     if not port:
         return
 
@@ -105,7 +108,7 @@ def run_serve(args):
         def log_message(self, *_args):
             return
 
-    server = http.server.HTTPServer(("localhost", port), Handler)
+    server = http.server.HTTPServer((host, port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

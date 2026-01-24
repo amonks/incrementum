@@ -56,8 +56,8 @@ Fields (JSON keys):
   found, they fall back to the current working directory.
 - Session IDs accept case-insensitive prefix matching; prefixes must be
   unambiguous.
-- `run` starts `opencode serve` and streams events from `/event` before invoking
-  `opencode run --attach=<server-url>`.
+- `run` starts `opencode serve` bound to `127.0.0.1` and streams events from
+  `/event` before invoking `opencode run --attach=<server-url>`.
 - `run` updates session status and exit code when the command exits.
 - `kill` records status `killed` and sets `exit_code` to the signal exit code
   reported by opencode when available.
