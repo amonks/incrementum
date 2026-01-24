@@ -230,12 +230,12 @@ func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) 
 	repoPath := t.TempDir()
 	workspacePath := t.TempDir()
 
-	promptDir := filepath.Join(workspacePath, ".incrementum", "prompts")
+	promptDir := filepath.Join(workspacePath, ".incrementum", "templates")
 	if err := os.MkdirAll(promptDir, 0o755); err != nil {
 		t.Fatalf("create prompt dir: %v", err)
 	}
 	customPrompt := "Review the changes in the working tree."
-	if err := os.WriteFile(filepath.Join(promptDir, "review.tmpl"), []byte(customPrompt), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(promptDir, "prompt-commit-review.tmpl"), []byte(customPrompt), 0o644); err != nil {
 		t.Fatalf("write prompt: %v", err)
 	}
 

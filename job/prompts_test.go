@@ -11,18 +11,18 @@ import (
 
 func TestLoadPrompt_UsesOverride(t *testing.T) {
 	repoPath := t.TempDir()
-	promptDir := filepath.Join(repoPath, ".incrementum", "prompts")
+	promptDir := filepath.Join(repoPath, ".incrementum", "templates")
 	if err := os.MkdirAll(promptDir, 0o755); err != nil {
 		t.Fatalf("create prompt dir: %v", err)
 	}
 
 	override := "override content"
-	overridePath := filepath.Join(promptDir, "implement.tmpl")
+	overridePath := filepath.Join(promptDir, "prompt-implementation.tmpl")
 	if err := os.WriteFile(overridePath, []byte(override), 0o644); err != nil {
 		t.Fatalf("write override: %v", err)
 	}
 
-	loaded, err := LoadPrompt(repoPath, "implement.tmpl")
+	loaded, err := LoadPrompt(repoPath, "prompt-implementation.tmpl")
 	if err != nil {
 		t.Fatalf("load prompt: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestLoadPrompt_UsesOverride(t *testing.T) {
 func TestLoadPrompt_UsesEmbeddedDefault(t *testing.T) {
 	repoPath := t.TempDir()
 
-	loaded, err := LoadPrompt(repoPath, "review.tmpl")
+	loaded, err := LoadPrompt(repoPath, "prompt-commit-review.tmpl")
 	if err != nil {
 		t.Fatalf("load prompt: %v", err)
 	}

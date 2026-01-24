@@ -12,10 +12,10 @@ import (
 	"github.com/amonks/incrementum/todo"
 )
 
-const promptOverrideDir = ".incrementum/prompts"
+const promptOverrideDir = ".incrementum/templates"
 
-//go:embed prompts/*.tmpl
-var defaultPrompts embed.FS
+//go:embed templates/*.tmpl
+var defaultTemplates embed.FS
 
 // PromptData supplies values for job prompt templates.
 type PromptData struct {
@@ -40,7 +40,7 @@ func LoadPrompt(repoPath, name string) (string, error) {
 		}
 	}
 
-	data, err := defaultPrompts.ReadFile(filepath.Join("prompts", name))
+	data, err := defaultTemplates.ReadFile(filepath.Join("templates", name))
 	if err != nil {
 		return "", fmt.Errorf("read default prompt: %w", err)
 	}

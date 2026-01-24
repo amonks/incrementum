@@ -96,7 +96,7 @@ any stage -> failed (unrecoverable error)
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` if it exists.
 3. Record the current working copy commit id.
-4. Run opencode with `implement.tmpl` prompt from the repo root (PWD set to the repo root).
+4. Run opencode with `prompt-implementation.tmpl` prompt from the repo root (PWD set to the repo root).
 5. Template receives: `Todo`, `Feedback` (empty string on initial run).
 6. Record opencode session in `opencode_sessions` with purpose `implement`.
 7. Run opencode to completion.
@@ -126,8 +126,8 @@ any stage -> failed (unrecoverable error)
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` if it exists.
 3. Run opencode with:
-   - `review.tmpl` during the work loop, or
-   - `project-review.tmpl` during the final project review.
+   - `prompt-commit-review.tmpl` during the work loop, or
+   - `prompt-project-review.tmpl` during the final project review.
 4. Template receives: `Todo`, `Message` (commit message from the implementing stage,
    falling back to `.incrementum-commit-message` in the workspace or repo root).
    If the review template does not reference `Message`, the job appends a
@@ -151,7 +151,7 @@ any stage -> failed (unrecoverable error)
 ### committing
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
-2. Format final message using `commit.tmpl` with: `Todo`, `Message` (from the
+2. Format final message using `commit-message.tmpl` with: `Todo`, `Message` (from the
    implementing stage).
 3. Best-effort `jj workspace update-stale` in the repo working directory.
 4. Run `jj commit -m "<formatted message>"` in the repo working directory.
@@ -186,14 +186,14 @@ test-commands = [
 ## Templates
 
 Bundled defaults via `//go:embed`, overridable by placing files in
-`.incrementum/prompts/`.
+`.incrementum/templates/`.
 
 | File                   | Stage        | Variables                             |
 | ---------------------- | ------------ | ------------------------------------- |
-| `implement.tmpl`       | implementing | `Todo`, `Feedback`, `WorkspacePath`   |
-| `review.tmpl`          | reviewing    | `Todo`, `Message`, `WorkspacePath`    |
-| `project-review.tmpl`  | reviewing    | `Todo`, `WorkspacePath`               |
-| `commit.tmpl`          | committing   | `Todo`, `Message`, `WorkspacePath`    |
+| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `WorkspacePath`   |
+| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `WorkspacePath`    |
+| `prompt-project-review.tmpl` | reviewing    | `Todo`, `WorkspacePath`               |
+| `commit-message.tmpl`         | committing   | `Todo`, `Message`, `WorkspacePath`    |
 
 Templates use Go `text/template` syntax.
 

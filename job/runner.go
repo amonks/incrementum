@@ -376,7 +376,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
-	prompt, err := renderPromptTemplate(item, current.Feedback, "", "implement.tmpl", workspacePath)
+	prompt, err := renderPromptTemplate(item, current.Feedback, "", "prompt-implementation.tmpl", workspacePath)
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}
@@ -472,10 +472,10 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 
-	promptName := "review.tmpl"
+	promptName := "prompt-commit-review.tmpl"
 	purpose := "review"
 	if scope == reviewScopeProject {
-		promptName = "project-review.tmpl"
+		promptName = "prompt-project-review.tmpl"
 		purpose = "project-review"
 	}
 
@@ -569,7 +569,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 		return Job{}, fmt.Errorf("commit message is required")
 	}
 
-	finalMessage, err := renderPromptTemplate(opts.Item, "", message, "commit.tmpl", opts.WorkspacePath)
+	finalMessage, err := renderPromptTemplate(opts.Item, "", message, "commit-message.tmpl", opts.WorkspacePath)
 	if err != nil {
 		return Job{}, err
 	}
