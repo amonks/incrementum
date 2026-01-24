@@ -1,4 +1,4 @@
-package workspace
+package opencode
 
 import (
 	"fmt"
@@ -6,12 +6,62 @@ import (
 	"strings"
 	"time"
 
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
+	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
-// CreateOpencodeSession creates a new active opencode session.
-func (p *Pool) CreateOpencodeSession(repoPath, sessionID, prompt string, startedAt time.Time) (OpencodeSession, error) {
-	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
+// Store manages opencode session state.
+type Store struct {
+	stateStore *statestore.Store
+	storage    internalopencode.Storage
+}
+
+// Options configures an opencode store.
+type Options struct {
+	// StateDir is the directory where state is stored.
+	// Defaults to ~/.local/state/incrementum if empty.
+	StateDir string
+
+	// StorageRoot is the opencode storage root.
+	// Defaults to ~/.local/share/opencode if empty.
+	StorageRoot string
+}
+
+// Open creates a store with default options.
+func Open() (*Store, error) {
+	return OpenWithOptions(Options{})
+}
+
+// OpenWithOptions creates a store with custom options.
+func OpenWithOptions(opts Options) (*Store, error) {
+	stateDir := opts.StateDir
+	if stateDir == "" {
+		var err error
+		stateDir, err = paths.DefaultStateDir()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	storageRoot := opts.StorageRoot
+	if storageRoot == "" {
+		var err error
+		storageRoot, err = internalopencode.DefaultRoot()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &Store{
+		stateStore: statestore.NewStore(stateDir),
+		storage:    internalopencode.Storage{Root: storageRoot},
+	}, nil
+}
+
+// CreateSession creates a new active opencode session.
+func (s *Store) CreateSession(repoPath, sessionID, prompt string, startedAt time.Time) (OpencodeSession, error) {
+	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
 	}
@@ -20,8 +70,7 @@ func (p *Pool) CreateOpencodeSession(repoPath, sessionID, prompt string, started
 	}
 
 	var created OpencodeSession
-
-	err = p.stateStore.Update(func(st *statestore.State) error {
+	err = s.stateStore.Update(func(st *statestore.State) error {
 		created = OpencodeSession{
 			ID:        sessionID,
 			Repo:      repoName,
@@ -31,11 +80,9 @@ func (p *Pool) CreateOpencodeSession(repoPath, sessionID, prompt string, started
 			StartedAt: startedAt,
 			UpdatedAt: startedAt,
 		}
-
 		st.OpencodeSessions[repoName+"/"+sessionID] = created
 		return nil
 	})
-
 	if err != nil {
 		return OpencodeSession{}, err
 	}
@@ -43,14 +90,14 @@ func (p *Pool) CreateOpencodeSession(repoPath, sessionID, prompt string, started
 	return created, nil
 }
 
-// FindOpencodeSession returns the session with the given id in the repo.
-func (p *Pool) FindOpencodeSession(repoPath, sessionID string) (OpencodeSession, error) {
-	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
+// FindSession returns the session with the given id in the repo.
+func (s *Store) FindSession(repoPath, sessionID string) (OpencodeSession, error) {
+	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.Load()
+	st, err := s.stateStore.Load()
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("load state: %w", err)
 	}
@@ -83,14 +130,14 @@ func (p *Pool) FindOpencodeSession(repoPath, sessionID string) (OpencodeSession,
 	return *match, nil
 }
 
-// ListOpencodeSessions returns all sessions for a repo.
-func (p *Pool) ListOpencodeSessions(repoPath string) ([]OpencodeSession, error) {
-	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
+// ListSessions returns all sessions for a repo.
+func (s *Store) ListSessions(repoPath string) ([]OpencodeSession, error) {
+	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("get repo name: %w", err)
 	}
 
-	st, err := p.stateStore.Load()
+	st, err := s.stateStore.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load state: %w", err)
 	}
@@ -112,20 +159,19 @@ func (p *Pool) ListOpencodeSessions(repoPath string) ([]OpencodeSession, error) 
 	return items, nil
 }
 
-// CompleteOpencodeSession updates a session to completed, failed, or killed.
-func (p *Pool) CompleteOpencodeSession(repoPath, sessionID string, status OpencodeSessionStatus, completedAt time.Time, exitCode *int, durationSeconds int) (OpencodeSession, error) {
+// CompleteSession updates a session to completed, failed, or killed.
+func (s *Store) CompleteSession(repoPath, sessionID string, status OpencodeSessionStatus, completedAt time.Time, exitCode *int, durationSeconds int) (OpencodeSession, error) {
 	if status != OpencodeSessionCompleted && status != OpencodeSessionFailed && status != OpencodeSessionKilled {
 		return OpencodeSession{}, fmt.Errorf("invalid opencode session status: %s", status)
 	}
 
-	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
+	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
 	}
 
 	var updated OpencodeSession
-
-	err = p.stateStore.Update(func(st *statestore.State) error {
+	err = s.stateStore.Update(func(st *statestore.State) error {
 		key := repoName + "/" + sessionID
 		session, ok := st.OpencodeSessions[key]
 		if !ok {
@@ -144,7 +190,6 @@ func (p *Pool) CompleteOpencodeSession(repoPath, sessionID string, status Openco
 		updated = session
 		return nil
 	})
-
 	if err != nil {
 		return OpencodeSession{}, err
 	}

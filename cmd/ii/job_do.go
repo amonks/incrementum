@@ -86,7 +86,7 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(result.CommitLog) > 0 {
-		fmt.Printf("\nCommit log:\n")
+		fmt.Printf("\nCommit messages:\n")
 		for _, entry := range result.CommitLog {
 			fmt.Printf("- %s\n%s\n\n", entry.ID, entry.Message)
 		}

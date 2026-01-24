@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	statestore "github.com/amonks/incrementum/internal/state"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -79,6 +80,26 @@ func TestPool_Acquire_CreatesNewWorkspace(t *testing.T) {
 	}
 	if list[0].Purpose != "" {
 		t.Fatalf("expected purpose to be cleared on release, got %q", list[0].Purpose)
+	}
+}
+
+func TestPool_RepoSlug(t *testing.T) {
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      t.TempDir(),
+		WorkspacesDir: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatalf("open pool: %v", err)
+	}
+
+	repoPath := "/tmp/my-repo"
+	slug, err := pool.RepoSlug(repoPath)
+	if err != nil {
+		t.Fatalf("get repo slug: %v", err)
+	}
+
+	if slug != statestore.SanitizeRepoName(repoPath) {
+		t.Fatalf("expected slug %q, got %q", statestore.SanitizeRepoName(repoPath), slug)
 	}
 }
 

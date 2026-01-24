@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
-	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/internal/ui"
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/opencode"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +44,7 @@ func init() {
 }
 
 func runOpencodeList(cmd *cobra.Command, args []string) error {
-	pool, err := workspace.Open()
+	store, err := opencode.Open()
 	if err != nil {
 		return err
 	}
@@ -55,7 +54,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	sessions, err := pool.ListOpencodeSessions(repoPath)
+	sessions, err := store.ListSessions(repoPath)
 	if err != nil {
 		return fmt.Errorf("list opencode sessions: %w", err)
 	}
@@ -80,7 +79,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 }
 
 func runOpencodeLogs(cmd *cobra.Command, args []string) error {
-	pool, err := workspace.Open()
+	store, err := opencode.Open()
 	if err != nil {
 		return err
 	}
@@ -90,17 +89,7 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	session, err := pool.FindOpencodeSession(repoPath, args[0])
-	if err != nil {
-		return err
-	}
-
-	storage, err := opencodeStorage()
-	if err != nil {
-		return err
-	}
-
-	snapshot, err := opencodeLogSnapshot(storage, session.ID)
+	snapshot, err := store.Logs(repoPath, args[0])
 	if err != nil {
 		return err
 	}
@@ -109,7 +98,7 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) string {
+func formatOpencodeTable(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) string {
 	if highlight == nil {
 		highlight = func(value string, prefix int) string { return value }
 	}
@@ -150,7 +139,7 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", promptHeader, "EXIT"}, rows)
 }
 
-func opencodePromptColumnWidth(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
+func opencodePromptColumnWidth(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
 	viewportWidth := ui.TableViewportWidth()
 	if viewportWidth <= 0 {
 		return ui.TableCellMaxWidth()
@@ -168,7 +157,7 @@ func opencodePromptColumnWidth(sessions []workspace.OpencodeSession, highlight f
 	return remaining
 }
 
-func opencodeFixedColumnsWidth(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
+func opencodeFixedColumnsWidth(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
 	if highlight == nil {
 		highlight = func(value string, prefix int) string { return value }
 	}
@@ -205,7 +194,7 @@ func opencodeFixedColumnsWidth(sessions []workspace.OpencodeSession, highlight f
 	return maxSession + maxStatus + maxAge + maxDuration + maxExit + padding*5
 }
 
-func opencodeSessionPrefixLengths(sessions []workspace.OpencodeSession) map[string]int {
+func opencodeSessionPrefixLengths(sessions []opencode.OpencodeSession) map[string]int {
 	sessionIDs := make([]string, 0, len(sessions))
 	for _, session := range sessions {
 		sessionIDs = append(sessionIDs, session.ID)
@@ -225,16 +214,16 @@ func opencodePromptLine(prompt string) string {
 	return line
 }
 
-func formatOpencodeAge(session workspace.OpencodeSession, now time.Time) string {
-	age, ok := workspace.AgeData(session, now)
+func formatOpencodeAge(session opencode.OpencodeSession, now time.Time) string {
+	age, ok := opencode.AgeData(session, now)
 	if !ok {
 		return "-"
 	}
 	return ui.FormatDurationShort(age)
 }
 
-func formatOpencodeDuration(session workspace.OpencodeSession, now time.Time) string {
-	duration, ok := workspace.DurationData(session, now)
+func formatOpencodeDuration(session opencode.OpencodeSession, now time.Time) string {
+	duration, ok := opencode.DurationData(session, now)
 	if !ok {
 		return "-"
 	}
@@ -246,12 +235,4 @@ func maxInt(left, right int) int {
 		return left
 	}
 	return right
-}
-
-func opencodeLogSnapshot(storage internalopencode.Storage, sessionID string) (string, error) {
-	snapshot, err := storage.SessionLogText(sessionID)
-	if err != nil {
-		return "", err
-	}
-	return snapshot, nil
 }

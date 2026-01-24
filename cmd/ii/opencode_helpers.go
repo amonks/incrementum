@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"os"
 
-	internalopencode "github.com/amonks/incrementum/internal/opencode"
+	"github.com/amonks/incrementum/opencode"
 	"github.com/amonks/incrementum/workspace"
 )
 
-func filterOpencodeSessionsForList(sessions []workspace.OpencodeSession, includeAll bool) []workspace.OpencodeSession {
+func filterOpencodeSessionsForList(sessions []opencode.OpencodeSession, includeAll bool) []opencode.OpencodeSession {
 	if includeAll {
 		return sessions
 	}
 
-	filtered := make([]workspace.OpencodeSession, 0, len(sessions))
+	filtered := make([]opencode.OpencodeSession, 0, len(sessions))
 	for _, session := range sessions {
-		if session.Status != workspace.OpencodeSessionActive {
+		if session.Status != opencode.OpencodeSessionActive {
 			continue
 		}
 		filtered = append(filtered, session)
@@ -38,12 +38,4 @@ func getOpencodeRepoPath() (string, error) {
 		return cwd, nil
 	}
 	return "", err
-}
-
-func opencodeStorage() (internalopencode.Storage, error) {
-	root, err := internalopencode.DefaultRoot()
-	if err != nil {
-		return internalopencode.Storage{}, err
-	}
-	return internalopencode.Storage{Root: root}, nil
 }

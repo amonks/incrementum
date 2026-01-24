@@ -7,7 +7,7 @@
 | [workspace.md](./workspace.md) | [workspace/](../workspace/) | Jujutsu workspace pool: acquire a workspace to do some isolated work, then release it                        |
 | [todo.md](./todo.md)           | [todo/](../todo/)           | Task tracking: command-line JIRA with TODOs stored in a special branch                                       |
 | [cli.md](./cli.md)             | [cmd/ii/](../cmd/ii/)       | Describes our architecture: the cli package is a thin wrapper over a go package per-subcommand               |
-| [opencode.md](./opencode.md)   |                             | Opencode integration: run opencode sessions and monitor their status                                         |
+| [opencode.md](./opencode.md)   | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
 | [job.md](./job.md)             |                             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
 
 ## Internal Packages

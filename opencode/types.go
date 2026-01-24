@@ -1,6 +1,8 @@
-package workspace
+package opencode
 
 import (
+	"errors"
+
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
@@ -20,3 +22,12 @@ const (
 
 // OpencodeSession stores session state for a repo.
 type OpencodeSession = statestore.OpencodeSession
+
+var (
+	// ErrOpencodeSessionNotFound indicates the requested session is missing.
+	ErrOpencodeSessionNotFound = errors.New("opencode session not found")
+	// ErrAmbiguousOpencodeSessionIDPrefix indicates a prefix matches multiple sessions.
+	ErrAmbiguousOpencodeSessionIDPrefix = errors.New("ambiguous opencode session id prefix")
+	// ErrOpencodeSessionNotActive indicates a session is not active.
+	ErrOpencodeSessionNotActive = errors.New("opencode session is not active")
+)

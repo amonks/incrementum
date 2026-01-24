@@ -3,15 +3,15 @@ package main
 import (
 	"testing"
 
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/opencode"
 )
 
 func TestFilterOpencodeSessionsForListDefaultsToActive(t *testing.T) {
-	sessions := []workspace.OpencodeSession{
-		{ID: "active", Status: workspace.OpencodeSessionActive},
-		{ID: "completed", Status: workspace.OpencodeSessionCompleted},
-		{ID: "failed", Status: workspace.OpencodeSessionFailed},
-		{ID: "killed", Status: workspace.OpencodeSessionKilled},
+	sessions := []opencode.OpencodeSession{
+		{ID: "active", Status: opencode.OpencodeSessionActive},
+		{ID: "completed", Status: opencode.OpencodeSessionCompleted},
+		{ID: "failed", Status: opencode.OpencodeSessionFailed},
+		{ID: "killed", Status: opencode.OpencodeSessionKilled},
 	}
 
 	filtered := filterOpencodeSessionsForList(sessions, false)
@@ -24,9 +24,9 @@ func TestFilterOpencodeSessionsForListDefaultsToActive(t *testing.T) {
 }
 
 func TestFilterOpencodeSessionsForListWithAll(t *testing.T) {
-	sessions := []workspace.OpencodeSession{
-		{ID: "active", Status: workspace.OpencodeSessionActive},
-		{ID: "completed", Status: workspace.OpencodeSessionCompleted},
+	sessions := []opencode.OpencodeSession{
+		{ID: "active", Status: opencode.OpencodeSessionActive},
+		{ID: "completed", Status: opencode.OpencodeSessionCompleted},
 	}
 
 	filtered := filterOpencodeSessionsForList(sessions, true)
@@ -36,10 +36,10 @@ func TestFilterOpencodeSessionsForListWithAll(t *testing.T) {
 }
 
 func TestFilterOpencodeSessionsForListPreservesInputOrder(t *testing.T) {
-	sessions := []workspace.OpencodeSession{
-		{ID: "active", Status: workspace.OpencodeSessionActive},
-		{ID: "completed", Status: workspace.OpencodeSessionCompleted},
-		{ID: "failed", Status: workspace.OpencodeSessionFailed},
+	sessions := []opencode.OpencodeSession{
+		{ID: "active", Status: opencode.OpencodeSessionActive},
+		{ID: "completed", Status: opencode.OpencodeSessionCompleted},
+		{ID: "failed", Status: opencode.OpencodeSessionFailed},
 	}
 
 	originalIDs := make([]string, len(sessions))

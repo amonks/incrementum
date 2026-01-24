@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/opencode"
 )
 
 func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
@@ -113,12 +113,12 @@ func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 		t.Fatalf("expected prompt to be passed, got %q", args)
 	}
 
-	pool, err := workspace.Open()
+	store, err := opencode.Open()
 	if err != nil {
-		t.Fatalf("open pool: %v", err)
+		t.Fatalf("open store: %v", err)
 	}
 
-	sessions, err := pool.ListOpencodeSessions(repoPath)
+	sessions, err := store.ListSessions(repoPath)
 	if err != nil {
 		t.Fatalf("list sessions: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 	if sessions[0].ID != sessionID {
 		t.Fatalf("expected session id %q, got %q", sessionID, sessions[0].ID)
 	}
-	if sessions[0].Status != workspace.OpencodeSessionCompleted {
+	if sessions[0].Status != opencode.OpencodeSessionCompleted {
 		t.Fatalf("expected status completed, got %q", sessions[0].Status)
 	}
 	if sessions[0].ExitCode == nil || *sessions[0].ExitCode != 0 {

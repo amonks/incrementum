@@ -9,28 +9,28 @@ import (
 
 	statestore "github.com/amonks/incrementum/internal/state"
 	jobpkg "github.com/amonks/incrementum/job"
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/opencode"
 )
 
 func TestJobLogSnapshotOrdersBySessionStart(t *testing.T) {
 	stateDir := t.TempDir()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	pool, err := workspace.OpenWithOptions(workspace.Options{
-		StateDir:      stateDir,
-		WorkspacesDir: t.TempDir(),
+	opencodeStore, err := opencode.OpenWithOptions(opencode.Options{
+		StateDir:    stateDir,
+		StorageRoot: filepath.Join(home, ".local", "share", "opencode"),
 	})
 	if err != nil {
-		t.Fatalf("open pool: %v", err)
+		t.Fatalf("open store: %v", err)
 	}
 
 	repoPath := "/tmp/job-logs"
 	startedAt := time.Date(2026, 1, 2, 3, 0, 0, 0, time.UTC)
-	firstSession, err := pool.CreateOpencodeSession(repoPath, "ses_implement", "Implement", startedAt)
+	firstSession, err := opencodeStore.CreateSession(repoPath, "ses_implement", "Implement", startedAt)
 	if err != nil {
 		t.Fatalf("create first session: %v", err)
 	}
-	secondSession, err := pool.CreateOpencodeSession(repoPath, "ses_review", "Review", startedAt.Add(2*time.Minute))
+	secondSession, err := opencodeStore.CreateSession(repoPath, "ses_review", "Review", startedAt.Add(2*time.Minute))
 	if err != nil {
 		t.Fatalf("create second session: %v", err)
 	}
@@ -39,8 +39,8 @@ func TestJobLogSnapshotOrdersBySessionStart(t *testing.T) {
 	writeSessionLog(t, storageRoot, firstSession.ID, "first\n", startedAt)
 	writeSessionLog(t, storageRoot, secondSession.ID, "second\n", startedAt.Add(2*time.Minute))
 
-	store := statestore.NewStore(stateDir)
-	repoSlug, err := store.GetOrCreateRepoName(repoPath)
+	stateStore := statestore.NewStore(stateDir)
+	repoSlug, err := stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		t.Fatalf("repo slug: %v", err)
 	}
@@ -59,14 +59,14 @@ func TestJobLogSnapshotOrdersBySessionStart(t *testing.T) {
 		},
 	}
 
-	if err := store.Update(func(st *statestore.State) error {
+	if err := stateStore.Update(func(st *statestore.State) error {
 		st.Jobs[repoSlug+"/"+job.ID] = job
 		return nil
 	}); err != nil {
 		t.Fatalf("insert job: %v", err)
 	}
 
-	snapshot, err := jobLogSnapshot(pool, repoPath, job)
+	snapshot, err := jobLogSnapshot(opencodeStore, repoPath, job)
 	if err != nil {
 		t.Fatalf("snapshot: %v", err)
 	}

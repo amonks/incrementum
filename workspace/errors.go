@@ -11,10 +11,4 @@ var (
 	ErrWorkspaceRootNotFound = errors.New("workspace root not found")
 	// ErrRepoPathNotFound indicates a workspace is tracked but missing repo info.
 	ErrRepoPathNotFound = statestore.ErrRepoPathNotFound
-	// ErrOpencodeSessionNotFound indicates the requested session is missing.
-	ErrOpencodeSessionNotFound = errors.New("opencode session not found")
-	// ErrAmbiguousOpencodeSessionIDPrefix indicates a prefix matches multiple sessions.
-	ErrAmbiguousOpencodeSessionIDPrefix = errors.New("ambiguous opencode session id prefix")
-	// ErrOpencodeSessionNotActive indicates a session is not active.
-	ErrOpencodeSessionNotActive = errors.New("opencode session is not active")
 )

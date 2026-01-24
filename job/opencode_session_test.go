@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/opencode"
 )
 
 func TestRunOpencodeSessionRecordsActiveSessionDuringRun(t *testing.T) {
@@ -78,9 +78,9 @@ func TestRunOpencodeSessionRecordsActiveSessionDuringRun(t *testing.T) {
 		t.Fatalf("write part file: %v", err)
 	}
 
-	pool, err := workspace.Open()
+	store, err := opencode.Open()
 	if err != nil {
-		t.Fatalf("open pool: %v", err)
+		t.Fatalf("open store: %v", err)
 	}
 
 	resultCh := make(chan struct {
@@ -88,7 +88,7 @@ func TestRunOpencodeSessionRecordsActiveSessionDuringRun(t *testing.T) {
 		err    error
 	}, 1)
 	go func() {
-		result, err := runOpencodeSession(pool, opencodeRunOptions{
+		result, err := runOpencodeSession(store, opencodeRunOptions{
 			RepoPath:      repoPath,
 			WorkspacePath: repoPath,
 			Prompt:        "Test prompt",
@@ -100,7 +100,7 @@ func TestRunOpencodeSessionRecordsActiveSessionDuringRun(t *testing.T) {
 		}{result: result, err: err}
 	}()
 
-	waitForActiveSession(t, pool, repoPath, sessionID, 2*time.Second)
+	waitForActiveSession(t, store, repoPath, sessionID, 2*time.Second)
 
 	if err := os.WriteFile(waitFile, []byte("done"), 0o644); err != nil {
 		t.Fatalf("release opencode: %v", err)
@@ -117,28 +117,28 @@ func TestRunOpencodeSessionRecordsActiveSessionDuringRun(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", result.result.ExitCode)
 	}
 
-	sessions, err := pool.ListOpencodeSessions(repoPath)
+	sessions, err := store.ListSessions(repoPath)
 	if err != nil {
 		t.Fatalf("list sessions: %v", err)
 	}
 	if len(sessions) != 1 {
 		t.Fatalf("expected 1 session, got %d", len(sessions))
 	}
-	if sessions[0].Status != workspace.OpencodeSessionCompleted {
+	if sessions[0].Status != opencode.OpencodeSessionCompleted {
 		t.Fatalf("expected status completed, got %q", sessions[0].Status)
 	}
 }
 
-func waitForActiveSession(t *testing.T, pool *workspace.Pool, repoPath, sessionID string, timeout time.Duration) {
+func waitForActiveSession(t *testing.T, store *opencode.Store, repoPath, sessionID string, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for {
-		sessions, err := pool.ListOpencodeSessions(repoPath)
+		sessions, err := store.ListSessions(repoPath)
 		if err != nil {
 			t.Fatalf("list sessions: %v", err)
 		}
 		for _, session := range sessions {
-			if session.ID == sessionID && session.Status == workspace.OpencodeSessionActive {
+			if session.ID == sessionID && session.Status == opencode.OpencodeSessionActive {
 				return
 			}
 		}

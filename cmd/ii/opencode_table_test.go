@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/ui"
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/opencode"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -15,10 +15,10 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-2 * time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess1",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    "Run tests\nSecond line",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -26,7 +26,7 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 		{
 			ID:              "sess2",
-			Status:          workspace.OpencodeSessionCompleted,
+			Status:          opencode.OpencodeSessionCompleted,
 			Prompt:          "Build app",
 			CreatedAt:       createdAt.Add(-time.Minute),
 			StartedAt:       createdAt.Add(-time.Minute),
@@ -59,10 +59,10 @@ func TestFormatOpencodeTableTruncatesPromptToViewport(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-1",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    strings.Repeat("a", 120),
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -94,10 +94,10 @@ func TestFormatOpencodeTableTruncatesPromptWithANSIToViewport(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-ansi",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    strings.Repeat("p", 120),
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -129,10 +129,10 @@ func TestFormatOpencodeTableTruncatesWidePromptToViewport(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-wide",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    strings.Repeat("\u754c", 80),
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -164,10 +164,10 @@ func TestFormatOpencodeTableTruncatesPromptHeaderToViewport(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-1",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    strings.Repeat("b", 40),
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -202,10 +202,10 @@ func TestOpencodePromptColumnWidthAccountsForPadding(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-1",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    "Prompt",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -242,10 +242,10 @@ func TestOpencodePromptColumnWidthAccountsForPadding(t *testing.T) {
 func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-123",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    "Ship it",
 			CreatedAt: now.Add(-time.Minute),
 			StartedAt: now.Add(-time.Minute),
@@ -276,10 +276,10 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-2 * time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-001",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    "Prompt",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -306,10 +306,10 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:     "sess-1",
-			Status: workspace.OpencodeSessionActive,
+			Status: opencode.OpencodeSessionActive,
 			Prompt: "Do the thing",
 		},
 	}
@@ -333,10 +333,10 @@ func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 func TestFormatOpencodeTableShowsAgeForCompletedSession(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-complete",
-			Status:    workspace.OpencodeSessionCompleted,
+			Status:    opencode.OpencodeSessionCompleted,
 			Prompt:    "Done",
 			CreatedAt: now.Add(-5 * time.Minute),
 			StartedAt: now.Add(-5 * time.Minute),
@@ -364,10 +364,10 @@ func TestFormatOpencodeTableShowsDuration(t *testing.T) {
 	createdAt := now.Add(-10 * time.Minute)
 	updated := now.Add(-7 * time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "sess-duration",
-			Status:    workspace.OpencodeSessionCompleted,
+			Status:    opencode.OpencodeSessionCompleted,
 			Prompt:    "Do it",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -402,10 +402,10 @@ func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-5 * time.Minute)
 
-	sessions := []workspace.OpencodeSession{
+	sessions := []opencode.OpencodeSession{
 		{
 			ID:        "abc123",
-			Status:    workspace.OpencodeSessionActive,
+			Status:    opencode.OpencodeSessionActive,
 			Prompt:    "One",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
@@ -413,7 +413,7 @@ func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 		},
 		{
 			ID:          "abd999",
-			Status:      workspace.OpencodeSessionCompleted,
+			Status:      opencode.OpencodeSessionCompleted,
 			Prompt:      "Two",
 			CreatedAt:   createdAt,
 			StartedAt:   createdAt,

@@ -12,8 +12,8 @@ import (
 	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/internal/ui"
 	jobpkg "github.com/amonks/incrementum/job"
+	"github.com/amonks/incrementum/opencode"
 	"github.com/amonks/incrementum/todo"
-	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -168,12 +168,12 @@ func runJobLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	pool, err := workspace.Open()
+	store, err := opencode.Open()
 	if err != nil {
 		return err
 	}
 
-	snapshot, err := jobLogSnapshot(pool, repoPath, item)
+	snapshot, err := jobLogSnapshot(store, repoPath, item)
 	if err != nil {
 		return err
 	}
@@ -352,18 +352,18 @@ func jobShowTodoInfo(repoPath string, todoID string, purpose string) (string, ma
 
 type jobLogEntry struct {
 	Purpose string
-	Session workspace.OpencodeSession
+	Session opencode.OpencodeSession
 	Log     string
 }
 
-func jobLogSnapshot(pool *workspace.Pool, repoPath string, item jobpkg.Job) (string, error) {
+func jobLogSnapshot(store *opencode.Store, repoPath string, item jobpkg.Job) (string, error) {
 	if len(item.OpencodeSessions) == 0 {
 		return "", nil
 	}
 
 	entries := make([]jobLogEntry, 0, len(item.OpencodeSessions))
 	for _, session := range item.OpencodeSessions {
-		entry, err := jobLogEntryForSession(pool, repoPath, session)
+		entry, err := jobLogEntryForSession(store, repoPath, session)
 		if err != nil {
 			return "", err
 		}
@@ -392,17 +392,12 @@ func jobLogSnapshot(pool *workspace.Pool, repoPath string, item jobpkg.Job) (str
 	return builder.String(), nil
 }
 
-func jobLogEntryForSession(pool *workspace.Pool, repoPath string, session jobpkg.OpencodeSession) (jobLogEntry, error) {
-	opencodeSession, err := pool.FindOpencodeSession(repoPath, session.ID)
+func jobLogEntryForSession(store *opencode.Store, repoPath string, session jobpkg.OpencodeSession) (jobLogEntry, error) {
+	opencodeSession, err := store.FindSession(repoPath, session.ID)
 	if err != nil {
 		return jobLogEntry{}, err
 	}
-	storage, err := opencodeStorage()
-	if err != nil {
-		return jobLogEntry{}, err
-	}
-
-	logSnapshot, err := opencodeLogSnapshot(storage, opencodeSession.ID)
+	logSnapshot, err := store.LogSnapshot(opencodeSession.ID)
 	if err != nil {
 		return jobLogEntry{}, err
 	}

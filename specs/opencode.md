@@ -6,6 +6,12 @@ The opencode subcommand integrates the Opencode agent workflow into `ii`.
 It wraps the external `opencode` CLI and tracks sessions in the shared
 state store, scoped to the current repo slug.
 
+## Package
+
+The public API lives in `opencode/`. It owns session types and state
+operations, plus command helpers (`Run`, `Logs`, `Tail`, `Kill`) that are
+invoked by the CLI and job workflows.
+
 ## Storage
 
 - Session state is stored in `~/.local/state/incrementum/state.json` alongside

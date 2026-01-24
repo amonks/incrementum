@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/amonks/incrementum/workspace"
+	"github.com/amonks/incrementum/opencode"
 )
 
 type exitError struct {
@@ -26,7 +26,7 @@ func (e exitError) Unwrap() error {
 	return e.err
 }
 
-func exitFromOpencodeSession(session workspace.OpencodeSession) error {
+func exitFromOpencodeSession(session opencode.OpencodeSession) error {
 	if session.ExitCode != nil && *session.ExitCode != 0 {
 		return exitError{code: *session.ExitCode}
 	}

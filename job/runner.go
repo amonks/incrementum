@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"regexp"
@@ -14,15 +13,13 @@ import (
 
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/jj"
-	internalopencode "github.com/amonks/incrementum/internal/opencode"
+	"github.com/amonks/incrementum/opencode"
 	"github.com/amonks/incrementum/todo"
-	"github.com/amonks/incrementum/workspace"
 )
 
 const (
-	feedbackFilename             = ".incrementum-feedback"
-	commitMessageFilename        = ".incrementum-commit-message"
-	opencodeSessionLookupTimeout = 5 * time.Second
+	feedbackFilename      = ".incrementum-feedback"
+	commitMessageFilename = ".incrementum-commit-message"
 )
 
 var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.Message[^}]*\}\}`)
@@ -346,11 +343,11 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	}
 	if opts.RunOpencode == nil {
 		opts.RunOpencode = func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
-			pool, err := workspace.Open()
+			store, err := opencode.Open()
 			if err != nil {
 				return OpencodeRunResult{}, err
 			}
-			return runOpencodeSession(pool, runOpts)
+			return runOpencodeSession(store, runOpts)
 		}
 	}
 	if opts.CurrentCommitID == nil {
@@ -641,7 +638,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 
 type opencodeTranscriptEntry struct {
 	Purpose    string
-	Session    workspace.OpencodeSession
+	Session    opencode.OpencodeSession
 	Transcript string
 }
 
@@ -650,22 +647,18 @@ func opencodeTranscripts(repoPath string, sessions []OpencodeSession) ([]Opencod
 		return nil, nil
 	}
 
-	pool, err := workspace.Open()
-	if err != nil {
-		return nil, err
-	}
-	storage, err := opencodeStorage()
+	store, err := opencode.Open()
 	if err != nil {
 		return nil, err
 	}
 
 	entries := make([]opencodeTranscriptEntry, 0, len(sessions))
 	for _, session := range sessions {
-		opencodeSession, err := pool.FindOpencodeSession(repoPath, session.ID)
+		opencodeSession, err := store.FindSession(repoPath, session.ID)
 		if err != nil {
 			return nil, err
 		}
-		transcript, err := opencodeProseLogSnapshot(storage, opencodeSession.ID)
+		transcript, err := store.ProseLogSnapshot(opencodeSession.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -688,14 +681,6 @@ func opencodeTranscripts(repoPath string, sessions []OpencodeSession) ([]Opencod
 		transcripts = append(transcripts, OpencodeTranscript{Purpose: entry.Purpose, ID: entry.Session.ID, Transcript: text})
 	}
 	return transcripts, nil
-}
-
-func opencodeProseLogSnapshot(storage internalopencode.Storage, sessionID string) (string, error) {
-	snapshot, err := storage.SessionProseLogText(sessionID)
-	if err != nil {
-		return "", err
-	}
-	return snapshot, nil
 }
 
 func testingStageOutcome(results []TestCommandResult) (Stage, string) {
@@ -807,103 +792,17 @@ func updateStaleWorkspace(update func(string) error, workspacePath string) {
 	_ = update(workspacePath)
 }
 
-func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (OpencodeRunResult, error) {
-	storage, err := opencodeStorage()
+func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (OpencodeRunResult, error) {
+	result, err := store.Run(opencode.RunOptions{
+		RepoPath:  opts.RepoPath,
+		WorkDir:   opts.WorkspacePath,
+		Prompt:    opts.Prompt,
+		StartedAt: opts.StartedAt,
+	})
 	if err != nil {
 		return OpencodeRunResult{}, err
 	}
-
-	runCmd := exec.Command("opencode", "run", opts.Prompt)
-	runCmd.Dir = opts.WorkspacePath
-	runCmd.Env = replaceEnvVar(os.Environ(), "PWD", opts.WorkspacePath)
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
-	runCmd.Stdin = os.Stdin
-
-	if err := runCmd.Start(); err != nil {
-		return OpencodeRunResult{}, err
-	}
-
-	session, sessionErr := ensureOpencodeSession(pool, storage, opts.RepoPath, opts.StartedAt, opts.Prompt)
-	exitCode, runErr := runExitCode(runCmd)
-	completedAt := time.Now()
-
-	if sessionErr != nil {
-		session, sessionErr = ensureOpencodeSession(pool, storage, opts.RepoPath, opts.StartedAt, opts.Prompt)
-	}
-	if sessionErr != nil {
-		if runErr != nil {
-			return OpencodeRunResult{}, errors.Join(runErr, sessionErr)
-		}
-		return OpencodeRunResult{}, sessionErr
-	}
-
-	duration := int(completedAt.Sub(session.StartedAt).Seconds())
-	status := workspace.OpencodeSessionCompleted
-	if exitCode != 0 {
-		status = workspace.OpencodeSessionFailed
-	}
-	if _, err := pool.CompleteOpencodeSession(opts.RepoPath, session.ID, status, completedAt, &exitCode, duration); err != nil {
-		return OpencodeRunResult{}, err
-	}
-	if runErr != nil {
-		return OpencodeRunResult{}, runErr
-	}
-	return OpencodeRunResult{SessionID: session.ID, ExitCode: exitCode}, nil
-}
-
-func replaceEnvVar(env []string, key, value string) []string {
-	prefix := key + "="
-	updated := make([]string, 0, len(env)+1)
-	for _, entry := range env {
-		if strings.HasPrefix(entry, prefix) {
-			continue
-		}
-		updated = append(updated, entry)
-	}
-	updated = append(updated, prefix+value)
-	return updated
-}
-
-func runExitCode(cmd *exec.Cmd) (int, error) {
-	if err := cmd.Wait(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return exitErr.ExitCode(), nil
-		}
-		return 1, err
-	}
-	return 0, nil
-}
-
-func ensureOpencodeSession(pool *workspace.Pool, storage internalopencode.Storage, repoPath string, startedAt time.Time, prompt string) (workspace.OpencodeSession, error) {
-	metadata, err := storage.FindSessionForRunWithRetry(repoPath, startedAt, prompt, opencodeSessionLookupTimeout)
-	if err != nil {
-		return workspace.OpencodeSession{}, err
-	}
-
-	sessionStartedAt := startedAt
-	if !metadata.CreatedAt.IsZero() {
-		sessionStartedAt = metadata.CreatedAt
-	}
-
-	if existing, err := pool.FindOpencodeSession(repoPath, metadata.ID); err == nil {
-		if existing.Status == workspace.OpencodeSessionActive {
-			return existing, nil
-		}
-	} else if !errors.Is(err, workspace.ErrOpencodeSessionNotFound) {
-		return workspace.OpencodeSession{}, err
-	}
-
-	return pool.CreateOpencodeSession(repoPath, metadata.ID, prompt, sessionStartedAt)
-}
-
-func opencodeStorage() (internalopencode.Storage, error) {
-	root, err := internalopencode.DefaultRoot()
-	if err != nil {
-		return internalopencode.Storage{}, err
-	}
-	return internalopencode.Storage{Root: root}, nil
+	return OpencodeRunResult{SessionID: result.SessionID, ExitCode: result.ExitCode}, nil
 }
 
 func statusPtr(status Status) *Status {
