@@ -97,3 +97,40 @@ func TestRenderPrompt_InterpolatesCommitLog(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expected, rendered)
 	}
 }
+
+func TestRenderPrompt_InterpolatesReviewInstructions(t *testing.T) {
+	data := PromptData{ReviewInstructions: "Follow the steps."}
+
+	rendered, err := RenderPrompt("{{.ReviewInstructions}}", data)
+	if err != nil {
+		t.Fatalf("render prompt: %v", err)
+	}
+
+	if strings.TrimSpace(rendered) != "Follow the steps." {
+		t.Fatalf("expected review instructions to render, got %q", rendered)
+	}
+}
+
+func TestRenderPrompt_InterpolatesTodoBlock(t *testing.T) {
+	data := PromptData{TodoBlock: "<todo>id</todo>"}
+
+	rendered, err := RenderPrompt("{{.TodoBlock}}", data)
+	if err != nil {
+		t.Fatalf("render prompt: %v", err)
+	}
+
+	if strings.TrimSpace(rendered) != "<todo>id</todo>" {
+		t.Fatalf("expected todo block to render, got %q", rendered)
+	}
+}
+
+func TestRenderPrompt_RendersReviewQuestionsTemplate(t *testing.T) {
+	rendered, err := RenderPrompt("{{template \"review_questions\"}}", PromptData{})
+	if err != nil {
+		t.Fatalf("render prompt: %v", err)
+	}
+
+	if !strings.Contains(rendered, "Does it do what the message says?") {
+		t.Fatalf("expected review questions to render, got %q", rendered)
+	}
+}

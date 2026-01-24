@@ -15,32 +15,8 @@ Message:
 {{end}}
 
 Review the changes:
-- Does it do what the message says?
-- Does it move us towards the goal in the todo?
-- Is it _necessary_ for moving us towards the goal in the todo?
-- Is it free of defects?
-- Is the domain modeling coherent and sound?
-- Are things in the right place?
-- Does it include proper test coverage?
-- Does it keep the relevant specs up to date?
-- Does it conform to the norms of the code areas it modifies?
-- Does it work?
+{{template "review_questions"}}
 
-Publish your review to the file ./.incrementum-feedback
+{{.ReviewInstructions}}
 
-Write one of the following allcaps words as the first line:
-- `ACCEPT` -- if the changes pass review and should be merged
-- `ABANDON` -- if the changes are so off-base as to be a lost cause
-- `REQUEST_CHANGES` -- if some modifications could get the changes into shape
-
-If requesting changes, add a blank line and the details after it.
-
-<todo>
-- ID: {{.Todo.ID}}
-- Title: {{.Todo.Title}}
-- Type: {{.Todo.Type}}
-- Priority: {{.Todo.Priority}}
-
-Description:
-{{.Todo.Description}}
-</todo>
+{{.TodoBlock}}

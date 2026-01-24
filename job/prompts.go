@@ -17,6 +17,25 @@ const promptOverrideDir = ".incrementum/templates"
 //go:embed templates/*.tmpl
 var defaultTemplates embed.FS
 
+const reviewInstructionsText = "Publish your review to the file ./.incrementum-feedback\n\n" +
+	"Write one of the following allcaps words as the first line:\n" +
+	"- `ACCEPT` -- if the changes pass review and should be merged\n" +
+	"- `ABANDON` -- if the changes are so off-base as to be a lost cause\n" +
+	"- `REQUEST_CHANGES` -- if some modifications could get the changes into shape\n\n" +
+	"If requesting changes, add a blank line and the details after it.\n"
+
+const reviewQuestionsTemplate = `{{define "review_questions"}}- Does it do what the message says?
+- Does it move us towards the goal in the todo?
+- Is it _necessary_ for moving us towards the goal in the todo?
+- Is it free of defects?
+- Is the domain modeling coherent and sound?
+- Are things in the right place?
+- Does it include proper test coverage?
+- Does it keep the relevant specs up to date?
+- Does it conform to the norms of the code areas it modifies?
+- Does it work?
+{{end}}`
+
 // PromptData supplies values for job prompt templates.
 type PromptData struct {
 	Todo                todo.Todo
@@ -25,6 +44,27 @@ type PromptData struct {
 	CommitLog           []CommitLogEntry
 	OpencodeTranscripts []OpencodeTranscript
 	WorkspacePath       string
+	ReviewInstructions  string
+	TodoBlock           string
+}
+
+func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitLogEntry, transcripts []OpencodeTranscript, workspacePath string) PromptData {
+	return PromptData{
+		Todo:                item,
+		Feedback:            feedback,
+		Message:             message,
+		CommitLog:           commitLog,
+		OpencodeTranscripts: transcripts,
+		WorkspacePath:       workspacePath,
+		ReviewInstructions:  reviewInstructionsText,
+		TodoBlock:           formatTodoBlock(item),
+	}
+}
+
+func formatTodoBlock(item todo.Todo) string {
+	var out strings.Builder
+	fmt.Fprintf(&out, "<todo>\n- ID: %s\n- Title: %s\n- Type: %s\n- Priority: %d\n\nDescription:\n%s\n</todo>", item.ID, item.Title, item.Type, item.Priority, item.Description)
+	return out.String()
 }
 
 // LoadPrompt loads a prompt template for the repo.
@@ -52,7 +92,12 @@ func LoadPrompt(repoPath, name string) (string, error) {
 
 // RenderPrompt renders the prompt with provided data.
 func RenderPrompt(contents string, data PromptData) (string, error) {
-	tmpl, err := template.New("prompt").Option("missingkey=error").Parse(contents)
+	tmpl, err := template.New("prompt").Option("missingkey=error").Parse(reviewQuestionsTemplate)
+	if err != nil {
+		return "", fmt.Errorf("parse shared prompt: %w", err)
+	}
+
+	tmpl, err = tmpl.Parse(contents)
 	if err != nil {
 		return "", fmt.Errorf("parse prompt: %w", err)
 	}

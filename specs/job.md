@@ -195,9 +195,9 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 
 | File                   | Stage        | Variables                             |
 | ---------------------- | ------------ | ------------------------------------- |
-| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`   |
-| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`    |
-| `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`               |
+| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`   |
+| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`    |
+| `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`               |
 | `commit-message.tmpl`         | committing   | `Todo`, `Message`, `CommitLog`, `OpencodeTranscripts`, `WorkspacePath` |
 
 Templates use Go `text/template` syntax.
@@ -207,6 +207,12 @@ Templates use Go `text/template` syntax.
 `CommitLog` is the list of commits recorded so far with fields `ID` and
 `Message`.
 `WorkspacePath` is the absolute path to the job's workspace root.
+`ReviewInstructions` is the standard review output instructions block.
+`TodoBlock` is a formatted `<todo>` block that includes ID, title, type,
+priority, and description.
+
+The prompt renderer provides a `review_questions` template definition with the
+default review question list.
 
 ## Commands
 
