@@ -215,19 +215,11 @@ func opencodePromptLine(prompt string) string {
 }
 
 func formatOpencodeAge(session opencode.OpencodeSession, now time.Time) string {
-	age, ok := opencode.AgeData(session, now)
-	if !ok {
-		return "-"
-	}
-	return ui.FormatDurationShort(age)
+	return formatOptionalDuration(opencode.AgeData(session, now))
 }
 
 func formatOpencodeDuration(session opencode.OpencodeSession, now time.Time) string {
-	duration, ok := opencode.DurationData(session, now)
-	if !ok {
-		return "-"
-	}
-	return ui.FormatDurationShort(duration)
+	return formatOptionalDuration(opencode.DurationData(session, now))
 }
 
 func maxInt(left, right int) int {

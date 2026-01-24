@@ -264,19 +264,11 @@ func formatJobTable(opts TableFormatOptions) string {
 }
 
 func formatJobAge(item jobpkg.Job, now time.Time) string {
-	ageValue, ok := jobpkg.AgeData(item, now)
-	if !ok {
-		return "-"
-	}
-	return ui.FormatDurationShort(ageValue)
+	return formatOptionalDuration(jobpkg.AgeData(item, now))
 }
 
 func formatJobDuration(item jobpkg.Job, now time.Time) string {
-	duration, ok := jobpkg.DurationData(item, now)
-	if !ok {
-		return "-"
-	}
-	return ui.FormatDurationShort(duration)
+	return formatOptionalDuration(jobpkg.DurationData(item, now))
 }
 
 func printJobDetail(item jobpkg.Job, todoTitle string, highlightJob func(string) string, highlightTodo func(string) string) {
