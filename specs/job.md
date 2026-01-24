@@ -94,7 +94,7 @@ any stage -> failed (unrecoverable error)
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` from the workspace root if it exists.
 3. Record the current working copy commit id.
-4. Run opencode with `prompt-implementation.tmpl` prompt from the repo root (PWD set to the repo root).
+4. Run opencode with `prompt-implementation.tmpl` prompt from the workspace root (PWD set to the workspace root).
 5. Template receives: `Todo`, `Feedback` (empty string on initial run), and
    `Message` (previous commit message when responding to feedback).
 6. Record opencode session in `opencode_sessions` with purpose `implement`.
@@ -229,7 +229,7 @@ Behavior:
 1. Resolve or create todo.
 2. Release the todo store workspace once the todo is loaded.
 3. Mark the todo `in_progress`.
-4. Run the job from the repo root (no session/workspace or new change is created).
+4. Run the job from the workspace root (no session/workspace or new change is created).
 5. Output job context: workdir and full todo details.
 6. Create job record with status `active`, stage `implementing`.
 7. Run state machine to completion.
