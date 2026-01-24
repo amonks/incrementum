@@ -1,7 +1,8 @@
 Workspace root: {{.WorkspacePath}}
 
 {{if .Feedback}}Previous feedback:
-You are responding to feedback on a change that is intended to move us towards completion of a todo.
+You are responding to feedback on a change that is intended to move us towards
+completion of a todo.
 
 <feedback>
 {{.Feedback}}
@@ -9,8 +10,10 @@ You are responding to feedback on a change that is intended to move us towards c
 {{else}}
 You are implementing the next step of a todo.
 
-Do the highest-priority remaining step toward resolution of the todo.
-If the todo is already complete, do not make any changes.
+Do the highest-priority remaining step toward resolution of the todo. Dot 'i's,
+cross 't's, resolve the todo completely and correctly, but don't do additional
+work that does not move us towards todo resolution. If the todo is already
+complete, make no changes.
 {{end}}
 
 When you make changes, write a multi-line commit message to ./.incrementum-commit-message
