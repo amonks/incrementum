@@ -193,6 +193,52 @@ func TestFormatOpencodeTableTruncatesPromptHeaderToViewport(t *testing.T) {
 	}
 }
 
+func TestOpencodePromptColumnWidthAccountsForPadding(t *testing.T) {
+	restore := ui.OverrideTableViewportWidth(func() int {
+		return 40
+	})
+	t.Cleanup(restore)
+
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-time.Minute)
+
+	sessions := []workspace.OpencodeSession{
+		{
+			ID:        "sess-1",
+			Status:    workspace.OpencodeSessionActive,
+			Prompt:    "Prompt",
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+	}
+
+	padding := ui.TableColumnPaddingWidth()
+	expectedFixed := 5 * padding
+	maxSession := ui.TableCellWidth("SESSION")
+	maxStatus := ui.TableCellWidth("STATUS")
+	maxAge := ui.TableCellWidth("AGE")
+	maxDuration := ui.TableCellWidth("DURATION")
+	maxExit := ui.TableCellWidth("EXIT")
+	for _, session := range sessions {
+		maxSession = maxInt(maxSession, ui.TableCellWidth(session.ID))
+		maxStatus = maxInt(maxStatus, ui.TableCellWidth(string(session.Status)))
+		maxAge = maxInt(maxAge, ui.TableCellWidth(formatOpencodeAge(session, now)))
+		maxDuration = maxInt(maxDuration, ui.TableCellWidth(formatOpencodeDuration(session, now)))
+		maxExit = maxInt(maxExit, ui.TableCellWidth("-"))
+	}
+	expectedFixed += maxSession + maxStatus + maxAge + maxDuration + maxExit
+	expectedPrompt := 40 - expectedFixed
+	if expectedPrompt < 0 {
+		expectedPrompt = 0
+	}
+
+	width := opencodePromptColumnWidth(sessions, func(id string, prefix int) string { return id }, now, nil)
+	if width != expectedPrompt {
+		t.Fatalf("expected prompt width %d, got %d", expectedPrompt, width)
+	}
+}
+
 func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 

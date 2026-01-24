@@ -176,7 +176,12 @@ func opencodeFixedColumnsWidth(sessions []workspace.OpencodeSession, highlight f
 		prefixLengths = opencodeSessionPrefixLengths(sessions)
 	}
 
-	rows := make([][]string, 0, len(sessions))
+	maxSession := ui.TableCellWidth("SESSION")
+	maxStatus := ui.TableCellWidth("STATUS")
+	maxAge := ui.TableCellWidth("AGE")
+	maxDuration := ui.TableCellWidth("DURATION")
+	maxExit := ui.TableCellWidth("EXIT")
+
 	for _, session := range sessions {
 		age := formatOpencodeAge(session, now)
 		duration := formatOpencodeDuration(session, now)
@@ -186,28 +191,18 @@ func opencodeFixedColumnsWidth(sessions []workspace.OpencodeSession, highlight f
 		}
 		prefixLen := prefixLengths[strings.ToLower(session.ID)]
 
-		rows = append(rows, []string{
-			highlight(session.ID, prefixLen),
-			string(session.Status),
-			age,
-			duration,
-			"",
-			exit,
-		})
+		maxSession = maxInt(maxSession, ui.TableCellWidth(highlight(session.ID, prefixLen)))
+		maxStatus = maxInt(maxStatus, ui.TableCellWidth(string(session.Status)))
+		maxAge = maxInt(maxAge, ui.TableCellWidth(age))
+		maxDuration = maxInt(maxDuration, ui.TableCellWidth(duration))
+		maxExit = maxInt(maxExit, ui.TableCellWidth(exit))
 	}
 
-	restore := ui.OverrideTableViewportWidth(func() int { return 0 })
-	output := ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", "", "EXIT"}, rows)
-	restore()
-
-	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
-	maxWidth := 0
-	for _, line := range lines {
-		if width := ui.TableCellWidth(line); width > maxWidth {
-			maxWidth = width
-		}
+	padding := ui.TableColumnPaddingWidth()
+	if padding < 0 {
+		padding = 0
 	}
-	return maxWidth
+	return maxSession + maxStatus + maxAge + maxDuration + maxExit + padding*5
 }
 
 func opencodeSessionPrefixLengths(sessions []workspace.OpencodeSession) map[string]int {
@@ -244,6 +239,13 @@ func formatOpencodeDuration(session workspace.OpencodeSession, now time.Time) st
 		return "-"
 	}
 	return ui.FormatDurationShort(duration)
+}
+
+func maxInt(left, right int) int {
+	if left > right {
+		return left
+	}
+	return right
 }
 
 func opencodeLogSnapshot(storage internalopencode.Storage, sessionID string) (string, error) {

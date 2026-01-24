@@ -12,6 +12,7 @@ import (
 
 const tableCellMaxWidth = 50
 const tableCellEllipsis = "..."
+const tableColumnPadding = 2
 
 var tableViewportWidth = detectTableViewportWidth
 var tableIsTerminal = term.IsTerminal
@@ -39,6 +40,11 @@ func TableCellWidth(value string) int {
 // TableCellMaxWidth reports the default maximum width for table cells.
 func TableCellMaxWidth() int {
 	return tableCellMaxWidth
+}
+
+// TableColumnPaddingWidth reports the padding between columns.
+func TableColumnPaddingWidth() int {
+	return tableColumnPadding
 }
 
 // TableBuilder collects rows and renders a formatted table.
@@ -95,7 +101,7 @@ func FormatTable(headers []string, rows [][]string) string {
 		Wrap(false).
 		StyleFunc(func(_, col int) lipgloss.Style {
 			if columnCount > 1 && col < columnCount-1 {
-				return lipgloss.NewStyle().PaddingRight(2)
+				return lipgloss.NewStyle().PaddingRight(tableColumnPadding)
 			}
 			return lipgloss.NewStyle()
 		})
