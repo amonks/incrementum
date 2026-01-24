@@ -190,10 +190,7 @@ func (s Storage) listSessions(projectID string) ([]SessionMetadata, error) {
 		if err := decodeJSONFile(path, "opencode session", &record); err != nil {
 			return nil, err
 		}
-		id := record.ID
-		if id == "" {
-			id = strings.TrimSuffix(entry.Name(), ".json")
-		}
+		id := storageRecordID(record.ID, entry.Name())
 		item := SessionMetadata{
 			ID:        id,
 			ProjectID: record.ProjectID,
@@ -330,10 +327,7 @@ func (s Storage) listMessages(sessionID string) ([]messageInfo, error) {
 		if err := decodeJSONFile(path, "opencode message", &record); err != nil {
 			return nil, err
 		}
-		id := record.ID
-		if id == "" {
-			id = strings.TrimSuffix(entry.Name(), ".json")
-		}
+		id := storageRecordID(record.ID, entry.Name())
 		item := messageInfo{ID: id, Role: record.Role}
 		if record.Time.Created != 0 {
 			item.CreatedAt = time.UnixMilli(record.Time.Created)
@@ -394,10 +388,7 @@ func (s Storage) listParts(messageID string) ([]partInfo, error) {
 		if err := decodeJSONFile(path, "opencode part", &record); err != nil {
 			return nil, err
 		}
-		id := record.ID
-		if id == "" {
-			id = strings.TrimSuffix(entry.Name(), ".json")
-		}
+		id := storageRecordID(record.ID, entry.Name())
 		info := partInfo{
 			ID:    id,
 			Type:  record.Type,
@@ -526,6 +517,13 @@ func decodeJSONFile(path, label string, dest any) error {
 		return fmt.Errorf("decode %s: %w", label, err)
 	}
 	return nil
+}
+
+func storageRecordID(recordID, filename string) string {
+	if recordID != "" {
+		return recordID
+	}
+	return strings.TrimSuffix(filename, ".json")
 }
 
 func (s Storage) storageDir() string {
