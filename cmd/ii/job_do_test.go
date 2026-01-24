@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	jobpkg "github.com/amonks/incrementum/job"
 )
 
 func TestReflowJobTextPreservesParagraphs(t *testing.T) {
@@ -20,5 +22,29 @@ func TestReflowJobTextPreservesParagraphs(t *testing.T) {
 	}
 	if !strings.Contains(output, "First paragraph line one. Second line stays with paragraph.") {
 		t.Fatalf("expected paragraph to reflow, got %q", output)
+	}
+}
+
+func TestFormatCommitMessagesOutputPreservesIndentation(t *testing.T) {
+	entries := []jobpkg.CommitLogEntry{{
+		ID:      "commit-123",
+		Message: "Summary line\n\nHere is a generated commit message:\n\n    Body line\n\nThis commit is a step towards implementing this todo:\n\n    ID: todo-1",
+	}}
+
+	output := formatCommitMessagesOutput(entries)
+	if !strings.Contains(output, "Commit messages:") {
+		t.Fatalf("expected header, got %q", output)
+	}
+	if !strings.Contains(output, "Commit commit-123:") {
+		t.Fatalf("expected commit id label, got %q", output)
+	}
+	if !strings.Contains(output, "\nSummary line\n") {
+		t.Fatalf("expected summary line without indent, got %q", output)
+	}
+	if strings.Contains(output, "\n        Summary line") {
+		t.Fatalf("expected summary line to avoid extra indentation, got %q", output)
+	}
+	if !strings.Contains(output, "\n    ID: todo-1") {
+		t.Fatalf("expected commit message indentation preserved, got %q", output)
 	}
 }

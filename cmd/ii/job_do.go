@@ -88,15 +88,40 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(result.CommitLog) > 0 {
-		fmt.Printf("\nCommit messages:\n")
-		for _, entry := range result.CommitLog {
-			fmt.Printf("%s%s:\n", strings.Repeat(" ", jobDocumentIndent), entry.ID)
-			fmt.Printf("%s\n\n", indentBlock(entry.Message, jobSubdocumentIndent))
-		}
-	} else if result.CommitMessage != "" {
-		fmt.Printf("\nCommit message:\n%s\n", indentBlock(result.CommitMessage, jobDocumentIndent))
+		fmt.Printf("\n%s\n", formatCommitMessagesOutput(result.CommitLog))
+	} else if strings.TrimSpace(result.CommitMessage) != "" {
+		fmt.Printf("\n%s\n", formatCommitMessageOutput(result.CommitMessage))
 	}
 	return nil
+}
+
+func formatCommitMessagesOutput(entries []jobpkg.CommitLogEntry) string {
+	var out strings.Builder
+	out.WriteString("Commit messages:\n")
+	for _, entry := range entries {
+		out.WriteString("\n")
+		label := "Commit"
+		if strings.TrimSpace(entry.ID) != "" {
+			label = fmt.Sprintf("Commit %s", entry.ID)
+		}
+		out.WriteString(label)
+		out.WriteString(":\n\n")
+		message := strings.TrimRight(entry.Message, "\r\n")
+		if strings.TrimSpace(message) == "" {
+			message = "-"
+		}
+		out.WriteString(message)
+		out.WriteString("\n")
+	}
+	return strings.TrimRight(out.String(), "\n")
+}
+
+func formatCommitMessageOutput(message string) string {
+	message = strings.TrimRight(message, "\r\n")
+	if strings.TrimSpace(message) == "" {
+		message = "-"
+	}
+	return fmt.Sprintf("Commit message:\n\n%s", message)
 }
 
 func printJobStart(info jobpkg.StartInfo) {
