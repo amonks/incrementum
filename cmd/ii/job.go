@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -173,7 +172,7 @@ func runJobLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	snapshot, err := jobLogSnapshot(store, repoPath, item)
+	snapshot, err := jobpkg.LogSnapshot(store, repoPath, item)
 	if err != nil {
 		return err
 	}
@@ -348,63 +347,4 @@ func jobShowTodoInfo(repoPath string, todoID string, purpose string) (string, ma
 	}
 
 	return todos[0].Title, prefixLengths, nil
-}
-
-type jobLogEntry struct {
-	Purpose string
-	Session opencode.OpencodeSession
-	Log     string
-}
-
-func jobLogSnapshot(store *opencode.Store, repoPath string, item jobpkg.Job) (string, error) {
-	if len(item.OpencodeSessions) == 0 {
-		return "", nil
-	}
-
-	entries := make([]jobLogEntry, 0, len(item.OpencodeSessions))
-	for _, session := range item.OpencodeSessions {
-		entry, err := jobLogEntryForSession(store, repoPath, session)
-		if err != nil {
-			return "", err
-		}
-		entries = append(entries, entry)
-	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].Session.StartedAt.Equal(entries[j].Session.StartedAt) {
-			return entries[i].Session.ID < entries[j].Session.ID
-		}
-		return entries[i].Session.StartedAt.Before(entries[j].Session.StartedAt)
-	})
-
-	var builder strings.Builder
-	for i, entry := range entries {
-		if i > 0 {
-			builder.WriteString("\n")
-		}
-		fmt.Fprintf(&builder, "==> %s (%s)\n", entry.Purpose, entry.Session.ID)
-		builder.WriteString(entry.Log)
-		if !strings.HasSuffix(entry.Log, "\n") {
-			builder.WriteString("\n")
-		}
-	}
-
-	return builder.String(), nil
-}
-
-func jobLogEntryForSession(store *opencode.Store, repoPath string, session jobpkg.OpencodeSession) (jobLogEntry, error) {
-	opencodeSession, err := store.FindSession(repoPath, session.ID)
-	if err != nil {
-		return jobLogEntry{}, err
-	}
-	logSnapshot, err := store.LogSnapshot(opencodeSession.ID)
-	if err != nil {
-		return jobLogEntry{}, err
-	}
-
-	return jobLogEntry{
-		Purpose: session.Purpose,
-		Session: opencodeSession,
-		Log:     logSnapshot,
-	}, nil
 }
