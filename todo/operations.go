@@ -417,6 +417,9 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 		}
 	}
 
+	titleQuery := strings.ToLower(filter.TitleSubstring)
+	descriptionQuery := strings.ToLower(filter.DescriptionSubstring)
+
 	todos, err := s.readTodos()
 	if err != nil {
 		return nil, fmt.Errorf("read todos: %w", err)
@@ -460,10 +463,10 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 		if idSet != nil && !idSet[todo.ID] {
 			continue
 		}
-		if filter.TitleSubstring != "" && !strings.Contains(strings.ToLower(todo.Title), strings.ToLower(filter.TitleSubstring)) {
+		if titleQuery != "" && !strings.Contains(strings.ToLower(todo.Title), titleQuery) {
 			continue
 		}
-		if filter.DescriptionSubstring != "" && !strings.Contains(strings.ToLower(todo.Description), strings.ToLower(filter.DescriptionSubstring)) {
+		if descriptionQuery != "" && !strings.Contains(strings.ToLower(todo.Description), descriptionQuery) {
 			continue
 		}
 
