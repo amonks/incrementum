@@ -582,7 +582,6 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	if err != nil {
 		return Job{}, err
 	}
-	logger.Prompt(PromptLog{Purpose: purpose, Template: promptName, Prompt: prompt})
 	if err := appendJobEvent(opts.EventLog, jobEventPrompt, promptEventData{Purpose: purpose, Template: promptName, Prompt: prompt}); err != nil {
 		return Job{}, err
 	}
@@ -615,6 +614,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 			return Job{}, err
 		}
 	}
+	logger.Prompt(PromptLog{Purpose: purpose, Template: promptName, Prompt: prompt, Transcript: transcript})
 
 	if opencodeResult.ExitCode != 0 {
 		return Job{}, fmt.Errorf("opencode review failed with exit code %d", opencodeResult.ExitCode)

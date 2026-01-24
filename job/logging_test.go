@@ -434,6 +434,9 @@ func TestRunReviewingStageLogsFeedback(t *testing.T) {
 			}
 			return OpencodeRunResult{SessionID: "oc-review", ExitCode: 0}, nil
 		},
+		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
+			return []OpencodeTranscript{{Purpose: "review", ID: "oc-review", Transcript: "Review transcript line."}}, nil
+		},
 		Logger: logger,
 	}
 
@@ -444,6 +447,12 @@ func TestRunReviewingStageLogsFeedback(t *testing.T) {
 
 	if len(logger.reviews) != 1 {
 		t.Fatalf("expected 1 review log, got %d", len(logger.reviews))
+	}
+	if len(logger.prompts) != 1 {
+		t.Fatalf("expected 1 prompt log, got %d", len(logger.prompts))
+	}
+	if logger.prompts[0].Transcript != "Review transcript line." {
+		t.Fatalf("expected review transcript, got %q", logger.prompts[0].Transcript)
 	}
 	if logger.reviews[0].Purpose != "review" {
 		t.Fatalf("expected review purpose, got %q", logger.reviews[0].Purpose)
