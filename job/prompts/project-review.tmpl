@@ -1,9 +1,23 @@
-Review the implementation for the following todo and write the outcome to {{.WorkspacePath}}/.incrementum-feedback.
+The working tree contains an implementation that is purported to resolve our todo.
 
-Workspace root: {{.WorkspacePath}}
-Use this path as the repo root for all commands and file edits.
+Review the implementation of our todo:
+- Does it complete the goal in the todo?
+- Is it free of defects?
+- Does it include proper test coverage?
+- Does it keep the relevant specs up to date?
+- Does it conform to the norms of the code areas it modifies?
+- Does it work?
 
-Todo:
+Publish your review to the file ./.incrementum-feedback
+
+Write one of the following allcaps words as the first line:
+- `ACCEPT` -- if the changes pass review and should be merged
+- `ABANDON` -- if the changes are so off-base as to be a lost cause
+- `REQUEST_CHANGES` -- if some modifications could get the changes into shape
+
+If requesting changes, add a blank line and the details after it.
+
+<todo>
 - ID: {{.Todo.ID}}
 - Title: {{.Todo.Title}}
 - Type: {{.Todo.Type}}
@@ -11,13 +25,4 @@ Todo:
 
 Description:
 {{.Todo.Description}}
-
-Review the overall implementation from the latest commits and confirm the todo is fully resolved.
-If you need to re-run tests or perform manual verification, do so before responding.
-
-Write one of the following as the first line:
-- ACCEPT
-- ABANDON
-- REQUEST_CHANGES
-
-If requesting changes, add a blank line and the details after it.
+</todo>

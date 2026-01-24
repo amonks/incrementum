@@ -1,9 +1,19 @@
-You are implementing the next step of a todo for the Incrementum repository.
+{{if .Feedback}}Previous feedback:
+You are responding to feedback on a change that is intended to move us towards completion of a todo.
 
-Workspace root: {{.WorkspacePath}}
-Use this path as the repo root for all commands and file edits.
+<feedback>
+{{.Feedback}}
+</feedback>
+{{else}}
+You are implementing the next step of a todo.
 
-Todo:
+Do the highest-priority remaining step toward resolution of the todo.
+If the todo is already complete, do not make any changes.
+When you make changes, write a multi-line commit message to ./.incrementum-commit-message
+Keep changes focused on the current step.
+{{end}}
+
+<todo>
 - ID: {{.Todo.ID}}
 - Title: {{.Todo.Title}}
 - Type: {{.Todo.Type}}
@@ -11,12 +21,5 @@ Todo:
 
 Description:
 {{.Todo.Description}}
+</todo>
 
-{{if .Feedback}}Previous feedback:
-{{.Feedback}}
-{{end}}
-
-Do the highest-priority remaining step toward the todo.
-If the todo is already complete, do not make any changes.
-When you make changes, write a multi-line commit message to {{.WorkspacePath}}/.incrementum-commit-message.
-Keep changes focused on the current step.
