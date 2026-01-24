@@ -5,8 +5,8 @@
 The job package and subcommand automate todo completion via opencode. A job
 runs from the current working directory, invokes opencode to implement the
 todo, runs acceptance tests, runs opencode to review changes, generates a commit
-message, and describes the commit. Jobs retry on test failure or review
-rejection until opencode decides to abandon.
+message, and commits the change. Jobs retry on test failure or review rejection
+until opencode decides to abandon.
 
 ## Architecture
 
@@ -140,13 +140,13 @@ any stage -> failed (unrecoverable error)
 10. Delete `.incrementum-commit-message` after reading.
 11. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
 12. Best-effort `jj workspace update-stale` in the repo working directory.
-13. Run `jj describe -m "<formatted message>"` in the repo working directory.
-14. If describe fails: mark job `failed`.
+13. Run `jj commit -m "<formatted message>"` in the repo working directory.
+14. If commit fails: mark job `failed`.
 15. Mark job `completed`.
 
 ## Failure Handling
 
-- `failed`: unrecoverable error (describe fails, invalid feedback format).
+- `failed`: unrecoverable error (commit fails, invalid feedback format).
 - `abandoned`: opencode decided the task is impossible.
 
 Both reopen the todo.

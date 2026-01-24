@@ -464,7 +464,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 
 	client := jj.New()
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
-	if err := client.Describe(opts.WorkspacePath, finalMessage); err != nil {
+	if err := client.Commit(opts.WorkspacePath, finalMessage); err != nil {
 		return Job{}, err
 	}
 

@@ -191,6 +191,17 @@ func (c *Client) Describe(workspacePath, message string) error {
 	return nil
 }
 
+// Commit commits the current change and leaves a new empty change.
+func (c *Client) Commit(workspacePath, message string) error {
+	cmd := exec.Command("jj", "commit", "-m", message)
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jj commit: %w: %s", err, output)
+	}
+	return nil
+}
+
 // WorkspaceUpdateStale updates a stale working copy.
 func (c *Client) WorkspaceUpdateStale(workspacePath string) error {
 	cmd := exec.Command("jj", "workspace", "update-stale")

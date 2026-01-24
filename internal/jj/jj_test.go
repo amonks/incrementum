@@ -272,3 +272,17 @@ func TestDescribe(t *testing.T) {
 		t.Fatalf("failed to describe: %v", err)
 	}
 }
+
+func TestCommit(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	// Commit the current change
+	if err := client.Commit(tmpDir, "test commit"); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+}
