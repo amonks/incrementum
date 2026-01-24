@@ -401,17 +401,17 @@ func (s *Store) writeDependencies(deps []Dependency) error {
 
 // getTodoByID finds a todo by its ID.
 func (s *Store) getTodoByID(id string) (*Todo, error) {
-	resolved, err := s.resolveTodoIDs([]string{id})
+	todos, err := s.readTodos()
+	if err != nil {
+		return nil, err
+	}
+
+	resolved, err := resolveTodoIDsWithTodos([]string{id}, todos)
 	if err != nil {
 		return nil, err
 	}
 	if len(resolved) == 0 {
 		return nil, ErrTodoNotFound
-	}
-
-	todos, err := s.readTodos()
-	if err != nil {
-		return nil, err
 	}
 
 	for i := range todos {
