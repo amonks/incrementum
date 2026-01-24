@@ -148,13 +148,9 @@ func (s Storage) projectIDForRepo(repoPath string) (string, error) {
 			continue
 		}
 		path := filepath.Join(projectsDir, entry.Name())
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return "", fmt.Errorf("read opencode project: %w", err)
-		}
 		var record projectRecord
-		if err := json.Unmarshal(data, &record); err != nil {
-			return "", fmt.Errorf("decode opencode project: %w", err)
+		if err := decodeJSONFile(path, "opencode project", &record); err != nil {
+			return "", err
 		}
 		if cleanPath(record.Worktree) != repoPath {
 			continue
@@ -190,13 +186,9 @@ func (s Storage) listSessions(projectID string) ([]SessionMetadata, error) {
 			continue
 		}
 		path := filepath.Join(sessionsDir, entry.Name())
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("read opencode session: %w", err)
-		}
 		var record sessionRecord
-		if err := json.Unmarshal(data, &record); err != nil {
-			return nil, fmt.Errorf("decode opencode session: %w", err)
+		if err := decodeJSONFile(path, "opencode session", &record); err != nil {
+			return nil, err
 		}
 		id := record.ID
 		if id == "" {
@@ -334,13 +326,9 @@ func (s Storage) listMessages(sessionID string) ([]messageInfo, error) {
 			continue
 		}
 		path := filepath.Join(messageDir, entry.Name())
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("read opencode message: %w", err)
-		}
 		var record messageRecord
-		if err := json.Unmarshal(data, &record); err != nil {
-			return nil, fmt.Errorf("decode opencode message: %w", err)
+		if err := decodeJSONFile(path, "opencode message", &record); err != nil {
+			return nil, err
 		}
 		id := record.ID
 		if id == "" {
@@ -402,13 +390,9 @@ func (s Storage) listParts(messageID string) ([]partInfo, error) {
 			continue
 		}
 		path := filepath.Join(partDir, entry.Name())
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("read opencode part: %w", err)
-		}
 		var record partRecord
-		if err := json.Unmarshal(data, &record); err != nil {
-			return nil, fmt.Errorf("decode opencode part: %w", err)
+		if err := decodeJSONFile(path, "opencode part", &record); err != nil {
+			return nil, err
 		}
 		id := record.ID
 		if id == "" {
@@ -531,6 +515,17 @@ func stringifyOutput(value any) (string, bool) {
 		}
 		return string(data), true
 	}
+}
+
+func decodeJSONFile(path, label string, dest any) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", label, err)
+	}
+	if err := json.Unmarshal(data, dest); err != nil {
+		return fmt.Errorf("decode %s: %w", label, err)
+	}
+	return nil
 }
 
 func (s Storage) storageDir() string {
