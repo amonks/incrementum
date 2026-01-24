@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/amonks/incrementum/internal/ui"
 )
 
 // LogSnapshot returns the stored job event log.
@@ -131,15 +129,14 @@ func (writer *logSnapshotWriter) writeBlock(lines ...string) {
 
 func (writer *logSnapshotWriter) writeTests(results []testResultEventData) {
 	if len(results) == 0 {
-		writer.writeBlock(formatLogBody("-", documentIndent, false))
+		writer.writeBlock(formatTestLogBody(nil))
 		return
 	}
 	rows := make([][]string, 0, len(results))
 	for _, result := range results {
 		rows = append(rows, []string{result.Command, fmt.Sprintf("%d", result.ExitCode)})
 	}
-	body := ui.FormatTable([]string{"Command", "Exit Code"}, rows)
-	writer.writeBlock(formatLogBody(body, documentIndent, false))
+	writer.writeBlock(formatTestLogBody(rows))
 }
 
 func (writer *logSnapshotWriter) String() string {

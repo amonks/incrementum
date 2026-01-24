@@ -127,15 +127,14 @@ func (logger *ConsoleLogger) Tests(entry TestLog) {
 		return
 	}
 	if len(entry.Results) == 0 {
-		logger.writeBlock(formatLogBody("-", documentIndent, false))
+		logger.writeBlock(formatTestLogBody(nil))
 		return
 	}
 	rows := make([][]string, 0, len(entry.Results))
 	for _, result := range entry.Results {
 		rows = append(rows, []string{result.Command, strconv.Itoa(result.ExitCode)})
 	}
-	body := ui.FormatTable([]string{"Command", "Exit Code"}, rows)
-	logger.writeBlock(formatLogBody(body, documentIndent, false))
+	logger.writeBlock(formatTestLogBody(rows))
 }
 
 func (logger *ConsoleLogger) writeBlock(lines ...string) {
@@ -172,6 +171,14 @@ func formatLogBody(body string, indent int, wrap bool) string {
 		return ReflowIndentedText(body, lineWidth, indent)
 	}
 	return IndentBlock(body, indent)
+}
+
+func formatTestLogBody(rows [][]string) string {
+	if len(rows) == 0 {
+		return formatLogBody("-", documentIndent, false)
+	}
+	body := ui.FormatTable([]string{"Command", "Exit Code"}, rows)
+	return formatLogBody(body, documentIndent, false)
 }
 
 func promptLabel(purpose string) string {
