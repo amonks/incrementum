@@ -85,6 +85,41 @@ func TestFormatOpencodeTableTruncatesPromptToViewport(t *testing.T) {
 	}
 }
 
+func TestFormatOpencodeTableTruncatesPromptWithANSIToViewport(t *testing.T) {
+	restore := ui.OverrideTableViewportWidth(func() int {
+		return 60
+	})
+	t.Cleanup(restore)
+
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-time.Minute)
+
+	sessions := []workspace.OpencodeSession{
+		{
+			ID:        "sess-ansi",
+			Status:    workspace.OpencodeSessionActive,
+			Prompt:    strings.Repeat("p", 120),
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+	}
+
+	output := strings.TrimSuffix(formatOpencodeTable(sessions, func(id string, prefix int) string {
+		return "\x1b[1m\x1b[36m" + id + "\x1b[0m"
+	}, now, nil), "\n")
+	lines := strings.Split(output, "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected header and row only, got %d lines in %q", len(lines), output)
+	}
+
+	for _, line := range lines {
+		if width := ui.TableCellWidth(line); width != 60 {
+			t.Fatalf("expected line width 60, got %d in %q", width, line)
+		}
+	}
+}
+
 func TestFormatOpencodeTableTruncatesWidePromptToViewport(t *testing.T) {
 	restore := ui.OverrideTableViewportWidth(func() int {
 		return 60

@@ -156,50 +156,8 @@ func opencodePromptColumnWidth(sessions []workspace.OpencodeSession, highlight f
 		return ui.TableCellMaxWidth()
 	}
 
-	headers := []string{"SESSION", "STATUS", "AGE", "DURATION", "PROMPT", "EXIT"}
-	columnWidths := make([]int, len(headers))
-	for i, header := range headers {
-		columnWidths[i] = ui.TableCellWidth(header)
-	}
-
-	const promptIndex = 4
-	for _, session := range sessions {
-		age := formatOpencodeAge(session, now)
-		duration := formatOpencodeDuration(session, now)
-		exit := "-"
-		if session.ExitCode != nil {
-			exit = strconv.Itoa(*session.ExitCode)
-		}
-		prefixLen := prefixLengths[strings.ToLower(session.ID)]
-		values := []string{
-			highlight(session.ID, prefixLen),
-			string(session.Status),
-			age,
-			duration,
-			"",
-			exit,
-		}
-
-		for i, value := range values {
-			if i == promptIndex {
-				continue
-			}
-			if width := ui.TableCellWidth(value); width > columnWidths[i] {
-				columnWidths[i] = width
-			}
-		}
-	}
-
-	fixedWidth := 0
-	for i, width := range columnWidths {
-		if i == promptIndex {
-			continue
-		}
-		fixedWidth += width
-	}
-
-	padding := 2 * (len(headers) - 1)
-	remaining := viewportWidth - fixedWidth - padding
+	fixedWidth := opencodeFixedColumnsWidth(sessions, highlight, now, prefixLengths)
+	remaining := viewportWidth - fixedWidth
 	if remaining <= 0 {
 		return 0
 	}
@@ -208,6 +166,48 @@ func opencodePromptColumnWidth(sessions []workspace.OpencodeSession, highlight f
 		remaining = maxWidth
 	}
 	return remaining
+}
+
+func opencodeFixedColumnsWidth(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
+	if highlight == nil {
+		highlight = func(value string, prefix int) string { return value }
+	}
+	if prefixLengths == nil {
+		prefixLengths = opencodeSessionPrefixLengths(sessions)
+	}
+
+	rows := make([][]string, 0, len(sessions))
+	for _, session := range sessions {
+		age := formatOpencodeAge(session, now)
+		duration := formatOpencodeDuration(session, now)
+		exit := "-"
+		if session.ExitCode != nil {
+			exit = strconv.Itoa(*session.ExitCode)
+		}
+		prefixLen := prefixLengths[strings.ToLower(session.ID)]
+
+		rows = append(rows, []string{
+			highlight(session.ID, prefixLen),
+			string(session.Status),
+			age,
+			duration,
+			"",
+			exit,
+		})
+	}
+
+	restore := ui.OverrideTableViewportWidth(func() int { return 0 })
+	output := ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", "", "EXIT"}, rows)
+	restore()
+
+	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+	maxWidth := 0
+	for _, line := range lines {
+		if width := ui.TableCellWidth(line); width > maxWidth {
+			maxWidth = width
+		}
+	}
+	return maxWidth
 }
 
 func opencodeSessionPrefixLengths(sessions []workspace.OpencodeSession) map[string]int {
