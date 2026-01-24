@@ -20,6 +20,19 @@ func TestDefaultStateDirUsesHome(t *testing.T) {
 	}
 }
 
+func TestHomeDirUsesHome(t *testing.T) {
+	t.Setenv("HOME", filepath.Join("/tmp", "test-home"))
+
+	home, err := HomeDir()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if home != filepath.Join("/tmp", "test-home") {
+		t.Fatalf("expected %s, got %s", filepath.Join("/tmp", "test-home"), home)
+	}
+}
+
 func TestDefaultWorkspacesDirUsesHome(t *testing.T) {
 	t.Setenv("HOME", filepath.Join("/tmp", "test-home"))
 

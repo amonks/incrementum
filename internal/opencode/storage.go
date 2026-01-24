@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/amonks/incrementum/internal/paths"
 )
 
 // Storage represents the opencode data directory.
@@ -32,9 +34,9 @@ type LogEntry struct {
 
 // DefaultRoot returns the default opencode data directory.
 func DefaultRoot() (string, error) {
-	home, err := os.UserHomeDir()
+	home, err := paths.HomeDir()
 	if err != nil {
-		return "", fmt.Errorf("get home directory: %w", err)
+		return "", err
 	}
 	return filepath.Join(home, ".local", "share", "opencode"), nil
 }

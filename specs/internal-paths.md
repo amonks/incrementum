@@ -10,6 +10,7 @@ The paths package centralizes default filesystem locations for incrementum state
 - Job events: `~/.local/share/incrementum/jobs/events`
 
 ## API
+- `HomeDir() (string, error)`: returns the current user's home directory using `os.UserHomeDir`.
 - `DefaultStateDir() (string, error)`: returns the default state directory using `os.UserHomeDir`.
 - `DefaultWorkspacesDir() (string, error)`: returns the default workspaces directory using `os.UserHomeDir`.
 - `DefaultOpencodeEventsDir() (string, error)`: returns the default opencode events directory using `os.UserHomeDir`.
