@@ -210,12 +210,24 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		if opts.Status != nil {
 			newStatus := *opts.Status
 			if newStatus != todos[i].Status {
+				previousStatus := todos[i].Status
 				todos[i].Status = newStatus
+				if newStatus != StatusDone {
+					todos[i].StartedAt = nil
+					todos[i].CompletedAt = nil
+				}
 				switch newStatus {
 				case StatusClosed, StatusDone:
 					todos[i].ClosedAt = &now
 					todos[i].DeletedAt = nil
 					todos[i].DeleteReason = ""
+					if newStatus == StatusDone {
+						if previousStatus == StatusInProgress {
+							todos[i].CompletedAt = &now
+						} else {
+							todos[i].CompletedAt = nil
+						}
+					}
 				case StatusTombstone:
 					todos[i].ClosedAt = nil
 					if opts.DeletedAt == nil && todos[i].DeletedAt == nil {
@@ -225,6 +237,10 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 					todos[i].ClosedAt = nil
 					todos[i].DeletedAt = nil
 					todos[i].DeleteReason = ""
+					if newStatus == StatusInProgress && previousStatus != StatusInProgress {
+						todos[i].StartedAt = &now
+						todos[i].CompletedAt = nil
+					}
 				}
 			} else {
 				todos[i].Status = newStatus

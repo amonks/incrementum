@@ -601,6 +601,65 @@ func TestStore_Start(t *testing.T) {
 	if started[0].ClosedAt != nil {
 		t.Error("expected ClosedAt to be nil")
 	}
+	if started[0].StartedAt == nil {
+		t.Error("expected StartedAt to be set")
+	}
+	if started[0].CompletedAt != nil {
+		t.Error("expected CompletedAt to be nil")
+	}
+}
+
+func TestStore_Update_TracksProgressTimestamps(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, _ := store.Create("Track progress", CreateOptions{})
+
+	started, err := store.Start([]string{created.ID})
+	if err != nil {
+		t.Fatalf("failed to start todo: %v", err)
+	}
+	if started[0].StartedAt == nil {
+		t.Fatal("expected StartedAt to be set")
+	}
+	firstStartedAt := *started[0].StartedAt
+
+	closed, err := store.Close([]string{created.ID})
+	if err != nil {
+		t.Fatalf("failed to close todo: %v", err)
+	}
+	if closed[0].StartedAt != nil {
+		t.Error("expected StartedAt to be cleared when closing")
+	}
+	if closed[0].CompletedAt != nil {
+		t.Error("expected CompletedAt to be cleared when closing")
+	}
+
+	startedAgain, err := store.Start([]string{created.ID})
+	if err != nil {
+		t.Fatalf("failed to start todo again: %v", err)
+	}
+	if startedAgain[0].StartedAt == nil {
+		t.Fatal("expected StartedAt to be set again")
+	}
+	secondStartedAt := *startedAgain[0].StartedAt
+	if !secondStartedAt.After(firstStartedAt) && !secondStartedAt.Equal(firstStartedAt) {
+		t.Fatalf("expected StartedAt to be reset, got %v", secondStartedAt)
+	}
+
+	finished, err := store.Finish([]string{created.ID})
+	if err != nil {
+		t.Fatalf("failed to finish todo: %v", err)
+	}
+	if finished[0].CompletedAt == nil {
+		t.Fatal("expected CompletedAt to be set on finish")
+	}
+	if finished[0].StartedAt == nil || !finished[0].StartedAt.Equal(secondStartedAt) {
+		t.Fatalf("expected StartedAt to be preserved on finish")
+	}
 }
 
 func TestStore_Delete(t *testing.T) {

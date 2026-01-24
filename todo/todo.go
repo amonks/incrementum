@@ -31,6 +31,12 @@ type Todo struct {
 	// ClosedAt is when the todo was closed or marked done (nil if not closed/done).
 	ClosedAt *time.Time `json:"closed_at,omitempty"`
 
+	// StartedAt is when the todo entered in_progress (nil when not tracking).
+	StartedAt *time.Time `json:"started_at,omitempty"`
+
+	// CompletedAt is when the todo completed (nil when not completed).
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+
 	// DeletedAt is when the todo was soft-deleted (nil if not deleted).
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 

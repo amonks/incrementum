@@ -89,8 +89,8 @@ func TestFormatTodoTableShowsAge(t *testing.T) {
 	if !strings.Contains(output, "2h") {
 		t.Fatalf("expected age in output, got:\n%s", output)
 	}
-	if strings.Contains(output, "DURATION") {
-		t.Fatalf("expected duration column removed, got:\n%s", output)
+	if !strings.Contains(output, "DURATION") {
+		t.Fatalf("expected duration column present, got:\n%s", output)
 	}
 }
 
@@ -112,5 +112,45 @@ func TestFormatTodoTableShowsSecondsAge(t *testing.T) {
 
 	if !strings.Contains(output, "45s") {
 		t.Fatalf("expected seconds age in output, got:\n%s", output)
+	}
+}
+
+func TestFormatTodoTableShowsDuration(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	startedInProgress := now.Add(-45 * time.Minute)
+	startedDone := now.Add(-3 * time.Hour)
+	completedDone := now.Add(-2 * time.Hour)
+
+	todos := []todo.Todo{
+		{
+			ID:        "abc123",
+			Priority:  2,
+			Type:      todo.TodoType("task"),
+			Status:    todo.StatusInProgress,
+			Title:     "In progress",
+			CreatedAt: now,
+			UpdatedAt: now,
+			StartedAt: &startedInProgress,
+		},
+		{
+			ID:          "def456",
+			Priority:    1,
+			Type:        todo.TodoType("task"),
+			Status:      todo.StatusDone,
+			Title:       "Done",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+			StartedAt:   &startedDone,
+			CompletedAt: &completedDone,
+		},
+	}
+
+	output := formatTodoTable(todos, nil, func(id string, prefix int) string { return id }, now)
+
+	if !strings.Contains(output, "45m") {
+		t.Fatalf("expected in-progress duration in output, got:\n%s", output)
+	}
+	if !strings.Contains(output, "1h") {
+		t.Fatalf("expected done duration in output, got:\n%s", output)
 	}
 }

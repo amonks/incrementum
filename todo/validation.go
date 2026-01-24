@@ -63,6 +63,12 @@ var (
 
 	// ErrTombstoneHasClosedAt is returned when a tombstone todo has a closed_at timestamp.
 	ErrTombstoneHasClosedAt = errors.New("tombstone todo cannot have closed_at timestamp")
+
+	// ErrStartedAtRequiresActiveStatus is returned when started_at is set for a non-active todo.
+	ErrStartedAtRequiresActiveStatus = errors.New("started_at requires in_progress or done status")
+
+	// ErrCompletedAtRequiresDoneStatus is returned when completed_at is set for a non-done todo.
+	ErrCompletedAtRequiresDoneStatus = errors.New("completed_at requires done status")
 )
 
 // ValidateTitle checks if the title is valid.
@@ -133,6 +139,20 @@ func ValidateTodo(t *Todo) error {
 
 	if t.DeletedAt == nil && t.DeleteReason != "" {
 		return ErrDeleteReasonRequiresDeletedAt
+	}
+
+	// Check started_at consistency
+	if t.Status != StatusInProgress && t.Status != StatusDone {
+		if t.StartedAt != nil {
+			return ErrStartedAtRequiresActiveStatus
+		}
+	}
+
+	// Check completed_at consistency
+	if t.Status != StatusDone {
+		if t.CompletedAt != nil {
+			return ErrCompletedAtRequiresDoneStatus
+		}
 	}
 
 	return nil

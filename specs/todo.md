@@ -43,6 +43,8 @@ Fields (JSON keys):
 - `type`: `task`, `bug`, or `feature`.
 - `created_at`, `updated_at`: timestamps.
 - `closed_at`: timestamp if closed or done.
+- `started_at`: timestamp when entering `in_progress`.
+- `completed_at`: timestamp when finishing from `in_progress` to `done`.
 - `deleted_at`: timestamp if tombstoned.
 - `delete_reason`: optional reason when tombstoned.
 
@@ -69,6 +71,8 @@ Fields (JSON keys):
 - `closed`/`done`: `closed_at` must be set; `deleted_at` must be empty.
 - `tombstone`: `deleted_at` must be set; `closed_at` must be empty;
   `delete_reason` is allowed only when tombstoned.
+- `started_at` is only set for `in_progress` or `done` todos.
+- `completed_at` is only set for `done` todos.
 
 ### Create
 
@@ -91,7 +95,9 @@ Fields (JSON keys):
 - CLI description input via `--description -` / `--desc -` trims trailing CR/LF characters.
 - Status transitions automatically adjust timestamps:
   - `closed`/`done` sets `closed_at` and clears delete markers.
-  - `open`/`in_progress` clears `closed_at` and delete markers.
+  - `open`/`in_progress` clears `closed_at`, `completed_at`, and delete markers.
+  - `in_progress` sets `started_at` when the status changes.
+  - `done` preserves `started_at` and sets `completed_at` only when moving from `in_progress`.
   - `tombstone` clears `closed_at`; `deleted_at` must be set.
 - Status and type inputs are case-insensitive and stored as lowercase.
 - Updating `deleted_at` without `delete_reason` preserves any existing delete reason; clear it explicitly when needed.
@@ -102,7 +108,8 @@ Fields (JSON keys):
 
 - `close` sets status to `closed` and updates `closed_at`.
 - `reopen` sets status to `open` and clears `closed_at`.
-- `start` sets status to `in_progress` and clears `closed_at`.
+- `start` sets status to `in_progress`, clears `closed_at`, and sets `started_at`.
+- `finish` sets status to `done` and sets `completed_at` when transitioning from `in_progress`.
 - `delete` sets status to `tombstone`, sets `deleted_at`, clears `closed_at`,
   and optionally records a delete reason.
 - Close/finish/reopen/start do not store reasons; only delete supports
@@ -127,6 +134,9 @@ Fields (JSON keys):
 - CLI table output includes an `AGE` column formatted as `<count><unit>`, using
   `s`, `m`, `h`, or `d` based on recency.
 - `AGE` uses `now - created_at`.
+- CLI table output includes a `DURATION` column for active/finished work.
+- `DURATION` uses `now - started_at` for `in_progress` todos.
+- `DURATION` uses `completed_at - started_at` for `done` todos.
 - When the todo store is missing, CLI `todo list` does not prompt to create it
   and returns an empty list.
 
