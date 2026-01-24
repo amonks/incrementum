@@ -123,6 +123,7 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 		prompt := opencodePromptLine(session.Prompt)
 		prompt = ui.TruncateTableCell(prompt)
 		age := formatOpencodeAge(session, now)
+		duration := formatOpencodeDuration(session, now)
 		exit := "-"
 		if session.ExitCode != nil {
 			exit = strconv.Itoa(*session.ExitCode)
@@ -133,12 +134,13 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 			highlight(session.ID, prefixLen),
 			string(session.Status),
 			age,
+			duration,
 			prompt,
 			exit,
 		})
 	}
 
-	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "PROMPT", "EXIT"}, rows)
+	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", "PROMPT", "EXIT"}, rows)
 }
 
 func opencodeSessionPrefixLengths(sessions []workspace.OpencodeSession) map[string]int {
@@ -167,6 +169,14 @@ func formatOpencodeAge(session workspace.OpencodeSession, now time.Time) string 
 		return "-"
 	}
 	return ui.FormatDurationShort(age)
+}
+
+func formatOpencodeDuration(session workspace.OpencodeSession, now time.Time) string {
+	duration, ok := workspace.DurationData(session, now)
+	if !ok {
+		return "-"
+	}
+	return ui.FormatDurationShort(duration)
 }
 
 func opencodeLogSnapshot(storage internalopencode.Storage, sessionID string) (string, error) {

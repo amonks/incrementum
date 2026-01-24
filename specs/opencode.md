@@ -78,14 +78,17 @@ Fields (JSON keys):
 - Default output is a table matching other list commands.
 - Default output includes only active sessions unless `--all` is provided.
 - When the list is empty but sessions exist, print a hint to use `--all`.
-- Suggested columns: `SESSION`, `STATUS`, `AGE`, `PROMPT`, `EXIT`.
+- Suggested columns: `SESSION`, `STATUS`, `AGE`, `DURATION`, `PROMPT`, `EXIT`.
 - `SESSION` highlights the shortest unique prefix across all sessions in the
   repo when ANSI output is enabled.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
 - `PROMPT` displays `-` when the first line is empty or whitespace-only.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.
-- `AGE` prefers `duration_seconds`, otherwise uses `completed_at - started_at` for finished sessions or `now - started_at` for active sessions.
+- `AGE` uses `now - started_at`.
+- `DURATION` shows a compact duration in `s`, `m`, `h`, or `d` units.
+- `DURATION` is `-` when the session is missing timing data.
+- `DURATION` uses `now - started_at` for active sessions, otherwise `updated_at - started_at`.
 
 ### `ii opencode kill <session-id>`
 

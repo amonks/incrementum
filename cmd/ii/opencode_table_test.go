@@ -99,8 +99,8 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 4 {
-		t.Fatalf("expected at least 4 columns, got: %q", lines[1])
+	if len(fields) < 5 {
+		t.Fatalf("expected at least 5 columns, got: %q", lines[1])
 	}
 
 	if fields[2] != "2m" {
@@ -126,16 +126,16 @@ func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 3 {
-		t.Fatalf("expected at least 3 columns, got: %q", lines[1])
+	if len(fields) < 4 {
+		t.Fatalf("expected at least 4 columns, got: %q", lines[1])
 	}
 
 	if fields[2] != "-" {
-		t.Fatalf("expected missing age '-', got: %s", fields[2])
+		t.Fatalf("expected age -, got: %s", fields[2])
 	}
 }
 
-func TestFormatOpencodeTableShowsMissingAgeForCompletedSession(t *testing.T) {
+func TestFormatOpencodeTableShowsAgeForCompletedSession(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	sessions := []workspace.OpencodeSession{
@@ -154,12 +154,43 @@ func TestFormatOpencodeTableShowsMissingAgeForCompletedSession(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 3 {
-		t.Fatalf("expected at least 3 columns, got: %q", lines[1])
+	if len(fields) < 4 {
+		t.Fatalf("expected at least 4 columns, got: %q", lines[1])
 	}
 
-	if fields[2] != "-" {
-		t.Fatalf("expected missing age '-', got: %s", fields[2])
+	if fields[2] != "5m" {
+		t.Fatalf("expected age 5m, got: %s", fields[2])
+	}
+}
+
+func TestFormatOpencodeTableShowsDuration(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	start := now.Add(-10 * time.Minute)
+	updated := now.Add(-7 * time.Minute)
+
+	sessions := []workspace.OpencodeSession{
+		{
+			ID:        "sess-duration",
+			Status:    workspace.OpencodeSessionCompleted,
+			Prompt:    "Do it",
+			StartedAt: start,
+			UpdatedAt: updated,
+		},
+	}
+
+	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	fields := strings.Fields(lines[1])
+	if len(fields) < 4 {
+		t.Fatalf("expected at least 4 columns, got: %q", lines[1])
+	}
+
+	if fields[3] != "3m" {
+		t.Fatalf("expected duration 3m, got: %s", fields[3])
 	}
 }
 

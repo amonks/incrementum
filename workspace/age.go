@@ -1,18 +1,37 @@
 package workspace
 
-import (
-	"time"
-
-	"github.com/amonks/incrementum/internal/age"
-)
+import "time"
 
 // AgeData computes the display age and whether timing data exists.
 func AgeData(session OpencodeSession, now time.Time) (time.Duration, bool) {
-	return age.DurationData(session.StartedAt, session.CompletedAt, session.DurationSeconds, session.Status == OpencodeSessionActive, now)
+	if session.StartedAt.IsZero() {
+		return 0, false
+	}
+	return now.Sub(session.StartedAt), true
 }
 
 // Age computes the display age for an opencode session.
 func Age(session OpencodeSession, now time.Time) time.Duration {
 	aged, _ := AgeData(session, now)
 	return aged
+}
+
+// DurationData computes the session duration and whether timing data exists.
+func DurationData(session OpencodeSession, now time.Time) (time.Duration, bool) {
+	if session.StartedAt.IsZero() {
+		return 0, false
+	}
+	if session.Status == OpencodeSessionActive {
+		return now.Sub(session.StartedAt), true
+	}
+	if session.UpdatedAt.IsZero() {
+		return 0, false
+	}
+	return session.UpdatedAt.Sub(session.StartedAt), true
+}
+
+// Duration computes the session duration.
+func Duration(session OpencodeSession, now time.Time) time.Duration {
+	duration, _ := DurationData(session, now)
+	return duration
 }
