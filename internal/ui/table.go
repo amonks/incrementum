@@ -92,6 +92,7 @@ func FormatTable(headers []string, rows [][]string) string {
 		BorderHeader(false).
 		BorderColumn(false).
 		BorderRow(false).
+		Wrap(false).
 		StyleFunc(func(_, col int) lipgloss.Style {
 			if columnCount > 1 && col < columnCount-1 {
 				return lipgloss.NewStyle().PaddingRight(2)

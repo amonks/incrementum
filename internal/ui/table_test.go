@@ -70,6 +70,28 @@ func TestFormatTableUsesViewportWidth(t *testing.T) {
 	}
 }
 
+func TestFormatTableDoesNotWrapRows(t *testing.T) {
+	originalWidth := tableViewportWidth
+	tableViewportWidth = func() int {
+		return 10
+	}
+	t.Cleanup(func() {
+		tableViewportWidth = originalWidth
+	})
+
+	headers := []string{"COL"}
+	rows := [][]string{{"ABCDEFGHIJK"}}
+
+	got := FormatTable(headers, rows)
+	lines := strings.Split(strings.TrimSuffix(got, "\n"), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected header and row only, got %d lines in %q", len(lines), got)
+	}
+	if width := displayWidth(lines[1]); width != 10 {
+		t.Fatalf("expected row width 10, got %d in %q", width, lines[1])
+	}
+}
+
 func TestDetectTableViewportWidthUsesStdout(t *testing.T) {
 	originalIsTerminal := tableIsTerminal
 	originalGetSize := tableGetSize
