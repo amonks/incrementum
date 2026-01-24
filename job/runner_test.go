@@ -406,3 +406,88 @@ func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) 
 		t.Fatalf("expected prompt to include commit message, got %q", seenPrompt)
 	}
 }
+
+func TestRunCommittingStageIncludesTodoAndTranscripts(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 13, 0, 0, 0, time.UTC)
+	current, err := manager.Create("todo-333", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+	append := OpencodeSession{Purpose: "implement", ID: "ses-333"}
+	current, err = manager.Update(current.ID, UpdateOptions{AppendOpencodeSession: &append}, startedAt)
+	if err != nil {
+		t.Fatalf("append opencode session: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-333",
+		Title:       "Expand commit message",
+		Description: "Add todo metadata and transcripts.",
+		Status:      todo.StatusOpen,
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityHigh,
+	}
+
+	var captured string
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		OpencodeTranscripts: func(repoPath string, sessions []OpencodeSession) ([]OpencodeTranscript, error) {
+			return []OpencodeTranscript{{Purpose: "implement", ID: "ses-333", Transcript: "Planning\n"}}, nil
+		},
+	}
+	opts.Commit = func(string, message string) error {
+		captured = message
+		return nil
+	}
+
+	_, err = runCommittingStage(CommittingStageOptions{
+		Manager:       manager,
+		Current:       current,
+		Item:          item,
+		RepoPath:      repoPath,
+		WorkspacePath: workspacePath,
+		RunOptions:    opts,
+		Result:        &RunResult{},
+		CommitMessage: "feat: expand commit metadata",
+	})
+	if err != nil {
+		t.Fatalf("run committing stage: %v", err)
+	}
+
+	checks := []string{
+		"feat: expand commit metadata",
+		"ID: todo-333",
+		"Title: Expand commit message",
+		"Type: task",
+		"Priority: 1",
+		"Status: open",
+		"CreatedAt: -",
+		"UpdatedAt: -",
+		"ClosedAt: -",
+		"DeletedAt: -",
+		"DeleteReason: -",
+		"Description:",
+		"Add todo metadata and transcripts.",
+		"==> implement (ses-333)",
+		"Planning",
+	}
+	for _, check := range checks {
+		if !strings.Contains(captured, check) {
+			t.Fatalf("expected commit message to include %q, got %q", check, captured)
+		}
+	}
+}

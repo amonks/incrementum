@@ -82,6 +82,30 @@ func (s Storage) SessionLogText(sessionID string) (string, error) {
 	return builder.String(), nil
 }
 
+// SessionProseLogText returns the session transcript without tool output.
+func (s Storage) SessionProseLogText(sessionID string) (string, error) {
+	messages, err := s.listMessages(sessionID)
+	if err != nil {
+		return "", err
+	}
+
+	var builder strings.Builder
+	for _, message := range messages {
+		parts, err := s.listParts(message.ID)
+		if err != nil {
+			return "", err
+		}
+		for _, part := range parts {
+			text, ok := extractProsePartText(part)
+			if !ok {
+				continue
+			}
+			builder.WriteString(text)
+		}
+	}
+	return builder.String(), nil
+}
+
 // SessionLogEntries returns textual log entries for a session.
 func (s Storage) SessionLogEntries(sessionID string) ([]LogEntry, error) {
 	messages, err := s.listMessages(sessionID)
@@ -476,6 +500,17 @@ func extractPartText(part partInfo) (string, bool) {
 		}
 		return "", false
 	}
+}
+
+func extractProsePartText(part partInfo) (string, bool) {
+	partType := strings.ToLower(part.Type)
+	if partType != "text" && partType != "" {
+		return "", false
+	}
+	if part.Text == "" {
+		return "", false
+	}
+	return part.Text, true
 }
 
 func stringifyOutput(value any) (string, bool) {

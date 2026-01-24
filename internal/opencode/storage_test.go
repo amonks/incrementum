@@ -80,6 +80,78 @@ func TestStorageSessionLogText(t *testing.T) {
 	}
 }
 
+func TestStorageSessionProseLogTextFiltersTools(t *testing.T) {
+	root := t.TempDir()
+	storage := Storage{Root: root}
+	sessionID := "ses_prose"
+
+	messageDir := filepath.Join(root, "storage", "message", sessionID)
+	partUserDir := filepath.Join(root, "storage", "part", "msg_user")
+	partAssistantDir := filepath.Join(root, "storage", "part", "msg_assistant")
+
+	if err := os.MkdirAll(messageDir, 0o755); err != nil {
+		t.Fatalf("create message dir: %v", err)
+	}
+	if err := os.MkdirAll(partUserDir, 0o755); err != nil {
+		t.Fatalf("create user part dir: %v", err)
+	}
+	if err := os.MkdirAll(partAssistantDir, 0o755); err != nil {
+		t.Fatalf("create assistant part dir: %v", err)
+	}
+
+	writeJSON(t, filepath.Join(messageDir, "msg_user.json"), map[string]any{
+		"id":        "msg_user",
+		"sessionID": sessionID,
+		"role":      "user",
+		"time": map[string]any{
+			"created": int64(1000),
+		},
+	})
+	writeJSON(t, filepath.Join(messageDir, "msg_assistant.json"), map[string]any{
+		"id":        "msg_assistant",
+		"sessionID": sessionID,
+		"role":      "assistant",
+		"time": map[string]any{
+			"created": int64(2000),
+		},
+	})
+
+	writeJSON(t, filepath.Join(partUserDir, "prt_user.json"), map[string]any{
+		"id":        "prt_user",
+		"sessionID": sessionID,
+		"messageID": "msg_user",
+		"type":      "text",
+		"text":      "Hello\n",
+	})
+	writeJSON(t, filepath.Join(partAssistantDir, "prt_tool.json"), map[string]any{
+		"id":        "prt_tool",
+		"sessionID": sessionID,
+		"messageID": "msg_assistant",
+		"type":      "tool",
+		"tool":      "read",
+		"state": map[string]any{
+			"output": "Tool output\n",
+		},
+	})
+	writeJSON(t, filepath.Join(partAssistantDir, "prt_text.json"), map[string]any{
+		"id":        "prt_text",
+		"sessionID": sessionID,
+		"messageID": "msg_assistant",
+		"type":      "text",
+		"text":      "Goodbye\n",
+	})
+
+	logText, err := storage.SessionProseLogText(sessionID)
+	if err != nil {
+		t.Fatalf("read session log: %v", err)
+	}
+
+	expected := "Hello\nGoodbye\n"
+	if logText != expected {
+		t.Fatalf("expected log %q, got %q", expected, logText)
+	}
+}
+
 func TestStorageFindSessionForRunMatchesPrompt(t *testing.T) {
 	root := t.TempDir()
 	storage := Storage{Root: root}

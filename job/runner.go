@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,15 +29,16 @@ var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.Message[^}]*\}\}`)
 
 // RunOptions configures job execution.
 type RunOptions struct {
-	OnStart         func(StartInfo)
-	OnStageChange   func(Stage)
-	Now             func() time.Time
-	LoadConfig      func(string) (*config.Config, error)
-	RunTests        func(string, []string) ([]TestCommandResult, error)
-	RunOpencode     func(opencodeRunOptions) (OpencodeRunResult, error)
-	CurrentCommitID func(string) (string, error)
-	Commit          func(string, string) error
-	UpdateStale     func(string) error
+	OnStart             func(StartInfo)
+	OnStageChange       func(Stage)
+	Now                 func() time.Time
+	LoadConfig          func(string) (*config.Config, error)
+	RunTests            func(string, []string) ([]TestCommandResult, error)
+	RunOpencode         func(opencodeRunOptions) (OpencodeRunResult, error)
+	CurrentCommitID     func(string) (string, error)
+	Commit              func(string, string) error
+	UpdateStale         func(string) error
+	OpencodeTranscripts func(string, []OpencodeSession) ([]OpencodeTranscript, error)
 }
 
 // RunResult captures the output of running a job.
@@ -361,6 +363,9 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		client := jj.New()
 		opts.UpdateStale = client.WorkspaceUpdateStale
 	}
+	if opts.OpencodeTranscripts == nil {
+		opts.OpencodeTranscripts = opencodeTranscripts
+	}
 	return opts
 }
 
@@ -376,7 +381,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
-	prompt, err := renderPromptTemplate(item, current.Feedback, "", "prompt-implementation.tmpl", workspacePath)
+	prompt, err := renderPromptTemplate(item, current.Feedback, "", nil, "prompt-implementation.tmpl", workspacePath)
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}
@@ -580,7 +585,12 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 		return Job{}, fmt.Errorf("commit message is required")
 	}
 
-	finalMessage, err := renderPromptTemplate(opts.Item, "", message, "commit-message.tmpl", opts.WorkspacePath)
+	transcripts, err := opts.RunOptions.OpencodeTranscripts(opts.RepoPath, opts.Current.OpencodeSessions)
+	if err != nil {
+		return Job{}, err
+	}
+
+	finalMessage, err := renderPromptTemplate(opts.Item, "", message, transcripts, "commit-message.tmpl", opts.WorkspacePath)
 	if err != nil {
 		return Job{}, err
 	}
@@ -600,6 +610,65 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 	return updated, nil
 }
 
+type opencodeTranscriptEntry struct {
+	Purpose    string
+	Session    workspace.OpencodeSession
+	Transcript string
+}
+
+func opencodeTranscripts(repoPath string, sessions []OpencodeSession) ([]OpencodeTranscript, error) {
+	if len(sessions) == 0 {
+		return nil, nil
+	}
+
+	pool, err := workspace.Open()
+	if err != nil {
+		return nil, err
+	}
+	storage, err := opencodeStorage()
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]opencodeTranscriptEntry, 0, len(sessions))
+	for _, session := range sessions {
+		opencodeSession, err := pool.FindOpencodeSession(repoPath, session.ID)
+		if err != nil {
+			return nil, err
+		}
+		transcript, err := opencodeProseLogSnapshot(storage, opencodeSession.ID)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, opencodeTranscriptEntry{Purpose: session.Purpose, Session: opencodeSession, Transcript: transcript})
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Session.StartedAt.Equal(entries[j].Session.StartedAt) {
+			return entries[i].Session.ID < entries[j].Session.ID
+		}
+		return entries[i].Session.StartedAt.Before(entries[j].Session.StartedAt)
+	})
+
+	transcripts := make([]OpencodeTranscript, 0, len(entries))
+	for _, entry := range entries {
+		text := strings.TrimRight(entry.Transcript, "\r\n")
+		if text == "" {
+			text = "-"
+		}
+		transcripts = append(transcripts, OpencodeTranscript{Purpose: entry.Purpose, ID: entry.Session.ID, Transcript: text})
+	}
+	return transcripts, nil
+}
+
+func opencodeProseLogSnapshot(storage internalopencode.Storage, sessionID string) (string, error) {
+	snapshot, err := storage.SessionProseLogText(sessionID)
+	if err != nil {
+		return "", err
+	}
+	return snapshot, nil
+}
+
 func testingStageOutcome(results []TestCommandResult) (Stage, string) {
 	var failed []TestCommandResult
 	for _, result := range results {
@@ -613,12 +682,12 @@ func testingStageOutcome(results []TestCommandResult) (Stage, string) {
 	return StageImplementing, FormatTestFeedback(failed)
 }
 
-func renderPromptTemplate(item todo.Todo, feedback, message, name, workspacePath string) (string, error) {
+func renderPromptTemplate(item todo.Todo, feedback, message string, transcripts []OpencodeTranscript, name, workspacePath string) (string, error) {
 	prompt, err := LoadPrompt(workspacePath, name)
 	if err != nil {
 		return "", err
 	}
-	return RenderPrompt(prompt, PromptData{Todo: item, Feedback: feedback, Message: message, WorkspacePath: workspacePath})
+	return RenderPrompt(prompt, PromptData{Todo: item, Feedback: feedback, Message: message, OpencodeTranscripts: transcripts, WorkspacePath: workspacePath})
 }
 
 func ensureCommitMessageInPrompt(prompt, message string) string {

@@ -46,6 +46,13 @@ func ValidStages() []Stage {
 // OpencodeSession tracks opencode sessions spawned by a job.
 type OpencodeSession = statestore.JobOpencodeSession
 
+// OpencodeTranscript captures formatted opencode transcripts for commit messages.
+type OpencodeTranscript struct {
+	Purpose    string
+	ID         string
+	Transcript string
+}
+
 // Job captures job metadata for a todo.
 type Job = statestore.Job
 

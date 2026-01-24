@@ -155,7 +155,8 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Format final message using `commit-message.tmpl` with: `Todo`, `Message` (from the
-   implementing stage).
+   implementing stage), and `OpencodeTranscripts` (prose-only transcripts from the
+   job's opencode sessions).
 3. Best-effort `jj workspace update-stale` in the repo working directory.
 4. Run `jj commit -m "<formatted message>"` in the repo working directory.
 5. If commit fails: mark job `failed`.
@@ -196,11 +197,12 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 | `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `WorkspacePath`   |
 | `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `WorkspacePath`    |
 | `prompt-project-review.tmpl` | reviewing    | `Todo`, `WorkspacePath`               |
-| `commit-message.tmpl`         | committing   | `Todo`, `Message`, `WorkspacePath`    |
+| `commit-message.tmpl`         | committing   | `Todo`, `Message`, `OpencodeTranscripts`, `WorkspacePath` |
 
 Templates use Go `text/template` syntax.
 
-`Todo` exposes: `ID`, `Title`, `Description`, `Type`, `Priority`.
+`Todo` exposes: `ID`, `Title`, `Description`, `Type`, `Priority`, `Status`,
+`CreatedAt`, `UpdatedAt`, `ClosedAt`, `DeletedAt`, `DeleteReason`.
 `WorkspacePath` is the absolute path to the job's workspace root.
 
 ## Commands
