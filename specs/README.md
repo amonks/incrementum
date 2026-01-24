@@ -8,7 +8,7 @@
 | [todo.md](./todo.md)           | [todo/](../todo/)           | Task tracking: command-line JIRA with TODOs stored in a special branch                                       |
 | [cli.md](./cli.md)             | [cmd/ii/](../cmd/ii/)       | Describes our architecture: the cli package is a thin wrapper over a go package per-subcommand               |
 | [opencode.md](./opencode.md)   | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
-| [job.md](./job.md)             |                             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
+| [job.md](./job.md)             | [job/](../job/)             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
 
 ## Internal Packages
 
@@ -20,6 +20,7 @@
 | [internal-ids.md](./internal-ids.md)                   | [internal/ids/](../internal/ids/)                   | Unique prefix length calculation for IDs             |
 | [internal-jj.md](./internal-jj.md)                     | [internal/jj/](../internal/jj/)                     | Go wrapper around jj CLI commands                    |
 | [internal-listflags.md](./internal-listflags.md)       | [internal/listflags/](../internal/listflags/)       | Shared Cobra list flags                              |
+| [internal-opencode.md](./internal-opencode.md)         | [internal/opencode/](../internal/opencode/)         | Read opencode session storage files                  |
 | [internal-paths.md](./internal-paths.md)               | [internal/paths/](../internal/paths/)               | Default state and workspace paths                    |
 | [internal-state.md](./internal-state.md)               | [internal/state/](../internal/state/)               | Shared state file management                         |
 | [internal-strings.md](./internal-strings.md)           | [internal/strings/](../internal/strings/)           | Shared whitespace normalization helpers              |
