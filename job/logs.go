@@ -1,11 +1,8 @@
 package job
 
 import (
-	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -25,26 +22,14 @@ func LogSnapshot(jobID string, opts EventLogOptions) (string, error) {
 	defer func() {
 		_ = file.Close()
 	}()
-
 	writer := &logSnapshotWriter{}
-	reader := bufio.NewReader(file)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil && !errors.Is(err, io.EOF) {
-			return "", err
-		}
-		line = strings.TrimSpace(line)
-		if line != "" {
-			var event Event
-			if unmarshalErr := json.Unmarshal([]byte(line), &event); unmarshalErr != nil {
-				return "", fmt.Errorf("decode job event: %w", unmarshalErr)
-			}
-			if appendErr := writer.Append(event); appendErr != nil {
-				return "", appendErr
-			}
-		}
-		if errors.Is(err, io.EOF) {
-			break
+	entries, err := ReadEvents(file)
+	if err != nil {
+		return "", err
+	}
+	for _, event := range entries {
+		if appendErr := writer.Append(event); appendErr != nil {
+			return "", appendErr
 		}
 	}
 	return strings.TrimRight(writer.String(), "\n"), nil
