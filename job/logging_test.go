@@ -152,6 +152,74 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 	}
 }
 
+func TestRunImplementingStageUsesFeedbackPrompt(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 12, 10, 0, 0, time.UTC)
+	current, err := manager.Create("todo-feedback", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+	current.Feedback = "Add coverage."
+
+	item := todo.Todo{
+		ID:       "todo-feedback",
+		Title:    "Respond to feedback",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	logger := &captureLogger{}
+	commitIDs := []string{"before", "after"}
+	commitIndex := 0
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
+			if err := os.WriteFile(messagePath, []byte("feat: respond"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "oc-feedback", ExitCode: 0}, nil
+		},
+		Logger: logger,
+	}
+
+	_, err = runImplementingStage(manager, current, item, repoPath, workspacePath, opts, nil, "feat: previous")
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+
+	if len(logger.prompts) != 1 {
+		t.Fatalf("expected 1 prompt log, got %d", len(logger.prompts))
+	}
+	if logger.prompts[0].Template != "prompt-feedback.tmpl" {
+		t.Fatalf("expected prompt template, got %q", logger.prompts[0].Template)
+	}
+	if !strings.Contains(logger.prompts[0].Prompt, "Previous feedback") {
+		t.Fatalf("expected feedback prompt to mention feedback")
+	}
+}
+
 func TestRunReviewingStageLogsFeedback(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()

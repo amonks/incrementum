@@ -1,11 +1,19 @@
 Workspace root: {{.WorkspacePath}}
 
-You are implementing the next step of a todo.
+Previous feedback:
+You are responding to feedback on a change that is intended to move us towards
+completion of a todo.
 
-Do the highest-priority remaining step toward resolution of the todo. Dot 'i's,
-cross 't's, resolve the todo completely and correctly, but don't do additional
-work that does not move us towards todo resolution. If the todo is already
-complete, make no changes.
+<feedback>
+{{.Feedback}}
+</feedback>
+{{if .Message}}
+
+Commit message from the previous version:
+<commit_message>
+{{.Message}}
+</commit_message>
+{{end}}
 
 Changes are reviewed according to these questions:
 

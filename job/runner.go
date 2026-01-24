@@ -391,11 +391,15 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
-	prompt, err := renderPromptTemplate(item, current.Feedback, previousMessage, commitLog, nil, "prompt-implementation.tmpl", workspacePath)
+	promptName := "prompt-implementation.tmpl"
+	if strings.TrimSpace(current.Feedback) != "" {
+		promptName = "prompt-feedback.tmpl"
+	}
+	prompt, err := renderPromptTemplate(item, current.Feedback, previousMessage, commitLog, nil, promptName, workspacePath)
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}
-	logger.Prompt(PromptLog{Purpose: "implement", Template: "prompt-implementation.tmpl", Prompt: prompt})
+	logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt})
 
 	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
 		RepoPath:      repoPath,

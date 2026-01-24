@@ -94,9 +94,11 @@ any stage -> failed (unrecoverable error)
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` from the workspace root if it exists.
 3. Record the current working copy commit id.
-4. Run opencode with `prompt-implementation.tmpl` prompt from the workspace root (PWD set to the workspace root).
-5. Template receives: `Todo`, `Feedback` (empty string on initial run), and
-   `Message` (previous commit message when responding to feedback).
+4. Run opencode with `prompt-implementation.tmpl` when no feedback is present,
+   or `prompt-feedback.tmpl` when responding to feedback (PWD set to the
+   workspace root).
+5. Template receives: `Todo`, `Feedback`, and `Message` (previous commit message
+   when responding to feedback).
 6. Record opencode session in `opencode_sessions` with purpose `implement`.
 7. Run opencode to completion.
 8. If opencode fails (nonzero exit): mark job `failed`.
@@ -193,6 +195,7 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 | File                   | Stage        | Variables                             |
 | ---------------------- | ------------ | ------------------------------------- |
 | `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`   |
+| `prompt-feedback.tmpl`       | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`   |
 | `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`    |
 | `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`               |
 | `commit-message.tmpl`         | committing   | `Todo`, `Message`, `CommitLog`, `OpencodeTranscripts`, `WorkspacePath` |
