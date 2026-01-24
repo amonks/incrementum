@@ -54,26 +54,19 @@ func todoIDPrefixLengths(todos []todo.Todo) map[string]int {
 }
 
 func formatTodoAge(item todo.Todo, now time.Time) string {
-	if item.CreatedAt.IsZero() {
+	ageValue, ok := todo.AgeData(item, now)
+	if !ok {
 		return "-"
 	}
-	return ui.FormatDurationShort(now.Sub(item.CreatedAt))
+	return ui.FormatDurationShort(ageValue)
 }
 
 func formatTodoDuration(item todo.Todo, now time.Time) string {
-	if item.Status == todo.StatusInProgress {
-		if item.StartedAt == nil || item.StartedAt.IsZero() {
-			return "-"
-		}
-		return ui.FormatDurationShort(now.Sub(*item.StartedAt))
+	duration, ok := todo.DurationData(item, now)
+	if !ok {
+		return "-"
 	}
-	if item.Status == todo.StatusDone {
-		if item.StartedAt == nil || item.CompletedAt == nil {
-			return "-"
-		}
-		return ui.FormatDurationShort(item.CompletedAt.Sub(*item.StartedAt))
-	}
-	return "-"
+	return ui.FormatDurationShort(duration)
 }
 
 // priorityShort returns a short representation of priority.
