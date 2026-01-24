@@ -2,7 +2,6 @@ package todo
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/amonks/incrementum/internal/ids"
 )
@@ -27,22 +26,15 @@ func (index IDIndex) Resolve(prefix string) (string, error) {
 		return "", ErrTodoNotFound
 	}
 
-	prefixLower := strings.ToLower(prefix)
-	var matches []string
-	for _, id := range index.ids {
-		if id == prefixLower || strings.HasPrefix(id, prefixLower) {
-			matches = append(matches, id)
-		}
-	}
-
-	if len(matches) == 0 {
+	match, found, ambiguous := ids.MatchPrefix(index.ids, prefix)
+	if !found {
 		return "", ErrTodoNotFound
 	}
-	if len(matches) > 1 {
+	if ambiguous {
 		return "", fmt.Errorf("%w: %s", ErrAmbiguousTodoIDPrefix, prefix)
 	}
 
-	return matches[0], nil
+	return match, nil
 }
 
 // PrefixLengths returns the shortest unique prefix length for each ID.

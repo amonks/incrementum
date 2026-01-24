@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/ids"
 	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
@@ -121,28 +122,25 @@ func (s *Store) FindSession(repoPath, sessionID string) (OpencodeSession, error)
 		return OpencodeSession{}, ErrOpencodeSessionNotFound
 	}
 
-	needle := strings.ToLower(sessionID)
-	var match *OpencodeSession
+	sessionIDs := make([]string, 0, len(st.OpencodeSessions))
+	sessionsByID := make(map[string]OpencodeSession, len(st.OpencodeSessions))
 	for _, session := range st.OpencodeSessions {
 		if session.Repo != repoName {
 			continue
 		}
-		idLower := strings.ToLower(session.ID)
-		if idLower != needle && !strings.HasPrefix(idLower, needle) {
-			continue
-		}
-		if match != nil && !strings.EqualFold(match.ID, session.ID) {
-			return OpencodeSession{}, fmt.Errorf("%w: %s", ErrAmbiguousOpencodeSessionIDPrefix, sessionID)
-		}
-		matched := session
-		match = &matched
+		sessionIDs = append(sessionIDs, session.ID)
+		sessionsByID[session.ID] = session
 	}
 
-	if match == nil {
+	matchID, found, ambiguous := ids.MatchPrefix(sessionIDs, sessionID)
+	if ambiguous {
+		return OpencodeSession{}, fmt.Errorf("%w: %s", ErrAmbiguousOpencodeSessionIDPrefix, sessionID)
+	}
+	if !found {
 		return OpencodeSession{}, ErrOpencodeSessionNotFound
 	}
 
-	return *match, nil
+	return sessionsByID[matchID], nil
 }
 
 // ListSessions returns all sessions for a repo.

@@ -28,6 +28,29 @@ func UniquePrefixLengths(ids []string) map[string]int {
 	return lengths
 }
 
+// MatchPrefix returns the matching ID for a non-empty prefix.
+// The returned match preserves the original ID casing.
+func MatchPrefix(ids []string, prefix string) (string, bool, bool) {
+	needle := strings.ToLower(prefix)
+	var match string
+	for _, id := range ids {
+		idLower := strings.ToLower(id)
+		if idLower != needle && !strings.HasPrefix(idLower, needle) {
+			continue
+		}
+		if match != "" && !strings.EqualFold(match, id) {
+			return "", true, true
+		}
+		match = id
+	}
+
+	if match == "" {
+		return "", false, false
+	}
+
+	return match, true, false
+}
+
 func uniquePrefixLength(id string, ids []string) int {
 	for length := 1; length <= len(id); length++ {
 		prefix := id[:length]

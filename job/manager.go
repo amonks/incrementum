@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/ids"
 	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
 )
@@ -211,28 +212,25 @@ func (m *Manager) Find(jobID string) (Job, error) {
 		return Job{}, fmt.Errorf("load state: %w", err)
 	}
 
-	needle := strings.ToLower(jobID)
-	var match *Job
+	jobIDs := make([]string, 0, len(st.Jobs))
+	jobsByID := make(map[string]Job, len(st.Jobs))
 	for _, job := range st.Jobs {
 		if job.Repo != repoName {
 			continue
 		}
-		idLower := strings.ToLower(job.ID)
-		if idLower != needle && !strings.HasPrefix(idLower, needle) {
-			continue
-		}
-		if match != nil && !strings.EqualFold(match.ID, job.ID) {
-			return Job{}, fmt.Errorf("%w: %s", ErrAmbiguousJobIDPrefix, jobID)
-		}
-		matched := job
-		match = &matched
+		jobIDs = append(jobIDs, job.ID)
+		jobsByID[job.ID] = job
 	}
 
-	if match == nil {
+	matchID, found, ambiguous := ids.MatchPrefix(jobIDs, jobID)
+	if ambiguous {
+		return Job{}, fmt.Errorf("%w: %s", ErrAmbiguousJobIDPrefix, jobID)
+	}
+	if !found {
 		return Job{}, ErrJobNotFound
 	}
 
-	return *match, nil
+	return jobsByID[matchID], nil
 }
 
 func resolveStateDir(opts OpenOptions) (string, error) {
