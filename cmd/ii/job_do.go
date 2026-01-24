@@ -78,8 +78,9 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	onStart := func(info jobpkg.StartInfo) {
 		printJobStart(info)
 	}
+	logger := jobpkg.NewConsoleLogger(os.Stdout)
 
-	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{OnStart: onStart, OnStageChange: onStageChange})
+	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{OnStart: onStart, OnStageChange: onStageChange, Logger: logger})
 	if err != nil {
 		return err
 	}

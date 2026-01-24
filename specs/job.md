@@ -227,7 +227,8 @@ Behavior:
 5. Output job context: workdir and full todo details.
 6. Create job record with status `active`, stage `implementing`.
 7. Run state machine to completion.
-8. Output progress: stage transitions.
+8. Output progress: stage transitions and formatted logs (prompts, commit
+   messages, test results, review feedback).
 9. On success: mark todo done and print final commit info.
 10. On failure/abandon: reopen todo and print reason.
 

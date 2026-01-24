@@ -39,6 +39,7 @@ type RunOptions struct {
 	Commit              func(string, string) error
 	UpdateStale         func(string) error
 	OpencodeTranscripts func(string, []OpencodeSession) ([]OpencodeTranscript, error)
+	Logger              Logger
 }
 
 // RunResult captures the output of running a job.
@@ -366,10 +367,17 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	if opts.OpencodeTranscripts == nil {
 		opts.OpencodeTranscripts = opencodeTranscripts
 	}
+	if opts.Logger == nil {
+		opts.Logger = noopLogger{}
+	}
 	return opts
 }
 
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (ImplementingStageResult, error) {
+	logger := opts.Logger
+	if logger == nil {
+		logger = noopLogger{}
+	}
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
@@ -385,6 +393,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}
+	logger.Prompt(PromptLog{Purpose: "implement", Template: "prompt-implementation.tmpl", Prompt: prompt})
 
 	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
 		RepoPath:      repoPath,
@@ -431,6 +440,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 			}
 			return ImplementingStageResult{}, err
 		}
+		logger.CommitMessage(CommitMessageLog{Label: "Draft", Message: message})
 	} else {
 		messagePath := filepath.Join(workspacePath, commitMessageFilename)
 		if err := removeFileIfExists(messagePath); err != nil {
@@ -451,6 +461,10 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 }
 
 func runTestingStage(manager *Manager, current Job, repoPath, workspacePath string, opts RunOptions) (Job, error) {
+	logger := opts.Logger
+	if logger == nil {
+		logger = noopLogger{}
+	}
 	cfg, err := opts.LoadConfig(repoPath)
 	if err != nil {
 		return Job{}, fmt.Errorf("load config: %w", err)
@@ -460,6 +474,7 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 	if err != nil {
 		return Job{}, err
 	}
+	logger.Tests(TestLog{Results: results})
 
 	nextStage, feedback := testingStageOutcome(results)
 	update := UpdateOptions{Stage: &nextStage}
@@ -477,6 +492,10 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 }
 
 func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitMessage string, scope reviewScope) (Job, error) {
+	logger := opts.Logger
+	if logger == nil {
+		logger = noopLogger{}
+	}
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
@@ -504,6 +523,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	if err != nil {
 		return Job{}, err
 	}
+	logger.Prompt(PromptLog{Purpose: purpose, Template: promptName, Prompt: prompt})
 
 	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
 		RepoPath:      repoPath,
@@ -530,6 +550,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	if err != nil {
 		return Job{}, err
 	}
+	logger.Review(ReviewLog{Purpose: purpose, Feedback: feedback})
 
 	switch feedback.Outcome {
 	case ReviewOutcomeAccept:
@@ -579,6 +600,10 @@ type CommittingStageOptions struct {
 }
 
 func runCommittingStage(opts CommittingStageOptions) (Job, error) {
+	logger := opts.RunOptions.Logger
+	if logger == nil {
+		logger = noopLogger{}
+	}
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
 	message := strings.TrimSpace(opts.CommitMessage)
 	if message == "" {
@@ -596,6 +621,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 	}
 	opts.Result.CommitMessage = finalMessage
 	opts.Result.CommitMessages = append(opts.Result.CommitMessages, finalMessage)
+	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: finalMessage})
 
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
 	if err := opts.RunOptions.Commit(opts.WorkspacePath, finalMessage); err != nil {
