@@ -424,10 +424,6 @@ func (s *Store) getTodoByID(id string) (*Todo, error) {
 }
 
 func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {
-	if err := validateTodoIDs(ids); err != nil {
-		return nil, err
-	}
-
 	todos, err := s.readTodos()
 	if err != nil {
 		return nil, err
