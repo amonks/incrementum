@@ -48,6 +48,27 @@ func (s Storage) FindSessionForRun(repoPath string, startedAt time.Time, prompt 
 	return s.selectSession(entries, repoPath, startedAt, prompt)
 }
 
+// FindSessionForRunWithRetry locates the session created for the run with retries.
+func (s Storage) FindSessionForRunWithRetry(repoPath string, startedAt time.Time, prompt string, timeout time.Duration) (SessionMetadata, error) {
+	if timeout <= 0 {
+		return s.FindSessionForRun(repoPath, startedAt, prompt)
+	}
+
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	for {
+		metadata, err := s.FindSessionForRun(repoPath, startedAt, prompt)
+		if err == nil {
+			return metadata, nil
+		}
+		lastErr = err
+		if time.Now().After(deadline) {
+			return SessionMetadata{}, lastErr
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // SessionLogText returns the session transcript as a single string.
 func (s Storage) SessionLogText(sessionID string) (string, error) {
 	entries, err := s.SessionLogEntries(sessionID)

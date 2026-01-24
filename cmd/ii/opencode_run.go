@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +20,8 @@ var opencodeRunCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 	RunE:  runOpencodeRun,
 }
+
+const opencodeSessionLookupTimeout = 5 * time.Second
 
 func init() {
 	opencodeCmd.AddCommand(opencodeRunCmd)
@@ -41,42 +44,37 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 	}
 
 	startedAt := time.Now()
-	runCmd := exec.Command("opencode", "run", prompt)
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
-	runCmd.Stdin = os.Stdin
-
-	exitCode, runErr := runExitCode(runCmd)
-	completedAt := time.Now()
-
 	storage, err := opencodeStorage()
 	if err != nil {
 		return err
 	}
 
-	metadata, err := storage.FindSessionForRun(repoPath, startedAt, prompt)
-	if err != nil {
+	runCmd := exec.Command("opencode", "run", prompt)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
+	runCmd.Stdin = os.Stdin
+	if err := runCmd.Start(); err != nil {
+		return err
+	}
+
+	session, sessionErr := ensureOpencodeSession(pool, storage, repoPath, startedAt, prompt)
+	exitCode, runErr := runExitCode(runCmd)
+	completedAt := time.Now()
+	if sessionErr != nil {
+		session, sessionErr = ensureOpencodeSession(pool, storage, repoPath, startedAt, prompt)
+	}
+	if sessionErr != nil {
 		if runErr != nil {
-			return errors.Join(runErr, err)
+			return errors.Join(runErr, sessionErr)
 		}
-		return err
-	}
-
-	sessionStartedAt := startedAt
-	if !metadata.CreatedAt.IsZero() {
-		sessionStartedAt = metadata.CreatedAt
-	}
-
-	session, err := pool.CreateOpencodeSession(repoPath, metadata.ID, prompt, sessionStartedAt)
-	if err != nil {
-		return err
+		return sessionErr
 	}
 
 	status := workspace.OpencodeSessionCompleted
 	if exitCode != 0 {
 		status = workspace.OpencodeSessionFailed
 	}
-	if _, err := pool.CompleteOpencodeSession(repoPath, session.ID, status, completedAt, &exitCode, int(completedAt.Sub(sessionStartedAt).Seconds())); err != nil {
+	if _, err := pool.CompleteOpencodeSession(repoPath, session.ID, status, completedAt, &exitCode, int(completedAt.Sub(session.StartedAt).Seconds())); err != nil {
 		return err
 	}
 
@@ -105,7 +103,7 @@ func resolveOpencodePrompt(args []string, reader io.Reader) (string, error) {
 }
 
 func runExitCode(cmd *exec.Cmd) (int, error) {
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Wait(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
 			return exitErr.ExitCode(), nil
@@ -113,4 +111,24 @@ func runExitCode(cmd *exec.Cmd) (int, error) {
 		return 1, err
 	}
 	return 0, nil
+}
+
+func ensureOpencodeSession(pool *workspace.Pool, storage internalopencode.Storage, repoPath string, startedAt time.Time, prompt string) (workspace.OpencodeSession, error) {
+	metadata, err := storage.FindSessionForRunWithRetry(repoPath, startedAt, prompt, opencodeSessionLookupTimeout)
+	if err != nil {
+		return workspace.OpencodeSession{}, err
+	}
+
+	sessionStartedAt := startedAt
+	if !metadata.CreatedAt.IsZero() {
+		sessionStartedAt = metadata.CreatedAt
+	}
+
+	if existing, err := pool.FindOpencodeSession(repoPath, metadata.ID); err == nil {
+		return existing, nil
+	} else if !errors.Is(err, workspace.ErrOpencodeSessionNotFound) {
+		return workspace.OpencodeSession{}, err
+	}
+
+	return pool.CreateOpencodeSession(repoPath, metadata.ID, prompt, sessionStartedAt)
 }

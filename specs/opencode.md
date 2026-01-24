@@ -42,8 +42,9 @@ Fields (JSON keys):
 ## Rules
 
 - Opencode sessions are tracked per repo slug.
-- Opencode commands use the current working directory as the repo path; they do
-  not resolve jj workspace roots or session mappings.
+- Opencode commands resolve the jj repo root from the current working directory
+  when possible (workspace roots map to their source repo). When no repo is
+  found, they fall back to the current working directory.
 - Session IDs accept case-insensitive prefix matching; prefixes must be
   unambiguous.
 - `run` executes `opencode run` directly and blocks until completion.
@@ -58,7 +59,7 @@ Fields (JSON keys):
 
 - Prompt is read from stdin when no prompt argument is provided.
 - Executes `opencode run <prompt>` from the repo root and streams output.
-- Creates a new opencode session record in state after the run completes.
+- Creates a new opencode session record in state shortly after the run starts (once opencode writes session metadata).
 - Updates status, exit code, and duration when the run finishes.
 - Exits with the same code as the opencode run.
 

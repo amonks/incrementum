@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	feedbackFilename      = ".incrementum-feedback"
-	commitMessageFilename = ".incrementum-commit-message"
+	feedbackFilename             = ".incrementum-feedback"
+	commitMessageFilename        = ".incrementum-commit-message"
+	opencodeSessionLookupTimeout = 5 * time.Second
 )
 
 // RunOptions configures job execution.
@@ -538,6 +539,11 @@ func updateStaleWorkspace(update func(string) error, workspacePath string) {
 }
 
 func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (OpencodeRunResult, error) {
+	storage, err := opencodeStorage()
+	if err != nil {
+		return OpencodeRunResult{}, err
+	}
+
 	runCmd := exec.Command("opencode", "run", opts.Prompt)
 	runCmd.Dir = opts.WorkspacePath
 	runCmd.Env = replaceEnvVar(os.Environ(), "PWD", opts.WorkspacePath)
@@ -545,44 +551,36 @@ func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (Opencode
 	runCmd.Stderr = os.Stderr
 	runCmd.Stdin = os.Stdin
 
+	if err := runCmd.Start(); err != nil {
+		return OpencodeRunResult{}, err
+	}
+
+	session, sessionErr := ensureOpencodeSession(pool, storage, opts.RepoPath, opts.StartedAt, opts.Prompt)
 	exitCode, runErr := runExitCode(runCmd)
 	completedAt := time.Now()
 
-	storage, err := opencodeStorage()
-	if err != nil {
-		return OpencodeRunResult{}, err
+	if sessionErr != nil {
+		session, sessionErr = ensureOpencodeSession(pool, storage, opts.RepoPath, opts.StartedAt, opts.Prompt)
 	}
-
-	metadata, err := storage.FindSessionForRun(opts.RepoPath, opts.StartedAt, opts.Prompt)
-	if err != nil {
+	if sessionErr != nil {
 		if runErr != nil {
-			return OpencodeRunResult{}, errors.Join(runErr, err)
+			return OpencodeRunResult{}, errors.Join(runErr, sessionErr)
 		}
-		return OpencodeRunResult{}, err
+		return OpencodeRunResult{}, sessionErr
 	}
 
-	sessionStartedAt := opts.StartedAt
-	if !metadata.CreatedAt.IsZero() {
-		sessionStartedAt = metadata.CreatedAt
-	}
-
-	created, err := pool.CreateOpencodeSession(opts.RepoPath, metadata.ID, opts.Prompt, sessionStartedAt)
-	if err != nil {
-		return OpencodeRunResult{}, err
-	}
-
-	duration := int(completedAt.Sub(sessionStartedAt).Seconds())
+	duration := int(completedAt.Sub(session.StartedAt).Seconds())
 	status := workspace.OpencodeSessionCompleted
 	if exitCode != 0 {
 		status = workspace.OpencodeSessionFailed
 	}
-	if _, err := pool.CompleteOpencodeSession(opts.RepoPath, created.ID, status, completedAt, &exitCode, duration); err != nil {
+	if _, err := pool.CompleteOpencodeSession(opts.RepoPath, session.ID, status, completedAt, &exitCode, duration); err != nil {
 		return OpencodeRunResult{}, err
 	}
 	if runErr != nil {
 		return OpencodeRunResult{}, runErr
 	}
-	return OpencodeRunResult{SessionID: created.ID, ExitCode: exitCode}, nil
+	return OpencodeRunResult{SessionID: session.ID, ExitCode: exitCode}, nil
 }
 
 func replaceEnvVar(env []string, key, value string) []string {
@@ -599,7 +597,7 @@ func replaceEnvVar(env []string, key, value string) []string {
 }
 
 func runExitCode(cmd *exec.Cmd) (int, error) {
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Wait(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
 			return exitErr.ExitCode(), nil
@@ -607,6 +605,26 @@ func runExitCode(cmd *exec.Cmd) (int, error) {
 		return 1, err
 	}
 	return 0, nil
+}
+
+func ensureOpencodeSession(pool *workspace.Pool, storage internalopencode.Storage, repoPath string, startedAt time.Time, prompt string) (workspace.OpencodeSession, error) {
+	metadata, err := storage.FindSessionForRunWithRetry(repoPath, startedAt, prompt, opencodeSessionLookupTimeout)
+	if err != nil {
+		return workspace.OpencodeSession{}, err
+	}
+
+	sessionStartedAt := startedAt
+	if !metadata.CreatedAt.IsZero() {
+		sessionStartedAt = metadata.CreatedAt
+	}
+
+	if existing, err := pool.FindOpencodeSession(repoPath, metadata.ID); err == nil {
+		return existing, nil
+	} else if !errors.Is(err, workspace.ErrOpencodeSessionNotFound) {
+		return workspace.OpencodeSession{}, err
+	}
+
+	return pool.CreateOpencodeSession(repoPath, metadata.ID, prompt, sessionStartedAt)
 }
 
 func opencodeStorage() (internalopencode.Storage, error) {

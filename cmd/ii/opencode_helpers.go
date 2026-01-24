@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -28,7 +29,15 @@ func getOpencodeRepoPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("get working directory: %w", err)
 	}
-	return cwd, nil
+
+	repoPath, err := workspace.RepoRootFromPath(cwd)
+	if err == nil {
+		return repoPath, nil
+	}
+	if errors.Is(err, workspace.ErrWorkspaceRootNotFound) || errors.Is(err, workspace.ErrRepoPathNotFound) {
+		return cwd, nil
+	}
+	return "", err
 }
 
 func opencodeStorage() (internalopencode.Storage, error) {
