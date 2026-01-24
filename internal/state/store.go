@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+
+	"github.com/amonks/incrementum/internal/paths"
 )
 
 // ErrRepoPathNotFound indicates a workspace is tracked but missing repo info.
@@ -211,8 +213,12 @@ func (s *Store) GetOrCreateRepoName(sourcePath string) (string, error) {
 func SanitizeRepoName(path string) string {
 	// Expand ~ if present
 	if strings.HasPrefix(path, "~/") {
-		home, _ := os.UserHomeDir()
-		path = filepath.Join(home, path[2:])
+		home, err := paths.HomeDir()
+		if err == nil {
+			path = filepath.Join(home, path[2:])
+		} else {
+			path = path[2:]
+		}
 	}
 
 	// Remove leading slash
