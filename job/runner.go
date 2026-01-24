@@ -36,6 +36,7 @@ type RunOptions struct {
 	RunTests            func(string, []string) ([]TestCommandResult, error)
 	RunOpencode         func(opencodeRunOptions) (OpencodeRunResult, error)
 	CurrentCommitID     func(string) (string, error)
+	CommitIDAt          func(string, string) (string, error)
 	Commit              func(string, string) error
 	UpdateStale         func(string) error
 	OpencodeTranscripts func(string, []OpencodeSession) ([]OpencodeTranscript, error)
@@ -44,9 +45,9 @@ type RunOptions struct {
 
 // RunResult captures the output of running a job.
 type RunResult struct {
-	Job            Job
-	CommitMessage  string
-	CommitMessages []string
+	Job           Job
+	CommitMessage string
+	CommitLog     []CommitLogEntry
 }
 
 // OpencodeRunResult captures output from running opencode.
@@ -296,7 +297,7 @@ func (ctx *runContext) handleStageOutcome(current, next Job, stageErr error) (Jo
 
 func (ctx *runContext) runImplementingStage(current Job) func() (Job, error) {
 	return func() (Job, error) {
-		result, err := runImplementingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts)
+		result, err := runImplementingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.result.CommitLog)
 		if err != nil {
 			return Job{}, err
 		}
@@ -314,7 +315,7 @@ func (ctx *runContext) runTestingStage(current Job) func() (Job, error) {
 
 func (ctx *runContext) runReviewingStage(current Job) func() (Job, error) {
 	return func() (Job, error) {
-		return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.commitMessage, ctx.reviewScope)
+		return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.commitMessage, ctx.result.CommitLog, ctx.reviewScope)
 	}
 }
 
@@ -356,6 +357,10 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		client := jj.New()
 		opts.CurrentCommitID = client.CurrentCommitID
 	}
+	if opts.CommitIDAt == nil {
+		client := jj.New()
+		opts.CommitIDAt = client.CommitIDAt
+	}
 	if opts.Commit == nil {
 		client := jj.New()
 		opts.Commit = client.Commit
@@ -373,7 +378,7 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	return opts
 }
 
-func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (ImplementingStageResult, error) {
+func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitLog []CommitLogEntry) (ImplementingStageResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = noopLogger{}
@@ -389,7 +394,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
-	prompt, err := renderPromptTemplate(item, current.Feedback, "", nil, "prompt-implementation.tmpl", workspacePath)
+	prompt, err := renderPromptTemplate(item, current.Feedback, "", commitLog, nil, "prompt-implementation.tmpl", workspacePath)
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}
@@ -491,7 +496,7 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 	return updated, nil
 }
 
-func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitMessage string, scope reviewScope) (Job, error) {
+func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitMessage string, commitLog []CommitLogEntry, scope reviewScope) (Job, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = noopLogger{}
@@ -519,7 +524,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 	promptTemplate = ensureCommitMessageInPrompt(promptTemplate, message)
-	prompt, err := RenderPrompt(promptTemplate, PromptData{Todo: item, Feedback: "", Message: message, WorkspacePath: workspacePath})
+	prompt, err := RenderPrompt(promptTemplate, PromptData{Todo: item, Feedback: "", Message: message, CommitLog: commitLog, WorkspacePath: workspacePath})
 	if err != nil {
 		return Job{}, err
 	}
@@ -615,18 +620,23 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 		return Job{}, err
 	}
 
-	finalMessage, err := renderPromptTemplate(opts.Item, "", message, transcripts, "commit-message.tmpl", opts.WorkspacePath)
+	finalMessage, err := renderPromptTemplate(opts.Item, "", message, opts.Result.CommitLog, transcripts, "commit-message.tmpl", opts.WorkspacePath)
 	if err != nil {
 		return Job{}, err
 	}
 	opts.Result.CommitMessage = finalMessage
-	opts.Result.CommitMessages = append(opts.Result.CommitMessages, finalMessage)
 	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: finalMessage})
 
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
 	if err := opts.RunOptions.Commit(opts.WorkspacePath, finalMessage); err != nil {
 		return Job{}, err
 	}
+
+	commitID, err := opts.RunOptions.CommitIDAt(opts.WorkspacePath, "@-")
+	if err != nil {
+		return Job{}, err
+	}
+	opts.Result.CommitLog = append(opts.Result.CommitLog, CommitLogEntry{ID: commitID, Message: finalMessage})
 
 	nextStage := StageImplementing
 	updated, err := opts.Manager.Update(opts.Current.ID, UpdateOptions{Stage: &nextStage}, opts.RunOptions.Now())
@@ -708,12 +718,12 @@ func testingStageOutcome(results []TestCommandResult) (Stage, string) {
 	return StageImplementing, FormatTestFeedback(failed)
 }
 
-func renderPromptTemplate(item todo.Todo, feedback, message string, transcripts []OpencodeTranscript, name, workspacePath string) (string, error) {
+func renderPromptTemplate(item todo.Todo, feedback, message string, commitLog []CommitLogEntry, transcripts []OpencodeTranscript, name, workspacePath string) (string, error) {
 	prompt, err := LoadPrompt(workspacePath, name)
 	if err != nil {
 		return "", err
 	}
-	return RenderPrompt(prompt, PromptData{Todo: item, Feedback: feedback, Message: message, OpencodeTranscripts: transcripts, WorkspacePath: workspacePath})
+	return RenderPrompt(prompt, PromptData{Todo: item, Feedback: feedback, Message: message, CommitLog: commitLog, OpencodeTranscripts: transcripts, WorkspacePath: workspacePath})
 }
 
 func ensureCommitMessageInPrompt(prompt, message string) string {

@@ -81,3 +81,19 @@ func TestRenderPrompt_InterpolatesWorkspacePath(t *testing.T) {
 		t.Fatalf("expected workspace path to render, got %q", rendered)
 	}
 }
+
+func TestRenderPrompt_InterpolatesCommitLog(t *testing.T) {
+	data := PromptData{
+		CommitLog: []CommitLogEntry{{ID: "commit-1", Message: "feat: first change"}},
+	}
+
+	rendered, err := RenderPrompt("{{range .CommitLog}}{{.ID}} {{.Message}}{{end}}", data)
+	if err != nil {
+		t.Fatalf("render prompt: %v", err)
+	}
+
+	expected := "commit-1 feat: first change"
+	if strings.TrimSpace(rendered) != expected {
+		t.Fatalf("expected %q, got %q", expected, rendered)
+	}
+}

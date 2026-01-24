@@ -22,6 +22,7 @@ type PromptData struct {
 	Todo                todo.Todo
 	Feedback            string
 	Message             string
+	CommitLog           []CommitLogEntry
 	OpencodeTranscripts []OpencodeTranscript
 	WorkspacePath       string
 }

@@ -70,7 +70,7 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 		Priority:    todo.PriorityMedium,
 	}
 
-	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts)
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil)
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestRunReviewingStageUpdatesStaleWorkspace(t *testing.T) {
 	}
 
 	commitMessage := "fix: stale review"
-	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, reviewScopeStep)
+	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}

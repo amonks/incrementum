@@ -194,15 +194,17 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 
 | File                   | Stage        | Variables                             |
 | ---------------------- | ------------ | ------------------------------------- |
-| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `WorkspacePath`   |
-| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `WorkspacePath`    |
-| `prompt-project-review.tmpl` | reviewing    | `Todo`, `WorkspacePath`               |
-| `commit-message.tmpl`         | committing   | `Todo`, `Message`, `OpencodeTranscripts`, `WorkspacePath` |
+| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `CommitLog`, `WorkspacePath`   |
+| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`    |
+| `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`               |
+| `commit-message.tmpl`         | committing   | `Todo`, `Message`, `CommitLog`, `OpencodeTranscripts`, `WorkspacePath` |
 
 Templates use Go `text/template` syntax.
 
 `Todo` exposes: `ID`, `Title`, `Description`, `Type`, `Priority`, `Status`,
 `CreatedAt`, `UpdatedAt`, `ClosedAt`, `DeletedAt`, `DeleteReason`.
+`CommitLog` is the list of commits recorded so far with fields `ID` and
+`Message`.
 `WorkspacePath` is the absolute path to the job's workspace root.
 
 ## Commands

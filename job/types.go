@@ -53,6 +53,12 @@ type OpencodeTranscript struct {
 	Transcript string
 }
 
+// CommitLogEntry captures a commit made during the job.
+type CommitLogEntry struct {
+	ID      string
+	Message string
+}
+
 // Job captures job metadata for a todo.
 type Job = statestore.Job
 

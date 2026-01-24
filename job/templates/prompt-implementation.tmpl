@@ -32,6 +32,13 @@ Changes are reviewed according to these questions:
 When you make changes, write a multi-line commit message to ./.incrementum-commit-message
 Keep changes focused on the current step.
 
+{{if .CommitLog}}Commits so far:
+{{range .CommitLog}}- ID: {{.ID}}
+Message:
+{{.Message}}
+{{end}}
+{{end}}
+
 <todo>
 - ID: {{.Todo.ID}}
 - Title: {{.Todo.Title}}

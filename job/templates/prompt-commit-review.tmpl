@@ -7,6 +7,13 @@ Workspace root: {{.WorkspacePath}}
 {{.Message}}
 </commit_message>
 
+{{if .CommitLog}}Previous commits for this todo:
+{{range .CommitLog}}- ID: {{.ID}}
+Message:
+{{.Message}}
+{{end}}
+{{end}}
+
 Review the changes:
 - Does it do what the message says?
 - Does it move us towards the goal in the todo?

@@ -4,6 +4,13 @@ Workspace root: {{.WorkspacePath}}
 
 The working tree contains an implementation that is purported to resolve our todo.
 
+{{if .CommitLog}}Commits for this todo:
+{{range .CommitLog}}- ID: {{.ID}}
+Message:
+{{.Message}}
+{{end}}
+{{end}}
+
 Review the implementation of our todo:
 - Does it complete the goal in the todo?
 - Is it free of defects?

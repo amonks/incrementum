@@ -123,7 +123,7 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 		Logger: logger,
 	}
 
-	_, err = runImplementingStage(manager, current, item, repoPath, workspacePath, opts)
+	_, err = runImplementingStage(manager, current, item, repoPath, workspacePath, opts, nil)
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestRunReviewingStageLogsFeedback(t *testing.T) {
 		Logger: logger,
 	}
 
-	_, err = runReviewingStage(manager, current, item, repoPath, workspacePath, opts, "feat: review", reviewScopeStep)
+	_, err = runReviewingStage(manager, current, item, repoPath, workspacePath, opts, "feat: review", nil, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}
@@ -291,6 +291,9 @@ func TestRunCommittingStageLogsFinalMessage(t *testing.T) {
 		},
 		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
 			return nil, nil
+		},
+		CommitIDAt: func(string, string) (string, error) {
+			return "commit-999", nil
 		},
 		Commit: func(string, string) error {
 			return nil

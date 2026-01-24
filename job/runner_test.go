@@ -94,7 +94,7 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 		},
 	}
 
-	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts)
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil)
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}
@@ -156,13 +156,76 @@ func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *tes
 		},
 	}
 
-	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts)
+	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil)
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}
 
 	if !strings.Contains(seenPrompt, "write a multi-line commit message") {
 		t.Fatalf("expected prompt to request commit message, got %q", seenPrompt)
+	}
+}
+
+func TestRunImplementingStageIncludesCommitLog(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 11, 20, 0, 0, time.UTC)
+	created, err := manager.Create("todo-212", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-212",
+		Title:       "Show commit log",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityLow,
+	}
+
+	commitIDs := []string{"same", "same"}
+	commitIndex := 0
+	commitLog := []CommitLogEntry{{ID: "commit-42", Message: "feat: initial work"}}
+
+	var seenPrompt string
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			seenPrompt = runOpts.Prompt
+			return OpencodeRunResult{SessionID: "oc-212", ExitCode: 0}, nil
+		},
+	}
+
+	_, err = runImplementingStage(manager, created, item, repoPath, workspacePath, opts, commitLog)
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+
+	if !strings.Contains(seenPrompt, "commit-42") {
+		t.Fatalf("expected prompt to include commit id, got %q", seenPrompt)
+	}
+	if !strings.Contains(seenPrompt, "feat: initial work") {
+		t.Fatalf("expected prompt to include commit message, got %q", seenPrompt)
 	}
 }
 
@@ -209,13 +272,18 @@ func TestRunReviewingStagePassesCommitMessage(t *testing.T) {
 		},
 	}
 
-	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, reviewScopeStep)
+	commitLog := []CommitLogEntry{{ID: "commit-abc", Message: "feat: previous"}}
+
+	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, commitLog, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}
 
 	if !strings.Contains(seenPrompt, commitMessage) {
 		t.Fatalf("expected prompt to include commit message, got %q", seenPrompt)
+	}
+	if !strings.Contains(seenPrompt, "commit-abc") {
+		t.Fatalf("expected prompt to include commit log, got %q", seenPrompt)
 	}
 	if updated.Stage != StageCommitting {
 		t.Fatalf("expected stage %q, got %q", StageCommitting, updated.Stage)
@@ -270,7 +338,7 @@ func TestRunReviewingStageReadsCommitMessageFile(t *testing.T) {
 		},
 	}
 
-	_, err = runReviewingStage(manager, created, item, repoPath, workspacePath, opts, "", reviewScopeStep)
+	_, err = runReviewingStage(manager, created, item, repoPath, workspacePath, opts, "", nil, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}
@@ -321,7 +389,7 @@ func TestRunReviewingStageMissingCommitMessageExplainsContext(t *testing.T) {
 		},
 	}
 
-	_, err = runReviewingStage(manager, current, item, repoPath, workspacePath, opts, "", reviewScopeStep)
+	_, err = runReviewingStage(manager, current, item, repoPath, workspacePath, opts, "", nil, reviewScopeStep)
 	if err == nil {
 		t.Fatal("expected missing commit message error")
 	}
@@ -394,7 +462,7 @@ func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) 
 		},
 	}
 
-	_, err = runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, reviewScopeStep)
+	_, err = runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}
@@ -448,6 +516,9 @@ func TestRunCommittingStageIncludesTodoAndTranscripts(t *testing.T) {
 		OpencodeTranscripts: func(repoPath string, sessions []OpencodeSession) ([]OpencodeTranscript, error) {
 			return []OpencodeTranscript{{Purpose: "implement", ID: "ses-333", Transcript: "Planning\n"}}, nil
 		},
+		CommitIDAt: func(string, string) (string, error) {
+			return "commit-333", nil
+		},
 	}
 	opts.Commit = func(string, message string) error {
 		captured = message
@@ -489,5 +560,72 @@ func TestRunCommittingStageIncludesTodoAndTranscripts(t *testing.T) {
 		if !strings.Contains(captured, check) {
 			t.Fatalf("expected commit message to include %q, got %q", check, captured)
 		}
+	}
+}
+
+func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 13, 15, 0, 0, time.UTC)
+	current, err := manager.Create("todo-commit-log", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-commit-log",
+		Title:    "Commit log",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	result := &RunResult{}
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
+			return nil, nil
+		},
+		CommitIDAt: func(string, string) (string, error) {
+			return "commit-456", nil
+		},
+		Commit: func(string, string) error {
+			return nil
+		},
+	}
+
+	_, err = runCommittingStage(CommittingStageOptions{
+		Manager:       manager,
+		Current:       current,
+		Item:          item,
+		RepoPath:      repoPath,
+		WorkspacePath: workspacePath,
+		RunOptions:    opts,
+		Result:        result,
+		CommitMessage: "feat: log commit",
+	})
+	if err != nil {
+		t.Fatalf("run committing stage: %v", err)
+	}
+
+	if len(result.CommitLog) != 1 {
+		t.Fatalf("expected 1 commit log entry, got %d", len(result.CommitLog))
+	}
+	if result.CommitLog[0].ID != "commit-456" {
+		t.Fatalf("expected commit id %q, got %q", "commit-456", result.CommitLog[0].ID)
+	}
+	if !strings.Contains(result.CommitLog[0].Message, "feat: log commit") {
+		t.Fatalf("expected commit log to include message, got %q", result.CommitLog[0].Message)
 	}
 }
