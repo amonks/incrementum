@@ -86,14 +86,14 @@ func (m *Manager) Update(jobID string, opts UpdateOptions, updatedAt time.Time) 
 	}
 
 	if opts.Stage != nil {
-		normalized := Stage(strings.ToLower(string(*opts.Stage)))
+		normalized := normalizeStage(*opts.Stage)
 		opts.Stage = &normalized
 		if !opts.Stage.IsValid() {
 			return Job{}, formatInvalidStageError(*opts.Stage)
 		}
 	}
 	if opts.Status != nil {
-		normalized := Status(strings.ToLower(string(*opts.Status)))
+		normalized := normalizeStatus(*opts.Status)
 		opts.Status = &normalized
 		if !opts.Status.IsValid() {
 			return Job{}, formatInvalidStatusError(*opts.Status)
@@ -154,7 +154,7 @@ type ListFilter struct {
 // List returns jobs for the repo.
 func (m *Manager) List(filter ListFilter) ([]Job, error) {
 	if filter.Status != nil {
-		normalized := Status(strings.ToLower(string(*filter.Status)))
+		normalized := normalizeStatus(*filter.Status)
 		filter.Status = &normalized
 		if !filter.Status.IsValid() {
 			return nil, formatInvalidStatusError(*filter.Status)
