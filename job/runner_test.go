@@ -563,6 +563,78 @@ func TestRunCommittingStageIncludesTodoAndTranscripts(t *testing.T) {
 	}
 }
 
+func TestRunCommittingStageIncludesCommitLog(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 13, 10, 0, 0, time.UTC)
+	current, err := manager.Create("todo-commit-log-template", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-commit-log-template",
+		Title:    "Include commit log",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	result := &RunResult{CommitLog: []CommitLogEntry{{ID: "commit-prev", Message: "feat: previous step"}}}
+	var captured string
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
+			return nil, nil
+		},
+		CommitIDAt: func(string, string) (string, error) {
+			return "commit-new", nil
+		},
+		Commit: func(string, string) error {
+			return nil
+		},
+	}
+	opts.Commit = func(string, message string) error {
+		captured = message
+		return nil
+	}
+
+	_, err = runCommittingStage(CommittingStageOptions{
+		Manager:       manager,
+		Current:       current,
+		Item:          item,
+		RepoPath:      repoPath,
+		WorkspacePath: workspacePath,
+		RunOptions:    opts,
+		Result:        result,
+		CommitMessage: "feat: include commit log",
+	})
+	if err != nil {
+		t.Fatalf("run committing stage: %v", err)
+	}
+
+	checks := []string{
+		"commit-prev",
+		"feat: previous step",
+	}
+	for _, check := range checks {
+		if !strings.Contains(captured, check) {
+			t.Fatalf("expected commit message to include %q, got %q", check, captured)
+		}
+	}
+}
+
 func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()
