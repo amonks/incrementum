@@ -60,7 +60,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 	}
 
 	allSessions := sessions
-	sessions = filterOpencodeSessionsForList(sessions, opencodeListAll)
+	sessions = opencode.FilterSessionsForList(sessions, opencodeListAll)
 
 	if opencodeListJSON {
 		enc := json.NewEncoder(os.Stdout)

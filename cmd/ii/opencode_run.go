@@ -51,7 +51,7 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	drainDone := drainOpencodeEvents(handle.Events)
+	drainDone := opencode.DrainEvents(handle.Events)
 	result, err := handle.Wait()
 	<-drainDone
 	if err != nil {

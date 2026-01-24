@@ -803,27 +803,13 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 		return OpencodeRunResult{}, err
 	}
 
-	drainDone := drainOpencodeEvents(handle.Events)
+	drainDone := opencode.DrainEvents(handle.Events)
 	result, err := handle.Wait()
 	<-drainDone
 	if err != nil {
 		return OpencodeRunResult{}, err
 	}
 	return OpencodeRunResult{SessionID: result.SessionID, ExitCode: result.ExitCode}, nil
-}
-
-func drainOpencodeEvents(events <-chan opencode.Event) <-chan struct{} {
-	done := make(chan struct{})
-	if events == nil {
-		close(done)
-		return done
-	}
-	go func() {
-		for range events {
-		}
-		close(done)
-	}()
-	return done
 }
 
 func statusPtr(status Status) *Status {

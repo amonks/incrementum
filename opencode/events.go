@@ -30,6 +30,21 @@ func (h *RunHandle) Wait() (RunResult, error) {
 	return h.wait()
 }
 
+// DrainEvents consumes events until the channel closes.
+func DrainEvents(events <-chan Event) <-chan struct{} {
+	done := make(chan struct{})
+	if events == nil {
+		close(done)
+		return done
+	}
+	go func() {
+		for range events {
+		}
+		close(done)
+	}()
+	return done
+}
+
 type eventStorage struct {
 	Root string
 }

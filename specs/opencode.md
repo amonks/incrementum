@@ -9,8 +9,9 @@ state store, scoped to the current repo slug.
 ## Package
 
 The public API lives in `opencode/`. It owns session types and state
-operations, plus command helpers (`RepoPathForWorkingDir`, `Run`, `Logs`, `Kill`)
-that are invoked by the CLI and job workflows.
+operations, plus command helpers (`RepoPathForWorkingDir`, `Run`, `Logs`, `Kill`,
+`FilterSessionsForList`, `DrainEvents`) that are invoked by the CLI and job
+workflows.
 
 ## Storage
 
