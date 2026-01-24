@@ -478,7 +478,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 
-	message, err := resolveReviewCommitMessage(commitMessage, workspacePath, repoPath)
+	message, err := resolveReviewCommitMessage(commitMessage, workspacePath, repoPath, scope == reviewScopeStep)
 	if err != nil {
 		return Job{}, err
 	}
@@ -655,7 +655,7 @@ func readCommitMessageWithFallback(path, fallbackPath string) (string, error) {
 	return message, nil
 }
 
-func resolveReviewCommitMessage(commitMessage, workspacePath, repoPath string) (string, error) {
+func resolveReviewCommitMessage(commitMessage, workspacePath, repoPath string, requireMessage bool) (string, error) {
 	if strings.TrimSpace(commitMessage) != "" {
 		return commitMessage, nil
 	}
@@ -670,7 +670,15 @@ func resolveReviewCommitMessage(commitMessage, workspacePath, repoPath string) (
 	message, err := readCommitMessageWithFallback(messagePath, fallbackMessagePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
+			if !requireMessage {
+				return "", nil
+			}
+			return "", fmt.Errorf(
+				"commit message missing before opencode review; opencode implementation was instructed to write %s (or %s): %w",
+				messagePath,
+				fallbackMessagePath,
+				err,
+			)
 		}
 		return "", err
 	}

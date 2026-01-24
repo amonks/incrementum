@@ -1,6 +1,7 @@
 package job
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -279,6 +280,65 @@ func TestRunReviewingStageReadsCommitMessageFile(t *testing.T) {
 	}
 	if _, err := os.Stat(messagePath); !os.IsNotExist(err) {
 		t.Fatalf("expected commit message file to be deleted")
+	}
+}
+
+func TestRunReviewingStageMissingCommitMessageExplainsContext(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 12, 40, 0, 0, time.UTC)
+	current, err := manager.Create("todo-123", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-123",
+		Title:       "Review commit missing message",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	calledOpencode := false
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
+			calledOpencode = true
+			return OpencodeRunResult{SessionID: "oc-123", ExitCode: 0}, nil
+		},
+	}
+
+	_, err = runReviewingStage(manager, current, item, repoPath, workspacePath, opts, "", reviewScopeStep)
+	if err == nil {
+		t.Fatal("expected missing commit message error")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected missing file error, got %v", err)
+	}
+	if calledOpencode {
+		t.Fatalf("expected review to stop before opencode")
+	}
+	if !strings.Contains(err.Error(), "commit message missing before opencode review") {
+		t.Fatalf("expected context in error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "opencode implementation") {
+		t.Fatalf("expected author context, got %v", err)
+	}
+	if !strings.Contains(err.Error(), commitMessageFilename) {
+		t.Fatalf("expected commit message path context, got %v", err)
 	}
 }
 

@@ -132,6 +132,9 @@ any stage -> failed (unrecoverable error)
    falling back to `.incrementum-commit-message` in the workspace or repo root).
    If the review template does not reference `Message`, the job appends a
    `<commit_message>` block with the message before rendering.
+   - If the commit message is required for the step review and missing, fail with
+     a descriptive error that calls out the opencode implementation prompt and
+     expected `.incrementum-commit-message` location.
 5. Template instructs opencode to inspect changes (or the commit sequence for
    project review) and write outcome to `.incrementum-feedback`.
 6. Record opencode session in `opencode_sessions` with purpose `review` or
