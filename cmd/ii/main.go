@@ -3,7 +3,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -34,18 +33,7 @@ func getRepoPath() (string, error) {
 		return "", err
 	}
 
-	root, err := workspace.RepoRootFromPath(cwd)
-	if err != nil {
-		if errors.Is(err, workspace.ErrWorkspaceRootNotFound) {
-			return "", fmt.Errorf("not in a jj repository: %w", err)
-		}
-		if errors.Is(err, workspace.ErrRepoPathNotFound) {
-			return "", fmt.Errorf("workspace repo mapping missing: %w", err)
-		}
-		return "", err
-	}
-
-	return root, nil
+	return resolveRepoRoot(cwd)
 }
 
 // resolvePath returns the workspace path from args or current directory.

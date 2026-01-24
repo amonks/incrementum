@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -16,7 +15,6 @@ import (
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/swarm"
 	"github.com/amonks/incrementum/todo"
-	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -341,17 +339,7 @@ func resolveRepoPath(path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", fmt.Errorf("path is required")
 	}
-	root, err := workspace.RepoRootFromPath(path)
-	if err != nil {
-		if errors.Is(err, workspace.ErrWorkspaceRootNotFound) {
-			return "", fmt.Errorf("not in a jj repository: %w", err)
-		}
-		if errors.Is(err, workspace.ErrRepoPathNotFound) {
-			return "", fmt.Errorf("workspace repo mapping missing: %w", err)
-		}
-		return "", err
-	}
-	return root, nil
+	return resolveRepoRoot(path)
 }
 
 func streamSwarmEvents(parent context.Context, client *swarm.Client, jobID string) error {
