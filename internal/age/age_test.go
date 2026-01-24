@@ -71,3 +71,37 @@ func TestDurationData(t *testing.T) {
 		})
 	}
 }
+
+func TestAgeData(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	started := now.Add(-4 * time.Minute)
+
+	cases := []struct {
+		name      string
+		startedAt time.Time
+		want      time.Duration
+		ok        bool
+	}{
+		{
+			name:      "uses started time",
+			startedAt: started,
+			want:      4 * time.Minute,
+			ok:        true,
+		},
+		{
+			name:      "missing started time",
+			startedAt: time.Time{},
+			want:      0,
+			ok:        false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := AgeData(tc.startedAt, now)
+			if got != tc.want || ok != tc.ok {
+				t.Fatalf("expected %s/%t, got %s/%t", tc.want, tc.ok, got, ok)
+			}
+		})
+	}
+}
