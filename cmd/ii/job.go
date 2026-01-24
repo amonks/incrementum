@@ -11,7 +11,6 @@ import (
 	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/internal/ui"
 	jobpkg "github.com/amonks/incrementum/job"
-	"github.com/amonks/incrementum/opencode"
 	"github.com/amonks/incrementum/todo"
 	"github.com/spf13/cobra"
 )
@@ -167,12 +166,7 @@ func runJobLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	store, err := opencode.Open()
-	if err != nil {
-		return err
-	}
-
-	snapshot, err := jobpkg.LogSnapshot(store, repoPath, item)
+	snapshot, err := jobpkg.LogSnapshot(item.ID, jobpkg.EventLogOptions{})
 	if err != nil {
 		return err
 	}

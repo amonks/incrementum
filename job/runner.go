@@ -37,6 +37,7 @@ type RunOptions struct {
 	Commit              func(string, string) error
 	UpdateStale         func(string) error
 	OpencodeTranscripts func(string, []OpencodeSession) ([]OpencodeTranscript, error)
+	EventLog            *EventLog
 	Logger              Logger
 }
 
@@ -71,6 +72,7 @@ type opencodeRunOptions struct {
 	WorkspacePath string
 	Prompt        string
 	StartedAt     time.Time
+	EventLog      *EventLog
 }
 
 // Run creates and executes a job for the given todo.
@@ -135,6 +137,32 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, errors.Join(err, reopenErr)
 	}
 	result.Job = created
+
+	createdEventLog := false
+	if opts.EventLog == nil {
+		eventLog, err := OpenEventLog(created.ID, EventLogOptions{})
+		if err != nil {
+			status := StatusFailed
+			updated, updateErr := manager.Update(created.ID, UpdateOptions{Status: &status}, opts.Now())
+			result.Job = updated
+			finalizeErr := finalizeTodo(repoPath, item.ID, StatusFailed)
+			return result, errors.Join(err, updateErr, finalizeErr)
+		}
+		opts.EventLog = eventLog
+		createdEventLog = true
+	}
+	if createdEventLog {
+		defer func() {
+			_ = opts.EventLog.Close()
+		}()
+	}
+	if err := appendJobEvent(opts.EventLog, jobEventStage, stageEventData{Stage: created.Stage}); err != nil {
+		status := StatusFailed
+		updated, updateErr := manager.Update(created.ID, UpdateOptions{Status: &status}, opts.Now())
+		result.Job = updated
+		finalizeErr := finalizeTodo(repoPath, item.ID, StatusFailed)
+		return result, errors.Join(err, updateErr, finalizeErr)
+	}
 	if opts.OnStageChange != nil {
 		opts.OnStageChange(created.Stage)
 	}
@@ -283,8 +311,16 @@ func (ctx *runContext) handleStageOutcome(current, next Job, stageErr error) (Jo
 		return updated, errors.Join(stageErr, updateErr)
 	}
 	if next.ID != "" {
-		if next.Stage != current.Stage && ctx.opts.OnStageChange != nil {
-			ctx.opts.OnStageChange(next.Stage)
+		if next.Stage != current.Stage {
+			if err := appendJobEvent(ctx.opts.EventLog, jobEventStage, stageEventData{Stage: next.Stage}); err != nil {
+				status := StatusFailed
+				updated, updateErr := ctx.manager.Update(next.ID, UpdateOptions{Status: &status}, ctx.opts.Now())
+				ctx.result.Job = updated
+				return updated, errors.Join(err, updateErr)
+			}
+			if ctx.opts.OnStageChange != nil {
+				ctx.opts.OnStageChange(next.Stage)
+			}
 		}
 		current = next
 		ctx.result.Job = next
@@ -400,14 +436,24 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 	logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt})
+	if err := appendJobEvent(opts.EventLog, jobEventPrompt, promptEventData{Purpose: "implement", Template: promptName, Prompt: prompt}); err != nil {
+		return ImplementingStageResult{}, err
+	}
+	if err := appendJobEvent(opts.EventLog, jobEventOpencodeStart, opencodeStartEventData{Purpose: "implement"}); err != nil {
+		return ImplementingStageResult{}, err
+	}
 
 	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
 		RepoPath:      repoPath,
 		WorkspacePath: workspacePath,
 		Prompt:        prompt,
 		StartedAt:     opts.Now(),
+		EventLog:      opts.EventLog,
 	})
 	if err != nil {
+		return ImplementingStageResult{}, err
+	}
+	if err := appendJobEvent(opts.EventLog, jobEventOpencodeEnd, opencodeEndEventData{Purpose: "implement", SessionID: opencodeResult.SessionID, ExitCode: opencodeResult.ExitCode}); err != nil {
 		return ImplementingStageResult{}, err
 	}
 
@@ -445,6 +491,9 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 			return ImplementingStageResult{}, err
 		}
 		logger.CommitMessage(CommitMessageLog{Label: "Draft", Message: message})
+		if err := appendJobEvent(opts.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Draft", Message: message}); err != nil {
+			return ImplementingStageResult{}, err
+		}
 	} else {
 		messagePath := filepath.Join(workspacePath, commitMessageFilename)
 		if err := removeFileIfExists(messagePath); err != nil {
@@ -475,6 +524,9 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 		return Job{}, err
 	}
 	logger.Tests(TestLog{Results: results})
+	if err := appendJobEvent(opts.EventLog, jobEventTests, buildTestsEventData(results)); err != nil {
+		return Job{}, err
+	}
 
 	nextStage, feedback := testingStageOutcome(results)
 	update := UpdateOptions{Stage: &nextStage}
@@ -524,14 +576,24 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 	logger.Prompt(PromptLog{Purpose: purpose, Template: promptName, Prompt: prompt})
+	if err := appendJobEvent(opts.EventLog, jobEventPrompt, promptEventData{Purpose: purpose, Template: promptName, Prompt: prompt}); err != nil {
+		return Job{}, err
+	}
+	if err := appendJobEvent(opts.EventLog, jobEventOpencodeStart, opencodeStartEventData{Purpose: purpose}); err != nil {
+		return Job{}, err
+	}
 
 	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
 		RepoPath:      repoPath,
 		WorkspacePath: workspacePath,
 		Prompt:        prompt,
 		StartedAt:     opts.Now(),
+		EventLog:      opts.EventLog,
 	})
 	if err != nil {
+		return Job{}, err
+	}
+	if err := appendJobEvent(opts.EventLog, jobEventOpencodeEnd, opencodeEndEventData{Purpose: purpose, SessionID: opencodeResult.SessionID, ExitCode: opencodeResult.ExitCode}); err != nil {
 		return Job{}, err
 	}
 
@@ -550,6 +612,9 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 	logger.Review(ReviewLog{Purpose: purpose, Feedback: feedback})
+	if err := appendJobEvent(opts.EventLog, jobEventReview, reviewEventData{Purpose: purpose, Outcome: feedback.Outcome, Details: feedback.Details}); err != nil {
+		return Job{}, err
+	}
 
 	switch feedback.Outcome {
 	case ReviewOutcomeAccept:
@@ -620,6 +685,9 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 	}
 	opts.Result.CommitMessage = finalMessage
 	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: finalMessage})
+	if err := appendJobEvent(opts.RunOptions.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Final", Message: finalMessage}); err != nil {
+		return Job{}, err
+	}
 
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
 	if err := opts.RunOptions.Commit(opts.WorkspacePath, finalMessage); err != nil {
@@ -807,13 +875,35 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 		return OpencodeRunResult{}, err
 	}
 
-	drainDone := opencode.DrainEvents(handle.Events)
+	eventErrCh := recordOpencodeEvents(opts.EventLog, handle.Events)
 	result, err := handle.Wait()
-	<-drainDone
+	eventErr := <-eventErrCh
 	if err != nil {
-		return OpencodeRunResult{}, err
+		return OpencodeRunResult{}, errors.Join(err, eventErr)
+	}
+	if eventErr != nil {
+		return OpencodeRunResult{}, eventErr
 	}
 	return OpencodeRunResult{SessionID: result.SessionID, ExitCode: result.ExitCode}, nil
+}
+
+func recordOpencodeEvents(log *EventLog, events <-chan opencode.Event) <-chan error {
+	done := make(chan error, 1)
+	if events == nil {
+		done <- nil
+		return done
+	}
+	go func() {
+		var recordErr error
+		for event := range events {
+			if log == nil || recordErr != nil {
+				continue
+			}
+			recordErr = log.Append(Event{ID: event.ID, Name: event.Name, Data: event.Data})
+		}
+		done <- recordErr
+	}()
+	return done
 }
 
 func statusPtr(status Status) *Status {

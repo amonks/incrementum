@@ -35,3 +35,13 @@ func DefaultOpencodeEventsDir() (string, error) {
 
 	return filepath.Join(home, ".local", "share", "incrementum", "opencode", "events"), nil
 }
+
+// DefaultJobEventsDir returns the default directory for job events.
+func DefaultJobEventsDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("get home directory: %w", err)
+	}
+
+	return filepath.Join(home, ".local", "share", "incrementum", "jobs", "events"), nil
+}

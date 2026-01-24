@@ -29,6 +29,11 @@ Follow our usual testing practice:
 - Jobs are scoped per repo using the same repo slug as other state.
 - Jobs do not create sessions or workspaces.
 - Job records track opencode sessions created during the job.
+- Job event logs are stored as JSONL at
+  `~/.local/share/incrementum/jobs/events/<job-id>.jsonl`.
+- Job event entries use opencode's event shape (`id`, `name`, `data`) and include
+  both opencode events and job-specific events (stage changes, prompts, test
+  results, review feedback, commit messages, opencode session boundaries).
 
 ## Job Model
 
@@ -283,7 +288,7 @@ Output includes:
 
 ### `ii job logs <job-id>`
 
-Show aggregated logs from all opencode sessions in the job.
+Show the combined job event stream.
 
-Concatenates logs in chronological order, with headers indicating purpose and
-session ID.
+Reads the job's JSONL event log and prints entries in the order they were
+recorded.

@@ -2,6 +2,7 @@ package job
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -217,6 +218,112 @@ func TestRunImplementingStageUsesFeedbackPrompt(t *testing.T) {
 	}
 	if !strings.Contains(logger.prompts[0].Prompt, "Previous feedback") {
 		t.Fatalf("expected feedback prompt to mention feedback")
+	}
+}
+
+func TestRunImplementingStageRecordsEventLog(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 12, 20, 0, 0, time.UTC)
+	current, err := manager.Create("todo-events", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-events",
+		Title:    "Log events",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	eventsDir := t.TempDir()
+	eventLog, err := OpenEventLog(current.ID, EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("open event log: %v", err)
+	}
+	defer func() {
+		if err := eventLog.Close(); err != nil {
+			t.Fatalf("close event log: %v", err)
+		}
+	}()
+
+	commitIDs := []string{"before", "after"}
+	commitIndex := 0
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
+			if err := os.WriteFile(messagePath, []byte("feat: event log"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "oc-event", ExitCode: 0}, nil
+		},
+		EventLog: eventLog,
+	}
+
+	_, err = runImplementingStage(manager, current, item, repoPath, workspacePath, opts, nil, "")
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+
+	path := filepath.Join(eventsDir, current.ID+".jsonl")
+	events := readEventLog(t, path)
+	if len(events) != 4 {
+		t.Fatalf("expected 4 events, got %d", len(events))
+	}
+	if events[0].Name != jobEventPrompt {
+		t.Fatalf("expected prompt event, got %#v", events[0])
+	}
+	if events[1].Name != jobEventOpencodeStart {
+		t.Fatalf("expected opencode start event, got %#v", events[1])
+	}
+	if events[2].Name != jobEventOpencodeEnd {
+		t.Fatalf("expected opencode end event, got %#v", events[2])
+	}
+	if events[3].Name != jobEventCommitMessage {
+		t.Fatalf("expected commit message event, got %#v", events[3])
+	}
+
+	var promptData map[string]string
+	if err := json.Unmarshal([]byte(events[0].Data), &promptData); err != nil {
+		t.Fatalf("decode prompt data: %v", err)
+	}
+	if promptData["purpose"] != "implement" {
+		t.Fatalf("expected prompt purpose implement, got %q", promptData["purpose"])
+	}
+	if promptData["template"] != "prompt-implementation.tmpl" {
+		t.Fatalf("expected prompt template, got %q", promptData["template"])
+	}
+
+	var opencodeData map[string]any
+	if err := json.Unmarshal([]byte(events[2].Data), &opencodeData); err != nil {
+		t.Fatalf("decode opencode data: %v", err)
+	}
+	if opencodeData["session_id"] != "oc-event" {
+		t.Fatalf("expected session id oc-event, got %v", opencodeData["session_id"])
+	}
+	if opencodeData["exit_code"] != float64(0) {
+		t.Fatalf("expected exit code 0, got %v", opencodeData["exit_code"])
 	}
 }
 
