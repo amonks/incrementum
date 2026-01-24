@@ -85,6 +85,7 @@ Fields (JSON keys):
   repo when ANSI output is enabled.
 - `PROMPT` shows only the first line of the prompt; full prompt remains in state.
 - `PROMPT` displays `-` when the first line is empty or whitespace-only.
+- `PROMPT` header and cells are truncated to the computed prompt column width to keep the table within the viewport.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.
 - `AGE` uses `now - created_at`.

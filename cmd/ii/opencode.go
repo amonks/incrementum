@@ -119,14 +119,16 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 		prefixLengths = opencodeSessionPrefixLengths(sessions)
 	}
 	promptWidth := opencodePromptColumnWidth(sessions, highlight, now, prefixLengths)
+	promptHeader := "PROMPT"
+	if promptWidth > 0 {
+		promptHeader = ui.TruncateTableCellToWidth(promptHeader, promptWidth)
+	} else {
+		promptHeader = ""
+	}
 
 	for _, session := range sessions {
 		prompt := opencodePromptLine(session.Prompt)
-		if promptWidth > 0 {
-			prompt = ui.TruncateTableCellToWidth(prompt, promptWidth)
-		} else {
-			prompt = ui.TruncateTableCell(prompt)
-		}
+		prompt = ui.TruncateTableCellToWidth(prompt, promptWidth)
 		age := formatOpencodeAge(session, now)
 		duration := formatOpencodeDuration(session, now)
 		exit := "-"
@@ -145,7 +147,7 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 		})
 	}
 
-	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", "PROMPT", "EXIT"}, rows)
+	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", promptHeader, "EXIT"}, rows)
 }
 
 func opencodePromptColumnWidth(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
