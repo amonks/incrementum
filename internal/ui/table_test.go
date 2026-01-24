@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -66,5 +67,92 @@ func TestFormatTableUsesViewportWidth(t *testing.T) {
 		if width := displayWidth(line); width != 10 {
 			t.Fatalf("expected table width 10, got %d in %q", width, line)
 		}
+	}
+}
+
+func TestDetectTableViewportWidthUsesStdout(t *testing.T) {
+	originalIsTerminal := tableIsTerminal
+	originalGetSize := tableGetSize
+	t.Cleanup(func() {
+		tableIsTerminal = originalIsTerminal
+		tableGetSize = originalGetSize
+	})
+
+	stdoutFD := int(os.Stdout.Fd())
+	stderrFD := int(os.Stderr.Fd())
+	stdoutChecked := false
+	stderrChecked := false
+
+	tableIsTerminal = func(fd int) bool {
+		switch fd {
+		case stdoutFD:
+			stdoutChecked = true
+			return true
+		case stderrFD:
+			stderrChecked = true
+			return true
+		default:
+			return false
+		}
+	}
+
+	tableGetSize = func(fd int) (int, int, error) {
+		if fd != stdoutFD {
+			t.Fatalf("expected stdout fd, got %d", fd)
+		}
+		return 90, 0, nil
+	}
+
+	width := detectTableViewportWidth()
+	if !stdoutChecked {
+		t.Fatalf("expected stdout to be checked")
+	}
+	if stderrChecked {
+		t.Fatalf("expected stderr not to be checked")
+	}
+	if width != 90 {
+		t.Fatalf("expected width 90, got %d", width)
+	}
+}
+
+func TestDetectTableViewportWidthFallsBackToStderr(t *testing.T) {
+	originalIsTerminal := tableIsTerminal
+	originalGetSize := tableGetSize
+	t.Cleanup(func() {
+		tableIsTerminal = originalIsTerminal
+		tableGetSize = originalGetSize
+	})
+
+	stdoutFD := int(os.Stdout.Fd())
+	stderrFD := int(os.Stderr.Fd())
+	stdoutChecked := false
+	stderrChecked := false
+
+	tableIsTerminal = func(fd int) bool {
+		switch fd {
+		case stdoutFD:
+			stdoutChecked = true
+			return false
+		case stderrFD:
+			stderrChecked = true
+			return true
+		default:
+			return false
+		}
+	}
+
+	tableGetSize = func(fd int) (int, int, error) {
+		if fd != stderrFD {
+			t.Fatalf("expected stderr fd, got %d", fd)
+		}
+		return 78, 0, nil
+	}
+
+	width := detectTableViewportWidth()
+	if !stdoutChecked || !stderrChecked {
+		t.Fatalf("expected stdout and stderr checks")
+	}
+	if width != 78 {
+		t.Fatalf("expected width 78, got %d", width)
 	}
 }

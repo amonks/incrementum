@@ -14,6 +14,8 @@ const tableCellMaxWidth = 50
 const tableCellEllipsis = "..."
 
 var tableViewportWidth = detectTableViewportWidth
+var tableIsTerminal = term.IsTerminal
+var tableGetSize = term.GetSize
 
 // TableBuilder collects rows and renders a formatted table.
 type TableBuilder struct {
@@ -170,10 +172,17 @@ func stripANSICodes(input string) string {
 }
 
 func detectTableViewportWidth() int {
-	if !term.IsTerminal(int(os.Stdout.Fd())) {
+	if width := detectTerminalWidth(os.Stdout.Fd()); width > 0 {
+		return width
+	}
+	return detectTerminalWidth(os.Stderr.Fd())
+}
+
+func detectTerminalWidth(fd uintptr) int {
+	if !tableIsTerminal(int(fd)) {
 		return 0
 	}
-	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	width, _, err := tableGetSize(int(fd))
 	if err != nil || width <= 0 {
 		return 0
 	}

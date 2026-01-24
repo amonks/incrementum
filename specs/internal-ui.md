@@ -15,6 +15,7 @@ The ui package provides formatting helpers for CLI output.
 
 ## Table Formatting
 - `FormatTable` uses lipgloss tables to size output to the current viewport width.
+- Viewport width detection prefers stdout, then falls back to stderr when stdout is not a terminal.
 - `FormatTable` normalizes table output for CLI listings.
 - `TruncateTableCell` enforces width limits while respecting visible characters.
 - `TableBuilder` provides a small helper to collect rows and render tables.
