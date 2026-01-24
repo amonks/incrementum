@@ -475,6 +475,14 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 	return result, nil
 }
 
+func todoMapByID(todos []Todo) map[string]*Todo {
+	todoMap := make(map[string]*Todo, len(todos))
+	for i := range todos {
+		todoMap[todos[i].ID] = &todos[i]
+	}
+	return todoMap
+}
+
 // Ready returns open todos with no unresolved blockers, sorted by priority.
 func (s *Store) Ready(limit int) ([]Todo, error) {
 	todos, err := s.readTodos()
@@ -488,10 +496,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 	}
 
 	// Build map of todo ID -> todo for quick lookup
-	todoMap := make(map[string]*Todo)
-	for i := range todos {
-		todoMap[todos[i].ID] = &todos[i]
-	}
+	todoMap := todoMapByID(todos)
 
 	// Build map of todo ID -> blocking todo IDs
 	blockers := make(map[string][]string)
@@ -604,10 +609,7 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 	}
 
 	// Build lookup maps
-	todoMap := make(map[string]*Todo)
-	for i := range todos {
-		todoMap[todos[i].ID] = &todos[i]
-	}
+	todoMap := todoMapByID(todos)
 
 	// Group dependencies by todo ID
 	depsByTodo := make(map[string][]Dependency)
