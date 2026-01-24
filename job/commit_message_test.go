@@ -42,36 +42,11 @@ func TestReadCommitMessageDeletesEmptyFile(t *testing.T) {
 	}
 }
 
-func TestReadCommitMessageFallsBackToRepoRoot(t *testing.T) {
+func TestReadCommitMessageMissingExplainsPath(t *testing.T) {
 	workspaceDir := t.TempDir()
-	repoDir := t.TempDir()
 	primary := filepath.Join(workspaceDir, commitMessageFilename)
-	fallback := filepath.Join(repoDir, commitMessageFilename)
 
-	if err := os.WriteFile(fallback, []byte("fix: keep workspace\n"), 0o644); err != nil {
-		t.Fatalf("write commit message: %v", err)
-	}
-
-	message, err := readCommitMessageWithFallback(primary, fallback)
-	if err != nil {
-		t.Fatalf("read commit message: %v", err)
-	}
-	if message != "fix: keep workspace" {
-		t.Fatalf("expected message %q, got %q", "fix: keep workspace", message)
-	}
-
-	if _, err := os.Stat(fallback); !os.IsNotExist(err) {
-		t.Fatalf("expected commit message fallback to be deleted")
-	}
-}
-
-func TestReadCommitMessageWithFallbackMissingExplainsPaths(t *testing.T) {
-	workspaceDir := t.TempDir()
-	repoDir := t.TempDir()
-	primary := filepath.Join(workspaceDir, commitMessageFilename)
-	fallback := filepath.Join(repoDir, commitMessageFilename)
-
-	_, err := readCommitMessageWithFallback(primary, fallback)
+	_, err := readCommitMessage(primary)
 	if err == nil {
 		t.Fatal("expected missing commit message error")
 	}
@@ -81,7 +56,7 @@ func TestReadCommitMessageWithFallbackMissingExplainsPaths(t *testing.T) {
 	if !strings.Contains(err.Error(), "commit message missing") {
 		t.Fatalf("expected context in error, got %v", err)
 	}
-	if !strings.Contains(err.Error(), primary) || !strings.Contains(err.Error(), fallback) {
+	if !strings.Contains(err.Error(), primary) {
 		t.Fatalf("expected paths in error, got %v", err)
 	}
 }

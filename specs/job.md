@@ -51,8 +51,7 @@ Fields (JSON keys):
 ## Feedback File
 
 Opencode communicates review outcomes by writing to `.incrementum-feedback` in the
-job working directory (the repo root). If the file is missing there, fall back to
-the repo root (for backwards compatibility).
+job workspace root (`WorkspacePath`).
 
 Format:
 
@@ -73,8 +72,7 @@ If the file doesn't exist after review, treat as `ACCEPT`.
 ## Commit Message File
 
 Opencode writes the generated commit message to `.incrementum-commit-message` in the
-job working directory (the repo root) during the implementing stage. If the file
-is missing there, fall back to the repo root (for backwards compatibility).
+job workspace root (`WorkspacePath`) during the implementing stage.
 
 ## State Machine
 
@@ -94,7 +92,7 @@ any stage -> failed (unrecoverable error)
 ### implementing
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
-2. Delete `.incrementum-feedback` if it exists.
+2. Delete `.incrementum-feedback` from the workspace root if it exists.
 3. Record the current working copy commit id.
 4. Run opencode with `prompt-implementation.tmpl` prompt from the repo root (PWD set to the repo root).
 5. Template receives: `Todo`, `Feedback` (empty string on initial run), and
@@ -104,11 +102,11 @@ any stage -> failed (unrecoverable error)
 8. If opencode fails (nonzero exit): mark job `failed`.
 9. Record the current working copy commit id again.
 10. If the commit id did not change:
-   - Delete `.incrementum-commit-message` if it exists.
+    - Delete `.incrementum-commit-message` from the workspace root if it exists.
    - Flag the next testing/review cycle as the final project review.
 11. If the commit id changed:
-   - Read `.incrementum-commit-message` (fallback to repo root).
-   - Store the message for the committing stage.
+    - Read `.incrementum-commit-message` from the workspace root.
+    - Store the message for the committing stage.
 12. Transition to `testing`.
 
 ### testing
@@ -125,12 +123,12 @@ any stage -> failed (unrecoverable error)
 ### reviewing
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
-2. Delete `.incrementum-feedback` if it exists.
+2. Delete `.incrementum-feedback` from the workspace root if it exists.
 3. Run opencode with:
    - `prompt-commit-review.tmpl` during the work loop, or
    - `prompt-project-review.tmpl` during the final project review.
 4. Template receives: `Todo`, `Message` (commit message from the implementing stage,
-   falling back to `.incrementum-commit-message` in the workspace or repo root).
+   falling back to `.incrementum-commit-message` in the workspace root).
    If the review template does not reference `Message`, the job appends a
    `<commit_message>` block with the message before rendering.
    - If the commit message is required for the step review and missing, fail with
@@ -142,7 +140,7 @@ any stage -> failed (unrecoverable error)
    `project-review`.
 7. Run opencode to completion.
 8. If opencode fails (nonzero exit): mark job `failed`.
-9. Read `.incrementum-feedback`:
+9. Read `.incrementum-feedback` from the workspace root:
    - Delete `.incrementum-feedback` after reading.
    - Missing or first line is `ACCEPT`:
      - During the work loop: transition to `committing`.

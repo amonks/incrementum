@@ -429,15 +429,13 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	message := ""
 	if changed {
 		messagePath := filepath.Join(workspacePath, commitMessageFilename)
-		fallbackMessagePath := filepath.Join(repoPath, commitMessageFilename)
-		message, err = readCommitMessageWithFallback(messagePath, fallbackMessagePath)
+		message, err = readCommitMessage(messagePath)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return ImplementingStageResult{}, fmt.Errorf(
-					"commit message missing after opencode implementation; opencode session %s was instructed to write %s (or %s) because the workspace changed from %s to %s: %w",
+					"commit message missing after opencode implementation; opencode session %s was instructed to write %s because the workspace changed from %s to %s: %w",
 					opencodeResult.SessionID,
 					messagePath,
-					fallbackMessagePath,
 					beforeCommitID,
 					afterCommitID,
 					err,
@@ -449,10 +447,6 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	} else {
 		messagePath := filepath.Join(workspacePath, commitMessageFilename)
 		if err := removeFileIfExists(messagePath); err != nil {
-			return ImplementingStageResult{}, err
-		}
-		fallbackMessagePath := filepath.Join(repoPath, commitMessageFilename)
-		if err := removeFileIfExists(fallbackMessagePath); err != nil {
 			return ImplementingStageResult{}, err
 		}
 	}
@@ -507,7 +501,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 
-	message, err := resolveReviewCommitMessage(commitMessage, workspacePath, repoPath, scope == reviewScopeStep)
+	message, err := resolveReviewCommitMessage(commitMessage, workspacePath, scope == reviewScopeStep)
 	if err != nil {
 		return Job{}, err
 	}
@@ -550,8 +544,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, fmt.Errorf("opencode review failed with exit code %d", opencodeResult.ExitCode)
 	}
 
-	fallbackFeedbackPath := filepath.Join(repoPath, feedbackFilename)
-	feedback, err := readReviewFeedbackWithFallback(feedbackPath, fallbackFeedbackPath)
+	feedback, err := ReadReviewFeedback(feedbackPath)
 	if err != nil {
 		return Job{}, err
 	}
@@ -737,36 +730,28 @@ func ensureCommitMessageInPrompt(prompt, message string) string {
 	return trimmed + "\n\n<commit_message>\n{{.Message}}\n</commit_message>\n"
 }
 
-func readCommitMessage(path string) (string, error) {
-	return readCommitMessageWithFallback(path, "")
-}
-
 type commitMessageMissingError struct {
-	Path         string
-	FallbackPath string
-	Err          error
+	Path string
+	Err  error
 }
 
 func (err commitMessageMissingError) Error() string {
-	if strings.TrimSpace(err.FallbackPath) == "" {
-		return fmt.Sprintf("commit message missing; expected at %s: %v", err.Path, err.Err)
-	}
-	return fmt.Sprintf("commit message missing; expected at %s or %s: %v", err.Path, err.FallbackPath, err.Err)
+	return fmt.Sprintf("commit message missing; expected at %s: %v", err.Path, err.Err)
 }
 
 func (err commitMessageMissingError) Unwrap() error {
 	return err.Err
 }
 
-func readCommitMessageWithFallback(path, fallbackPath string) (string, error) {
-	data, usedPath, err := readFileWithFallback(path, fallbackPath)
+func readCommitMessage(path string) (string, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", commitMessageMissingError{Path: path, FallbackPath: fallbackPath, Err: err}
+			return "", commitMessageMissingError{Path: path, Err: err}
 		}
 		return "", fmt.Errorf("read commit message: %w", err)
 	}
-	removeErr := removeFileIfExists(usedPath)
+	removeErr := removeFileIfExists(path)
 	if removeErr != nil {
 		removeErr = fmt.Errorf("remove commit message: %w", removeErr)
 	}
@@ -780,7 +765,7 @@ func readCommitMessageWithFallback(path, fallbackPath string) (string, error) {
 	return message, nil
 }
 
-func resolveReviewCommitMessage(commitMessage, workspacePath, repoPath string, requireMessage bool) (string, error) {
+func resolveReviewCommitMessage(commitMessage, workspacePath string, requireMessage bool) (string, error) {
 	if strings.TrimSpace(commitMessage) != "" {
 		return commitMessage, nil
 	}
@@ -788,20 +773,15 @@ func resolveReviewCommitMessage(commitMessage, workspacePath, repoPath string, r
 		return "", nil
 	}
 	messagePath := filepath.Join(workspacePath, commitMessageFilename)
-	fallbackMessagePath := ""
-	if strings.TrimSpace(repoPath) != "" {
-		fallbackMessagePath = filepath.Join(repoPath, commitMessageFilename)
-	}
-	message, err := readCommitMessageWithFallback(messagePath, fallbackMessagePath)
+	message, err := readCommitMessage(messagePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			if !requireMessage {
 				return "", nil
 			}
 			return "", fmt.Errorf(
-				"commit message missing before opencode review; opencode implementation was instructed to write %s (or %s): %w",
+				"commit message missing before opencode review; opencode implementation was instructed to write %s: %w",
 				messagePath,
-				fallbackMessagePath,
 				err,
 			)
 		}
