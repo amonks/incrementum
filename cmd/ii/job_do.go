@@ -235,7 +235,7 @@ func stageMessage(stage jobpkg.Stage) string {
 	case jobpkg.StageTesting:
 		return "Implementation prompt complete; running tests:"
 	case jobpkg.StageReviewing:
-		return "Tests passed; doing review:"
+		return "Tests passed; doing code review:"
 	case jobpkg.StageCommitting:
 		return "Review complete; committing changes:"
 	default:

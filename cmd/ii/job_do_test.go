@@ -48,3 +48,10 @@ func TestFormatCommitMessagesOutputPreservesIndentation(t *testing.T) {
 		t.Fatalf("expected commit message indentation preserved, got %q", output)
 	}
 }
+
+func TestStageMessageUsesCodeReviewLabel(t *testing.T) {
+	message := stageMessage(jobpkg.StageReviewing)
+	if message != "Tests passed; doing code review:" {
+		t.Fatalf("expected code review stage message, got %q", message)
+	}
+}
