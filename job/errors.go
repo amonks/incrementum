@@ -2,7 +2,6 @@ package job
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/amonks/incrementum/internal/validation"
 )
@@ -23,9 +22,9 @@ var (
 )
 
 func formatInvalidStatusError(status Status) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validation.FormatValidValues(ValidStatuses()))
+	return validation.FormatInvalidValueError(ErrInvalidStatus, status, ValidStatuses())
 }
 
 func formatInvalidStageError(stage Stage) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStage, stage, validation.FormatValidValues(ValidStages()))
+	return validation.FormatInvalidValueError(ErrInvalidStage, stage, ValidStages())
 }

@@ -1,6 +1,9 @@
 package validation
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // FormatValidValues joins string-like values for error messages.
 func FormatValidValues[T ~string](values []T) string {
@@ -9,4 +12,9 @@ func FormatValidValues[T ~string](values []T) string {
 		formatted = append(formatted, string(value))
 	}
 	return strings.Join(formatted, ", ")
+}
+
+// FormatInvalidValueError builds a consistent invalid-value error.
+func FormatInvalidValueError[T ~string](err error, value T, valid []T) error {
+	return fmt.Errorf("%w: %q (valid: %s)", err, value, FormatValidValues(valid))
 }

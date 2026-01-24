@@ -175,11 +175,11 @@ func normalizeTodoTypeInput(todoType TodoType) (TodoType, error) {
 }
 
 func formatInvalidStatusError(status Status) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidStatus, status, validation.FormatValidValues(ValidStatuses()))
+	return validation.FormatInvalidValueError(ErrInvalidStatus, status, ValidStatuses())
 }
 
 func formatInvalidTypeError(todoType TodoType) error {
-	return fmt.Errorf("%w: %q (valid: %s)", ErrInvalidType, todoType, validation.FormatValidValues(ValidTodoTypes()))
+	return validation.FormatInvalidValueError(ErrInvalidType, todoType, ValidTodoTypes())
 }
 
 // ValidateDependency checks if a dependency is valid.
