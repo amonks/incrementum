@@ -53,6 +53,9 @@ var todoUpdateCmd = &cobra.Command{
 By default, opens $EDITOR to edit a TOML representation of the todo
 when running interactively and no update flags are provided (one editor session per ID).
 Use --no-edit to skip the editor, or --edit to force opening the editor even when not interactive.`,
+	Aliases: []string{
+		"edit",
+	},
 	Args: cobra.MinimumNArgs(1),
 	RunE: runTodoUpdate,
 }

@@ -70,6 +70,12 @@ func TestTodoFinishHasDoneAlias(t *testing.T) {
 	}
 }
 
+func TestTodoUpdateHasEditAlias(t *testing.T) {
+	if !containsAlias(todoUpdateCmd, "edit") {
+		t.Fatalf("expected todo update to have edit alias, got %v", todoUpdateCmd.Aliases)
+	}
+}
+
 func containsAlias(cmd *cobra.Command, alias string) bool {
 	for _, item := range cmd.Aliases {
 		if item == alias {

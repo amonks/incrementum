@@ -92,6 +92,7 @@ Fields (JSON keys):
 - Only fields explicitly provided are changed.
 - When `todo update` runs in editor mode for multiple IDs, the CLI opens one editor session per todo.
 - Editor mode is used by default only when no update fields are supplied; if update fields are provided, the editor opens only with `--edit`.
+- `todo edit` is an alias for `todo update`.
 - CLI description input via `--description -` / `--desc -` trims trailing CR/LF characters.
 - Status transitions automatically adjust timestamps:
   - `closed`/`done` sets `closed_at` and clears delete markers.
@@ -172,7 +173,7 @@ Fields (JSON keys):
 The CLI mirrors the store API:
 
 - `todo create` -> `Store.Create`
-- `todo update` -> `Store.Update`
+- `todo update` (`todo edit`) -> `Store.Update`
 - `todo start` -> `Store.Start`
 - `todo close` -> `Store.Close`
 - `todo finish` (`todo done`) -> `Store.Finish`
