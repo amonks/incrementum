@@ -101,10 +101,7 @@ func (logger *ConsoleLogger) CommitMessage(entry CommitMessageLog) {
 	if logger == nil {
 		return
 	}
-	label := "Commit message:"
-	if strings.TrimSpace(entry.Label) != "" {
-		label = fmt.Sprintf("%s commit message:", entry.Label)
-	}
+	label := commitMessageLabel(entry.Label)
 	wrap := !entry.Preformatted
 	logger.writeBlock(
 		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
@@ -199,6 +196,13 @@ func reviewLabel(purpose string) string {
 	default:
 		return "Review result:"
 	}
+}
+
+func commitMessageLabel(label string) string {
+	if strings.TrimSpace(label) == "" {
+		return "Commit message:"
+	}
+	return fmt.Sprintf("%s commit message:", label)
 }
 
 // StageMessage returns the standard log message for a stage transition.

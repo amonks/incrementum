@@ -78,10 +78,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 		if err != nil {
 			return err
 		}
-		label := "Commit message:"
-		if strings.TrimSpace(data.Label) != "" {
-			label = fmt.Sprintf("%s commit message:", data.Label)
-		}
+		label := commitMessageLabel(data.Label)
 		writer.writeBlock(
 			formatLogLabel(label, documentIndent),
 			formatLogBody(data.Message, subdocumentIndent, true),
