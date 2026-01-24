@@ -17,6 +17,30 @@ var tableViewportWidth = detectTableViewportWidth
 var tableIsTerminal = term.IsTerminal
 var tableGetSize = term.GetSize
 
+// TableViewportWidth reports the configured viewport width.
+func TableViewportWidth() int {
+	return tableViewportWidth()
+}
+
+// OverrideTableViewportWidth replaces the viewport width provider.
+func OverrideTableViewportWidth(fn func() int) func() {
+	original := tableViewportWidth
+	tableViewportWidth = fn
+	return func() {
+		tableViewportWidth = original
+	}
+}
+
+// TableCellWidth reports the display width of a table cell.
+func TableCellWidth(value string) int {
+	return displayWidth(normalizeTableCell(value))
+}
+
+// TableCellMaxWidth reports the default maximum width for table cells.
+func TableCellMaxWidth() int {
+	return tableCellMaxWidth
+}
+
 // TableBuilder collects rows and renders a formatted table.
 type TableBuilder struct {
 	headers []string
@@ -88,16 +112,26 @@ func FormatTable(headers []string, rows [][]string) string {
 
 // TruncateTableCell limits cell width while preserving visible characters.
 func TruncateTableCell(value string) string {
+	return TruncateTableCellToWidth(value, tableCellMaxWidth)
+}
+
+// TruncateTableCellToWidth limits cell width while preserving visible characters.
+func TruncateTableCellToWidth(value string, max int) string {
 	value = normalizeTableCell(value)
-	if displayWidth(value) <= tableCellMaxWidth {
+	if max <= 0 {
+		return ""
+	}
+	if displayWidth(value) <= max {
 		return value
 	}
 
-	max := tableCellMaxWidth - displayWidth(tableCellEllipsis)
-	if max <= 0 {
-		return tableCellEllipsis
+	ellipsisWidth := displayWidth(tableCellEllipsis)
+	if max <= ellipsisWidth {
+		return truncateVisible(tableCellEllipsis, max)
 	}
-	return truncateVisible(value, max) + tableCellEllipsis
+
+	maxVisible := max - ellipsisWidth
+	return truncateVisible(value, maxVisible) + tableCellEllipsis
 }
 
 func displayWidth(value string) int {

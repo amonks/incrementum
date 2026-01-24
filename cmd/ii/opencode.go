@@ -118,10 +118,15 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 	if prefixLengths == nil {
 		prefixLengths = opencodeSessionPrefixLengths(sessions)
 	}
+	promptWidth := opencodePromptColumnWidth(sessions, highlight, now, prefixLengths)
 
 	for _, session := range sessions {
 		prompt := opencodePromptLine(session.Prompt)
-		prompt = ui.TruncateTableCell(prompt)
+		if promptWidth > 0 {
+			prompt = ui.TruncateTableCellToWidth(prompt, promptWidth)
+		} else {
+			prompt = ui.TruncateTableCell(prompt)
+		}
 		age := formatOpencodeAge(session, now)
 		duration := formatOpencodeDuration(session, now)
 		exit := "-"
@@ -141,6 +146,66 @@ func formatOpencodeTable(sessions []workspace.OpencodeSession, highlight func(st
 	}
 
 	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", "PROMPT", "EXIT"}, rows)
+}
+
+func opencodePromptColumnWidth(sessions []workspace.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
+	viewportWidth := ui.TableViewportWidth()
+	if viewportWidth <= 0 {
+		return ui.TableCellMaxWidth()
+	}
+
+	headers := []string{"SESSION", "STATUS", "AGE", "DURATION", "PROMPT", "EXIT"}
+	columnWidths := make([]int, len(headers))
+	for i, header := range headers {
+		columnWidths[i] = ui.TableCellWidth(header)
+	}
+
+	const promptIndex = 4
+	for _, session := range sessions {
+		age := formatOpencodeAge(session, now)
+		duration := formatOpencodeDuration(session, now)
+		exit := "-"
+		if session.ExitCode != nil {
+			exit = strconv.Itoa(*session.ExitCode)
+		}
+		prefixLen := prefixLengths[strings.ToLower(session.ID)]
+		values := []string{
+			highlight(session.ID, prefixLen),
+			string(session.Status),
+			age,
+			duration,
+			"",
+			exit,
+		}
+
+		for i, value := range values {
+			if i == promptIndex {
+				continue
+			}
+			if width := ui.TableCellWidth(value); width > columnWidths[i] {
+				columnWidths[i] = width
+			}
+		}
+	}
+
+	fixedWidth := 0
+	for i, width := range columnWidths {
+		if i == promptIndex {
+			continue
+		}
+		fixedWidth += width
+	}
+
+	padding := 2 * (len(headers) - 1)
+	remaining := viewportWidth - fixedWidth - padding
+	if remaining <= 0 {
+		return 0
+	}
+
+	if maxWidth := ui.TableCellMaxWidth(); maxWidth > 0 && remaining > maxWidth {
+		remaining = maxWidth
+	}
+	return remaining
 }
 
 func opencodeSessionPrefixLengths(sessions []workspace.OpencodeSession) map[string]int {
