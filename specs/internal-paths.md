@@ -1,7 +1,7 @@
 # Internal Paths
 
 ## Overview
-The paths package centralizes default filesystem locations for incrementum state, workspaces, and event logs.
+The paths package centralizes default filesystem locations for incrementum state, workspaces, and event logs. It uses a shared helper around `os.UserHomeDir` to keep error handling consistent.
 
 ## Defaults
 - State: `~/.local/state/incrementum`

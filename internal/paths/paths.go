@@ -8,9 +8,9 @@ import (
 
 // DefaultStateDir returns the default incrementum state directory.
 func DefaultStateDir() (string, error) {
-	home, err := os.UserHomeDir()
+	home, err := homeDir()
 	if err != nil {
-		return "", fmt.Errorf("get home directory: %w", err)
+		return "", err
 	}
 
 	return filepath.Join(home, ".local", "state", "incrementum"), nil
@@ -18,9 +18,9 @@ func DefaultStateDir() (string, error) {
 
 // DefaultWorkspacesDir returns the default incrementum workspaces directory.
 func DefaultWorkspacesDir() (string, error) {
-	home, err := os.UserHomeDir()
+	home, err := homeDir()
 	if err != nil {
-		return "", fmt.Errorf("get home directory: %w", err)
+		return "", err
 	}
 
 	return filepath.Join(home, ".local", "share", "incrementum", "workspaces"), nil
@@ -28,9 +28,9 @@ func DefaultWorkspacesDir() (string, error) {
 
 // DefaultOpencodeEventsDir returns the default directory for opencode events.
 func DefaultOpencodeEventsDir() (string, error) {
-	home, err := os.UserHomeDir()
+	home, err := homeDir()
 	if err != nil {
-		return "", fmt.Errorf("get home directory: %w", err)
+		return "", err
 	}
 
 	return filepath.Join(home, ".local", "share", "incrementum", "opencode", "events"), nil
@@ -38,10 +38,18 @@ func DefaultOpencodeEventsDir() (string, error) {
 
 // DefaultJobEventsDir returns the default directory for job events.
 func DefaultJobEventsDir() (string, error) {
+	home, err := homeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, ".local", "share", "incrementum", "jobs", "events"), nil
+}
+
+func homeDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("get home directory: %w", err)
 	}
-
-	return filepath.Join(home, ".local", "share", "incrementum", "jobs", "events"), nil
+	return home, nil
 }
