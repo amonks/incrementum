@@ -274,7 +274,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		for id := range idSet {
 			missing = append(missing, id)
 		}
-		return nil, fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
+		return nil, missingTodoIDsError(missing)
 	}
 
 	if err := s.writeTodos(todos); err != nil {
@@ -364,8 +364,8 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 		result = append(result, *todo)
 	}
 
-	if len(missing) > 0 {
-		return nil, fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
+	if err := missingTodoIDsError(missing); err != nil {
+		return nil, err
 	}
 
 	return result, nil
@@ -482,6 +482,13 @@ func todoMapByID(todos []Todo) map[string]*Todo {
 		todoMap[todos[i].ID] = &todos[i]
 	}
 	return todoMap
+}
+
+func missingTodoIDsError(missing []string) error {
+	if len(missing) == 0 {
+		return nil
+	}
+	return fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
 }
 
 // Ready returns open todos with no unresolved blockers, sorted by priority.
