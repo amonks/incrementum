@@ -29,12 +29,65 @@ func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 		t.Fatalf("create bin dir: %v", err)
 	}
 
-	argsFile := filepath.Join(root, "opencode-args.txt")
+	serveArgsFile := filepath.Join(root, "opencode-serve-args.txt")
+	runArgsFile := filepath.Join(root, "opencode-run-args.txt")
+	eventFile := filepath.Join(root, "opencode-events.txt")
+	eventData := "event: log\ndata: hello from opencode\n\n"
+	if err := os.WriteFile(eventFile, []byte(eventData), 0o644); err != nil {
+		t.Fatalf("write event data: %v", err)
+	}
 	projectID := "proj_123"
 	sessionID := "ses_123"
 
 	opencodePath := filepath.Join(binDir, "opencode")
-	opencodeScript := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = \"run\" ]; then\n  echo \"$@\" > \"%s\"\n  exit 0\nfi\nexit 0\n", argsFile)
+	opencodeScript := fmt.Sprintf(`#!/bin/sh
+if [ "$1" = "serve" ]; then
+  shift
+  echo "serve $@" > "%s"
+  port=""
+  for arg in "$@"; do
+    case "$arg" in
+      --port=*)
+        port="${arg#--port=}"
+        ;;
+    esac
+  done
+  exec python3 - "$port" "%s" <<'PY'
+import sys
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+port = int(sys.argv[1])
+event_path = sys.argv[2]
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass
+    def do_GET(self):
+        if self.path != "/event":
+            self.send_response(404)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.end_headers()
+        with open(event_path, "rb") as handle:
+            self.wfile.write(handle.read())
+        self.wfile.flush()
+        while True:
+            time.sleep(0.1)
+
+server = HTTPServer(("localhost", port), Handler)
+server.serve_forever()
+PY
+fi
+if [ "$1" = "run" ]; then
+  shift
+  echo "run $@" > "%s"
+  exit 0
+fi
+exit 0
+`, serveArgsFile, eventFile, runArgsFile)
 	if err := os.WriteFile(opencodePath, []byte(opencodeScript), 0o755); err != nil {
 		t.Fatalf("write opencode stub: %v", err)
 	}
@@ -98,19 +151,37 @@ func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 		t.Fatalf("run opencode: %v", err)
 	}
 
-	data, err := os.ReadFile(argsFile)
+	serveData, err := os.ReadFile(serveArgsFile)
 	if err != nil {
-		t.Fatalf("read args: %v", err)
+		t.Fatalf("read serve args: %v", err)
 	}
-	args := strings.TrimSpace(string(data))
-	if !strings.Contains(args, "run") {
-		t.Fatalf("expected opencode run args, got %q", args)
+	serveArgs := strings.Fields(strings.TrimSpace(string(serveData)))
+	if len(serveArgs) == 0 || serveArgs[0] != "serve" {
+		t.Fatalf("expected opencode serve args, got %q", serveArgs)
 	}
-	if strings.Contains(args, "--attach") {
-		t.Fatalf("expected opencode run without --attach, got %q", args)
+	var port string
+	for _, arg := range serveArgs {
+		if strings.HasPrefix(arg, "--port=") {
+			port = strings.TrimPrefix(arg, "--port=")
+		}
 	}
-	if !strings.Contains(args, "Test prompt") {
-		t.Fatalf("expected prompt to be passed, got %q", args)
+	if port == "" {
+		t.Fatalf("expected opencode serve port, got %q", serveArgs)
+	}
+
+	runData, err := os.ReadFile(runArgsFile)
+	if err != nil {
+		t.Fatalf("read run args: %v", err)
+	}
+	runArgs := strings.TrimSpace(string(runData))
+	if !strings.Contains(runArgs, "run") {
+		t.Fatalf("expected opencode run args, got %q", runArgs)
+	}
+	if !strings.Contains(runArgs, "--attach=http://localhost:"+port) {
+		t.Fatalf("expected opencode run to attach to server, got %q", runArgs)
+	}
+	if !strings.Contains(runArgs, "Test prompt") {
+		t.Fatalf("expected prompt to be passed, got %q", runArgs)
 	}
 
 	store, err := opencode.Open()
@@ -133,5 +204,13 @@ func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 	}
 	if sessions[0].ExitCode == nil || *sessions[0].ExitCode != 0 {
 		t.Fatalf("expected exit code 0, got %v", sessions[0].ExitCode)
+	}
+
+	snapshot, err := store.Logs(repoPath, sessionID)
+	if err != nil {
+		t.Fatalf("read logs: %v", err)
+	}
+	if snapshot != eventData {
+		t.Fatalf("expected event log %q, got %q", eventData, snapshot)
 	}
 }

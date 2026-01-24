@@ -793,7 +793,7 @@ func updateStaleWorkspace(update func(string) error, workspacePath string) {
 }
 
 func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (OpencodeRunResult, error) {
-	result, err := store.Run(opencode.RunOptions{
+	handle, err := store.Run(opencode.RunOptions{
 		RepoPath:  opts.RepoPath,
 		WorkDir:   opts.WorkspacePath,
 		Prompt:    opts.Prompt,
@@ -802,7 +802,28 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 	if err != nil {
 		return OpencodeRunResult{}, err
 	}
+
+	drainDone := drainOpencodeEvents(handle.Events)
+	result, err := handle.Wait()
+	<-drainDone
+	if err != nil {
+		return OpencodeRunResult{}, err
+	}
 	return OpencodeRunResult{SessionID: result.SessionID, ExitCode: result.ExitCode}, nil
+}
+
+func drainOpencodeEvents(events <-chan opencode.Event) <-chan struct{} {
+	done := make(chan struct{})
+	if events == nil {
+		close(done)
+		return done
+	}
+	go func() {
+		for range events {
+		}
+		close(done)
+	}()
+	return done
 }
 
 func statusPtr(status Status) *Status {

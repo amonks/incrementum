@@ -32,3 +32,17 @@ func TestDefaultWorkspacesDirUsesHome(t *testing.T) {
 		t.Fatalf("expected %s, got %s", expected, dir)
 	}
 }
+
+func TestDefaultOpencodeEventsDirUsesHome(t *testing.T) {
+	t.Setenv("HOME", filepath.Join("/tmp", "test-home"))
+
+	dir, err := DefaultOpencodeEventsDir()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	expected := filepath.Join("/tmp", "test-home", ".local", "share", "incrementum", "opencode", "events")
+	if dir != expected {
+		t.Fatalf("expected %s, got %s", expected, dir)
+	}
+}

@@ -1,10 +1,15 @@
 package opencode
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -28,7 +33,7 @@ type RunResult struct {
 }
 
 // Run executes opencode and records session state.
-func (s *Store) Run(opts RunOptions) (RunResult, error) {
+func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 	startedAt := opts.StartedAt
 	if startedAt.IsZero() {
 		startedAt = time.Now()
@@ -38,64 +43,139 @@ func (s *Store) Run(opts RunOptions) (RunResult, error) {
 	if repoPath == "" {
 		repoPath = opts.WorkDir
 	}
-
-	runCmd := exec.Command("opencode", "run", opts.Prompt)
-	runCmd.Dir = opts.WorkDir
-	if runCmd.Dir == "" {
-		runCmd.Dir = repoPath
+	workDir := opts.WorkDir
+	if workDir == "" {
+		workDir = repoPath
 	}
 
-	runCmd.Env = opts.Env
-	if runCmd.Env == nil {
-		runCmd.Env = os.Environ()
+	env := opts.Env
+	if env == nil {
+		env = os.Environ()
 	}
-	if runCmd.Dir != "" {
-		runCmd.Env = replaceEnvVar(runCmd.Env, "PWD", runCmd.Dir)
+	if workDir != "" {
+		env = replaceEnvVar(env, "PWD", workDir)
 	}
 
-	runCmd.Stdout = opts.Stdout
-	if runCmd.Stdout == nil {
-		runCmd.Stdout = os.Stdout
+	runStdout := opts.Stdout
+	if runStdout == nil {
+		runStdout = os.Stdout
 	}
-	runCmd.Stderr = opts.Stderr
-	if runCmd.Stderr == nil {
-		runCmd.Stderr = os.Stderr
+	runStderr := opts.Stderr
+	if runStderr == nil {
+		runStderr = os.Stderr
 	}
-	runCmd.Stdin = opts.Stdin
-	if runCmd.Stdin == nil {
-		runCmd.Stdin = os.Stdin
+	runStdin := opts.Stdin
+	if runStdin == nil {
+		runStdin = os.Stdin
 	}
+
+	port, err := allocatePort()
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL := fmt.Sprintf("http://localhost:%d", port)
+	eventURL := serverURL + "/event"
+
+	serveCmd := exec.Command("opencode", "serve", "--port="+strconv.Itoa(port), "--hostname=localhost")
+	serveCmd.Dir = workDir
+	serveCmd.Env = env
+	serveCmd.Stdout = runStderr
+	serveCmd.Stderr = runStderr
+
+	if err := serveCmd.Start(); err != nil {
+		return nil, err
+	}
+
+	resp, err := connectEventStream(eventURL, 5*time.Second)
+	if err != nil {
+		stopErr := stopServeCommand(serveCmd)
+		return nil, errors.Join(err, stopErr)
+	}
+
+	recorder, err := s.events.newRecorder()
+	if err != nil {
+		_ = resp.Body.Close()
+		stopErr := stopServeCommand(serveCmd)
+		return nil, errors.Join(err, stopErr)
+	}
+
+	events := make(chan Event, 32)
+	eventCtx, cancelEvents := context.WithCancel(context.Background())
+	eventErrCh := make(chan error, 1)
+	go func() {
+		eventErrCh <- readEventStream(eventCtx, resp.Body, recorder, events)
+		close(events)
+	}()
+
+	sessionCh := make(chan sessionResult, 1)
+	go func() {
+		session, err := s.ensureSession(repoPath, startedAt, opts.Prompt)
+		var recordErr error
+		if err == nil {
+			recordErr = recorder.SetSessionID(session.ID)
+		}
+		sessionCh <- sessionResult{session: session, err: err, recordErr: recordErr}
+	}()
+
+	runCmd := exec.Command("opencode", "run", "--attach="+serverURL, opts.Prompt)
+	runCmd.Dir = workDir
+	runCmd.Env = env
+	runCmd.Stdout = runStdout
+	runCmd.Stderr = runStderr
+	runCmd.Stdin = runStdin
 
 	if err := runCmd.Start(); err != nil {
-		return RunResult{}, err
+		cancelEvents()
+		_ = resp.Body.Close()
+		stopErr := stopServeCommand(serveCmd)
+		return nil, errors.Join(err, stopErr)
 	}
 
-	session, sessionErr := s.ensureSession(repoPath, startedAt, opts.Prompt)
-	exitCode, runErr := runExitCode(runCmd)
-	completedAt := time.Now()
+	handle := &RunHandle{
+		Events: events,
+		wait: func() (RunResult, error) {
+			exitCode, runErr := runExitCode(runCmd)
+			completedAt := time.Now()
 
-	if sessionErr != nil {
-		session, sessionErr = s.ensureSession(repoPath, startedAt, opts.Prompt)
-	}
-	if sessionErr != nil {
-		if runErr != nil {
-			return RunResult{}, errors.Join(runErr, sessionErr)
-		}
-		return RunResult{}, sessionErr
+			sessionResult := <-sessionCh
+			if sessionResult.err != nil {
+				runErr = errors.Join(runErr, sessionResult.err)
+			}
+			if sessionResult.recordErr != nil {
+				runErr = errors.Join(runErr, sessionResult.recordErr)
+			}
+
+			cancelEvents()
+			_ = resp.Body.Close()
+			eventErr := <-eventErrCh
+			stopErr := stopServeCommand(serveCmd)
+			if eventErr != nil {
+				runErr = errors.Join(runErr, eventErr)
+			}
+			if stopErr != nil {
+				runErr = errors.Join(runErr, stopErr)
+			}
+
+			if sessionResult.err == nil {
+				duration := int(completedAt.Sub(sessionResult.session.StartedAt).Seconds())
+				status := OpencodeSessionCompleted
+				if exitCode != 0 {
+					status = OpencodeSessionFailed
+				}
+				if _, err := s.CompleteSession(repoPath, sessionResult.session.ID, status, completedAt, &exitCode, duration); err != nil {
+					runErr = errors.Join(runErr, err)
+				}
+			}
+
+			if runErr != nil {
+				return RunResult{}, runErr
+			}
+			return RunResult{SessionID: sessionResult.session.ID, ExitCode: exitCode}, nil
+		},
 	}
 
-	duration := int(completedAt.Sub(session.StartedAt).Seconds())
-	status := OpencodeSessionCompleted
-	if exitCode != 0 {
-		status = OpencodeSessionFailed
-	}
-	if _, err := s.CompleteSession(repoPath, session.ID, status, completedAt, &exitCode, duration); err != nil {
-		return RunResult{}, err
-	}
-	if runErr != nil {
-		return RunResult{}, runErr
-	}
-	return RunResult{SessionID: session.ID, ExitCode: exitCode}, nil
+	return handle, nil
 }
 
 func (s *Store) ensureSession(repoPath string, startedAt time.Time, prompt string) (OpencodeSession, error) {
@@ -142,4 +222,100 @@ func runExitCode(cmd *exec.Cmd) (int, error) {
 		return 1, err
 	}
 	return 0, nil
+}
+
+type sessionResult struct {
+	session   OpencodeSession
+	err       error
+	recordErr error
+}
+
+func allocatePort() (int, error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, fmt.Errorf("listen for opencode port: %w", err)
+	}
+	defer listener.Close()
+	addr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return 0, fmt.Errorf("unexpected listener address: %T", listener.Addr())
+	}
+	return addr.Port, nil
+}
+
+func connectEventStream(url string, timeout time.Duration) (*http.Response, error) {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return nil, lastErr
+		}
+
+		transport := &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			DialContext:           (&net.Dialer{Timeout: remaining}).DialContext,
+			ResponseHeaderTimeout: remaining,
+		}
+		client := &http.Client{Transport: transport}
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := client.Do(req)
+		if err == nil {
+			if resp.StatusCode == http.StatusOK {
+				return resp, nil
+			}
+			lastErr = fmt.Errorf("unexpected event status: %s", resp.Status)
+			_ = resp.Body.Close()
+		} else {
+			lastErr = err
+		}
+		transport.CloseIdleConnections()
+		if time.Now().After(deadline) {
+			return nil, lastErr
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func stopServeCommand(cmd *exec.Cmd) error {
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
+	signalErr := cmd.Process.Signal(os.Interrupt)
+	waitCh := make(chan error, 1)
+	go func() {
+		waitCh <- cmd.Wait()
+	}()
+
+	select {
+	case waitErr := <-waitCh:
+		if errors.Is(waitErr, os.ErrProcessDone) {
+			waitErr = nil
+		}
+		if isExpectedServeExit(waitErr) {
+			waitErr = nil
+		}
+		return errors.Join(signalErr, waitErr)
+	case <-time.After(2 * time.Second):
+		killErr := cmd.Process.Kill()
+		waitErr := <-waitCh
+		if errors.Is(waitErr, os.ErrProcessDone) {
+			waitErr = nil
+		}
+		if isExpectedServeExit(waitErr) {
+			waitErr = nil
+		}
+		return errors.Join(signalErr, killErr, waitErr)
+	}
+}
+
+func isExpectedServeExit(err error) bool {
+	if err == nil {
+		return false
+	}
+	var exitErr *exec.ExitError
+	return errors.As(err, &exitErr)
 }

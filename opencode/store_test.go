@@ -171,6 +171,7 @@ func openTestStore(t *testing.T) *Store {
 	store, err := OpenWithOptions(Options{
 		StateDir:    t.TempDir(),
 		StorageRoot: t.TempDir(),
+		EventsDir:   t.TempDir(),
 	})
 	if err != nil {
 		t.Fatalf("open store: %v", err)

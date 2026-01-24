@@ -38,7 +38,7 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	result, err := store.Run(opencode.RunOptions{
+	handle, err := store.Run(opencode.RunOptions{
 		RepoPath:  repoPath,
 		WorkDir:   repoPath,
 		Prompt:    prompt,
@@ -47,6 +47,13 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		Stdout:    os.Stdout,
 		Stderr:    os.Stderr,
 	})
+	if err != nil {
+		return err
+	}
+
+	drainDone := drainOpencodeEvents(handle.Events)
+	result, err := handle.Wait()
+	<-drainDone
 	if err != nil {
 		return err
 	}

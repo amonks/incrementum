@@ -39,3 +39,17 @@ func getOpencodeRepoPath() (string, error) {
 	}
 	return "", err
 }
+
+func drainOpencodeEvents(events <-chan opencode.Event) <-chan struct{} {
+	done := make(chan struct{})
+	if events == nil {
+		close(done)
+		return done
+	}
+	go func() {
+		for range events {
+		}
+		close(done)
+	}()
+	return done
+}

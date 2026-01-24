@@ -17,9 +17,10 @@ invoked by the CLI and job workflows.
 - Session state is stored in `~/.local/state/incrementum/state.json` alongside
   workspace state.
 - Opencode session data lives under `~/.local/share/opencode/storage`.
+- Event logs streamed from opencode live under `~/.local/share/incrementum/opencode/events`.
 - Session metadata is read from `storage/session/<project-id>/<session-id>.json`.
-- Session logs are reconstructed from `storage/message/<session-id>/` and
-  `storage/part/<message-id>/`.
+- Prose-only transcripts are reconstructed from `storage/message/<session-id>/`
+  and `storage/part/<message-id>/`.
 - Opencode session metadata uses the same repo slug naming rules as the
   workspace pool.
 - All state updates are serialized using the existing state file lock.
@@ -54,18 +55,23 @@ Fields (JSON keys):
   found, they fall back to the current working directory.
 - Session IDs accept case-insensitive prefix matching; prefixes must be
   unambiguous.
-- `run` executes `opencode run` directly and blocks until completion.
+- `run` starts `opencode serve` and streams events from `/event` before invoking
+  `opencode run --attach=<server-url>`.
 - `run` updates session status and exit code when the command exits.
 - `kill` records status `killed` and sets `exit_code` to the signal exit code
   reported by opencode when available.
-- Logs are read from opencode storage and retained indefinitely by opencode.
+- Logs are read from incrementum's stored event stream and retained
+  indefinitely by incrementum.
 
 ## Commands
 
 ### `ii opencode run [prompt]`
 
 - Prompt is read from stdin when no prompt argument is provided.
-- Executes `opencode run <prompt>` from the repo root and streams output.
+- Starts `opencode serve`, opens the event stream, then executes
+  `opencode run --attach=<server-url> <prompt>` from the repo root.
+- Streams opencode events to `~/.local/share/incrementum/opencode/events`.
+- Returns an event channel to callers so they can read the full event stream.
 - Creates a new opencode session record in state shortly after the run starts (once opencode writes session metadata).
 - Updates status, exit code, and duration when the run finishes.
 - Exits with the same code as the opencode run.
@@ -73,12 +79,7 @@ Fields (JSON keys):
 ### `ii opencode logs <session-id>`
 
 - Resolves the opencode session by id in the current repo.
-- Prints a snapshot of the reconstructed log contents to stdout.
-
-### `ii opencode tail <session-id>`
-
-- Resolves the opencode session by id in the current repo.
-- Streams log output by polling opencode storage (similar to `tail -f`).
+- Prints a snapshot of the stored event stream to stdout.
 
 ### `ii opencode list [--json] [--all]`
 

@@ -15,6 +15,7 @@ import (
 type Store struct {
 	stateStore *statestore.Store
 	storage    internalopencode.Storage
+	events     eventStorage
 }
 
 // Options configures an opencode store.
@@ -26,6 +27,10 @@ type Options struct {
 	// StorageRoot is the opencode storage root.
 	// Defaults to ~/.local/share/opencode if empty.
 	StorageRoot string
+
+	// EventsDir is the directory where opencode events are stored.
+	// Defaults to ~/.local/share/incrementum/opencode/events if empty.
+	EventsDir string
 }
 
 // Open creates a store with default options.
@@ -53,9 +58,19 @@ func OpenWithOptions(opts Options) (*Store, error) {
 		}
 	}
 
+	eventsDir := opts.EventsDir
+	if eventsDir == "" {
+		var err error
+		eventsDir, err = paths.DefaultOpencodeEventsDir()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Store{
 		stateStore: statestore.NewStore(stateDir),
 		storage:    internalopencode.Storage{Root: storageRoot},
+		events:     eventStorage{Root: eventsDir},
 	}, nil
 }
 

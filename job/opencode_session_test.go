@@ -29,8 +29,62 @@ func TestRunOpencodeSessionRecordsActiveSessionDuringRun(t *testing.T) {
 	}
 
 	waitFile := filepath.Join(root, "opencode-wait")
+	serveArgsFile := filepath.Join(root, "opencode-serve-args.txt")
+	eventFile := filepath.Join(root, "opencode-events.txt")
+	eventData := "event: status\ndata: ready\n\n"
+	if err := os.WriteFile(eventFile, []byte(eventData), 0o644); err != nil {
+		t.Fatalf("write event data: %v", err)
+	}
 	opencodePath := filepath.Join(binDir, "opencode")
-	opencodeScript := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = \"run\" ]; then\n  while [ ! -f \"%s\" ]; do\n    sleep 0.02\n  done\n  exit 0\nfi\nexit 0\n", waitFile)
+	opencodeScript := fmt.Sprintf(`#!/bin/sh
+if [ "$1" = "serve" ]; then
+  shift
+  echo "serve $@" > "%s"
+  port=""
+  for arg in "$@"; do
+    case "$arg" in
+      --port=*)
+        port="${arg#--port=}"
+        ;;
+    esac
+  done
+  exec python3 - "$port" "%s" <<'PY'
+import sys
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+port = int(sys.argv[1])
+event_path = sys.argv[2]
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass
+    def do_GET(self):
+        if self.path != "/event":
+            self.send_response(404)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.end_headers()
+        with open(event_path, "rb") as handle:
+            self.wfile.write(handle.read())
+        self.wfile.flush()
+        while True:
+            time.sleep(0.1)
+
+server = HTTPServer(("localhost", port), Handler)
+server.serve_forever()
+PY
+fi
+if [ "$1" = "run" ]; then
+  while [ ! -f "%s" ]; do
+    sleep 0.02
+  done
+  exit 0
+fi
+exit 0
+`, serveArgsFile, eventFile, waitFile)
 	if err := os.WriteFile(opencodePath, []byte(opencodeScript), 0o755); err != nil {
 		t.Fatalf("write opencode stub: %v", err)
 	}
