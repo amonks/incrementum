@@ -25,9 +25,13 @@ import sys
 import time
 
 def read_prompt(args):
+    if not sys.stdin.isatty():
+        prompt = sys.stdin.read()
+        if prompt:
+            return prompt
     if len(args) > 2 and not args[-1].startswith("--attach="):
         return args[-1]
-    return sys.stdin.read()
+    return ""
 
 def extract_workspace_root(prompt: str) -> str:
     for line in prompt.splitlines():
