@@ -3,9 +3,11 @@
 ## Overview
 
 The job package and subcommand automate todo completion via opencode. A job
-runs from the current working directory, invokes opencode to implement the
-todo, runs acceptance tests, runs opencode to review changes, generates a commit
-message, and commits the change. Jobs retry on test failure or review rejection
+runs from the current working directory and executes a work loop: opencode is
+asked to complete the next highest-priority step and write a commit message,
+tests run, opencode reviews the change, and the result is committed. The loop
+continues until opencode makes no changes, then the job runs tests and a final
+project review before completing. Jobs retry on test failure or review rejection
 until opencode decides to abandon.
 
 ## Architecture
@@ -71,17 +73,19 @@ If the file doesn't exist after review, treat as `ACCEPT`.
 ## Commit Message File
 
 Opencode writes the generated commit message to `.incrementum-commit-message` in the
-job working directory (the repo root). If the file is missing there, fall back to
-the repo root (for backwards compatibility).
+job working directory (the repo root) during the implementing stage. If the file
+is missing there, fall back to the repo root (for backwards compatibility).
 
 ## State Machine
 
 ```
-implementing -> testing -> reviewing -> committing -> completed
-     ^             |            |
-     |             |            |
-     +-------------+------------+
-       (test failure or REQUEST_CHANGES)
+implementing -> testing -> reviewing -> committing -> implementing
+     ^             |            |           |
+     |             |            |           +-> (continue work loop)
+     |             |            +--------------> implementing (REQUEST_CHANGES)
+     |             +--------------------------> implementing (test failure)
+     |
+     +-> (no changes) -> testing -> reviewing -> completed
 
 reviewing -> abandoned (ABANDON)
 any stage -> failed (unrecoverable error)
@@ -91,12 +95,20 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` if it exists.
-3. Run opencode with `implement.tmpl` prompt from the repo root (PWD set to the repo root).
-4. Template receives: `Todo`, `Feedback` (empty string on initial run).
-5. Record opencode session in `opencode_sessions` with purpose `implement`.
-6. Run opencode to completion.
-7. If opencode fails (nonzero exit): mark job `failed`.
-8. Transition to `testing`.
+3. Record the current working copy commit id.
+4. Run opencode with `implement.tmpl` prompt from the repo root (PWD set to the repo root).
+5. Template receives: `Todo`, `Feedback` (empty string on initial run).
+6. Record opencode session in `opencode_sessions` with purpose `implement`.
+7. Run opencode to completion.
+8. If opencode fails (nonzero exit): mark job `failed`.
+9. Record the current working copy commit id again.
+10. If the commit id did not change:
+   - Delete `.incrementum-commit-message` if it exists.
+   - Flag the next testing/review cycle as the final project review.
+11. If the commit id changed:
+   - Read `.incrementum-commit-message` (fallback to repo root).
+   - Store the message for the committing stage.
+12. Transition to `testing`.
 
 ### testing
 
@@ -106,44 +118,42 @@ any stage -> failed (unrecoverable error)
    - Build feedback as markdown table with columns `Command` and `Exit Code`.
    - Transition to `implementing`.
 4. If all pass: transition to `reviewing`.
+5. If the job was in final project review when tests failed, the next implementing
+   stage restarts the work loop.
 
 ### reviewing
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` if it exists.
-3. Run opencode with `review.tmpl` prompt from the repo root (PWD set to the repo root).
+3. Run opencode with:
+   - `review.tmpl` during the work loop, or
+   - `project-review.tmpl` during the final project review.
 4. Template receives: `Todo`.
-5. Template instructs opencode to inspect changes (e.g., `jj diff`) and write
-   outcome to `.incrementum-feedback`.
-6. Record opencode session in `opencode_sessions` with purpose `review`.
+5. Template instructs opencode to inspect changes (or the commit sequence for
+   project review) and write outcome to `.incrementum-feedback`.
+6. Record opencode session in `opencode_sessions` with purpose `review` or
+   `project-review`.
 7. Run opencode to completion.
 8. If opencode fails (nonzero exit): mark job `failed`.
 9. Read `.incrementum-feedback`:
    - Delete `.incrementum-feedback` after reading.
-   - Missing or first line is `ACCEPT`: transition to `committing`.
+   - Missing or first line is `ACCEPT`:
+     - During the work loop: transition to `committing`.
+     - During project review: mark job `completed`.
    - First line is `ABANDON`: mark job `abandoned`.
-    - First line is `REQUEST_CHANGES`: extract feedback (lines after first blank
-      line), transition to `implementing`.
+   - First line is `REQUEST_CHANGES`: extract feedback (lines after first blank
+     line), transition to `implementing` and restart the work loop if needed.
    - Other first line: treat as invalid format, mark job `failed`.
 
 ### committing
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
-2. Delete `.incrementum-commit-message` if it exists.
-3. Run opencode with `commit-message.tmpl` prompt from the repo root (PWD set to the repo root).
-4. Template receives: `Todo`.
-5. Template instructs opencode to generate commit message and write to
-   `.incrementum-commit-message`.
-6. Record opencode session in `opencode_sessions` with purpose `commit-message`.
-7. Run opencode to completion.
-8. If opencode fails (nonzero exit): mark job `failed`.
-9. Read `.incrementum-commit-message`.
-10. Delete `.incrementum-commit-message` after reading.
-11. Format final message using `commit.tmpl` with: `Todo`, `Message` (from file).
-12. Best-effort `jj workspace update-stale` in the repo working directory.
-13. Run `jj commit -m "<formatted message>"` in the repo working directory.
-14. If commit fails: mark job `failed`.
-15. Mark job `completed`.
+2. Format final message using `commit.tmpl` with: `Todo`, `Message` (from the
+   implementing stage).
+3. Best-effort `jj workspace update-stale` in the repo working directory.
+4. Run `jj commit -m "<formatted message>"` in the repo working directory.
+5. If commit fails: mark job `failed`.
+6. Transition back to `implementing` to continue the work loop.
 
 ## Failure Handling
 
@@ -175,12 +185,12 @@ test-commands = [
 Bundled defaults via `//go:embed`, overridable by placing files in
 `.incrementum/prompts/`.
 
-| File                  | Stage        | Variables                     |
-| --------------------- | ------------ | ----------------------------- |
-| `implement.tmpl`      | implementing | `Todo`, `Feedback`, `WorkspacePath` |
-| `review.tmpl`         | reviewing    | `Todo`, `WorkspacePath`                        |
-| `commit-message.tmpl` | committing   | `Todo`, `WorkspacePath`                        |
-| `commit.tmpl`         | committing   | `Todo`, `Message`, `WorkspacePath`             |
+| File                   | Stage        | Variables                             |
+| ---------------------- | ------------ | ------------------------------------- |
+| `implement.tmpl`       | implementing | `Todo`, `Feedback`, `WorkspacePath`   |
+| `review.tmpl`          | reviewing    | `Todo`, `WorkspacePath`               |
+| `project-review.tmpl`  | reviewing    | `Todo`, `WorkspacePath`               |
+| `commit.tmpl`          | committing   | `Todo`, `Message`, `WorkspacePath`    |
 
 Templates use Go `text/template` syntax.
 

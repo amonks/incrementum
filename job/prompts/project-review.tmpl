@@ -1,0 +1,23 @@
+Review the implementation for the following todo and write the outcome to {{.WorkspacePath}}/.incrementum-feedback.
+
+Workspace root: {{.WorkspacePath}}
+Use this path as the repo root for all commands and file edits.
+
+Todo:
+- ID: {{.Todo.ID}}
+- Title: {{.Todo.Title}}
+- Type: {{.Todo.Type}}
+- Priority: {{.Todo.Priority}}
+
+Description:
+{{.Todo.Description}}
+
+Review the overall implementation from the latest commits and confirm the todo is fully resolved.
+If you need to re-run tests or perform manual verification, do so before responding.
+
+Write one of the following as the first line:
+- ACCEPT
+- ABANDON
+- REQUEST_CHANGES
+
+If requesting changes, add a blank line and the details after it.

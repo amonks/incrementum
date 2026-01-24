@@ -21,7 +21,10 @@ stdout 'Stage: implementing'
 stdout 'Stage: testing'
 stdout 'Stage: reviewing'
 stdout 'Stage: committing'
-stdout 'Commit message:'
+stdout 'Stage: implementing'
+stdout 'Stage: testing'
+stdout 'Stage: reviewing'
+stdout 'Commit messages:'
 stdout 'Test commit message'
 stdout 'Refs:'
 exists hello-world.txt
@@ -48,9 +51,13 @@ def run_job(prompt: str):
         raise RuntimeError("PWD not set")
     if pwd != workspace_root:
         raise RuntimeError(f"PWD {pwd} does not match workspace root {workspace_root}")
-    open(os.path.join(workspace_root, "hello-world.txt"), "a").close()
-    with open(os.path.join(workspace_root, ".incrementum-commit-message"), "w") as handle:
-        handle.write("Test commit message\n")
+    marker = os.path.join(workspace_root, ".incrementum-work-complete")
+    if not os.path.exists(marker) and not prompt.startswith("Review"):
+        open(os.path.join(workspace_root, "hello-world.txt"), "a").close()
+        with open(os.path.join(workspace_root, ".incrementum-commit-message"), "w") as handle:
+            handle.write("Test commit message\n")
+        with open(marker, "w") as handle:
+            handle.write("done")
 
     home = os.path.expanduser("~")
     storage_root = os.path.join(home, ".local", "share", "opencode", "storage")

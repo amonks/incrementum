@@ -28,6 +28,8 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 
 	workspacePath := t.TempDir()
 	updateCalled := false
+	commitIDs := []string{"before", "after"}
+	commitIndex := 0
 
 	opts := RunOptions{
 		Now: func() time.Time {
@@ -40,9 +42,21 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 			updateCalled = true
 			return errors.New("not stale")
 		},
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			if !updateCalled {
 				return OpencodeRunResult{}, fmt.Errorf("expected update-stale before opencode")
+			}
+			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
+			if err := os.WriteFile(messagePath, []byte("feat: stale"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
 			}
 			return OpencodeRunResult{SessionID: "oc-123", ExitCode: 0}, nil
 		},
@@ -56,15 +70,15 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 		Priority:    todo.PriorityMedium,
 	}
 
-	updated, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts)
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts)
 	if err != nil {
 		t.Fatalf("run implementing stage: %v", err)
 	}
 	if !updateCalled {
 		t.Fatalf("expected update-stale to be called")
 	}
-	if updated.Stage != StageTesting {
-		t.Fatalf("expected stage %q, got %q", StageTesting, updated.Stage)
+	if result.Job.Stage != StageTesting {
+		t.Fatalf("expected stage %q, got %q", StageTesting, result.Job.Stage)
 	}
 }
 
@@ -117,7 +131,7 @@ func TestRunReviewingStageUpdatesStaleWorkspace(t *testing.T) {
 		Priority:    todo.PriorityMedium,
 	}
 
-	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts)
+	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}

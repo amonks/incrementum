@@ -25,25 +25,41 @@ const (
 
 // RunOptions configures job execution.
 type RunOptions struct {
-	OnStart       func(StartInfo)
-	OnStageChange func(Stage)
-	Now           func() time.Time
-	LoadConfig    func(string) (*config.Config, error)
-	RunTests      func(string, []string) ([]TestCommandResult, error)
-	RunOpencode   func(opencodeRunOptions) (OpencodeRunResult, error)
-	UpdateStale   func(string) error
+	OnStart         func(StartInfo)
+	OnStageChange   func(Stage)
+	Now             func() time.Time
+	LoadConfig      func(string) (*config.Config, error)
+	RunTests        func(string, []string) ([]TestCommandResult, error)
+	RunOpencode     func(opencodeRunOptions) (OpencodeRunResult, error)
+	CurrentCommitID func(string) (string, error)
+	Commit          func(string, string) error
+	UpdateStale     func(string) error
 }
 
 // RunResult captures the output of running a job.
 type RunResult struct {
-	Job           Job
-	CommitMessage string
+	Job            Job
+	CommitMessage  string
+	CommitMessages []string
 }
 
 // OpencodeRunResult captures output from running opencode.
 type OpencodeRunResult struct {
 	SessionID string
 	ExitCode  int
+}
+
+type reviewScope int
+
+const (
+	reviewScopeStep reviewScope = iota
+	reviewScopeProject
+)
+
+type ImplementingStageResult struct {
+	Job           Job
+	CommitMessage string
+	Changed       bool
 }
 
 type opencodeRunOptions struct {
@@ -131,7 +147,7 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		manager:       manager,
 		result:        result,
 	}
-	finalJob, err := runJobStages(runCtx, created, interrupts)
+	finalJob, err := runJobStages(&runCtx, created, interrupts)
 	result.Job = finalJob
 	statusErr := finalizeTodo(repoPath, item.ID, finalJob.Status)
 	if err != nil {
@@ -150,15 +166,19 @@ type runContext struct {
 	opts          RunOptions
 	manager       *Manager
 	result        *RunResult
+	reviewScope   reviewScope
+	commitMessage string
+	workComplete  bool
 }
 
-func runJobStages(ctx runContext, current Job, interrupts <-chan os.Signal) (Job, error) {
+func runJobStages(ctx *runContext, current Job, interrupts <-chan os.Signal) (Job, error) {
+	ctx.reviewScope = reviewScopeStep
 	for current.Status == StatusActive {
-		stageFn, stageErr := ctx.stageRunner(current)
-		next := Job{}
-		if stageFn != nil {
-			next, stageErr = ctx.runStageWithInterrupt(current, stageFn, interrupts)
+		if current.Stage != StageImplementing {
+			return current, fmt.Errorf("invalid job stage: %s", current.Stage)
 		}
+
+		next, stageErr := ctx.runStageWithInterrupt(current, ctx.runImplementingStage(current), interrupts)
 		if stageErr != nil && errors.Is(stageErr, ErrJobInterrupted) {
 			return next, stageErr
 		}
@@ -169,43 +189,59 @@ func runJobStages(ctx runContext, current Job, interrupts <-chan os.Signal) (Job
 		if current.Status != StatusActive {
 			break
 		}
+		if ctx.workComplete {
+			ctx.reviewScope = reviewScopeProject
+		}
+
+		next, stageErr = ctx.runStageWithInterrupt(current, ctx.runTestingStage(current), interrupts)
+		if stageErr != nil && errors.Is(stageErr, ErrJobInterrupted) {
+			return next, stageErr
+		}
+		current, stageErr = ctx.handleStageOutcome(current, next, stageErr)
+		if stageErr != nil {
+			return current, stageErr
+		}
+		if current.Status != StatusActive {
+			break
+		}
+		if current.Stage == StageImplementing {
+			ctx.reviewScope = reviewScopeStep
+			continue
+		}
+
+		next, stageErr = ctx.runStageWithInterrupt(current, ctx.runReviewingStage(current), interrupts)
+		if stageErr != nil && errors.Is(stageErr, ErrJobInterrupted) {
+			return next, stageErr
+		}
+		current, stageErr = ctx.handleStageOutcome(current, next, stageErr)
+		if stageErr != nil {
+			return current, stageErr
+		}
+		if current.Status != StatusActive {
+			break
+		}
+		if current.Stage == StageImplementing {
+			ctx.reviewScope = reviewScopeStep
+			continue
+		}
+		if ctx.reviewScope == reviewScopeProject {
+			continue
+		}
+
+		next, stageErr = ctx.runStageWithInterrupt(current, ctx.runCommittingStage(current), interrupts)
+		if stageErr != nil && errors.Is(stageErr, ErrJobInterrupted) {
+			return next, stageErr
+		}
+		current, stageErr = ctx.handleStageOutcome(current, next, stageErr)
+		if stageErr != nil {
+			return current, stageErr
+		}
 	}
 
 	return current, nil
 }
 
-func (ctx runContext) stageRunner(current Job) (func() (Job, error), error) {
-	switch current.Stage {
-	case StageImplementing:
-		return func() (Job, error) {
-			return runImplementingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts)
-		}, nil
-	case StageTesting:
-		return func() (Job, error) {
-			return runTestingStage(ctx.manager, current, ctx.repoPath, ctx.workspacePath, ctx.opts)
-		}, nil
-	case StageReviewing:
-		return func() (Job, error) {
-			return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts)
-		}, nil
-	case StageCommitting:
-		return func() (Job, error) {
-			return runCommittingStage(CommittingStageOptions{
-				Manager:       ctx.manager,
-				Current:       current,
-				Item:          ctx.item,
-				RepoPath:      ctx.repoPath,
-				WorkspacePath: ctx.workspacePath,
-				RunOptions:    ctx.opts,
-				Result:        ctx.result,
-			})
-		}, nil
-	default:
-		return nil, fmt.Errorf("invalid job stage: %s", current.Stage)
-	}
-}
-
-func (ctx runContext) runStageWithInterrupt(current Job, stageFn func() (Job, error), interrupts <-chan os.Signal) (Job, error) {
+func (ctx *runContext) runStageWithInterrupt(current Job, stageFn func() (Job, error), interrupts <-chan os.Signal) (Job, error) {
 	stageResult := make(chan struct {
 		job Job
 		err error
@@ -226,13 +262,13 @@ func (ctx runContext) runStageWithInterrupt(current Job, stageFn func() (Job, er
 	}
 }
 
-func (ctx runContext) handleInterrupt(current Job) (Job, error) {
+func (ctx *runContext) handleInterrupt(current Job) (Job, error) {
 	status := StatusFailed
 	updated, updateErr := ctx.manager.Update(current.ID, UpdateOptions{Status: &status}, ctx.opts.Now())
 	return updated, errors.Join(ErrJobInterrupted, updateErr)
 }
 
-func (ctx runContext) handleStageOutcome(current, next Job, stageErr error) (Job, error) {
+func (ctx *runContext) handleStageOutcome(current, next Job, stageErr error) (Job, error) {
 	if stageErr != nil {
 		if next.Status == StatusAbandoned {
 			ctx.result.Job = next
@@ -250,6 +286,45 @@ func (ctx runContext) handleStageOutcome(current, next Job, stageErr error) (Job
 		ctx.result.Job = next
 	}
 	return current, nil
+}
+
+func (ctx *runContext) runImplementingStage(current Job) func() (Job, error) {
+	return func() (Job, error) {
+		result, err := runImplementingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts)
+		if err != nil {
+			return Job{}, err
+		}
+		ctx.commitMessage = result.CommitMessage
+		ctx.workComplete = !result.Changed
+		return result.Job, nil
+	}
+}
+
+func (ctx *runContext) runTestingStage(current Job) func() (Job, error) {
+	return func() (Job, error) {
+		return runTestingStage(ctx.manager, current, ctx.repoPath, ctx.workspacePath, ctx.opts)
+	}
+}
+
+func (ctx *runContext) runReviewingStage(current Job) func() (Job, error) {
+	return func() (Job, error) {
+		return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.reviewScope)
+	}
+}
+
+func (ctx *runContext) runCommittingStage(current Job) func() (Job, error) {
+	return func() (Job, error) {
+		return runCommittingStage(CommittingStageOptions{
+			Manager:       ctx.manager,
+			Current:       current,
+			Item:          ctx.item,
+			RepoPath:      ctx.repoPath,
+			WorkspacePath: ctx.workspacePath,
+			RunOptions:    ctx.opts,
+			Result:        ctx.result,
+			CommitMessage: ctx.commitMessage,
+		})
+	}
 }
 
 func normalizeRunOptions(opts RunOptions) RunOptions {
@@ -271,6 +346,14 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 			return runOpencodeSession(pool, runOpts)
 		}
 	}
+	if opts.CurrentCommitID == nil {
+		client := jj.New()
+		opts.CurrentCommitID = client.CurrentCommitID
+	}
+	if opts.Commit == nil {
+		client := jj.New()
+		opts.Commit = client.Commit
+	}
 	if opts.UpdateStale == nil {
 		client := jj.New()
 		opts.UpdateStale = client.WorkspaceUpdateStale
@@ -278,16 +361,21 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	return opts
 }
 
-func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (Job, error) {
+func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (ImplementingStageResult, error) {
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
-		return Job{}, err
+		return ImplementingStageResult{}, err
+	}
+
+	beforeCommitID, err := opts.CurrentCommitID(workspacePath)
+	if err != nil {
+		return ImplementingStageResult{}, err
 	}
 
 	prompt, err := renderPromptTemplate(item, current.Feedback, "", "implement.tmpl", workspacePath)
 	if err != nil {
-		return Job{}, err
+		return ImplementingStageResult{}, err
 	}
 
 	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
@@ -297,25 +385,50 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		StartedAt:     opts.Now(),
 	})
 	if err != nil {
-		return Job{}, err
+		return ImplementingStageResult{}, err
 	}
 
 	append := OpencodeSession{Purpose: "implement", ID: opencodeResult.SessionID}
 	updated, err := manager.Update(current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
 	if err != nil {
-		return Job{}, err
+		return ImplementingStageResult{}, err
 	}
 
 	if opencodeResult.ExitCode != 0 {
-		return Job{}, fmt.Errorf("opencode implement failed with exit code %d", opencodeResult.ExitCode)
+		return ImplementingStageResult{}, fmt.Errorf("opencode implement failed with exit code %d", opencodeResult.ExitCode)
+	}
+
+	afterCommitID, err := opts.CurrentCommitID(workspacePath)
+	if err != nil {
+		return ImplementingStageResult{}, err
+	}
+
+	changed := beforeCommitID != afterCommitID
+	message := ""
+	if changed {
+		messagePath := filepath.Join(workspacePath, commitMessageFilename)
+		fallbackMessagePath := filepath.Join(repoPath, commitMessageFilename)
+		message, err = readCommitMessageWithFallback(messagePath, fallbackMessagePath)
+		if err != nil {
+			return ImplementingStageResult{}, err
+		}
+	} else {
+		messagePath := filepath.Join(workspacePath, commitMessageFilename)
+		if err := removeFileIfExists(messagePath); err != nil {
+			return ImplementingStageResult{}, err
+		}
+		fallbackMessagePath := filepath.Join(repoPath, commitMessageFilename)
+		if err := removeFileIfExists(fallbackMessagePath); err != nil {
+			return ImplementingStageResult{}, err
+		}
 	}
 
 	nextStage := StageTesting
 	updated, err = manager.Update(updated.ID, UpdateOptions{Stage: &nextStage}, opts.Now())
 	if err != nil {
-		return Job{}, err
+		return ImplementingStageResult{}, err
 	}
-	return updated, nil
+	return ImplementingStageResult{Job: updated, CommitMessage: message, Changed: changed}, nil
 }
 
 func runTestingStage(manager *Manager, current Job, repoPath, workspacePath string, opts RunOptions) (Job, error) {
@@ -344,14 +457,21 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 	return updated, nil
 }
 
-func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions) (Job, error) {
+func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, scope reviewScope) (Job, error) {
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
 		return Job{}, err
 	}
 
-	prompt, err := renderPromptTemplate(item, "", "", "review.tmpl", workspacePath)
+	promptName := "review.tmpl"
+	purpose := "review"
+	if scope == reviewScopeProject {
+		promptName = "project-review.tmpl"
+		purpose = "project-review"
+	}
+
+	prompt, err := renderPromptTemplate(item, "", "", promptName, workspacePath)
 	if err != nil {
 		return Job{}, err
 	}
@@ -366,7 +486,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 
-	append := OpencodeSession{Purpose: "review", ID: opencodeResult.SessionID}
+	append := OpencodeSession{Purpose: purpose, ID: opencodeResult.SessionID}
 	updated, err := manager.Update(current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
 	if err != nil {
 		return Job{}, err
@@ -384,6 +504,14 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 
 	switch feedback.Outcome {
 	case ReviewOutcomeAccept:
+		if scope == reviewScopeProject {
+			status := StatusCompleted
+			updated, err = manager.Update(updated.ID, UpdateOptions{Status: &status}, opts.Now())
+			if err != nil {
+				return Job{}, err
+			}
+			return updated, nil
+		}
 		nextStage := StageCommitting
 		empty := ""
 		updated, err = manager.Update(updated.ID, UpdateOptions{Stage: &nextStage, Feedback: &empty}, opts.Now())
@@ -418,43 +546,14 @@ type CommittingStageOptions struct {
 	WorkspacePath string
 	RunOptions    RunOptions
 	Result        *RunResult
+	CommitMessage string
 }
 
 func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
-	messagePath := filepath.Join(opts.WorkspacePath, commitMessageFilename)
-	if err := removeFileIfExists(messagePath); err != nil {
-		return Job{}, err
-	}
-
-	prompt, err := renderPromptTemplate(opts.Item, "", "", "commit-message.tmpl", opts.WorkspacePath)
-	if err != nil {
-		return Job{}, err
-	}
-
-	opencodeResult, err := opts.RunOptions.RunOpencode(opencodeRunOptions{
-		RepoPath:      opts.RepoPath,
-		WorkspacePath: opts.WorkspacePath,
-		Prompt:        prompt,
-		StartedAt:     opts.RunOptions.Now(),
-	})
-	if err != nil {
-		return Job{}, err
-	}
-
-	append := OpencodeSession{Purpose: "commit-message", ID: opencodeResult.SessionID}
-	updated, err := opts.Manager.Update(opts.Current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.RunOptions.Now())
-	if err != nil {
-		return Job{}, err
-	}
-	if opencodeResult.ExitCode != 0 {
-		return Job{}, fmt.Errorf("opencode commit message failed with exit code %d", opencodeResult.ExitCode)
-	}
-
-	fallbackMessagePath := filepath.Join(opts.RepoPath, commitMessageFilename)
-	message, err := readCommitMessageWithFallback(messagePath, fallbackMessagePath)
-	if err != nil {
-		return Job{}, err
+	message := strings.TrimSpace(opts.CommitMessage)
+	if message == "" {
+		return Job{}, fmt.Errorf("commit message is required")
 	}
 
 	finalMessage, err := renderPromptTemplate(opts.Item, "", message, "commit.tmpl", opts.WorkspacePath)
@@ -462,15 +561,15 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 		return Job{}, err
 	}
 	opts.Result.CommitMessage = finalMessage
+	opts.Result.CommitMessages = append(opts.Result.CommitMessages, finalMessage)
 
-	client := jj.New()
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
-	if err := client.Commit(opts.WorkspacePath, finalMessage); err != nil {
+	if err := opts.RunOptions.Commit(opts.WorkspacePath, finalMessage); err != nil {
 		return Job{}, err
 	}
 
-	status := StatusCompleted
-	updated, err = opts.Manager.Update(updated.ID, UpdateOptions{Status: &status}, opts.RunOptions.Now())
+	nextStage := StageImplementing
+	updated, err := opts.Manager.Update(opts.Current.ID, UpdateOptions{Stage: &nextStage}, opts.RunOptions.Now())
 	if err != nil {
 		return Job{}, err
 	}

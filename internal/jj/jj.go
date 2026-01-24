@@ -106,6 +106,20 @@ func (c *Client) CurrentChangeID(workspacePath string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// CurrentCommitID returns the commit ID of the current working copy commit.
+func (c *Client) CurrentCommitID(workspacePath string) (string, error) {
+	cmd := exec.Command("jj", "log", "-r", "@", "-T", "commit_id", "--no-graph")
+	cmd.Dir = workspacePath
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
+		}
+		return "", fmt.Errorf("jj log: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 // BookmarkList returns all bookmark names in the repository.
 func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
 	cmd := exec.Command("jj", "bookmark", "list", "-T", "name ++ \"\\n\"")

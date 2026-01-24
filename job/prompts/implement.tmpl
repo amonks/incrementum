@@ -1,4 +1,4 @@
-You are implementing a todo for the Incrementum repository.
+You are implementing the next step of a todo for the Incrementum repository.
 
 Workspace root: {{.WorkspacePath}}
 Use this path as the repo root for all commands and file edits.
@@ -16,4 +16,7 @@ Description:
 {{.Feedback}}
 {{end}}
 
-Implement the todo and keep changes focused.
+Do the highest-priority remaining step toward the todo.
+If the todo is already complete, do not make any changes.
+When you make changes, write a multi-line commit message to {{.WorkspacePath}}/.incrementum-commit-message.
+Keep changes focused on the current step.

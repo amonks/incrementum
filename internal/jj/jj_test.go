@@ -139,6 +139,24 @@ func TestCurrentChangeID(t *testing.T) {
 	}
 }
 
+func TestCurrentCommitID(t *testing.T) {
+	tmpDir := t.TempDir()
+	client := jj.New()
+
+	if err := client.Init(tmpDir); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	commitID, err := client.CurrentCommitID(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to get current commit ID: %v", err)
+	}
+
+	if commitID == "" {
+		t.Error("expected non-empty commit ID")
+	}
+}
+
 func TestBookmarkList_Empty(t *testing.T) {
 	tmpDir := t.TempDir()
 	client := jj.New()
