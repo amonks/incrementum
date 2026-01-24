@@ -262,7 +262,8 @@ Behavior:
 8. Output progress: stage transitions and formatted logs (prompts, commit
    messages, test results, review feedback) with 80-column reflow and 0/4/8-space
    indentation for document hierarchy.
-9. On success: mark todo done and print final commit info.
+9. On success: mark todo done and print final commit info with 80-column reflow
+   and 0/4/8-space indentation.
 10. On failure/abandon: reopen todo and print reason.
 
 Exit codes:

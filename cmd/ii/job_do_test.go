@@ -35,17 +35,31 @@ func TestFormatCommitMessagesOutputPreservesIndentation(t *testing.T) {
 	if !strings.Contains(output, "Commit messages:") {
 		t.Fatalf("expected header, got %q", output)
 	}
-	if !strings.Contains(output, "Commit commit-123:") {
+	if !strings.Contains(output, "    Commit commit-123:") {
 		t.Fatalf("expected commit id label, got %q", output)
 	}
-	if !strings.Contains(output, "\nSummary line\n") {
-		t.Fatalf("expected summary line without indent, got %q", output)
+	if !strings.Contains(output, "\n        Summary line") {
+		t.Fatalf("expected summary line indentation, got %q", output)
 	}
-	if strings.Contains(output, "\n        Summary line") {
-		t.Fatalf("expected summary line to avoid extra indentation, got %q", output)
+	if !strings.Contains(output, "\n            Body line") {
+		t.Fatalf("expected body line indentation, got %q", output)
 	}
-	if !strings.Contains(output, "\n    ID: todo-1") {
+	if !strings.Contains(output, "\n            ID: todo-1") {
 		t.Fatalf("expected commit message indentation preserved, got %q", output)
+	}
+}
+
+func TestFormatCommitMessageOutputIndentsMessage(t *testing.T) {
+	message := "Summary line\n\nHere is a generated commit message:\n\n    Body line\n\nThis commit is a step towards implementing this todo:\n\n    ID: todo-1"
+	output := formatCommitMessageOutput(message)
+	if !strings.Contains(output, "Commit message:") {
+		t.Fatalf("expected header, got %q", output)
+	}
+	if !strings.Contains(output, "\n    Summary line") {
+		t.Fatalf("expected summary indentation, got %q", output)
+	}
+	if !strings.Contains(output, "\n        Body line") {
+		t.Fatalf("expected body indentation, got %q", output)
 	}
 }
 
