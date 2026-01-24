@@ -43,7 +43,6 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		WorkDir:   repoPath,
 		Prompt:    prompt,
 		StartedAt: time.Now(),
-		Stdin:     os.Stdin,
 		Stdout:    os.Stdout,
 		Stderr:    os.Stderr,
 	})

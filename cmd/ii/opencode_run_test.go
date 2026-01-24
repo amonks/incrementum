@@ -31,6 +31,7 @@ func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 
 	serveArgsFile := filepath.Join(root, "opencode-serve-args.txt")
 	runArgsFile := filepath.Join(root, "opencode-run-args.txt")
+	runStdinFile := filepath.Join(root, "opencode-run-stdin.txt")
 	eventFile := filepath.Join(root, "opencode-events.txt")
 	eventData := "event: log\ndata: hello from opencode\n\n"
 	if err := os.WriteFile(eventFile, []byte(eventData), 0o644); err != nil {
@@ -84,10 +85,11 @@ fi
 if [ "$1" = "run" ]; then
   shift
   echo "run $@" > "%s"
+  cat - > "%s"
   exit 0
 fi
 exit 0
-`, serveArgsFile, eventFile, runArgsFile)
+ `, serveArgsFile, eventFile, runArgsFile, runStdinFile)
 	if err := os.WriteFile(opencodePath, []byte(opencodeScript), 0o755); err != nil {
 		t.Fatalf("write opencode stub: %v", err)
 	}
@@ -180,8 +182,16 @@ exit 0
 	if !strings.Contains(runArgs, "--attach=http://localhost:"+port) {
 		t.Fatalf("expected opencode run to attach to server, got %q", runArgs)
 	}
-	if !strings.Contains(runArgs, "Test prompt") {
-		t.Fatalf("expected prompt to be passed, got %q", runArgs)
+	if strings.Contains(runArgs, "Test prompt") {
+		t.Fatalf("expected prompt not to be passed as arg, got %q", runArgs)
+	}
+
+	runInput, err := os.ReadFile(runStdinFile)
+	if err != nil {
+		t.Fatalf("read run stdin: %v", err)
+	}
+	if strings.TrimSpace(string(runInput)) != "Test prompt" {
+		t.Fatalf("expected prompt via stdin, got %q", string(runInput))
 	}
 
 	store, err := opencode.Open()

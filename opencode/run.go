@@ -64,10 +64,7 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 	if runStderr == nil {
 		runStderr = os.Stderr
 	}
-	runStdin := opts.Stdin
-	if runStdin == nil {
-		runStdin = os.Stdin
-	}
+	runStdin := resolveRunStdin(opts)
 
 	port, err := allocatePort()
 	if err != nil {
@@ -118,7 +115,7 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 		sessionCh <- sessionResult{session: session, err: err, recordErr: recordErr}
 	}()
 
-	runCmd := exec.Command("opencode", "run", "--attach="+serverURL, opts.Prompt)
+	runCmd := exec.Command("opencode", "run", "--attach="+serverURL)
 	runCmd.Dir = workDir
 	runCmd.Env = env
 	runCmd.Stdout = runStdout
@@ -211,6 +208,16 @@ func replaceEnvVar(env []string, key, value string) []string {
 	}
 	updated = append(updated, prefix+value)
 	return updated
+}
+
+func resolveRunStdin(opts RunOptions) io.Reader {
+	if opts.Stdin != nil {
+		return opts.Stdin
+	}
+	if opts.Prompt != "" {
+		return strings.NewReader(opts.Prompt)
+	}
+	return os.Stdin
 }
 
 func runExitCode(cmd *exec.Cmd) (int, error) {
