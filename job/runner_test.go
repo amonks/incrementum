@@ -480,7 +480,7 @@ func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) 
 	}
 }
 
-func TestRunCommittingStageIncludesTodoAndTranscripts(t *testing.T) {
+func TestRunCommittingStageFormatsCommitMessage(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()
 	workspacePath := t.TempDir()
@@ -546,20 +546,14 @@ func TestRunCommittingStageIncludesTodoAndTranscripts(t *testing.T) {
 
 	checks := []string{
 		"feat: expand commit metadata",
-		"ID: todo-333",
-		"Title: Expand commit message",
-		"Type: task",
-		"Priority: 1",
-		"Status: open",
-		"CreatedAt: -",
-		"UpdatedAt: -",
-		"ClosedAt: -",
-		"DeletedAt: -",
-		"DeleteReason: -",
-		"Description:",
-		"Add todo metadata and transcripts.",
-		"==> implement (ses-333)",
-		"Planning",
+		"Here is a generated commit message:",
+		"This commit is a step towards implementing this todo:",
+		"    ID: todo-333",
+		"    Title: Expand commit message",
+		"    Type: task",
+		"    Priority: 1 (high)",
+		"    Description:",
+		"        Add todo metadata and transcripts.",
 	}
 	for _, check := range checks {
 		if !strings.Contains(captured, check) {
@@ -568,7 +562,7 @@ func TestRunCommittingStageIncludesTodoAndTranscripts(t *testing.T) {
 	}
 }
 
-func TestRunCommittingStageIncludesCommitLog(t *testing.T) {
+func TestRunCommittingStageOmitsCommitLog(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()
 	workspacePath := t.TempDir()
@@ -629,14 +623,8 @@ func TestRunCommittingStageIncludesCommitLog(t *testing.T) {
 		t.Fatalf("run committing stage: %v", err)
 	}
 
-	checks := []string{
-		"commit-prev",
-		"feat: previous step",
-	}
-	for _, check := range checks {
-		if !strings.Contains(captured, check) {
-			t.Fatalf("expected commit message to include %q, got %q", check, captured)
-		}
+	if strings.Contains(captured, "commit-prev") {
+		t.Fatalf("expected commit message to omit commit log, got %q", captured)
 	}
 }
 

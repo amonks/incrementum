@@ -118,13 +118,6 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	startedAt := opts.Now()
 	workspacePath := repoPath
 	workspaceAbs := repoPath
-	if opts.OnStart != nil {
-		opts.OnStart(StartInfo{
-			Workdir: workspaceAbs,
-			Todo:    item,
-		})
-	}
-
 	manager, err := Open(repoPath, OpenOptions{})
 	if err != nil {
 		reopenErr := reopenTodo(repoPath, item.ID)
@@ -137,6 +130,14 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, errors.Join(err, reopenErr)
 	}
 	result.Job = created
+
+	if opts.OnStart != nil {
+		opts.OnStart(StartInfo{
+			JobID:   created.ID,
+			Workdir: workspaceAbs,
+			Todo:    item,
+		})
+	}
 
 	createdEventLog := false
 	if opts.EventLog == nil {
@@ -435,7 +436,6 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}
-	logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt})
 	if err := appendJobEvent(opts.EventLog, jobEventPrompt, promptEventData{Purpose: "implement", Template: promptName, Prompt: prompt}); err != nil {
 		return ImplementingStageResult{}, err
 	}
@@ -462,6 +462,8 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	if err != nil {
 		return ImplementingStageResult{}, err
 	}
+	transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
+	logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt, Transcript: transcript})
 
 	if opencodeResult.ExitCode != 0 {
 		return ImplementingStageResult{}, fmt.Errorf("opencode implement failed with exit code %d", opencodeResult.ExitCode)
@@ -674,15 +676,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 		return Job{}, fmt.Errorf("commit message is required")
 	}
 
-	transcripts, err := opts.RunOptions.OpencodeTranscripts(opts.RepoPath, opts.Current.OpencodeSessions)
-	if err != nil {
-		return Job{}, err
-	}
-
-	finalMessage, err := renderPromptTemplate(opts.Item, "", message, opts.Result.CommitLog, transcripts, "commit-message.tmpl", opts.WorkspacePath)
-	if err != nil {
-		return Job{}, err
-	}
+	finalMessage := formatCommitMessage(opts.Item, message)
 	opts.Result.CommitMessage = finalMessage
 	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: finalMessage})
 	if err := appendJobEvent(opts.RunOptions.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Final", Message: finalMessage}); err != nil {
@@ -712,6 +706,17 @@ type opencodeTranscriptEntry struct {
 	Purpose    string
 	Session    opencode.OpencodeSession
 	Transcript string
+}
+
+func loadOpencodeTranscript(fetch func(string, []OpencodeSession) ([]OpencodeTranscript, error), repoPath string, session OpencodeSession) string {
+	if fetch == nil {
+		return ""
+	}
+	transcripts, err := fetch(repoPath, []OpencodeSession{session})
+	if err != nil || len(transcripts) == 0 {
+		return ""
+	}
+	return transcripts[0].Transcript
 }
 
 func opencodeTranscripts(repoPath string, sessions []OpencodeSession) ([]OpencodeTranscript, error) {

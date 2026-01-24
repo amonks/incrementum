@@ -20,9 +20,10 @@ type Logger interface {
 
 // PromptLog captures prompt details.
 type PromptLog struct {
-	Purpose  string
-	Template string
-	Prompt   string
+	Purpose    string
+	Template   string
+	Prompt     string
+	Transcript string
 }
 
 // CommitMessageLog captures commit message text.
@@ -53,7 +54,6 @@ func (noopLogger) Tests(TestLog)                  {}
 type ConsoleLogger struct {
 	writer      io.Writer
 	headerStyle lipgloss.Style
-	subtleStyle lipgloss.Style
 	started     bool
 }
 
@@ -65,8 +65,15 @@ func NewConsoleLogger(writer io.Writer) *ConsoleLogger {
 	return &ConsoleLogger{
 		writer:      writer,
 		headerStyle: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("33")),
-		subtleStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("245")),
 	}
+}
+
+// ResetSpacing clears entry spacing so the next log block is adjacent.
+func (logger *ConsoleLogger) ResetSpacing() {
+	if logger == nil {
+		return
+	}
+	logger.started = false
 }
 
 // Prompt logs a prompt entry.
@@ -74,11 +81,18 @@ func (logger *ConsoleLogger) Prompt(entry PromptLog) {
 	if logger == nil {
 		return
 	}
-	label := logger.headerStyle.Render(fmt.Sprintf("Prompt: %s", entry.Purpose))
-	if entry.Template != "" {
-		label += " " + logger.subtleStyle.Render("("+entry.Template+")")
+	label := promptLabel(entry.Purpose)
+	lines := []string{
+		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
+		formatLogBody(entry.Prompt, subdocumentIndent, true),
 	}
-	logger.writeSection(label, entry.Prompt)
+	if strings.TrimSpace(entry.Transcript) != "" {
+		lines = append(lines,
+			formatLogLabel(logger.headerStyle.Render("Opencode transcript:"), documentIndent),
+			formatLogBody(entry.Transcript, subdocumentIndent, true),
+		)
+	}
+	logger.writeBlock(lines...)
 }
 
 // CommitMessage logs a commit message entry.
@@ -86,8 +100,14 @@ func (logger *ConsoleLogger) CommitMessage(entry CommitMessageLog) {
 	if logger == nil {
 		return
 	}
-	label := logger.headerStyle.Render(fmt.Sprintf("Commit Message: %s", entry.Label))
-	logger.writeSection(label, entry.Message)
+	label := "Commit message:"
+	if strings.TrimSpace(entry.Label) != "" {
+		label = fmt.Sprintf("%s commit message:", entry.Label)
+	}
+	logger.writeBlock(
+		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
+		formatLogBody(entry.Message, subdocumentIndent, true),
+	)
 }
 
 // Review logs review feedback.
@@ -95,11 +115,11 @@ func (logger *ConsoleLogger) Review(entry ReviewLog) {
 	if logger == nil {
 		return
 	}
-	label := logger.headerStyle.Render(fmt.Sprintf("Review Outcome: %s", entry.Feedback.Outcome))
-	if entry.Purpose != "" {
-		label += " " + logger.subtleStyle.Render("("+entry.Purpose+")")
-	}
-	logger.writeSection(label, entry.Feedback.Details)
+	label := reviewLabel(entry.Purpose)
+	logger.writeBlock(
+		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
+		formatLogBody(entry.Feedback.Details, subdocumentIndent, true),
+	)
 }
 
 // Tests logs test results.
@@ -107,9 +127,8 @@ func (logger *ConsoleLogger) Tests(entry TestLog) {
 	if logger == nil {
 		return
 	}
-	label := logger.headerStyle.Render("Test Results")
 	if len(entry.Results) == 0 {
-		logger.writeSection(label, "-")
+		logger.writeBlock(formatLogBody("-", documentIndent, false))
 		return
 	}
 	rows := make([][]string, 0, len(entry.Results))
@@ -117,16 +136,20 @@ func (logger *ConsoleLogger) Tests(entry TestLog) {
 		rows = append(rows, []string{result.Command, strconv.Itoa(result.ExitCode)})
 	}
 	body := ui.FormatTable([]string{"Command", "Exit Code"}, rows)
-	logger.writeSection(label, body)
+	logger.writeBlock(formatLogBody(body, documentIndent, false))
 }
 
-func (logger *ConsoleLogger) writeSection(label, body string) {
+func (logger *ConsoleLogger) writeBlock(lines ...string) {
+	if len(lines) == 0 {
+		return
+	}
 	if logger.started {
 		fmt.Fprintln(logger.writer)
 	}
 	logger.started = true
-	fmt.Fprintln(logger.writer, label)
-	fmt.Fprintln(logger.writer, indentBlock(normalizeLogBody(body), 2))
+	for _, line := range lines {
+		fmt.Fprintln(logger.writer, line)
+	}
 }
 
 func normalizeLogBody(value string) string {
@@ -137,15 +160,41 @@ func normalizeLogBody(value string) string {
 	return value
 }
 
-func indentBlock(value string, spaces int) string {
-	value = strings.TrimRight(value, "\r\n")
-	if spaces <= 0 {
-		return value
+func formatLogLabel(label string, indent int) string {
+	if strings.TrimSpace(label) == "" {
+		return ""
 	}
-	prefix := strings.Repeat(" ", spaces)
-	lines := strings.Split(value, "\n")
-	for i, line := range lines {
-		lines[i] = prefix + line
+	return indentBlock(label, indent)
+}
+
+func formatLogBody(body string, indent int, wrap bool) string {
+	if wrap {
+		body = reflowParagraphs(body, lineWidth-indent)
 	}
-	return strings.Join(lines, "\n")
+	body = normalizeLogBody(body)
+	return indentBlock(body, indent)
+}
+
+func promptLabel(purpose string) string {
+	switch purpose {
+	case "implement":
+		return "Implementation prompt:"
+	case "review":
+		return "Code review prompt:"
+	case "project-review":
+		return "Project review prompt:"
+	default:
+		return "Prompt:"
+	}
+}
+
+func reviewLabel(purpose string) string {
+	switch purpose {
+	case "review":
+		return "Code review result:"
+	case "project-review":
+		return "Project review result:"
+	default:
+		return "Review result:"
+	}
 }

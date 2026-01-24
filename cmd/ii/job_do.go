@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/amonks/incrementum/internal/editor"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	jobpkg "github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
+	"github.com/muesli/reflow/wordwrap"
 	"github.com/spf13/cobra"
 )
 
@@ -72,13 +75,12 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	onStageChange := func(stage jobpkg.Stage) {
-		fmt.Printf("Stage: %s\n", stage)
-	}
+	logger := jobpkg.NewConsoleLogger(os.Stdout)
+	reporter := newJobStageReporter(logger)
+	onStageChange := reporter.OnStageChange
 	onStart := func(info jobpkg.StartInfo) {
 		printJobStart(info)
 	}
-	logger := jobpkg.NewConsoleLogger(os.Stdout)
 
 	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{OnStart: onStart, OnStageChange: onStageChange, Logger: logger})
 	if err != nil {
@@ -88,26 +90,27 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	if len(result.CommitLog) > 0 {
 		fmt.Printf("\nCommit messages:\n")
 		for _, entry := range result.CommitLog {
-			fmt.Printf("- %s\n%s\n\n", entry.ID, entry.Message)
+			fmt.Printf("%s%s:\n", strings.Repeat(" ", jobDocumentIndent), entry.ID)
+			fmt.Printf("%s\n\n", indentBlock(entry.Message, jobSubdocumentIndent))
 		}
 	} else if result.CommitMessage != "" {
-		fmt.Printf("\nCommit message:\n%s\n", result.CommitMessage)
+		fmt.Printf("\nCommit message:\n%s\n", indentBlock(result.CommitMessage, jobDocumentIndent))
 	}
 	return nil
 }
 
 func printJobStart(info jobpkg.StartInfo) {
+	fmt.Printf("Doing job %s\n", info.JobID)
 	fmt.Printf("Workdir: %s\n", info.Workdir)
 	fmt.Println("Todo:")
-	fmt.Printf("- ID: %s\n", info.Todo.ID)
-	fmt.Printf("- Title: %s\n", info.Todo.Title)
-	fmt.Printf("- Type: %s\n", info.Todo.Type)
-	fmt.Printf("- Priority: %d (%s)\n", info.Todo.Priority, todo.PriorityName(info.Todo.Priority))
-	fmt.Println("- Description:")
-	if info.Todo.Description != "" {
-		fmt.Printf("%s\n", info.Todo.Description)
-	}
-	fmt.Println()
+	indent := strings.Repeat(" ", jobDocumentIndent)
+	fmt.Printf("%sID: %s\n", indent, info.Todo.ID)
+	fmt.Printf("%sTitle: %s\n", indent, info.Todo.Title)
+	fmt.Printf("%sType: %s\n", indent, info.Todo.Type)
+	fmt.Printf("%sPriority: %d (%s)\n", indent, info.Todo.Priority, todo.PriorityName(info.Todo.Priority))
+	fmt.Printf("%sDescription:\n", indent)
+	description := reflowJobText(info.Todo.Description, jobLineWidth-jobSubdocumentIndent)
+	fmt.Printf("%s\n\n", indentBlock(description, jobSubdocumentIndent))
 }
 
 func jobDoHasCreateFlags(cmd *cobra.Command) bool {
@@ -178,4 +181,100 @@ func jobDoPriorityValue(cmd *cobra.Command) *int {
 		return todo.PriorityPtr(jobDoPriority)
 	}
 	return nil
+}
+
+type jobStageReporter struct {
+	logger  *jobpkg.ConsoleLogger
+	started bool
+}
+
+func newJobStageReporter(logger *jobpkg.ConsoleLogger) *jobStageReporter {
+	return &jobStageReporter{logger: logger}
+}
+
+func (reporter *jobStageReporter) OnStageChange(stage jobpkg.Stage) {
+	if reporter.started {
+		fmt.Println()
+	}
+	reporter.started = true
+	fmt.Println(stageMessage(stage))
+	if reporter.logger != nil {
+		reporter.logger.ResetSpacing()
+	}
+}
+
+func stageMessage(stage jobpkg.Stage) string {
+	switch stage {
+	case jobpkg.StageImplementing:
+		return "Running implementation prompt:"
+	case jobpkg.StageTesting:
+		return "Implementation prompt complete; running tests:"
+	case jobpkg.StageReviewing:
+		return "Tests passed; doing review:"
+	case jobpkg.StageCommitting:
+		return "Review complete; committing changes:"
+	default:
+		return fmt.Sprintf("Stage: %s", stage)
+	}
+}
+
+const (
+	jobLineWidth         = 80
+	jobDocumentIndent    = 4
+	jobSubdocumentIndent = 8
+)
+
+func reflowJobText(value string, width int) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "-"
+	}
+	paragraphs := splitJobParagraphs(value)
+	wrapped := make([]string, 0, len(paragraphs))
+	for _, paragraph := range paragraphs {
+		normalized := internalstrings.NormalizeWhitespace(paragraph)
+		if normalized == "" {
+			continue
+		}
+		wrapped = append(wrapped, wordwrap.String(normalized, width))
+	}
+	if len(wrapped) == 0 {
+		return "-"
+	}
+	return strings.Join(wrapped, "\n\n")
+}
+
+func splitJobParagraphs(value string) []string {
+	lines := strings.Split(value, "\n")
+	var paragraphs []string
+	var current []string
+	flush := func() {
+		if len(current) == 0 {
+			return
+		}
+		paragraphs = append(paragraphs, strings.Join(current, " "))
+		current = nil
+	}
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			flush()
+			continue
+		}
+		current = append(current, line)
+	}
+	flush()
+	return paragraphs
+}
+
+func indentBlock(value string, spaces int) string {
+	value = strings.TrimRight(value, "\r\n")
+	if spaces <= 0 {
+		return value
+	}
+	prefix := strings.Repeat(" ", spaces)
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		lines[i] = prefix + line
+	}
+	return strings.Join(lines, "\n")
 }

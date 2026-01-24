@@ -159,13 +159,32 @@ any stage -> failed (unrecoverable error)
 ### committing
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
-2. Format final message using `commit-message.tmpl` with: `Todo`, `Message` (from the
-   implementing stage), `CommitLog` (only when non-empty), and `OpencodeTranscripts`
-   (prose-only transcripts from the job's opencode sessions).
+2. Format final message with a fixed commit message layout (not templated). The
+   format uses the opencode-generated summary/body plus a todo block, reflowed to
+   80/76/72 columns with 0/4/8-space indentation.
 3. Best-effort `jj workspace update-stale` in the repo working directory.
 4. Run `jj commit -m "<formatted message>"` in the repo working directory.
 5. If commit fails: mark job `failed`.
 6. Transition back to `implementing` to continue the work loop.
+
+Commit message format:
+
+```
+<summary line>
+
+Here is a generated commit message:
+
+    <reflowed body>
+
+This commit is a step towards implementing this todo:
+
+    ID: <id>
+    Title: <title>
+    Type: <type>
+    Priority: <priority> (<name>)
+    Description:
+        <reflowed description>
+```
 
 ## Failure Handling
 
@@ -203,9 +222,8 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 | `prompt-feedback.tmpl`       | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`   |
 | `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`    |
 | `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`               |
-| `commit-message.tmpl`         | committing   | `Todo`, `Message`, `CommitLog`, `OpencodeTranscripts`, `WorkspacePath` |
 
-Templates use Go `text/template` syntax.
+Templates use Go `text/template` syntax (commit messages are generated in code).
 
 `Todo` exposes: `ID`, `Title`, `Description`, `Type`, `Priority`, `Status`,
 `CreatedAt`, `UpdatedAt`, `ClosedAt`, `DeletedAt`, `DeleteReason`.
@@ -242,7 +260,8 @@ Behavior:
 6. Create job record with status `active`, stage `implementing`.
 7. Run state machine to completion.
 8. Output progress: stage transitions and formatted logs (prompts, commit
-   messages, test results, review feedback).
+   messages, test results, review feedback) with 80-column reflow and 0/4/8-space
+   indentation for document hierarchy.
 9. On success: mark todo done and print final commit info.
 10. On failure/abandon: reopen todo and print reason.
 

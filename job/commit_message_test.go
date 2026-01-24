@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/amonks/incrementum/todo"
 )
 
 func TestReadCommitMessageDeletesFile(t *testing.T) {
@@ -58,5 +60,38 @@ func TestReadCommitMessageMissingExplainsPath(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), primary) {
 		t.Fatalf("expected paths in error, got %v", err)
+	}
+}
+
+func TestFormatCommitMessage(t *testing.T) {
+	item := todo.Todo{
+		ID:          "todo-555",
+		Title:       "Shore up logs",
+		Description: "Improve log formatting for the job runner.",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityLow,
+	}
+	message := "feat: reflow logs\n\nEnsure log output is wrapped and indented for clarity."
+
+	formatted := formatCommitMessage(item, message)
+	if !strings.HasPrefix(formatted, "feat: reflow logs") {
+		t.Fatalf("expected commit summary at start, got %q", formatted)
+	}
+
+	checks := []string{
+		"Here is a generated commit message:",
+		"    Ensure log output is wrapped and indented for clarity.",
+		"This commit is a step towards implementing this todo:",
+		"    ID: todo-555",
+		"    Title: Shore up logs",
+		"    Type: task",
+		"    Priority: 3 (low)",
+		"    Description:",
+		"        Improve log formatting for the job runner.",
+	}
+	for _, check := range checks {
+		if !strings.Contains(formatted, check) {
+			t.Fatalf("expected commit message to include %q, got %q", check, formatted)
+		}
 	}
 }

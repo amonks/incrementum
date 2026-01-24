@@ -43,9 +43,10 @@ func TestConsoleLoggerFormatsEntries(t *testing.T) {
 	logger := NewConsoleLogger(&buf)
 
 	logger.Prompt(PromptLog{
-		Purpose:  "implement",
-		Template: "prompt-implementation.tmpl",
-		Prompt:   "Implement the change.\nAnd keep going.",
+		Purpose:    "implement",
+		Template:   "prompt-implementation.tmpl",
+		Prompt:     "Implement the change.\nAnd keep going.",
+		Transcript: "Plan the work.\nThen execute.",
 	})
 	logger.CommitMessage(CommitMessageLog{Label: "Draft", Message: "feat: draft commit"})
 	logger.Tests(TestLog{Results: []TestCommandResult{{Command: "go test ./...", ExitCode: 1}}})
@@ -54,22 +55,40 @@ func TestConsoleLoggerFormatsEntries(t *testing.T) {
 
 	output := stripANSI(buf.String())
 	checks := []string{
-		"Prompt: implement",
-		"prompt-implementation.tmpl",
+		"Implementation prompt:",
 		"Implement the change",
-		"Commit Message: Draft",
+		"Opencode transcript:",
+		"Plan the work.",
+		"Draft commit message:",
 		"feat: draft commit",
-		"Test Results",
 		"go test ./...",
-		"Review Outcome: REQUEST_CHANGES",
+		"Code review result:",
 		"Add tests.",
-		"Commit Message: Final",
+		"Final commit message:",
 		"feat: final commit",
 	}
 	for _, check := range checks {
 		if !strings.Contains(output, check) {
 			t.Fatalf("expected output to include %q, got %q", check, output)
 		}
+	}
+}
+
+func TestConsoleLoggerReflowsParagraphs(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewConsoleLogger(&buf)
+
+	logger.Prompt(PromptLog{
+		Purpose: "implement",
+		Prompt:  "First paragraph line one.\nSecond line stays in the same paragraph.\n\nSecond paragraph follows next.",
+	})
+
+	output := stripANSI(buf.String())
+	if !strings.Contains(output, "First paragraph line one. Second line stays in the same paragraph.") {
+		t.Fatalf("expected paragraph lines to reflow, got %q", output)
+	}
+	if !strings.Contains(output, "\n        \n") {
+		t.Fatalf("expected paragraph break to be preserved, got %q", output)
 	}
 }
 

@@ -18,6 +18,7 @@ stderr '.incrementum-commit-message'
 -- bin/opencode --
 #!/usr/bin/env python3
 
+import http.server
 import json
 import os
 import sys
@@ -77,6 +78,35 @@ def run_job(prompt: str):
         )
 
 
+def run_serve(args):
+    port = 0
+    for arg in args:
+        if arg.startswith("--port="):
+            port = int(arg.split("=", 1)[1])
+            break
+    if not port:
+        return
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path != "/event":
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.end_headers()
+
+        def log_message(self, *_args):
+            return
+
+    server = http.server.HTTPServer(("localhost", port), Handler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        return
+
+
 def main():
     if len(sys.argv) < 2:
         return
@@ -84,6 +114,9 @@ def main():
     if cmd == "run":
         prompt = sys.argv[-1] if len(sys.argv) > 2 else ""
         run_job(prompt)
+        return
+    if cmd == "serve":
+        run_serve(sys.argv[2:])
         return
 
 
