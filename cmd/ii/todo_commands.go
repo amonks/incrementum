@@ -11,6 +11,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/internal/listflags"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/todo"
 	"github.com/spf13/cobra"
@@ -264,7 +265,7 @@ func todoStorePurpose(cmd *cobra.Command, args []string) string {
 	parts := []string{cmd.CommandPath()}
 	parts = append(parts, args...)
 	value := strings.Join(parts, " ")
-	value = strings.Join(strings.Fields(value), " ")
+	value = internalstrings.NormalizeWhitespace(value)
 	if value == "" {
 		return "todo store"
 	}
