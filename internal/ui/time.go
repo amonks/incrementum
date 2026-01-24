@@ -7,28 +7,22 @@ import (
 
 // FormatTimeAgo returns a compact age string like "2m ago".
 func FormatTimeAgo(then time.Time, now time.Time) string {
-	if then.IsZero() {
+	duration, ok := timeAgeDuration(then, now)
+	if !ok {
 		return "-"
 	}
 
-	if now.Before(then) {
-		now = then
-	}
-
-	return FormatDurationShort(now.Sub(then)) + " ago"
+	return FormatDurationShort(duration) + " ago"
 }
 
 // FormatTimeAgeShort returns a compact age string like "2m".
 func FormatTimeAgeShort(then time.Time, now time.Time) string {
-	if then.IsZero() {
+	duration, ok := timeAgeDuration(then, now)
+	if !ok {
 		return "-"
 	}
 
-	if now.Before(then) {
-		now = then
-	}
-
-	return FormatDurationShort(now.Sub(then))
+	return FormatDurationShort(duration)
 }
 
 // FormatDurationShort formats a duration using short units (s/m/h/d).
@@ -55,4 +49,16 @@ func FormatDurationShort(duration time.Duration) string {
 
 	days := hours / 24
 	return fmt.Sprintf("%dd", days)
+}
+
+func timeAgeDuration(then time.Time, now time.Time) (time.Duration, bool) {
+	if then.IsZero() {
+		return 0, false
+	}
+
+	if now.Before(then) {
+		now = then
+	}
+
+	return now.Sub(then), true
 }
