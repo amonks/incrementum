@@ -8,6 +8,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/workspace"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
@@ -80,6 +81,41 @@ func TestFormatOpencodeTableTruncatesPromptToViewport(t *testing.T) {
 	}
 
 	if width := ui.TableCellWidth(lines[1]); width != 60 {
+		t.Fatalf("expected row width 60, got %d in %q", width, lines[1])
+	}
+}
+
+func TestFormatOpencodeTableTruncatesWidePromptToViewport(t *testing.T) {
+	restore := ui.OverrideTableViewportWidth(func() int {
+		return 60
+	})
+	t.Cleanup(restore)
+
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-time.Minute)
+
+	sessions := []workspace.OpencodeSession{
+		{
+			ID:        "sess-wide",
+			Status:    workspace.OpencodeSessionActive,
+			Prompt:    strings.Repeat("\u754c", 80),
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+	}
+
+	output := strings.TrimSuffix(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil), "\n")
+	lines := strings.Split(output, "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected header and row only, got %d lines in %q", len(lines), output)
+	}
+
+	if !strings.Contains(lines[1], "...") {
+		t.Fatalf("expected prompt to truncate with ellipsis, got %q", lines[1])
+	}
+
+	if width := lipgloss.Width(lines[1]); width != 60 {
 		t.Fatalf("expected row width 60, got %d in %q", width, lines[1])
 	}
 }

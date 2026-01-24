@@ -135,7 +135,7 @@ func TruncateTableCellToWidth(value string, max int) string {
 }
 
 func displayWidth(value string) int {
-	return utf8.RuneCountInString(stripANSICodes(value))
+	return lipgloss.Width(stripANSICodes(value))
 }
 
 func normalizeTableCell(value string) string {
@@ -175,11 +175,12 @@ func truncateVisible(value string, max int) string {
 			i++
 			continue
 		}
-		if visible >= max {
+		width := lipgloss.Width(string(r))
+		if visible+width > max {
 			break
 		}
 		builder.WriteRune(r)
-		visible++
+		visible += width
 		i += size
 	}
 	return builder.String()
