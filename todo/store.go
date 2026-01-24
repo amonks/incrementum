@@ -234,14 +234,8 @@ func createTodoStore(client *jj.Client, wsPath string) error {
 	return nil
 }
 
-// todosPath returns the path to the todos.jsonl file.
-func (s *Store) todosPath() string {
-	return filepath.Join(s.wsPath, TodosFile)
-}
-
-// dependenciesPath returns the path to the dependencies.jsonl file.
-func (s *Store) dependenciesPath() string {
-	return filepath.Join(s.wsPath, DependenciesFile)
+func storeFilePath(wsPath, filename string) string {
+	return filepath.Join(wsPath, filename)
 }
 
 // withFileLock executes fn while holding an exclusive lock on the file at path.
@@ -341,19 +335,24 @@ func writeJSONL[T any](path string, items []T) error {
 	return nil
 }
 
-// readTodos reads all todos from the store.
-func (s *Store) readTodos() ([]Todo, error) {
-	if s.readOnly {
-		return readJSONLAtBookmark[Todo](s.client, s.repoPath, TodosFile)
+func readJSONLStore[T any](store *Store, filename string) ([]T, error) {
+	if store.readOnly {
+		return readJSONLAtBookmark[T](store.client, store.repoPath, filename)
 	}
 
-	var todos []Todo
-	err := withFileLock(s.todosPath(), func() error {
+	path := storeFilePath(store.wsPath, filename)
+	var items []T
+	err := withFileLock(path, func() error {
 		var err error
-		todos, err = readJSONL[Todo](s.todosPath())
+		items, err = readJSONL[T](path)
 		return err
 	})
-	return todos, err
+	return items, err
+}
+
+// readTodos reads all todos from the store.
+func (s *Store) readTodos() ([]Todo, error) {
+	return readJSONLStore[Todo](s, TodosFile)
 }
 
 // IDIndex returns an index of all todo IDs in the store.
@@ -365,59 +364,39 @@ func (s *Store) IDIndex() (IDIndex, error) {
 	return NewIDIndex(todos), nil
 }
 
-// writeTodos writes all todos to the store and runs jj snapshot.
-func (s *Store) writeTodos(todos []Todo) error {
-	if err := s.ensureWritable(); err != nil {
+func writeJSONLStore[T any](store *Store, filename string, items []T) error {
+	if err := store.ensureWritable(); err != nil {
 		return err
 	}
 
-	err := withFileLock(s.todosPath(), func() error {
-		return writeJSONL(s.todosPath(), todos)
+	path := storeFilePath(store.wsPath, filename)
+	err := withFileLock(path, func() error {
+		return writeJSONL(path, items)
 	})
 	if err != nil {
 		return err
 	}
 
-	if s.snapshot == nil {
+	if store.snapshot == nil {
 		return fmt.Errorf("snapshotter is not configured")
 	}
 
-	return s.snapshot.Snapshot(s.wsPath)
+	return store.snapshot.Snapshot(store.wsPath)
+}
+
+// writeTodos writes all todos to the store and runs jj snapshot.
+func (s *Store) writeTodos(todos []Todo) error {
+	return writeJSONLStore(s, TodosFile, todos)
 }
 
 // readDependencies reads all dependencies from the store.
 func (s *Store) readDependencies() ([]Dependency, error) {
-	if s.readOnly {
-		return readJSONLAtBookmark[Dependency](s.client, s.repoPath, DependenciesFile)
-	}
-
-	var deps []Dependency
-	err := withFileLock(s.dependenciesPath(), func() error {
-		var err error
-		deps, err = readJSONL[Dependency](s.dependenciesPath())
-		return err
-	})
-	return deps, err
+	return readJSONLStore[Dependency](s, DependenciesFile)
 }
 
 // writeDependencies writes all dependencies to the store and runs jj snapshot.
 func (s *Store) writeDependencies(deps []Dependency) error {
-	if err := s.ensureWritable(); err != nil {
-		return err
-	}
-
-	err := withFileLock(s.dependenciesPath(), func() error {
-		return writeJSONL(s.dependenciesPath(), deps)
-	})
-	if err != nil {
-		return err
-	}
-
-	if s.snapshot == nil {
-		return fmt.Errorf("snapshotter is not configured")
-	}
-
-	return s.snapshot.Snapshot(s.wsPath)
+	return writeJSONLStore(s, DependenciesFile, deps)
 }
 
 // getTodoByID finds a todo by its ID.
