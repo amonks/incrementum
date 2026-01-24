@@ -127,8 +127,7 @@ any stage -> failed (unrecoverable error)
 3. Run opencode with:
    - `prompt-commit-review.tmpl` during the work loop, or
    - `prompt-project-review.tmpl` during the final project review.
-4. Template receives: `Todo`, `Message` (commit message from the implementing stage,
-   falling back to `.incrementum-commit-message` in the workspace root).
+4. Template receives: `Todo`, `Message` (commit message from the implementing stage).
    If the review template does not reference `Message`, the job appends a
    `<commit_message>` block with the message before rendering.
    - If the commit message is required for the step review and missing, fail with
