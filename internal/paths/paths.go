@@ -6,6 +6,15 @@ import (
 	"path/filepath"
 )
 
+// WorkingDir returns the current working directory.
+func WorkingDir() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory: %w", err)
+	}
+	return cwd, nil
+}
+
 // DefaultStateDir returns the default incrementum state directory.
 func DefaultStateDir() (string, error) {
 	home, err := homeDir()

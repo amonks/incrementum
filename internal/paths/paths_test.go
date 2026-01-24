@@ -1,6 +1,7 @@
 package paths
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -44,5 +45,28 @@ func TestDefaultOpencodeEventsDirUsesHome(t *testing.T) {
 	expected := filepath.Join("/tmp", "test-home", ".local", "share", "incrementum", "opencode", "events")
 	if dir != expected {
 		t.Fatalf("expected %s, got %s", expected, dir)
+	}
+}
+
+func TestWorkingDirReturnsCurrentDir(t *testing.T) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	workDir := t.TempDir()
+	if err := os.Chdir(workDir); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(currentDir)
+	})
+
+	resolved, err := WorkingDir()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if resolved != workDir {
+		t.Fatalf("expected %s, got %s", workDir, resolved)
 	}
 }

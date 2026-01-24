@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/amonks/incrementum/internal/paths"
 	"github.com/amonks/incrementum/todo"
 	"github.com/rogpeppe/go-internal/testscript"
 )
@@ -38,7 +39,7 @@ func BuildII(t testing.TB) string {
 		}
 
 		iiPath = filepath.Join(binDir, "ii")
-	cmd := exec.Command("go", "build", "-o", iiPath, "./cmd/ii")
+		cmd := exec.Command("go", "build", "-o", iiPath, "./cmd/ii")
 		cmd.Dir = moduleRoot
 		output, err := cmd.CombinedOutput()
 		if err != nil {
@@ -110,9 +111,9 @@ func CmdTodoID(ts *testscript.TestScript, neg bool, args []string) {
 }
 
 func findModuleRoot() (string, error) {
-	dir, err := os.Getwd()
+	dir, err := paths.WorkingDir()
 	if err != nil {
-		return "", fmt.Errorf("get working directory: %w", err)
+		return "", err
 	}
 
 	for {

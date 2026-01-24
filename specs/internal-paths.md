@@ -1,7 +1,7 @@
 # Internal Paths
 
 ## Overview
-The paths package centralizes default filesystem locations for incrementum state, workspaces, and event logs. It uses a shared helper around `os.UserHomeDir` to keep error handling consistent.
+The paths package centralizes default filesystem locations for incrementum state, workspaces, and event logs. It uses shared helpers around `os.UserHomeDir` and `os.Getwd` to keep error handling consistent.
 
 ## Defaults
 - State: `~/.local/state/incrementum`
@@ -14,3 +14,4 @@ The paths package centralizes default filesystem locations for incrementum state
 - `DefaultWorkspacesDir() (string, error)`: returns the default workspaces directory using `os.UserHomeDir`.
 - `DefaultOpencodeEventsDir() (string, error)`: returns the default opencode events directory using `os.UserHomeDir`.
 - `DefaultJobEventsDir() (string, error)`: returns the default job events directory using `os.UserHomeDir`.
+- `WorkingDir() (string, error)`: returns the current working directory using `os.Getwd`.

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/amonks/incrementum/internal/paths"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
@@ -28,9 +29,9 @@ var rootCmd = &cobra.Command{
 
 // getRepoPath returns the jj repository root for the current directory.
 func getRepoPath() (string, error) {
-	cwd, err := os.Getwd()
+	cwd, err := paths.WorkingDir()
 	if err != nil {
-		return "", fmt.Errorf("get working directory: %w", err)
+		return "", err
 	}
 
 	root, err := workspace.RepoRootFromPath(cwd)
@@ -52,18 +53,18 @@ func resolvePath(args []string) (string, error) {
 	if len(args) > 0 {
 		path := args[0]
 		if !filepath.IsAbs(path) {
-			cwd, err := os.Getwd()
+			cwd, err := paths.WorkingDir()
 			if err != nil {
-				return "", fmt.Errorf("get working directory: %w", err)
+				return "", err
 			}
 			path = filepath.Join(cwd, path)
 		}
 		return path, nil
 	}
 
-	cwd, err := os.Getwd()
+	cwd, err := paths.WorkingDir()
 	if err != nil {
-		return "", fmt.Errorf("get working directory: %w", err)
+		return "", err
 	}
 	return cwd, nil
 }
@@ -74,9 +75,9 @@ func resolveWorkspaceName(args []string, pool *workspace.Pool) (string, error) {
 		return args[0], nil
 	}
 
-	cwd, err := os.Getwd()
+	cwd, err := paths.WorkingDir()
 	if err != nil {
-		return "", fmt.Errorf("get working directory: %w", err)
+		return "", err
 	}
 
 	return pool.WorkspaceNameForPath(cwd)
