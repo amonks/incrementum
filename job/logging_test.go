@@ -92,6 +92,38 @@ func TestConsoleLoggerReflowsParagraphs(t *testing.T) {
 	}
 }
 
+func TestConsoleLoggerPreservesFormattedCommitMessageIndentation(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewConsoleLogger(&buf)
+
+	message := strings.Join([]string{
+		"Summary line",
+		"",
+		"Here is a generated commit message:",
+		"",
+		"    Body line",
+		"",
+		"This commit is a step towards implementing this todo:",
+		"",
+		"    ID: todo-1",
+		"    Description:",
+		"        Detail line",
+	}, "\n")
+
+	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: message, Preformatted: true})
+
+	output := stripANSI(buf.String())
+	if !strings.Contains(output, "Final commit message:") {
+		t.Fatalf("expected commit message label, got %q", output)
+	}
+	if !strings.Contains(output, "\n        Summary line") {
+		t.Fatalf("expected summary line indentation, got %q", output)
+	}
+	if !strings.Contains(output, "\n            Body line") {
+		t.Fatalf("expected body line indentation preserved, got %q", output)
+	}
+}
+
 func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()

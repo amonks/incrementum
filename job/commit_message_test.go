@@ -95,3 +95,30 @@ func TestFormatCommitMessage(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatCommitMessageWithWidthRespectsLimit(t *testing.T) {
+	item := todo.Todo{
+		ID:          "todo-987",
+		Title:       "Constrain log message widths",
+		Description: "Ensure log formatting keeps nested sections within the requested width while preserving hierarchy.",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+	message := "feat: narrow commit message output width for logs\n\nThis body text should wrap to fit within the chosen width, even when the summary and description are long."
+
+	formatted := formatCommitMessageWithWidth(item, message, 60)
+	if maxLineLength(formatted) > 60 {
+		t.Fatalf("expected max line length <= 60, got %d", maxLineLength(formatted))
+	}
+}
+
+func maxLineLength(value string) int {
+	max := 0
+	for _, line := range strings.Split(value, "\n") {
+		length := len(line)
+		if length > max {
+			max = length
+		}
+	}
+	return max
+}

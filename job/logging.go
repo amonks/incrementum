@@ -28,8 +28,9 @@ type PromptLog struct {
 
 // CommitMessageLog captures commit message text.
 type CommitMessageLog struct {
-	Label   string
-	Message string
+	Label        string
+	Message      string
+	Preformatted bool
 }
 
 // ReviewLog captures review feedback.
@@ -104,9 +105,10 @@ func (logger *ConsoleLogger) CommitMessage(entry CommitMessageLog) {
 	if strings.TrimSpace(entry.Label) != "" {
 		label = fmt.Sprintf("%s commit message:", entry.Label)
 	}
+	wrap := !entry.Preformatted
 	logger.writeBlock(
 		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
-		formatLogBody(entry.Message, subdocumentIndent, true),
+		formatLogBody(entry.Message, subdocumentIndent, wrap),
 	)
 }
 

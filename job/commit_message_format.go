@@ -8,10 +8,14 @@ import (
 )
 
 func formatCommitMessage(item todo.Todo, message string) string {
-	summary, body := splitCommitMessage(message)
-	formatted := wrapLines(summary, lineWidth)
+	return formatCommitMessageWithWidth(item, message, lineWidth)
+}
 
-	bodyText := reflowParagraphs(body, lineWidth-documentIndent)
+func formatCommitMessageWithWidth(item todo.Todo, message string, width int) string {
+	summary, body := splitCommitMessage(message)
+	formatted := wrapLines(summary, width)
+
+	bodyText := reflowParagraphs(body, width-documentIndent)
 	if strings.TrimSpace(bodyText) == "" {
 		bodyText = "-"
 	}
@@ -19,7 +23,7 @@ func formatCommitMessage(item todo.Todo, message string) string {
 	formatted += indentBlock(bodyText, documentIndent)
 
 	formatted += "\n\nThis commit is a step towards implementing this todo:\n\n"
-	formatted += formatCommitTodo(item)
+	formatted += formatCommitTodoWithWidth(item, width)
 	return formatted
 }
 
@@ -35,6 +39,10 @@ func splitCommitMessage(message string) (string, string) {
 }
 
 func formatCommitTodo(item todo.Todo) string {
+	return formatCommitTodoWithWidth(item, lineWidth)
+}
+
+func formatCommitTodoWithWidth(item todo.Todo, width int) string {
 	fields := []string{
 		fmt.Sprintf("ID: %s", item.ID),
 		fmt.Sprintf("Title: %s", item.Title),
@@ -42,14 +50,14 @@ func formatCommitTodo(item todo.Todo) string {
 		fmt.Sprintf("Priority: %d (%s)", item.Priority, todo.PriorityName(item.Priority)),
 		"Description:",
 	}
-	fieldBlock := wrapLines(strings.Join(fields, "\n"), lineWidth-documentIndent)
+	fieldBlock := wrapLines(strings.Join(fields, "\n"), width-documentIndent)
 	fieldBlock = indentBlock(fieldBlock, documentIndent)
 
 	description := strings.TrimSpace(item.Description)
 	if description == "" {
 		description = "-"
 	}
-	description = reflowParagraphs(description, lineWidth-subdocumentIndent)
+	description = reflowParagraphs(description, width-subdocumentIndent)
 	if description == "" {
 		description = "-"
 	}
