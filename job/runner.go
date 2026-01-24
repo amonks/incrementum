@@ -463,6 +463,11 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 	transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
+	if strings.TrimSpace(transcript) != "" {
+		if err := appendJobEvent(opts.EventLog, jobEventTranscript, transcriptEventData{Purpose: "implement", Transcript: transcript}); err != nil {
+			return ImplementingStageResult{}, err
+		}
+	}
 	logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt, Transcript: transcript})
 
 	if opencodeResult.ExitCode != 0 {
@@ -603,6 +608,12 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	updated, err := manager.Update(current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
 	if err != nil {
 		return Job{}, err
+	}
+	transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
+	if strings.TrimSpace(transcript) != "" {
+		if err := appendJobEvent(opts.EventLog, jobEventTranscript, transcriptEventData{Purpose: purpose, Transcript: transcript}); err != nil {
+			return Job{}, err
+		}
 	}
 
 	if opencodeResult.ExitCode != 0 {

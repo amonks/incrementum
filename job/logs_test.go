@@ -24,6 +24,9 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 	if err := appendJobEvent(log, jobEventPrompt, promptEventData{Purpose: "implement", Prompt: "First line.\nSecond line."}); err != nil {
 		t.Fatalf("append prompt event: %v", err)
 	}
+	if err := appendJobEvent(log, jobEventTranscript, transcriptEventData{Purpose: "implement", Transcript: "Opencode line."}); err != nil {
+		t.Fatalf("append transcript event: %v", err)
+	}
 	if err := appendJobEvent(log, jobEventCommitMessage, commitMessageEventData{Label: "Draft", Message: "feat: add logs"}); err != nil {
 		t.Fatalf("append commit message event: %v", err)
 	}
@@ -35,6 +38,9 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 	}
 	if err := appendJobEvent(log, jobEventStage, stageEventData{Stage: StageReviewing}); err != nil {
 		t.Fatalf("append review stage event: %v", err)
+	}
+	if err := appendJobEvent(log, jobEventTranscript, transcriptEventData{Purpose: "review", Transcript: "Review transcript line."}); err != nil {
+		t.Fatalf("append review transcript event: %v", err)
 	}
 	if err := appendJobEvent(log, jobEventReview, reviewEventData{Purpose: "review", Outcome: ReviewOutcomeRequestChanges, Details: "Add tests."}); err != nil {
 		t.Fatalf("append review event: %v", err)
@@ -49,6 +55,8 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"Running implementation prompt:",
 		"    Implementation prompt:",
 		"        First line. Second line.",
+		"    Opencode transcript:",
+		"        Opencode line.",
 		"    Draft commit message:",
 		"        feat: add logs",
 		"Implementation prompt complete; running tests:",
@@ -56,6 +64,7 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"Exit Code",
 		"go test ./...",
 		"Tests passed; doing code review:",
+		"Review transcript line.",
 		"    Code review result:",
 		"        Add tests.",
 	}

@@ -13,6 +13,7 @@ import (
 const (
 	jobEventStage         = "job.stage"
 	jobEventPrompt        = "job.prompt"
+	jobEventTranscript    = "job.transcript"
 	jobEventCommitMessage = "job.commit_message"
 	jobEventReview        = "job.review"
 	jobEventTests         = "job.tests"
@@ -133,6 +134,11 @@ type promptEventData struct {
 	Purpose  string `json:"purpose"`
 	Template string `json:"template"`
 	Prompt   string `json:"prompt"`
+}
+
+type transcriptEventData struct {
+	Purpose    string `json:"purpose"`
+	Transcript string `json:"transcript"`
 }
 
 type commitMessageEventData struct {

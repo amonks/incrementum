@@ -32,8 +32,9 @@ Follow our usual testing practice:
 - Job event logs are stored as JSONL at
   `~/.local/share/incrementum/jobs/events/<job-id>.jsonl`.
 - Job event entries use opencode's event shape (`id`, `name`, `data`) and include
-  both opencode events and job-specific events (stage changes, prompts, test
-  results, review feedback, commit messages, opencode session boundaries).
+  both opencode events and job-specific events (stage changes, prompts, opencode
+  transcripts, test results, review feedback, commit messages, opencode session
+  boundaries).
 
 ## Job Model
 
@@ -259,9 +260,9 @@ Behavior:
 5. Output job context: workdir and full todo details.
 6. Create job record with status `active`, stage `implementing`.
 7. Run state machine to completion.
-8. Output progress: stage transitions and formatted logs (prompts, commit
-   messages, test results, review feedback) with 80-column reflow and 0/4/8-space
-   indentation for document hierarchy.
+8. Output progress: stage transitions and formatted logs (prompts, opencode
+   transcripts, commit messages, test results, review feedback) with 80-column
+   reflow and 0/4/8-space indentation for document hierarchy.
 9. On success: mark todo done and print final commit info with 80-column reflow
    and 0/4/8-space indentation.
 10. On failure/abandon: reopen todo and print reason.

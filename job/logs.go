@@ -86,6 +86,16 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 			formatLogLabel(label, documentIndent),
 			formatLogBody(data.Message, subdocumentIndent, true),
 		)
+	case jobEventTranscript:
+		data, err := decodeEventData[transcriptEventData](event.Data)
+		if err != nil {
+			return err
+		}
+		writer.skipSpacing = true
+		writer.writeBlock(
+			formatLogLabel("Opencode transcript:", documentIndent),
+			formatLogBody(data.Transcript, subdocumentIndent, true),
+		)
 	case jobEventReview:
 		data, err := decodeEventData[reviewEventData](event.Data)
 		if err != nil {
