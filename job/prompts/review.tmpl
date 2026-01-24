@@ -1,7 +1,13 @@
-The diff in the working tree purports to complete a step towards our todo, and
-is described by the commit message in ./.incrementum-commit-message
+Review the changes in the working tree. The diff purports to complete a step
+towards our todo and is described by the commit message below.
 
-Review it:
+Workspace root: {{.WorkspacePath}}
+
+<commit_message>
+{{.Message}}
+</commit_message>
+
+Review the changes:
 - Does it do what the message says?
 - Does it move us towards the goal in the todo?
 - Is it free of defects?
@@ -28,4 +34,3 @@ If requesting changes, add a blank line and the details after it.
 Description:
 {{.Todo.Description}}
 </todo>
-

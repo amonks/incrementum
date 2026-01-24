@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ const (
 	commitMessageFilename        = ".incrementum-commit-message"
 	opencodeSessionLookupTimeout = 5 * time.Second
 )
+
+var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.Message[^}]*\}\}`)
 
 // RunOptions configures job execution.
 type RunOptions struct {
@@ -308,7 +311,7 @@ func (ctx *runContext) runTestingStage(current Job) func() (Job, error) {
 
 func (ctx *runContext) runReviewingStage(current Job) func() (Job, error) {
 	return func() (Job, error) {
-		return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.reviewScope)
+		return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.commitMessage, ctx.reviewScope)
 	}
 }
 
@@ -457,10 +460,15 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 	return updated, nil
 }
 
-func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, scope reviewScope) (Job, error) {
+func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitMessage string, scope reviewScope) (Job, error) {
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
+		return Job{}, err
+	}
+
+	message, err := resolveReviewCommitMessage(commitMessage, workspacePath, repoPath)
+	if err != nil {
 		return Job{}, err
 	}
 
@@ -471,7 +479,12 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		purpose = "project-review"
 	}
 
-	prompt, err := renderPromptTemplate(item, "", "", promptName, workspacePath)
+	promptTemplate, err := LoadPrompt(workspacePath, promptName)
+	if err != nil {
+		return Job{}, err
+	}
+	promptTemplate = ensureCommitMessageInPrompt(promptTemplate, message)
+	prompt, err := RenderPrompt(promptTemplate, PromptData{Todo: item, Feedback: "", Message: message, WorkspacePath: workspacePath})
 	if err != nil {
 		return Job{}, err
 	}
@@ -597,6 +610,17 @@ func renderPromptTemplate(item todo.Todo, feedback, message, name, workspacePath
 	return RenderPrompt(prompt, PromptData{Todo: item, Feedback: feedback, Message: message, WorkspacePath: workspacePath})
 }
 
+func ensureCommitMessageInPrompt(prompt, message string) string {
+	if strings.TrimSpace(message) == "" {
+		return prompt
+	}
+	if promptMessagePattern.MatchString(prompt) {
+		return prompt
+	}
+	trimmed := strings.TrimRight(prompt, "\n")
+	return trimmed + "\n\n<commit_message>\n{{.Message}}\n</commit_message>\n"
+}
+
 func readCommitMessage(path string) (string, error) {
 	return readCommitMessageWithFallback(path, "")
 }
@@ -616,6 +640,28 @@ func readCommitMessageWithFallback(path, fallbackPath string) (string, error) {
 	}
 	if removeErr != nil {
 		return "", removeErr
+	}
+	return message, nil
+}
+
+func resolveReviewCommitMessage(commitMessage, workspacePath, repoPath string) (string, error) {
+	if strings.TrimSpace(commitMessage) != "" {
+		return commitMessage, nil
+	}
+	if strings.TrimSpace(workspacePath) == "" {
+		return "", nil
+	}
+	messagePath := filepath.Join(workspacePath, commitMessageFilename)
+	fallbackMessagePath := ""
+	if strings.TrimSpace(repoPath) != "" {
+		fallbackMessagePath = filepath.Join(repoPath, commitMessageFilename)
+	}
+	message, err := readCommitMessageWithFallback(messagePath, fallbackMessagePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
 	}
 	return message, nil
 }

@@ -128,7 +128,10 @@ any stage -> failed (unrecoverable error)
 3. Run opencode with:
    - `review.tmpl` during the work loop, or
    - `project-review.tmpl` during the final project review.
-4. Template receives: `Todo`.
+4. Template receives: `Todo`, `Message` (commit message from the implementing stage,
+   falling back to `.incrementum-commit-message` in the workspace or repo root).
+   If the review template does not reference `Message`, the job appends a
+   `<commit_message>` block with the message before rendering.
 5. Template instructs opencode to inspect changes (or the commit sequence for
    project review) and write outcome to `.incrementum-feedback`.
 6. Record opencode session in `opencode_sessions` with purpose `review` or
@@ -188,7 +191,7 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 | File                   | Stage        | Variables                             |
 | ---------------------- | ------------ | ------------------------------------- |
 | `implement.tmpl`       | implementing | `Todo`, `Feedback`, `WorkspacePath`   |
-| `review.tmpl`          | reviewing    | `Todo`, `WorkspacePath`               |
+| `review.tmpl`          | reviewing    | `Todo`, `Message`, `WorkspacePath`    |
 | `project-review.tmpl`  | reviewing    | `Todo`, `WorkspacePath`               |
 | `commit.tmpl`          | committing   | `Todo`, `Message`, `WorkspacePath`    |
 
