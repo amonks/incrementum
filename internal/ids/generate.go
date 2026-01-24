@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"strings"
+	"time"
 )
 
 // DefaultLength is the standard length for generated IDs.
@@ -20,4 +21,9 @@ func Generate(input string, length int) string {
 		length = len(encoded)
 	}
 	return strings.ToLower(encoded[:length])
+}
+
+// GenerateWithTimestamp appends a timestamp to input before hashing.
+func GenerateWithTimestamp(input string, timestamp time.Time, length int) string {
+	return Generate(input+timestamp.Format(time.RFC3339Nano), length)
 }

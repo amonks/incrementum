@@ -1,6 +1,9 @@
 package ids
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestGenerate(t *testing.T) {
 	id := Generate("todo-123", 8)
@@ -31,5 +34,20 @@ func TestGenerate_DifferentInputs(t *testing.T) {
 
 	if id1 == id2 {
 		t.Error("different inputs should produce different IDs")
+	}
+}
+
+func TestGenerateWithTimestamp(t *testing.T) {
+	timestamp := time.Date(2024, 3, 2, 9, 12, 0, 0, time.UTC)
+
+	id1 := GenerateWithTimestamp("todo-123", timestamp, 8)
+	id2 := GenerateWithTimestamp("todo-123", timestamp, 8)
+	if id1 != id2 {
+		t.Errorf("same inputs should produce same ID: got %q and %q", id1, id2)
+	}
+
+	id3 := GenerateWithTimestamp("todo-123", timestamp.Add(time.Nanosecond), 8)
+	if id1 == id3 {
+		t.Error("different timestamps should produce different IDs")
 	}
 }
