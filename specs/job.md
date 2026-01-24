@@ -93,7 +93,7 @@ any stage -> failed (unrecoverable error)
 3. Run opencode with `implement.tmpl` prompt from the repo root (PWD set to the repo root).
 4. Template receives: `Todo`, `Feedback` (empty string on initial run).
 5. Record opencode session in `opencode_sessions` with purpose `implement`.
-6. Wait for opencode completion.
+6. Run opencode to completion.
 7. If opencode fails (nonzero exit): mark job `failed`.
 8. Transition to `testing`.
 
@@ -115,7 +115,7 @@ any stage -> failed (unrecoverable error)
 5. Template instructs opencode to inspect changes (e.g., `jj diff`) and write
    outcome to `.incrementum-feedback`.
 6. Record opencode session in `opencode_sessions` with purpose `review`.
-7. Wait for opencode completion.
+7. Run opencode to completion.
 8. If opencode fails (nonzero exit): mark job `failed`.
 9. Read `.incrementum-feedback`:
    - Delete `.incrementum-feedback` after reading.
@@ -134,7 +134,7 @@ any stage -> failed (unrecoverable error)
 5. Template instructs opencode to generate commit message and write to
    `.incrementum-commit-message`.
 6. Record opencode session in `opencode_sessions` with purpose `commit-message`.
-7. Wait for opencode completion.
+7. Run opencode to completion.
 8. If opencode fails (nonzero exit): mark job `failed`.
 9. Read `.incrementum-commit-message`.
 10. Delete `.incrementum-commit-message` after reading.
@@ -146,8 +146,7 @@ any stage -> failed (unrecoverable error)
 
 ## Failure Handling
 
-- `failed`: unrecoverable error (opencode daemon not running, describe fails,
-  invalid feedback format).
+- `failed`: unrecoverable error (describe fails, invalid feedback format).
 - `abandoned`: opencode decided the task is impossible.
 
 Both reopen the todo.

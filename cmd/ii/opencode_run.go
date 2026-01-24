@@ -1,11 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -20,12 +20,8 @@ var opencodeRunCmd = &cobra.Command{
 	RunE:  runOpencodeRun,
 }
 
-var opencodeRunAttach bool
-
 func init() {
 	opencodeCmd.AddCommand(opencodeRunCmd)
-
-	opencodeRunCmd.Flags().BoolVar(&opencodeRunAttach, "attach", true, "Attach to the opencode session")
 }
 
 func runOpencodeRun(cmd *cobra.Command, args []string) error {
@@ -39,58 +35,57 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	daemon, err := pool.FindOpencodeDaemon(repoPath)
-	if err != nil {
-		return err
-	}
-	if daemon.Status != workspace.OpencodeDaemonRunning {
-		return fmt.Errorf("opencode daemon is not running")
-	}
-
 	prompt, err := resolveOpencodePrompt(args, os.Stdin)
 	if err != nil {
 		return err
 	}
 
 	startedAt := time.Now()
-	sessionID, logPath, err := opencodeRunLogPath(pool, repoPath, prompt, startedAt)
-	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
-		return fmt.Errorf("create opencode log dir: %w", err)
-	}
-
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return fmt.Errorf("open opencode log: %w", err)
-	}
-	defer logFile.Close()
-
-	attachURL := workspace.DaemonAttachURL(daemon)
-	runArgs := []string{"run", "--attach", attachURL, prompt}
-
-	runCmd := exec.Command("opencode", runArgs...)
-	runCmd.Stdout = io.MultiWriter(os.Stdout, logFile)
-	runCmd.Stderr = io.MultiWriter(os.Stderr, logFile)
+	runCmd := exec.Command("opencode", "run", prompt)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
 	runCmd.Stdin = os.Stdin
 
-	if err := runCmd.Start(); err != nil {
-		return fmt.Errorf("start opencode run: %w", err)
-	}
+	exitCode, runErr := runExitCode(runCmd)
+	completedAt := time.Now()
 
-	session, err := pool.CreateOpencodeSession(repoPath, prompt, logPath, startedAt)
+	storage, err := opencodeStorage()
 	if err != nil {
-		_ = runCmd.Process.Kill()
-		_ = runCmd.Wait()
 		return err
 	}
-	if session.ID != sessionID {
-		return fmt.Errorf("opencode session id mismatch")
+
+	metadata, err := storage.FindSessionForRun(repoPath, startedAt, prompt)
+	if err != nil {
+		if runErr != nil {
+			return errors.Join(runErr, err)
+		}
+		return err
 	}
 
-	fmt.Println(session.ID)
+	sessionStartedAt := startedAt
+	if !metadata.CreatedAt.IsZero() {
+		sessionStartedAt = metadata.CreatedAt
+	}
+
+	session, err := pool.CreateOpencodeSession(repoPath, metadata.ID, prompt, sessionStartedAt)
+	if err != nil {
+		return err
+	}
+
+	status := workspace.OpencodeSessionCompleted
+	if exitCode != 0 {
+		status = workspace.OpencodeSessionFailed
+	}
+	if _, err := pool.CompleteOpencodeSession(repoPath, session.ID, status, completedAt, &exitCode, int(completedAt.Sub(sessionStartedAt).Seconds())); err != nil {
+		return err
+	}
+
+	if runErr != nil {
+		return runErr
+	}
+	if exitCode != 0 {
+		return exitError{code: exitCode}
+	}
 	return nil
 }
 
@@ -109,12 +104,13 @@ func resolveOpencodePrompt(args []string, reader io.Reader) (string, error) {
 	return prompt, nil
 }
 
-func opencodeRunLogPath(pool *workspace.Pool, repoPath, prompt string, startedAt time.Time) (string, string, error) {
-	logDir, err := opencodeLogDir(pool, repoPath)
-	if err != nil {
-		return "", "", err
+func runExitCode(cmd *exec.Cmd) (int, error) {
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return exitErr.ExitCode(), nil
+		}
+		return 1, err
 	}
-
-	sessionID := workspace.GenerateOpencodeSessionID(prompt, startedAt)
-	return sessionID, filepath.Join(logDir, sessionID+".log"), nil
+	return 0, nil
 }

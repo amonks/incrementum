@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
@@ -89,12 +90,17 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logPath, err := opencodeSessionLogPath(pool, repoPath, args[0])
+	session, err := pool.FindOpencodeSession(repoPath, args[0])
 	if err != nil {
 		return err
 	}
 
-	snapshot, err := opencodeLogSnapshot(logPath)
+	storage, err := opencodeStorage()
+	if err != nil {
+		return err
+	}
+
+	snapshot, err := opencodeLogSnapshot(storage, session.ID)
 	if err != nil {
 		return err
 	}
@@ -163,21 +169,10 @@ func formatOpencodeAge(session workspace.OpencodeSession, now time.Time) string 
 	return ui.FormatDurationShort(age)
 }
 
-func opencodeSessionLogPath(pool *workspace.Pool, repoPath, sessionID string) (string, error) {
-	session, err := pool.FindOpencodeSession(repoPath, sessionID)
+func opencodeLogSnapshot(storage internalopencode.Storage, sessionID string) (string, error) {
+	snapshot, err := storage.SessionLogText(sessionID)
 	if err != nil {
 		return "", err
 	}
-	if session.LogPath == "" {
-		return "", fmt.Errorf("opencode session log path missing")
-	}
-	return session.LogPath, nil
-}
-
-func opencodeLogSnapshot(logPath string) (string, error) {
-	data, err := os.ReadFile(logPath)
-	if err != nil {
-		return "", fmt.Errorf("read opencode log: %w", err)
-	}
-	return string(data), nil
+	return snapshot, nil
 }

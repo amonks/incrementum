@@ -11,38 +11,7 @@ import (
 	"github.com/amonks/incrementum/workspace"
 )
 
-func TestOpencodeRunLogPath(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-
-	pool, err := workspace.OpenWithOptions(workspace.Options{
-		StateDir:      t.TempDir(),
-		WorkspacesDir: t.TempDir(),
-	})
-	if err != nil {
-		t.Fatalf("open pool: %v", err)
-	}
-
-	repoPath := "/tmp/my-repo"
-	prompt := "Run tests"
-	startedAt := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-
-	sessionID, logPath, err := opencodeRunLogPath(pool, repoPath, prompt, startedAt)
-	if err != nil {
-		t.Fatalf("get run log path: %v", err)
-	}
-
-	expectedID := workspace.GenerateOpencodeSessionID(prompt, startedAt)
-	expected := filepath.Join(home, ".local", "share", "incrementum", "opencode", "tmp-my-repo", expectedID+".log")
-	if sessionID != expectedID {
-		t.Fatalf("expected session id %q, got %q", expectedID, sessionID)
-	}
-	if logPath != expected {
-		t.Fatalf("expected log path %q, got %q", expected, logPath)
-	}
-}
-
-func TestOpencodeRunAcceptsAttachFalse(t *testing.T) {
+func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
 	if err := os.MkdirAll(home, 0o755); err != nil {
@@ -61,26 +30,18 @@ func TestOpencodeRunAcceptsAttachFalse(t *testing.T) {
 	}
 
 	argsFile := filepath.Join(root, "opencode-args.txt")
+	projectID := "proj_123"
+	sessionID := "ses_123"
+
 	opencodePath := filepath.Join(binDir, "opencode")
 	opencodeScript := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = \"run\" ]; then\n  echo \"$@\" > \"%s\"\n  exit 0\nfi\nexit 0\n", argsFile)
 	if err := os.WriteFile(opencodePath, []byte(opencodeScript), 0o755); err != nil {
 		t.Fatalf("write opencode stub: %v", err)
-	}
-
-	jjPath := filepath.Join(binDir, "jj")
-	jjScript := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = \"workspace\" ] && [ \"$2\" = \"root\" ]; then\n  echo \"%s\"\n  exit 0\nfi\necho \"unexpected args\" >&2\nexit 1\n", repoPath)
-	if err := os.WriteFile(jjPath, []byte(jjScript), 0o755); err != nil {
-		t.Fatalf("write jj stub: %v", err)
 	}
 
 	pathEnv := os.Getenv("PATH")
 	t.Setenv("PATH", fmt.Sprintf("%s:%s", binDir, pathEnv))
 
-	pool, err := workspace.Open()
-	if err != nil {
-		t.Fatalf("open pool: %v", err)
-	}
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("get cwd: %v", err)
@@ -92,131 +53,85 @@ func TestOpencodeRunAcceptsAttachFalse(t *testing.T) {
 		_ = os.Chdir(cwd)
 	})
 
-	repoPathForState, err := getOpencodeRepoPath()
+	repoPath, err = os.Getwd()
 	if err != nil {
-		t.Fatalf("get repo path: %v", err)
+		t.Fatalf("get repo cwd: %v", err)
 	}
-	if _, err := pool.RecordOpencodeDaemon(repoPathForState, os.Getpid(), "", 0, filepath.Join(root, "daemon.log"), time.Now()); err != nil {
-		t.Fatalf("record daemon: %v", err)
+	storageRoot := filepath.Join(home, ".local", "share", "opencode", "storage")
+	projectDir := filepath.Join(storageRoot, "project")
+	sessionDir := filepath.Join(storageRoot, "session", projectID)
+	messageDir := filepath.Join(storageRoot, "message", sessionID)
+	partDir := filepath.Join(storageRoot, "part", "msg_"+sessionID)
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatalf("create project dir: %v", err)
+	}
+	projectFile := filepath.Join(projectDir, projectID+".json")
+	projectJSON := fmt.Sprintf("{\"id\":\"%s\",\"worktree\":\"%s\"}", projectID, repoPath)
+	if err := os.WriteFile(projectFile, []byte(projectJSON), 0o644); err != nil {
+		t.Fatalf("write project file: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0o755); err != nil {
+		t.Fatalf("create session dir: %v", err)
+	}
+	if err := os.MkdirAll(messageDir, 0o755); err != nil {
+		t.Fatalf("create message dir: %v", err)
+	}
+	if err := os.MkdirAll(partDir, 0o755); err != nil {
+		t.Fatalf("create part dir: %v", err)
 	}
 
-	if err := opencodeRunCmd.Flags().Set("attach", "false"); err != nil {
-		t.Fatalf("set attach flag: %v", err)
+	created := time.Now().Add(10 * time.Second).UnixMilli()
+	sessionJSON := fmt.Sprintf("{\"id\":\"%s\",\"projectID\":\"%s\",\"directory\":\"%s\",\"time\":{\"created\":%d}}", sessionID, projectID, repoPath, created)
+	if err := os.WriteFile(filepath.Join(sessionDir, sessionID+".json"), []byte(sessionJSON), 0o644); err != nil {
+		t.Fatalf("write session file: %v", err)
 	}
-	opencodeRunAttach = false
-	t.Cleanup(func() {
-		_ = opencodeRunCmd.Flags().Set("attach", "true")
-		opencodeRunAttach = true
-	})
+	messageJSON := fmt.Sprintf("{\"id\":\"msg_%s\",\"sessionID\":\"%s\",\"role\":\"user\",\"time\":{\"created\":%d}}", sessionID, sessionID, created)
+	if err := os.WriteFile(filepath.Join(messageDir, "msg_"+sessionID+".json"), []byte(messageJSON), 0o644); err != nil {
+		t.Fatalf("write message file: %v", err)
+	}
+	partJSON := fmt.Sprintf("{\"id\":\"prt_%s\",\"sessionID\":\"%s\",\"messageID\":\"msg_%s\",\"type\":\"text\",\"text\":\"Test prompt\"}", sessionID, sessionID, sessionID)
+	if err := os.WriteFile(filepath.Join(partDir, "prt_"+sessionID+".json"), []byte(partJSON), 0o644); err != nil {
+		t.Fatalf("write part file: %v", err)
+	}
 
 	if err := runOpencodeRun(opencodeRunCmd, []string{"Test prompt"}); err != nil {
 		t.Fatalf("run opencode: %v", err)
 	}
 
-	var args string
-	for i := 0; i < 50; i++ {
-		data, err := os.ReadFile(argsFile)
-		if err == nil {
-			args = strings.TrimSpace(string(data))
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
+	data, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args: %v", err)
 	}
-	if args == "" {
-		t.Fatalf("expected opencode args to be recorded")
+	args := strings.TrimSpace(string(data))
+	if !strings.Contains(args, "run") {
+		t.Fatalf("expected opencode run args, got %q", args)
 	}
-	if !strings.Contains(args, "--attach") {
-		t.Fatalf("expected opencode run to include --attach, got %q", args)
-	}
-	expectedURL := fmt.Sprintf("http://127.0.0.1:%d", workspace.DefaultOpencodePort)
-	if !strings.Contains(args, expectedURL) {
-		t.Fatalf("expected opencode run to include attach URL %q, got %q", expectedURL, args)
+	if strings.Contains(args, "--attach") {
+		t.Fatalf("expected opencode run without --attach, got %q", args)
 	}
 	if !strings.Contains(args, "Test prompt") {
-		t.Fatalf("expected opencode run to include prompt, got %q", args)
+		t.Fatalf("expected prompt to be passed, got %q", args)
 	}
-}
-
-func TestOpencodeRunUsesWorkingDirectory(t *testing.T) {
-	root := t.TempDir()
-	home := filepath.Join(root, "home")
-	if err := os.MkdirAll(home, 0o755); err != nil {
-		t.Fatalf("create home: %v", err)
-	}
-	t.Setenv("HOME", home)
-
-	repoPath := filepath.Join(root, "repo")
-	if err := os.MkdirAll(repoPath, 0o755); err != nil {
-		t.Fatalf("create repo: %v", err)
-	}
-
-	binDir := filepath.Join(root, "bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatalf("create bin dir: %v", err)
-	}
-
-	argsFile := filepath.Join(root, "opencode-args.txt")
-	opencodePath := filepath.Join(binDir, "opencode")
-	opencodeScript := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = \"run\" ]; then\n  echo \"$@\" > \"%s\"\n  exit 0\nfi\nexit 0\n", argsFile)
-	if err := os.WriteFile(opencodePath, []byte(opencodeScript), 0o755); err != nil {
-		t.Fatalf("write opencode stub: %v", err)
-	}
-
-	t.Setenv("PATH", binDir)
 
 	pool, err := workspace.Open()
 	if err != nil {
 		t.Fatalf("open pool: %v", err)
 	}
 
-	cwd, err := os.Getwd()
+	sessions, err := pool.ListOpencodeSessions(repoPath)
 	if err != nil {
-		t.Fatalf("get cwd: %v", err)
+		t.Fatalf("list sessions: %v", err)
 	}
-	if err := os.Chdir(repoPath); err != nil {
-		t.Fatalf("chdir: %v", err)
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(sessions))
 	}
-	t.Cleanup(func() {
-		_ = os.Chdir(cwd)
-	})
-
-	repoPathForState, err := getOpencodeRepoPath()
-	if err != nil {
-		t.Fatalf("get repo path: %v", err)
+	if sessions[0].ID != sessionID {
+		t.Fatalf("expected session id %q, got %q", sessionID, sessions[0].ID)
 	}
-	if _, err := pool.RecordOpencodeDaemon(repoPathForState, os.Getpid(), "", 0, filepath.Join(root, "daemon.log"), time.Now()); err != nil {
-		t.Fatalf("record daemon: %v", err)
+	if sessions[0].Status != workspace.OpencodeSessionCompleted {
+		t.Fatalf("expected status completed, got %q", sessions[0].Status)
 	}
-
-	if err := opencodeRunCmd.Flags().Set("attach", "true"); err != nil {
-		t.Fatalf("set attach flag: %v", err)
-	}
-	opencodeRunAttach = true
-
-	if err := runOpencodeRun(opencodeRunCmd, []string{"Test prompt"}); err != nil {
-		t.Fatalf("run opencode: %v", err)
-	}
-
-	var args string
-	for i := 0; i < 50; i++ {
-		data, err := os.ReadFile(argsFile)
-		if err == nil {
-			args = strings.TrimSpace(string(data))
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	if args == "" {
-		t.Fatalf("expected opencode args to be recorded")
-	}
-	if !strings.Contains(args, "--attach") {
-		t.Fatalf("expected opencode run to include --attach, got %q", args)
-	}
-	expectedURL := fmt.Sprintf("http://127.0.0.1:%d", workspace.DefaultOpencodePort)
-	if !strings.Contains(args, expectedURL) {
-		t.Fatalf("expected opencode run to include attach URL %q, got %q", expectedURL, args)
-	}
-	if !strings.Contains(args, "Test prompt") {
-		t.Fatalf("expected opencode run to include prompt, got %q", args)
+	if sessions[0].ExitCode == nil || *sessions[0].ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %v", sessions[0].ExitCode)
 	}
 }

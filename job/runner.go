@@ -3,7 +3,6 @@ package job
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/jj"
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/workspace"
 )
@@ -538,59 +538,51 @@ func updateStaleWorkspace(update func(string) error, workspacePath string) {
 }
 
 func runOpencodeSession(pool *workspace.Pool, opts opencodeRunOptions) (OpencodeRunResult, error) {
-	daemon, err := pool.FindOpencodeDaemon(opts.RepoPath)
-	if err != nil {
-		return OpencodeRunResult{}, err
-	}
-	if daemon.Status != workspace.OpencodeDaemonRunning {
-		return OpencodeRunResult{}, fmt.Errorf("opencode daemon is not running")
-	}
-
-	sessionID, logPath, err := opencodeSessionLogPath(pool, opts.RepoPath, opts.Prompt, opts.StartedAt)
-	if err != nil {
-		return OpencodeRunResult{}, err
-	}
-
-	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
-		return OpencodeRunResult{}, fmt.Errorf("create opencode log dir: %w", err)
-	}
-
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return OpencodeRunResult{}, fmt.Errorf("open opencode log: %w", err)
-	}
-	defer logFile.Close()
-
-	created, err := pool.CreateOpencodeSession(opts.RepoPath, opts.Prompt, logPath, opts.StartedAt)
-	if err != nil {
-		return OpencodeRunResult{}, err
-	}
-	if created.ID != sessionID {
-		return OpencodeRunResult{}, fmt.Errorf("opencode session id mismatch")
-	}
-
-	attachURL := workspace.DaemonAttachURL(daemon)
-	runCmd := exec.Command("opencode", "run", "--attach", attachURL, opts.Prompt)
+	runCmd := exec.Command("opencode", "run", opts.Prompt)
 	runCmd.Dir = opts.WorkspacePath
 	runCmd.Env = replaceEnvVar(os.Environ(), "PWD", opts.WorkspacePath)
-	runCmd.Stdout = io.MultiWriter(os.Stdout, logFile)
-	runCmd.Stderr = io.MultiWriter(os.Stderr, logFile)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
 	runCmd.Stdin = os.Stdin
 
 	exitCode, runErr := runExitCode(runCmd)
 	completedAt := time.Now()
-	duration := int(completedAt.Sub(opts.StartedAt).Seconds())
+
+	storage, err := opencodeStorage()
+	if err != nil {
+		return OpencodeRunResult{}, err
+	}
+
+	metadata, err := storage.FindSessionForRun(opts.RepoPath, opts.StartedAt, opts.Prompt)
+	if err != nil {
+		if runErr != nil {
+			return OpencodeRunResult{}, errors.Join(runErr, err)
+		}
+		return OpencodeRunResult{}, err
+	}
+
+	sessionStartedAt := opts.StartedAt
+	if !metadata.CreatedAt.IsZero() {
+		sessionStartedAt = metadata.CreatedAt
+	}
+
+	created, err := pool.CreateOpencodeSession(opts.RepoPath, metadata.ID, opts.Prompt, sessionStartedAt)
+	if err != nil {
+		return OpencodeRunResult{}, err
+	}
+
+	duration := int(completedAt.Sub(sessionStartedAt).Seconds())
 	status := workspace.OpencodeSessionCompleted
 	if exitCode != 0 {
 		status = workspace.OpencodeSessionFailed
 	}
-	if _, err := pool.CompleteOpencodeSession(opts.RepoPath, sessionID, status, completedAt, &exitCode, duration); err != nil {
+	if _, err := pool.CompleteOpencodeSession(opts.RepoPath, created.ID, status, completedAt, &exitCode, duration); err != nil {
 		return OpencodeRunResult{}, err
 	}
 	if runErr != nil {
 		return OpencodeRunResult{}, runErr
 	}
-	return OpencodeRunResult{SessionID: sessionID, ExitCode: exitCode}, nil
+	return OpencodeRunResult{SessionID: created.ID, ExitCode: exitCode}, nil
 }
 
 func replaceEnvVar(env []string, key, value string) []string {
@@ -617,37 +609,12 @@ func runExitCode(cmd *exec.Cmd) (int, error) {
 	return 0, nil
 }
 
-func opencodeSessionLogPath(pool *workspace.Pool, repoPath, prompt string, startedAt time.Time) (string, string, error) {
-	logDir, err := opencodeLogDir(pool, repoPath)
+func opencodeStorage() (internalopencode.Storage, error) {
+	root, err := internalopencode.DefaultRoot()
 	if err != nil {
-		return "", "", err
+		return internalopencode.Storage{}, err
 	}
-
-	sessionID := workspace.GenerateOpencodeSessionID(prompt, startedAt)
-	return sessionID, filepath.Join(logDir, sessionID+".log"), nil
-}
-
-func opencodeLogDir(pool *workspace.Pool, repoPath string) (string, error) {
-	repoSlug, err := pool.RepoSlug(repoPath)
-	if err != nil {
-		return "", err
-	}
-
-	baseDir, err := opencodeBaseDir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(baseDir, repoSlug), nil
-}
-
-func opencodeBaseDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("get home directory: %w", err)
-	}
-
-	return filepath.Join(home, ".local", "share", "incrementum", "opencode"), nil
+	return internalopencode.Storage{Root: root}, nil
 }
 
 func statusPtr(status Status) *Status {

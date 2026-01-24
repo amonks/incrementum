@@ -1,13 +1,12 @@
 # Internal State
 
 ## Overview
-The state package manages the shared incrementum state file (`~/.local/state/incrementum/state.json`). It provides persistence and locking for workspaces and opencode daemons.
+The state package manages the shared incrementum state file (`~/.local/state/incrementum/state.json`). It provides persistence and locking for workspaces, opencode sessions, and jobs.
 
 ## State File Structure
 The state file contains:
 - `repos`: maps repo names to source paths
 - `workspaces`: maps workspace keys to workspace info
-- `opencode_daemons`: maps repo names to daemon state
 - `opencode_sessions`: maps session keys to opencode session records
 - `jobs`: maps job ids to job records
 
@@ -17,12 +16,8 @@ The state file contains:
 - `name`, `repo`, `path`, `purpose`, `status`, `acquired_by_pid`, `acquired_at`, `provisioned`
 - Status: `available` or `acquired`
 
-### OpencodeDaemon
-- `repo`, `status`, `started_at`, `updated_at`, `pid`, `host`, `port`, `log_path`
-- Status: `running` or `stopped`
-
 ### OpencodeSession
-- `id`, `repo`, `status`, `prompt`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`, `log_path`
+- `id`, `repo`, `status`, `prompt`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`
 - Status: `active`, `completed`, `failed`, or `killed`
 
 ### Job

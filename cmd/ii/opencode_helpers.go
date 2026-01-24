@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -28,4 +29,12 @@ func getOpencodeRepoPath() (string, error) {
 		return "", fmt.Errorf("get working directory: %w", err)
 	}
 	return cwd, nil
+}
+
+func opencodeStorage() (internalopencode.Storage, error) {
+	root, err := internalopencode.DefaultRoot()
+	if err != nil {
+		return internalopencode.Storage{}, err
+	}
+	return internalopencode.Storage{Root: root}, nil
 }

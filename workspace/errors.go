@@ -17,6 +17,4 @@ var (
 	ErrAmbiguousOpencodeSessionIDPrefix = errors.New("ambiguous opencode session id prefix")
 	// ErrOpencodeSessionNotActive indicates a session is not active.
 	ErrOpencodeSessionNotActive = errors.New("opencode session is not active")
-	// ErrOpencodeDaemonNotFound indicates the requested daemon is missing.
-	ErrOpencodeDaemonNotFound = errors.New("opencode daemon not found")
 )

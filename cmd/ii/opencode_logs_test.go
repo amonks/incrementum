@@ -1,55 +1,60 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"github.com/amonks/incrementum/workspace"
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
 )
 
-func TestOpencodeSessionLogPath(t *testing.T) {
-	pool, err := workspace.OpenWithOptions(workspace.Options{
-		StateDir:      t.TempDir(),
-		WorkspacesDir: t.TempDir(),
-	})
-	if err != nil {
-		t.Fatalf("open pool: %v", err)
-	}
-
-	repoPath := "/tmp/my-repo"
-	logPath := filepath.Join(t.TempDir(), "session.log")
-	startedAt := time.Now().UTC()
-
-	session, err := pool.CreateOpencodeSession(repoPath, "Run tests", logPath, startedAt)
-	if err != nil {
-		t.Fatalf("create session: %v", err)
-	}
-
-	found, err := opencodeSessionLogPath(pool, repoPath, session.ID)
-	if err != nil {
-		t.Fatalf("get log path: %v", err)
-	}
-	if found != logPath {
-		t.Fatalf("expected log path %q, got %q", logPath, found)
-	}
-}
-
 func TestOpencodeLogSnapshot(t *testing.T) {
-	dir := t.TempDir()
-	logPath := filepath.Join(dir, "session.log")
-	content := "line one\nline two\n"
+	root := t.TempDir()
+	storage := internalopencode.Storage{Root: root}
+	sessionID := "ses_logtest"
+	messageDir := filepath.Join(root, "storage", "message", sessionID)
+	partDir := filepath.Join(root, "storage", "part", "msg_log")
 
-	if err := os.WriteFile(logPath, []byte(content), 0o644); err != nil {
-		t.Fatalf("write log file: %v", err)
+	if err := os.MkdirAll(messageDir, 0o755); err != nil {
+		t.Fatalf("create message dir: %v", err)
+	}
+	if err := os.MkdirAll(partDir, 0o755); err != nil {
+		t.Fatalf("create part dir: %v", err)
 	}
 
-	snapshot, err := opencodeLogSnapshot(logPath)
+	writeOpencodeJSON(t, filepath.Join(messageDir, "msg_log.json"), map[string]any{
+		"id":        "msg_log",
+		"sessionID": sessionID,
+		"role":      "assistant",
+		"time": map[string]any{
+			"created": int64(1000),
+		},
+	})
+	writeOpencodeJSON(t, filepath.Join(partDir, "prt_log.json"), map[string]any{
+		"id":        "prt_log",
+		"sessionID": sessionID,
+		"messageID": "msg_log",
+		"type":      "text",
+		"text":      "line one\nline two\n",
+	})
+
+	snapshot, err := opencodeLogSnapshot(storage, sessionID)
 	if err != nil {
 		t.Fatalf("read snapshot: %v", err)
 	}
-	if snapshot != content {
-		t.Fatalf("expected snapshot %q, got %q", content, snapshot)
+	if snapshot != "line one\nline two\n" {
+		t.Fatalf("expected snapshot %q, got %q", "line one\\nline two\\n", snapshot)
+	}
+}
+
+func writeOpencodeJSON(t *testing.T, path string, value any) {
+	t.Helper()
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal json: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatalf("write %s: %v", path, err)
 	}
 }

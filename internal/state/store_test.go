@@ -29,10 +29,6 @@ func TestStore_LoadEmpty(t *testing.T) {
 		t.Errorf("expected 0 workspaces, got %d", len(st.Workspaces))
 	}
 
-	if len(st.OpencodeDaemons) != 0 {
-		t.Errorf("expected 0 opencode daemons, got %d", len(st.OpencodeDaemons))
-	}
-
 	if len(st.OpencodeSessions) != 0 {
 		t.Errorf("expected 0 opencode sessions, got %d", len(st.OpencodeSessions))
 	}
@@ -61,7 +57,6 @@ func TestStore_SaveLoad(t *testing.T) {
 				Provisioned: true,
 			},
 		},
-		OpencodeDaemons:  make(map[string]OpencodeDaemon),
 		OpencodeSessions: make(map[string]OpencodeSession),
 		Jobs: map[string]Job{
 			"job-123": {
@@ -132,7 +127,6 @@ func TestStore_SaveNoChange(t *testing.T) {
 	st := &State{
 		Repos:            make(map[string]RepoInfo),
 		Workspaces:       make(map[string]WorkspaceInfo),
-		OpencodeDaemons:  make(map[string]OpencodeDaemon),
 		OpencodeSessions: make(map[string]OpencodeSession),
 		Jobs:             make(map[string]Job),
 	}

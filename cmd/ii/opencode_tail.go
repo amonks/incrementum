@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"time"
 
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/workspace"
 	"github.com/spf13/cobra"
 )
@@ -34,26 +34,25 @@ func runOpencodeTail(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logPath, err := opencodeSessionLogPath(pool, repoPath, args[0])
+	session, err := pool.FindOpencodeSession(repoPath, args[0])
 	if err != nil {
 		return err
 	}
 
-	return opencodeLogTail(cmd.Context(), logPath, os.Stdout, time.Second)
+	storage, err := opencodeStorage()
+	if err != nil {
+		return err
+	}
+
+	return opencodeLogTail(cmd.Context(), storage, session.ID, os.Stdout, time.Second)
 }
 
-func opencodeLogTail(ctx context.Context, logPath string, writer io.Writer, interval time.Duration) error {
-	file, err := os.Open(logPath)
-	if err != nil {
-		return fmt.Errorf("open opencode log: %w", err)
-	}
-	defer file.Close()
-
+func opencodeLogTail(ctx context.Context, storage internalopencode.Storage, sessionID string, writer io.Writer, interval time.Duration) error {
 	if interval <= 0 {
 		interval = time.Second
 	}
 
-	buffer := make([]byte, 4096)
+	seen := make(map[string]struct{})
 	for {
 		select {
 		case <-ctx.Done():
@@ -61,22 +60,25 @@ func opencodeLogTail(ctx context.Context, logPath string, writer io.Writer, inte
 		default:
 		}
 
-		count, err := file.Read(buffer)
-		if count > 0 {
-			if _, writeErr := writer.Write(buffer[:count]); writeErr != nil {
-				return fmt.Errorf("write opencode log: %w", writeErr)
-			}
+		entries, err := storage.SessionLogEntries(sessionID)
+		if err != nil {
+			return err
 		}
 
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				return fmt.Errorf("read opencode log: %w", err)
+		for _, entry := range entries {
+			if _, ok := seen[entry.ID]; ok {
+				continue
 			}
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-time.After(interval):
+			if _, writeErr := writer.Write([]byte(entry.Text)); writeErr != nil {
+				return fmt.Errorf("write opencode log: %w", writeErr)
 			}
+			seen[entry.ID] = struct{}{}
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(interval):
 		}
 	}
 }

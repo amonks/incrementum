@@ -1,7 +1,7 @@
 // Package state manages the shared incrementum state file.
 //
 // The state file (~/.local/state/incrementum/state.json) stores persistent
-// state for workspaces and opencode daemons. All access is
+// state for workspaces, opencode sessions, and jobs. All access is
 // serialized through file locking to allow safe concurrent access from
 // multiple processes.
 package state
@@ -12,7 +12,6 @@ import "time"
 type State struct {
 	Repos            map[string]RepoInfo        `json:"repos"`
 	Workspaces       map[string]WorkspaceInfo   `json:"workspaces"`
-	OpencodeDaemons  map[string]OpencodeDaemon  `json:"opencode_daemons"`
 	OpencodeSessions map[string]OpencodeSession `json:"opencode_sessions"`
 	Jobs             map[string]Job             `json:"jobs"`
 }
@@ -58,28 +57,6 @@ type WorkspaceInfo struct {
 	AcquiredByPID int             `json:"acquired_by_pid,omitempty"`
 	AcquiredAt    time.Time       `json:"acquired_at,omitempty"`
 	Provisioned   bool            `json:"provisioned"`
-}
-
-// OpencodeDaemonStatus represents the state of an opencode daemon.
-type OpencodeDaemonStatus string
-
-const (
-	// OpencodeDaemonRunning indicates the daemon is running.
-	OpencodeDaemonRunning OpencodeDaemonStatus = "running"
-	// OpencodeDaemonStopped indicates the daemon is stopped.
-	OpencodeDaemonStopped OpencodeDaemonStatus = "stopped"
-)
-
-// OpencodeDaemon stores daemon state for a repo.
-type OpencodeDaemon struct {
-	Repo      string               `json:"repo"`
-	Status    OpencodeDaemonStatus `json:"status"`
-	StartedAt time.Time            `json:"started_at"`
-	UpdatedAt time.Time            `json:"updated_at"`
-	PID       int                  `json:"pid,omitempty"`
-	Host      string               `json:"host,omitempty"`
-	Port      int                  `json:"port,omitempty"`
-	LogPath   string               `json:"log_path,omitempty"`
 }
 
 // OpencodeSessionStatus represents the state of an opencode session.

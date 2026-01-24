@@ -6,21 +6,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amonks/incrementum/internal/ids"
 	statestore "github.com/amonks/incrementum/internal/state"
 )
 
 // CreateOpencodeSession creates a new active opencode session.
-func (p *Pool) CreateOpencodeSession(repoPath, prompt, logPath string, startedAt time.Time) (OpencodeSession, error) {
+func (p *Pool) CreateOpencodeSession(repoPath, sessionID, prompt string, startedAt time.Time) (OpencodeSession, error) {
 	repoName, err := p.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
+	}
+	if strings.TrimSpace(sessionID) == "" {
+		return OpencodeSession{}, fmt.Errorf("session id is required")
 	}
 
 	var created OpencodeSession
 
 	err = p.stateStore.Update(func(st *statestore.State) error {
-		sessionID := generateOpencodeSessionID(prompt, startedAt)
 		created = OpencodeSession{
 			ID:        sessionID,
 			Repo:      repoName,
@@ -28,7 +29,6 @@ func (p *Pool) CreateOpencodeSession(repoPath, prompt, logPath string, startedAt
 			Prompt:    prompt,
 			StartedAt: startedAt,
 			UpdatedAt: startedAt,
-			LogPath:   logPath,
 		}
 
 		st.OpencodeSessions[repoName+"/"+sessionID] = created
@@ -149,14 +149,4 @@ func (p *Pool) CompleteOpencodeSession(repoPath, sessionID string, status Openco
 	}
 
 	return updated, nil
-}
-
-// GenerateOpencodeSessionID returns the deterministic session id for a prompt/time.
-func GenerateOpencodeSessionID(prompt string, startedAt time.Time) string {
-	return generateOpencodeSessionID(prompt, startedAt)
-}
-
-func generateOpencodeSessionID(prompt string, startedAt time.Time) string {
-	input := prompt + startedAt.Format(time.RFC3339Nano)
-	return ids.Generate(input, ids.DefaultLength)
 }

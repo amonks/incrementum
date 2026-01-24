@@ -387,11 +387,12 @@ func jobLogEntryForSession(pool *workspace.Pool, repoPath string, session jobpkg
 	if err != nil {
 		return jobLogEntry{}, err
 	}
-	if opencodeSession.LogPath == "" {
-		return jobLogEntry{}, fmt.Errorf("opencode session log path missing")
+	storage, err := opencodeStorage()
+	if err != nil {
+		return jobLogEntry{}, err
 	}
 
-	logSnapshot, err := opencodeLogSnapshot(opencodeSession.LogPath)
+	logSnapshot, err := opencodeLogSnapshot(storage, opencodeSession.ID)
 	if err != nil {
 		return jobLogEntry{}, err
 	}
