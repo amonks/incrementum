@@ -11,7 +11,7 @@ import (
 
 func TestFormatJobTablePreservesAlignmentWithANSI(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	startedAt := now.Add(-2 * time.Minute)
+	createdAt := now.Add(-2 * time.Minute)
 
 	jobs := []jobpkg.Job{
 		{
@@ -19,15 +19,17 @@ func TestFormatJobTablePreservesAlignmentWithANSI(t *testing.T) {
 			TodoID:    "abc12345",
 			Stage:     jobpkg.StageImplementing,
 			Status:    jobpkg.StatusActive,
-			StartedAt: startedAt,
-			UpdatedAt: startedAt,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
 		},
 		{
 			ID:          "job-2",
 			TodoID:      "abd99999",
 			Stage:       jobpkg.StageReviewing,
 			Status:      jobpkg.StatusCompleted,
-			StartedAt:   startedAt.Add(-time.Minute),
+			CreatedAt:   createdAt.Add(-time.Minute),
+			StartedAt:   createdAt.Add(-time.Minute),
 			UpdatedAt:   now,
 			CompletedAt: now,
 		},
@@ -56,7 +58,7 @@ func TestFormatJobTablePreservesAlignmentWithANSI(t *testing.T) {
 
 func TestFormatJobTableUsesProvidedJobPrefixLengths(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	startedAt := now.Add(-5 * time.Minute)
+	createdAt := now.Add(-5 * time.Minute)
 
 	jobs := []jobpkg.Job{
 		{
@@ -64,16 +66,18 @@ func TestFormatJobTableUsesProvidedJobPrefixLengths(t *testing.T) {
 			TodoID:    "abc12345",
 			Stage:     jobpkg.StageImplementing,
 			Status:    jobpkg.StatusActive,
-			StartedAt: startedAt,
-			UpdatedAt: startedAt,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
 		},
 		{
 			ID:        "job-beta",
 			TodoID:    "abd99999",
 			Stage:     jobpkg.StageTesting,
 			Status:    jobpkg.StatusActive,
-			StartedAt: startedAt,
-			UpdatedAt: startedAt,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
 		},
 	}
 
@@ -101,7 +105,7 @@ func TestFormatJobTableUsesProvidedJobPrefixLengths(t *testing.T) {
 
 func TestFormatJobTableUsesCompactAge(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	startedAt := now.Add(-2 * time.Minute)
+	createdAt := now.Add(-2 * time.Minute)
 
 	jobs := []jobpkg.Job{
 		{
@@ -109,8 +113,9 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 			TodoID:    "abc12345",
 			Stage:     jobpkg.StageImplementing,
 			Status:    jobpkg.StatusActive,
-			StartedAt: startedAt,
-			UpdatedAt: startedAt,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
 		},
 	}
 
@@ -125,11 +130,51 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 5 {
-		t.Fatalf("expected at least 5 columns, got: %q", lines[1])
+	if len(fields) < 6 {
+		t.Fatalf("expected at least 6 columns, got: %q", lines[1])
 	}
 
 	if fields[4] != "2m" {
 		t.Fatalf("expected compact age 2m, got: %s", fields[4])
+	}
+	if fields[5] != "2m" {
+		t.Fatalf("expected compact duration 2m, got: %s", fields[5])
+	}
+}
+
+func TestFormatJobTableUsesUpdatedDurationForCompleted(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-2 * time.Hour)
+	updatedAt := now.Add(-110 * time.Minute)
+
+	jobs := []jobpkg.Job{
+		{
+			ID:        "job-duration",
+			TodoID:    "abc12345",
+			Stage:     jobpkg.StageTesting,
+			Status:    jobpkg.StatusCompleted,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: updatedAt,
+		},
+	}
+
+	output := strings.TrimSpace(formatJobTable(TableFormatOptions{
+		Jobs:      jobs,
+		Highlight: func(id string, prefix int) string { return id },
+		Now:       now,
+	}))
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	fields := strings.Fields(lines[1])
+	if len(fields) < 6 {
+		t.Fatalf("expected at least 6 columns, got: %q", lines[1])
+	}
+
+	if fields[5] != "10m" {
+		t.Fatalf("expected duration 10m, got: %s", fields[5])
 	}
 }

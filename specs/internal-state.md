@@ -13,15 +13,15 @@ The state file contains:
 ## Types
 
 ### WorkspaceInfo
-- `name`, `repo`, `path`, `purpose`, `status`, `acquired_by_pid`, `acquired_at`, `provisioned`
+- `name`, `repo`, `path`, `purpose`, `status`, `created_at`, `updated_at`, `acquired_by_pid`, `acquired_at`, `provisioned`
 - Status: `available` or `acquired`
 
 ### OpencodeSession
-- `id`, `repo`, `status`, `prompt`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`
+- `id`, `repo`, `status`, `prompt`, `created_at`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`
 - Status: `active`, `completed`, `failed`, or `killed`
 
 ### Job
-- `id`, `repo`, `todo_id`, `stage`, `feedback`, `opencode_sessions`, `status`, `started_at`, `updated_at`, `completed_at`
+- `id`, `repo`, `todo_id`, `stage`, `feedback`, `opencode_sessions`, `status`, `created_at`, `started_at`, `updated_at`, `completed_at`
 - Stage: `implementing`, `testing`, `reviewing`, or `committing`
 - Status: `active`, `completed`, `failed`, or `abandoned`
 

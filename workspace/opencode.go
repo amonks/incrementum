@@ -27,6 +27,7 @@ func (p *Pool) CreateOpencodeSession(repoPath, sessionID, prompt string, started
 			Repo:      repoName,
 			Status:    OpencodeSessionActive,
 			Prompt:    prompt,
+			CreatedAt: startedAt,
 			StartedAt: startedAt,
 			UpdatedAt: startedAt,
 		}

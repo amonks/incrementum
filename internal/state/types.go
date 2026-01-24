@@ -55,6 +55,8 @@ type WorkspaceInfo struct {
 	Rev           string          `json:"rev,omitempty"`
 	Status        WorkspaceStatus `json:"status"`
 	AcquiredByPID int             `json:"acquired_by_pid,omitempty"`
+	CreatedAt     time.Time       `json:"created_at,omitempty"`
+	UpdatedAt     time.Time       `json:"updated_at,omitempty"`
 	AcquiredAt    time.Time       `json:"acquired_at,omitempty"`
 	Provisioned   bool            `json:"provisioned"`
 }
@@ -79,6 +81,7 @@ type OpencodeSession struct {
 	Repo            string                `json:"repo"`
 	Status          OpencodeSessionStatus `json:"status"`
 	Prompt          string                `json:"prompt"`
+	CreatedAt       time.Time             `json:"created_at,omitempty"`
 	StartedAt       time.Time             `json:"started_at"`
 	UpdatedAt       time.Time             `json:"updated_at"`
 	CompletedAt     time.Time             `json:"completed_at,omitempty"`
@@ -160,6 +163,7 @@ type Job struct {
 	Feedback         string               `json:"feedback,omitempty"`
 	OpencodeSessions []JobOpencodeSession `json:"opencode_sessions,omitempty"`
 	Status           JobStatus            `json:"status"`
+	CreatedAt        time.Time            `json:"created_at,omitempty"`
 	StartedAt        time.Time            `json:"started_at"`
 	UpdatedAt        time.Time            `json:"updated_at"`
 	CompletedAt      time.Time            `json:"completed_at,omitempty"`

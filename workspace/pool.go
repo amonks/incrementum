@@ -141,6 +141,8 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 				ws.Rev = opts.Rev
 				ws.AcquiredByPID = os.Getpid()
 				ws.AcquiredAt = now
+				ws.CreatedAt = now
+				ws.UpdatedAt = now
 				st.Workspaces[key] = ws
 				return nil
 			}
@@ -162,6 +164,8 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 			Status:        statestore.WorkspaceStatusAcquired,
 			AcquiredByPID: os.Getpid(),
 			AcquiredAt:    now,
+			CreatedAt:     now,
+			UpdatedAt:     now,
 			Provisioned:   false,
 		}
 
@@ -238,6 +242,7 @@ func (p *Pool) releaseToAvailable(wsPath string) error {
 	}
 
 	return p.stateStore.Update(func(st *statestore.State) error {
+		now := time.Now()
 		for key, ws := range st.Workspaces {
 			if ws.Path == wsPath {
 				ws.Status = statestore.WorkspaceStatusAvailable
@@ -245,6 +250,7 @@ func (p *Pool) releaseToAvailable(wsPath string) error {
 				ws.Rev = ""
 				ws.AcquiredByPID = 0
 				ws.AcquiredAt = time.Time{}
+				ws.UpdatedAt = now
 				st.Workspaces[key] = ws
 				return nil
 			}
@@ -310,6 +316,12 @@ type Info struct {
 	// AcquiredAt is when the workspace was acquired.
 	// Zero if not acquired.
 	AcquiredAt time.Time
+
+	// CreatedAt is when the workspace acquisition started.
+	CreatedAt time.Time
+
+	// UpdatedAt is when the workspace was last released.
+	UpdatedAt time.Time
 }
 
 // List returns information about all workspaces for the given repository.
@@ -342,6 +354,8 @@ func (p *Pool) List(repoPath string) ([]Info, error) {
 			Status:        ws.Status,
 			AcquiredByPID: ws.AcquiredByPID,
 			AcquiredAt:    ws.AcquiredAt,
+			CreatedAt:     ws.CreatedAt,
+			UpdatedAt:     ws.UpdatedAt,
 		}
 
 		items = append(items, item)

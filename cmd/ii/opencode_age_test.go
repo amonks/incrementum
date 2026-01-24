@@ -7,13 +7,13 @@ import (
 	"github.com/amonks/incrementum/workspace"
 )
 
-func TestFormatOpencodeAgeUsesStartedAtForActive(t *testing.T) {
+func TestFormatOpencodeAgeUsesCreatedAtForActive(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-10 * time.Minute)
+	createdAt := now.Add(-10 * time.Minute)
 
 	session := workspace.OpencodeSession{
 		Status:    workspace.OpencodeSessionActive,
-		StartedAt: start,
+		CreatedAt: createdAt,
 	}
 
 	if got := formatOpencodeAge(session, now); got != "10m" {
@@ -21,13 +21,13 @@ func TestFormatOpencodeAgeUsesStartedAtForActive(t *testing.T) {
 	}
 }
 
-func TestFormatOpencodeAgeUsesStartedAtForCompleted(t *testing.T) {
+func TestFormatOpencodeAgeUsesCreatedAtForCompleted(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-10 * time.Minute)
+	createdAt := now.Add(-10 * time.Minute)
 
 	session := workspace.OpencodeSession{
 		Status:      workspace.OpencodeSessionCompleted,
-		StartedAt:   start,
+		CreatedAt:   createdAt,
 		CompletedAt: now,
 	}
 
@@ -48,12 +48,12 @@ func TestFormatOpencodeAgeHandlesMissingTimingData(t *testing.T) {
 
 func TestFormatOpencodeDurationUsesNowForActive(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-7 * time.Minute)
+	createdAt := now.Add(-7 * time.Minute)
 
 	session := workspace.OpencodeSession{
 		Status:    workspace.OpencodeSessionActive,
-		StartedAt: start,
-		UpdatedAt: start,
+		CreatedAt: createdAt,
+		UpdatedAt: createdAt,
 	}
 
 	if got := formatOpencodeDuration(session, now); got != "7m" {
@@ -63,12 +63,12 @@ func TestFormatOpencodeDurationUsesNowForActive(t *testing.T) {
 
 func TestFormatOpencodeDurationUsesUpdatedAtForCompleted(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-20 * time.Minute)
+	createdAt := now.Add(-20 * time.Minute)
 	updated := now.Add(-15 * time.Minute)
 
 	session := workspace.OpencodeSession{
 		Status:    workspace.OpencodeSessionCompleted,
-		StartedAt: start,
+		CreatedAt: createdAt,
 		UpdatedAt: updated,
 	}
 

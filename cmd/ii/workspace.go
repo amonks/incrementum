@@ -206,19 +206,38 @@ func formatWorkspaceTable(items []workspace.Info, highlight func(string) string,
 			rev = "-"
 		}
 
-		acquiredAge := "-"
-		if item.Status == workspace.StatusAcquired {
-			acquiredAge = ui.FormatTimeAgeShort(item.AcquiredAt, now)
-		}
+		age := formatWorkspaceAge(item, now)
+		duration := formatWorkspaceDuration(item, now)
 		rows = append(rows, []string{
 			highlight(item.Name),
 			string(item.Status),
-			acquiredAge,
+			age,
+			duration,
 			rev,
 			ui.TruncateTableCell(purpose),
 			ui.TruncateTableCell(item.Path),
 		})
 	}
 
-	return ui.FormatTable([]string{"NAME", "STATUS", "ACQUIRED", "REV", "PURPOSE", "PATH"}, rows)
+	return ui.FormatTable([]string{"NAME", "STATUS", "AGE", "DURATION", "REV", "PURPOSE", "PATH"}, rows)
+}
+
+func formatWorkspaceAge(item workspace.Info, now time.Time) string {
+	if item.CreatedAt.IsZero() {
+		return "-"
+	}
+	return ui.FormatDurationShort(now.Sub(item.CreatedAt))
+}
+
+func formatWorkspaceDuration(item workspace.Info, now time.Time) string {
+	if item.CreatedAt.IsZero() {
+		return "-"
+	}
+	if item.Status == workspace.StatusAcquired {
+		return ui.FormatDurationShort(now.Sub(item.CreatedAt))
+	}
+	if item.UpdatedAt.IsZero() {
+		return "-"
+	}
+	return ui.FormatDurationShort(item.UpdatedAt.Sub(item.CreatedAt))
 }

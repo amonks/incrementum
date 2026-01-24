@@ -125,8 +125,11 @@ Fields (JSON keys):
   including tombstones, so the display matches prefix resolution.
 - All CLI outputs that show todo IDs (create/update logs, show/detail views,
   list/ready tables, dependency output) use the same prefix highlighting rules.
-- CLI table output includes created/updated age columns formatted as
+- CLI table output includes `AGE` and `DURATION` columns formatted as
   `<count><unit>`, using `s`, `m`, `h`, or `d` based on recency.
+- `AGE` uses `now - created_at`.
+- `DURATION` uses `now - created_at` for open/in-progress todos, otherwise
+  `updated_at - created_at`.
 - When the todo store is missing, CLI `todo list` does not prompt to create it
   and returns an empty list.
 

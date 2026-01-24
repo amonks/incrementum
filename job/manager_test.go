@@ -45,6 +45,9 @@ func TestManager_CreateAndFind(t *testing.T) {
 	if created.Stage != StageImplementing {
 		t.Fatalf("expected stage implementing, got %q", created.Stage)
 	}
+	if !created.CreatedAt.Equal(startedAt) {
+		t.Fatalf("expected created at %v, got %v", startedAt, created.CreatedAt)
+	}
 	if !created.StartedAt.Equal(startedAt) {
 		t.Fatalf("expected started at %v, got %v", startedAt, created.StartedAt)
 	}
@@ -82,6 +85,7 @@ func TestManager_Find_PrefixAmbiguous(t *testing.T) {
 		TodoID:    "todo-1",
 		Stage:     statestore.JobStageImplementing,
 		Status:    statestore.JobStatusActive,
+		CreatedAt: startedAt,
 		StartedAt: startedAt,
 		UpdatedAt: startedAt,
 	}
@@ -91,6 +95,7 @@ func TestManager_Find_PrefixAmbiguous(t *testing.T) {
 		TodoID:    "todo-2",
 		Stage:     statestore.JobStageImplementing,
 		Status:    statestore.JobStatusActive,
+		CreatedAt: startedAt.Add(2 * time.Minute),
 		StartedAt: startedAt.Add(2 * time.Minute),
 		UpdatedAt: startedAt.Add(2 * time.Minute),
 	}
@@ -136,6 +141,7 @@ func TestManager_List_Filtering(t *testing.T) {
 		TodoID:    "todo-active",
 		Stage:     statestore.JobStageTesting,
 		Status:    statestore.JobStatusActive,
+		CreatedAt: startedAt,
 		StartedAt: startedAt,
 		UpdatedAt: startedAt,
 	}
@@ -145,6 +151,7 @@ func TestManager_List_Filtering(t *testing.T) {
 		TodoID:      "todo-completed",
 		Stage:       statestore.JobStageCommitting,
 		Status:      statestore.JobStatusCompleted,
+		CreatedAt:   startedAt.Add(2 * time.Hour),
 		StartedAt:   startedAt.Add(2 * time.Hour),
 		UpdatedAt:   startedAt.Add(2 * time.Hour),
 		CompletedAt: startedAt.Add(3 * time.Hour),
@@ -155,6 +162,7 @@ func TestManager_List_Filtering(t *testing.T) {
 		TodoID:    "todo-other",
 		Stage:     statestore.JobStageImplementing,
 		Status:    statestore.JobStatusActive,
+		CreatedAt: startedAt.Add(30 * time.Minute),
 		StartedAt: startedAt.Add(30 * time.Minute),
 		UpdatedAt: startedAt.Add(30 * time.Minute),
 	}

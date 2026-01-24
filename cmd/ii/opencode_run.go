@@ -125,7 +125,9 @@ func ensureOpencodeSession(pool *workspace.Pool, storage internalopencode.Storag
 	}
 
 	if existing, err := pool.FindOpencodeSession(repoPath, metadata.ID); err == nil {
-		return existing, nil
+		if existing.Status == workspace.OpencodeSessionActive {
+			return existing, nil
+		}
 	} else if !errors.Is(err, workspace.ErrOpencodeSessionNotFound) {
 		return workspace.OpencodeSession{}, err
 	}

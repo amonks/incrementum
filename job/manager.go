@@ -53,6 +53,7 @@ func (m *Manager) Create(todoID string, startedAt time.Time) (Job, error) {
 		TodoID:    todoID,
 		Stage:     StageImplementing,
 		Status:    StatusActive,
+		CreatedAt: startedAt,
 		StartedAt: startedAt,
 		UpdatedAt: startedAt,
 	}

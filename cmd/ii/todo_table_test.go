@@ -70,27 +70,27 @@ func TestFormatTodoTableUsesProvidedPrefixLengths(t *testing.T) {
 	}
 }
 
-func TestFormatTodoTableShowsCreatedUpdatedAge(t *testing.T) {
+func TestFormatTodoTableShowsAgeAndDuration(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	todos := []todo.Todo{
 		{
 			ID:        "abc123",
 			Priority:  2,
 			Type:      todo.TodoType("task"),
-			Status:    todo.StatusOpen,
+			Status:    todo.StatusClosed,
 			Title:     "Time check",
-			CreatedAt: now.Add(-2*time.Minute - 5*time.Second),
-			UpdatedAt: now.Add(-1 * time.Hour),
+			CreatedAt: now.Add(-2 * time.Hour),
+			UpdatedAt: now.Add(-110 * time.Minute),
 		},
 	}
 
 	output := formatTodoTable(todos, nil, func(id string, prefix int) string { return id }, now)
 
-	if !strings.Contains(output, "2m") {
-		t.Fatalf("expected created age in output, got:\n%s", output)
+	if !strings.Contains(output, "2h") {
+		t.Fatalf("expected age in output, got:\n%s", output)
 	}
-	if !strings.Contains(output, "1h") {
-		t.Fatalf("expected updated age in output, got:\n%s", output)
+	if !strings.Contains(output, "10m") {
+		t.Fatalf("expected duration in output, got:\n%s", output)
 	}
 }
 

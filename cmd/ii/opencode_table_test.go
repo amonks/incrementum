@@ -11,21 +11,23 @@ import (
 
 func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-2 * time.Minute)
+	createdAt := now.Add(-2 * time.Minute)
 
 	sessions := []workspace.OpencodeSession{
 		{
 			ID:        "sess1",
 			Status:    workspace.OpencodeSessionActive,
 			Prompt:    "Run tests\nSecond line",
-			StartedAt: start,
-			UpdatedAt: start,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
 		},
 		{
 			ID:              "sess2",
 			Status:          workspace.OpencodeSessionCompleted,
 			Prompt:          "Build app",
-			StartedAt:       start.Add(-time.Minute),
+			CreatedAt:       createdAt.Add(-time.Minute),
+			StartedAt:       createdAt.Add(-time.Minute),
 			UpdatedAt:       now,
 			CompletedAt:     now,
 			DurationSeconds: 90,
@@ -54,6 +56,7 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 			ID:        "sess-123",
 			Status:    workspace.OpencodeSessionActive,
 			Prompt:    "Ship it",
+			CreatedAt: now.Add(-time.Minute),
 			StartedAt: now.Add(-time.Minute),
 			UpdatedAt: now.Add(-time.Minute),
 		},
@@ -80,15 +83,16 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 
 func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-2 * time.Minute)
+	createdAt := now.Add(-2 * time.Minute)
 
 	sessions := []workspace.OpencodeSession{
 		{
 			ID:        "sess-001",
 			Status:    workspace.OpencodeSessionActive,
 			Prompt:    "Prompt",
-			StartedAt: start,
-			UpdatedAt: start,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
 		},
 	}
 
@@ -143,6 +147,7 @@ func TestFormatOpencodeTableShowsAgeForCompletedSession(t *testing.T) {
 			ID:        "sess-complete",
 			Status:    workspace.OpencodeSessionCompleted,
 			Prompt:    "Done",
+			CreatedAt: now.Add(-5 * time.Minute),
 			StartedAt: now.Add(-5 * time.Minute),
 		},
 	}
@@ -165,7 +170,7 @@ func TestFormatOpencodeTableShowsAgeForCompletedSession(t *testing.T) {
 
 func TestFormatOpencodeTableShowsDuration(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-10 * time.Minute)
+	createdAt := now.Add(-10 * time.Minute)
 	updated := now.Add(-7 * time.Minute)
 
 	sessions := []workspace.OpencodeSession{
@@ -173,7 +178,8 @@ func TestFormatOpencodeTableShowsDuration(t *testing.T) {
 			ID:        "sess-duration",
 			Status:    workspace.OpencodeSessionCompleted,
 			Prompt:    "Do it",
-			StartedAt: start,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
 			UpdatedAt: updated,
 		},
 	}
@@ -203,21 +209,23 @@ func TestOpencodePromptLineTreatsWhitespaceAsMissing(t *testing.T) {
 
 func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	start := now.Add(-5 * time.Minute)
+	createdAt := now.Add(-5 * time.Minute)
 
 	sessions := []workspace.OpencodeSession{
 		{
 			ID:        "abc123",
 			Status:    workspace.OpencodeSessionActive,
 			Prompt:    "One",
-			StartedAt: start,
-			UpdatedAt: start,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
 		},
 		{
 			ID:          "abd999",
 			Status:      workspace.OpencodeSessionCompleted,
 			Prompt:      "Two",
-			StartedAt:   start,
+			CreatedAt:   createdAt,
+			StartedAt:   createdAt,
 			UpdatedAt:   now,
 			CompletedAt: now,
 		},

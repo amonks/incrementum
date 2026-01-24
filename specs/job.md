@@ -41,6 +41,7 @@ Fields (JSON keys):
 - `opencode_sessions`: list of `{"purpose": string, "id": string}` tracking
   opencode sessions created during this job.
 - `status`: `active`, `completed`, `failed`, `abandoned`.
+- `created_at`: timestamp.
 - `started_at`: timestamp.
 - `updated_at`: timestamp.
 - `completed_at`: timestamp.
@@ -226,7 +227,12 @@ List jobs for current repo.
 - `--all`: show all statuses.
 - `--json`: structured output.
 
-Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`.
+Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`, `DURATION`.
+
+`AGE` uses `now - created_at`.
+
+`DURATION` uses `now - created_at` for active jobs, otherwise
+`updated_at - created_at`.
 
 `JOB` highlights the shortest unique prefix across all jobs in the repo.
 

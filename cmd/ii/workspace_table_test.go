@@ -62,21 +62,54 @@ func TestFormatWorkspaceTableTruncatesLongPaths(t *testing.T) {
 
 func TestFormatWorkspaceTableShowsAcquiredAge(t *testing.T) {
 	now := time.Date(2026, 1, 23, 2, 0, 0, 0, time.UTC)
-	acquiredAt := now.Add(-2 * time.Hour)
+	createdAt := now.Add(-2 * time.Hour)
 	items := []workspace.Info{
 		{
-			Name:       "ws-003",
-			Path:       "/tmp/ws-003",
-			Purpose:    "age-check",
-			Status:     workspace.StatusAcquired,
-			AcquiredAt: acquiredAt,
+			Name:      "ws-003",
+			Path:      "/tmp/ws-003",
+			Purpose:   "age-check",
+			Status:    workspace.StatusAcquired,
+			CreatedAt: createdAt,
 		},
 	}
 
 	output := formatWorkspaceTable(items, nil, now)
-	expected := ui.FormatTimeAgeShort(acquiredAt, now)
+	expected := ui.FormatDurationShort(now.Sub(createdAt))
 	if !strings.Contains(output, expected) {
 		t.Fatalf("expected acquired age %q in output: %s", expected, output)
+	}
+}
+
+func TestFormatWorkspaceTableShowsDurationForActiveAndAvailable(t *testing.T) {
+	now := time.Date(2026, 1, 23, 4, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-90 * time.Minute)
+	updatedAt := now.Add(-30 * time.Minute)
+	items := []workspace.Info{
+		{
+			Name:      "ws-005",
+			Path:      "/tmp/ws-005",
+			Purpose:   "active",
+			Status:    workspace.StatusAcquired,
+			CreatedAt: createdAt,
+		},
+		{
+			Name:      "ws-006",
+			Path:      "/tmp/ws-006",
+			Purpose:   "available",
+			Status:    workspace.StatusAvailable,
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
+		},
+	}
+
+	output := formatWorkspaceTable(items, nil, now)
+	activeDuration := ui.FormatDurationShort(now.Sub(createdAt))
+	availableDuration := ui.FormatDurationShort(updatedAt.Sub(createdAt))
+	if !strings.Contains(output, activeDuration) {
+		t.Fatalf("expected active duration %q in output: %s", activeDuration, output)
+	}
+	if !strings.Contains(output, availableDuration) {
+		t.Fatalf("expected available duration %q in output: %s", availableDuration, output)
 	}
 }
 

@@ -33,6 +33,7 @@ Fields (JSON keys):
 - `repo`: repo slug.
 - `status`: `active`, `completed`, `failed`, or `killed`.
 - `prompt`: full prompt string that was provided to `run`.
+- `created_at`: timestamp.
 - `started_at`: timestamp.
 - `updated_at`: timestamp.
 - `completed_at`: timestamp (set when completed/failed/killed).
@@ -86,10 +87,10 @@ Fields (JSON keys):
 - `PROMPT` displays `-` when the first line is empty or whitespace-only.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.
-- `AGE` uses `now - started_at`.
+- `AGE` uses `now - created_at`.
 - `DURATION` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `DURATION` is `-` when the session is missing timing data.
-- `DURATION` uses `now - started_at` for active sessions, otherwise `updated_at - started_at`.
+- `DURATION` uses `now - created_at` for active sessions, otherwise `updated_at - created_at`.
 
 ### `ii opencode kill <session-id>`
 
