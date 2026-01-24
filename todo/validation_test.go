@@ -309,7 +309,7 @@ func TestValidateDependency(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "valid blocks dependency",
+			name: "valid dependency",
 			dep: Dependency{
 				TodoID:      "abc12345",
 				DependsOnID: "def67890",

@@ -132,7 +132,7 @@ func TestStore_Create_RejectsTypedDependency(t *testing.T) {
 	}
 
 	_, err = store.Create("Child task", CreateOptions{
-		Dependencies: []string{"blocks:" + parent.ID},
+		Dependencies: []string{"type:" + parent.ID},
 	})
 	if err == nil {
 		t.Fatal("expected typed dependency error, got nil")
