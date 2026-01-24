@@ -424,8 +424,8 @@ func (s *Store) getTodoByID(id string) (*Todo, error) {
 }
 
 func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {
-	if len(ids) == 0 {
-		return nil, fmt.Errorf("no todo IDs provided")
+	if err := validateTodoIDs(ids); err != nil {
+		return nil, err
 	}
 
 	todos, err := s.readTodos()
@@ -437,8 +437,8 @@ func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {
 }
 
 func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
-	if len(ids) == 0 {
-		return nil, fmt.Errorf("no todo IDs provided")
+	if err := validateTodoIDs(ids); err != nil {
+		return nil, err
 	}
 
 	index := NewIDIndex(todos)
@@ -452,6 +452,13 @@ func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
 	}
 
 	return resolved, nil
+}
+
+func validateTodoIDs(ids []string) error {
+	if len(ids) == 0 {
+		return fmt.Errorf("no todo IDs provided")
+	}
+	return nil
 }
 
 func readJSONLAtBookmark[T any](client *jj.Client, repoPath, path string) ([]T, error) {
