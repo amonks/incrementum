@@ -17,6 +17,21 @@ func TestUniquePrefixLengths(t *testing.T) {
 	}
 }
 
+func TestNormalizeUniqueIDs(t *testing.T) {
+	ids := []string{"Abc", "", "ABC", "Def", "def", "ghi"}
+	got := NormalizeUniqueIDs(ids)
+
+	want := []string{"abc", "def", "ghi"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d IDs, got %d", len(want), len(got))
+	}
+	for i, expected := range want {
+		if got[i] != expected {
+			t.Fatalf("expected ID %q at %d, got %q", expected, i, got[i])
+		}
+	}
+}
+
 func TestUniquePrefixLengthsIsCaseInsensitive(t *testing.T) {
 	ids := []string{"Abc", "aBD"}
 	lengths := UniquePrefixLengths(ids)

@@ -14,20 +14,11 @@ type IDIndex struct {
 
 // NewIDIndex builds an IDIndex from a slice of todos.
 func NewIDIndex(todos []Todo) IDIndex {
-	ids := make([]string, 0, len(todos))
-	seen := make(map[string]struct{})
+	todoIDs := make([]string, 0, len(todos))
 	for _, todo := range todos {
-		id := strings.ToLower(todo.ID)
-		if id == "" {
-			continue
-		}
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		ids = append(ids, id)
+		todoIDs = append(todoIDs, todo.ID)
 	}
-	return IDIndex{ids: ids}
+	return IDIndex{ids: ids.NormalizeUniqueIDs(todoIDs)}
 }
 
 // Resolve returns the full todo ID for a prefix.

@@ -2,8 +2,8 @@ package ids
 
 import "strings"
 
-// UniquePrefixLengths returns the shortest unique prefix length for each ID.
-func UniquePrefixLengths(ids []string) map[string]int {
+// NormalizeUniqueIDs lowercases IDs and removes duplicates or empty values.
+func NormalizeUniqueIDs(ids []string) []string {
 	uniqueIDs := make([]string, 0, len(ids))
 	seen := make(map[string]bool)
 	for _, id := range ids {
@@ -14,7 +14,12 @@ func UniquePrefixLengths(ids []string) map[string]int {
 		seen[idLower] = true
 		uniqueIDs = append(uniqueIDs, idLower)
 	}
+	return uniqueIDs
+}
 
+// UniquePrefixLengths returns the shortest unique prefix length for each ID.
+func UniquePrefixLengths(ids []string) map[string]int {
+	uniqueIDs := NormalizeUniqueIDs(ids)
 	lengths := make(map[string]int, len(uniqueIDs))
 	for _, id := range uniqueIDs {
 		lengths[id] = uniquePrefixLength(id, uniqueIDs)
