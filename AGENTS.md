@@ -3,3 +3,4 @@
 - pay attention to our domain model and to good factoring
 - if you see issues unrelated to your current task, don't work on them but do `ii todo create --title` todos for them
 - always do tdd
+- there is no such thing as "backward compatibility"; only one version of the software is used at a time
