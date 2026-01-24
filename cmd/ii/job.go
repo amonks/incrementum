@@ -184,12 +184,12 @@ func jobIDPrefixLengths(jobs []jobpkg.Job) map[string]int {
 }
 
 func jobTodoPrefixLengths(repoPath string, purpose string) (map[string]int, error) {
-	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false, Purpose: purpose})
+	store, err := openTodoStoreForJob(repoPath, purpose)
 	if err != nil {
-		if errors.Is(err, todo.ErrNoTodoStore) {
-			return nil, nil
-		}
 		return nil, err
+	}
+	if store == nil {
+		return nil, nil
 	}
 	defer store.Release()
 
@@ -314,12 +314,12 @@ func jobShowPrefixLengths(manager *jobpkg.Manager) (map[string]int, error) {
 }
 
 func jobShowTodoInfo(repoPath string, todoID string, purpose string) (string, map[string]int, error) {
-	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false, Purpose: purpose})
+	store, err := openTodoStoreForJob(repoPath, purpose)
 	if err != nil {
-		if errors.Is(err, todo.ErrNoTodoStore) {
-			return "", nil, nil
-		}
 		return "", nil, err
+	}
+	if store == nil {
+		return "", nil, nil
 	}
 	defer store.Release()
 
@@ -341,4 +341,15 @@ func jobShowTodoInfo(repoPath string, todoID string, purpose string) (string, ma
 	}
 
 	return todos[0].Title, prefixLengths, nil
+}
+
+func openTodoStoreForJob(repoPath string, purpose string) (*todo.Store, error) {
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false, Purpose: purpose})
+	if err != nil {
+		if errors.Is(err, todo.ErrNoTodoStore) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return store, nil
 }
