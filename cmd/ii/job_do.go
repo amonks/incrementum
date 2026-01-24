@@ -215,24 +215,9 @@ func (reporter *jobStageReporter) OnStageChange(stage jobpkg.Stage) {
 		fmt.Println()
 	}
 	reporter.started = true
-	fmt.Println(stageMessage(stage))
+	fmt.Println(jobpkg.StageMessage(stage))
 	if reporter.logger != nil {
 		reporter.logger.ResetSpacing()
-	}
-}
-
-func stageMessage(stage jobpkg.Stage) string {
-	switch stage {
-	case jobpkg.StageImplementing:
-		return "Running implementation prompt:"
-	case jobpkg.StageTesting:
-		return "Implementation prompt complete; running tests:"
-	case jobpkg.StageReviewing:
-		return "Tests passed; doing code review:"
-	case jobpkg.StageCommitting:
-		return "Review complete; committing changes:"
-	default:
-		return fmt.Sprintf("Stage: %s", stage)
 	}
 }
 

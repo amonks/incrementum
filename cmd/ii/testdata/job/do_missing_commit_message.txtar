@@ -24,6 +24,11 @@ import os
 import sys
 import time
 
+def read_prompt(args):
+    if len(args) > 2 and not args[-1].startswith("--attach="):
+        return args[-1]
+    return sys.stdin.read()
+
 def extract_workspace_root(prompt: str) -> str:
     for line in prompt.splitlines():
         if line.startswith("Workspace root:"):
@@ -112,7 +117,7 @@ def main():
         return
     cmd = sys.argv[1]
     if cmd == "run":
-        prompt = sys.argv[-1] if len(sys.argv) > 2 else ""
+        prompt = read_prompt(sys.argv)
         run_job(prompt)
         return
     if cmd == "serve":

@@ -311,4 +311,5 @@ Output includes:
 Show the combined job event stream.
 
 Reads the job's JSONL event log and prints entries in the order they were
-recorded.
+recorded, formatting stage transitions and logs with the same 80-column reflow
+and 0/4/8-space indentation used during `ii job do` output.

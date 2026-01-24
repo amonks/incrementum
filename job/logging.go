@@ -200,3 +200,19 @@ func reviewLabel(purpose string) string {
 		return "Review result:"
 	}
 }
+
+// StageMessage returns the standard log message for a stage transition.
+func StageMessage(stage Stage) string {
+	switch stage {
+	case StageImplementing:
+		return "Running implementation prompt:"
+	case StageTesting:
+		return "Implementation prompt complete; running tests:"
+	case StageReviewing:
+		return "Tests passed; doing code review:"
+	case StageCommitting:
+		return "Review complete; committing changes:"
+	default:
+		return fmt.Sprintf("Stage: %s", stage)
+	}
+}
