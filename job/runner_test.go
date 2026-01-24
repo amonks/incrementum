@@ -640,6 +640,72 @@ func TestRunCommittingStageIncludesCommitLog(t *testing.T) {
 	}
 }
 
+func TestRunCommittingStageOmitsEmptyCommitLog(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 13, 12, 0, 0, time.UTC)
+	current, err := manager.Create("todo-empty-commit-log", startedAt)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-empty-commit-log",
+		Title:    "No commit log",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	result := &RunResult{}
+	var captured string
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
+			return nil, nil
+		},
+		CommitIDAt: func(string, string) (string, error) {
+			return "commit-100", nil
+		},
+		Commit: func(string, string) error {
+			return nil
+		},
+	}
+	opts.Commit = func(string, message string) error {
+		captured = message
+		return nil
+	}
+
+	_, err = runCommittingStage(CommittingStageOptions{
+		Manager:       manager,
+		Current:       current,
+		Item:          item,
+		RepoPath:      repoPath,
+		WorkspacePath: workspacePath,
+		RunOptions:    opts,
+		Result:        result,
+		CommitMessage: "feat: first commit",
+	})
+	if err != nil {
+		t.Fatalf("run committing stage: %v", err)
+	}
+
+	if strings.Contains(captured, "Commit log:") {
+		t.Fatalf("expected commit message to omit commit log, got %q", captured)
+	}
+}
+
 func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()

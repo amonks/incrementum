@@ -155,8 +155,8 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Format final message using `commit-message.tmpl` with: `Todo`, `Message` (from the
-   implementing stage), and `OpencodeTranscripts` (prose-only transcripts from the
-   job's opencode sessions).
+   implementing stage), `CommitLog` (only when non-empty), and `OpencodeTranscripts`
+   (prose-only transcripts from the job's opencode sessions).
 3. Best-effort `jj workspace update-stale` in the repo working directory.
 4. Run `jj commit -m "<formatted message>"` in the repo working directory.
 5. If commit fails: mark job `failed`.

@@ -14,16 +14,13 @@ DeleteReason: {{if .Todo.DeleteReason}}{{.Todo.DeleteReason}}{{else}}-{{end}}
 Description:
 {{if .Todo.Description}}{{.Todo.Description}}{{else}}-{{end}}
 
-Commit log:
-{{if .CommitLog}}
+{{if .CommitLog}}Commit log:
 {{range .CommitLog}}- ID: {{.ID}}
 Message:
 {{.Message}}
 {{end}}
-{{else}}
--
-{{end}}
 
+{{end}}
 Opencode transcripts:
 {{if .OpencodeTranscripts}}
 {{range .OpencodeTranscripts}}
