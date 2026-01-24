@@ -57,7 +57,13 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 	if !strings.Contains(err.Error(), "commit message missing after opencode implementation") {
 		t.Fatalf("expected context in error, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "opencode was instructed to write") {
+	if !strings.Contains(err.Error(), "opencode session ses-123") {
+		t.Fatalf("expected session context, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "before") || !strings.Contains(err.Error(), "after") {
+		t.Fatalf("expected commit change context, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "was instructed to write") {
 		t.Fatalf("expected opencode instruction context, got %v", err)
 	}
 	if !strings.Contains(err.Error(), commitMessageFilename) {

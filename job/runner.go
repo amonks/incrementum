@@ -415,9 +415,12 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return ImplementingStageResult{}, fmt.Errorf(
-					"commit message missing after opencode implementation; opencode was instructed to write %s (or %s) because the workspace changed: %w",
+					"commit message missing after opencode implementation; opencode session %s was instructed to write %s (or %s) because the workspace changed from %s to %s: %w",
+					opencodeResult.SessionID,
 					messagePath,
 					fallbackMessagePath,
+					beforeCommitID,
+					afterCommitID,
 					err,
 				)
 			}
