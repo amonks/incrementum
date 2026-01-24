@@ -346,10 +346,7 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 		return nil, fmt.Errorf("read todos: %w", err)
 	}
 
-	todoByID := make(map[string]Todo, len(todos))
-	for _, todo := range todos {
-		todoByID[todo.ID] = todo
-	}
+	todoByID := todoMapByID(todos)
 
 	var result []Todo
 	seen := make(map[string]bool)
@@ -364,7 +361,7 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 			missing = append(missing, id)
 			continue
 		}
-		result = append(result, todo)
+		result = append(result, *todo)
 	}
 
 	if len(missing) > 0 {
