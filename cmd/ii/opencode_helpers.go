@@ -1,12 +1,7 @@
 package main
 
 import (
-	"errors"
-	"fmt"
-	"os"
-
 	"github.com/amonks/incrementum/opencode"
-	"github.com/amonks/incrementum/workspace"
 )
 
 func filterOpencodeSessionsForList(sessions []opencode.OpencodeSession, includeAll bool) []opencode.OpencodeSession {
@@ -22,22 +17,6 @@ func filterOpencodeSessionsForList(sessions []opencode.OpencodeSession, includeA
 		filtered = append(filtered, session)
 	}
 	return filtered
-}
-
-func getOpencodeRepoPath() (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("get working directory: %w", err)
-	}
-
-	repoPath, err := workspace.RepoRootFromPath(cwd)
-	if err == nil {
-		return repoPath, nil
-	}
-	if errors.Is(err, workspace.ErrWorkspaceRootNotFound) || errors.Is(err, workspace.ErrRepoPathNotFound) {
-		return cwd, nil
-	}
-	return "", err
 }
 
 func drainOpencodeEvents(events <-chan opencode.Event) <-chan struct{} {

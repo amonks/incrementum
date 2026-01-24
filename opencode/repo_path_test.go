@@ -1,14 +1,15 @@
-package main
+package opencode
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
 	"github.com/amonks/incrementum/workspace"
 )
 
-func TestGetOpencodeRepoPathUsesRepoRootForWorkspace(t *testing.T) {
+func TestRepoPathForWorkingDirUsesRepoRootForWorkspace(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
 	if err := os.MkdirAll(home, 0o755); err != nil {
@@ -32,7 +33,7 @@ func TestGetOpencodeRepoPathUsesRepoRootForWorkspace(t *testing.T) {
 	}
 
 	withCwd(t, wsPath, func() {
-		resolved, err := getOpencodeRepoPath()
+		resolved, err := RepoPathForWorkingDir()
 		if err != nil {
 			t.Fatalf("get opencode repo path: %v", err)
 		}
@@ -42,7 +43,7 @@ func TestGetOpencodeRepoPathUsesRepoRootForWorkspace(t *testing.T) {
 	})
 }
 
-func TestGetOpencodeRepoPathFallsBackToWorkingDir(t *testing.T) {
+func TestRepoPathForWorkingDirFallsBackToWorkingDir(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
 	if err := os.MkdirAll(home, 0o755); err != nil {
@@ -62,7 +63,7 @@ func TestGetOpencodeRepoPathFallsBackToWorkingDir(t *testing.T) {
 	}
 
 	withCwd(t, cwd, func() {
-		resolved, err := getOpencodeRepoPath()
+		resolved, err := RepoPathForWorkingDir()
 		if err != nil {
 			t.Fatalf("get opencode repo path: %v", err)
 		}
@@ -70,4 +71,41 @@ func TestGetOpencodeRepoPathFallsBackToWorkingDir(t *testing.T) {
 			t.Fatalf("expected repo path %q, got %q", cwd, resolved)
 		}
 	})
+}
+
+func setupTestRepo(t *testing.T) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
+
+	if err := runJJ(tmpDir, "git", "init"); err != nil {
+		t.Fatalf("failed to init jj repo: %v", err)
+	}
+
+	return tmpDir
+}
+
+func runJJ(dir string, args ...string) error {
+	cmd := exec.Command("jj", args...)
+	cmd.Dir = dir
+	return cmd.Run()
+}
+
+func withCwd(t *testing.T, dir string, fn func()) {
+	t.Helper()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get cwd: %v", err)
+	}
+
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Fatalf("restore cwd: %v", err)
+		}
+	}()
+
+	fn()
 }

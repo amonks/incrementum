@@ -49,7 +49,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	repoPath, err := getOpencodeRepoPath()
+	repoPath, err := opencode.RepoPathForWorkingDir()
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	repoPath, err := getOpencodeRepoPath()
+	repoPath, err := opencode.RepoPathForWorkingDir()
 	if err != nil {
 		return err
 	}
