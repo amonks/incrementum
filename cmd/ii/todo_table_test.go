@@ -70,7 +70,7 @@ func TestFormatTodoTableUsesProvidedPrefixLengths(t *testing.T) {
 	}
 }
 
-func TestFormatTodoTableShowsAgeAndDuration(t *testing.T) {
+func TestFormatTodoTableShowsAge(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	todos := []todo.Todo{
 		{
@@ -89,8 +89,8 @@ func TestFormatTodoTableShowsAgeAndDuration(t *testing.T) {
 	if !strings.Contains(output, "2h") {
 		t.Fatalf("expected age in output, got:\n%s", output)
 	}
-	if !strings.Contains(output, "10m") {
-		t.Fatalf("expected duration in output, got:\n%s", output)
+	if strings.Contains(output, "DURATION") {
+		t.Fatalf("expected duration column removed, got:\n%s", output)
 	}
 }
 

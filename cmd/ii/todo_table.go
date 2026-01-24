@@ -21,7 +21,7 @@ func printTodoTable(todos []todo.Todo, prefixLengths map[string]int, now time.Ti
 }
 
 func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight func(string, int) string, now time.Time) string {
-	builder := ui.NewTableBuilder([]string{"ID", "PRI", "TYPE", "STATUS", "AGE", "DURATION", "TITLE"}, len(todos))
+	builder := ui.NewTableBuilder([]string{"ID", "PRI", "TYPE", "STATUS", "AGE", "TITLE"}, len(todos))
 
 	if prefixLengths == nil {
 		prefixLengths = todoIDPrefixLengths(todos)
@@ -32,14 +32,12 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 		prefixLen := prefixLengths[strings.ToLower(t.ID)]
 		highlighted := highlight(t.ID, prefixLen)
 		age := formatTodoAge(t, now)
-		duration := formatTodoDuration(t, now)
 		row := []string{
 			highlighted,
 			priorityShort(t.Priority),
 			string(t.Type),
 			string(t.Status),
 			age,
-			duration,
 			title,
 		}
 		builder.AddRow(row)
@@ -58,19 +56,6 @@ func formatTodoAge(item todo.Todo, now time.Time) string {
 		return "-"
 	}
 	return ui.FormatDurationShort(now.Sub(item.CreatedAt))
-}
-
-func formatTodoDuration(item todo.Todo, now time.Time) string {
-	if item.CreatedAt.IsZero() {
-		return "-"
-	}
-	if !item.Status.IsResolved() {
-		return ui.FormatDurationShort(now.Sub(item.CreatedAt))
-	}
-	if item.UpdatedAt.IsZero() {
-		return "-"
-	}
-	return ui.FormatDurationShort(item.UpdatedAt.Sub(item.CreatedAt))
 }
 
 // priorityShort returns a short representation of priority.
