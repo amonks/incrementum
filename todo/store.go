@@ -355,11 +355,19 @@ func (s *Store) readTodos() ([]Todo, error) {
 	return readJSONLStore[Todo](s, TodosFile)
 }
 
-// IDIndex returns an index of all todo IDs in the store.
-func (s *Store) IDIndex() (IDIndex, error) {
+func (s *Store) readTodosWithContext() ([]Todo, error) {
 	todos, err := s.readTodos()
 	if err != nil {
-		return IDIndex{}, fmt.Errorf("read todos: %w", err)
+		return nil, fmt.Errorf("read todos: %w", err)
+	}
+	return todos, nil
+}
+
+// IDIndex returns an index of all todo IDs in the store.
+func (s *Store) IDIndex() (IDIndex, error) {
+	todos, err := s.readTodosWithContext()
+	if err != nil {
+		return IDIndex{}, err
 	}
 	return NewIDIndex(todos), nil
 }
@@ -392,6 +400,14 @@ func (s *Store) writeTodos(todos []Todo) error {
 // readDependencies reads all dependencies from the store.
 func (s *Store) readDependencies() ([]Dependency, error) {
 	return readJSONLStore[Dependency](s, DependenciesFile)
+}
+
+func (s *Store) readDependenciesWithContext() ([]Dependency, error) {
+	deps, err := s.readDependencies()
+	if err != nil {
+		return nil, fmt.Errorf("read dependencies: %w", err)
+	}
+	return deps, nil
 }
 
 // writeDependencies writes all dependencies to the store and runs jj snapshot.

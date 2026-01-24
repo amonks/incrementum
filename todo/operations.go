@@ -75,9 +75,9 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 	}
 
 	// Read existing todos
-	todos, err := s.readTodos()
+	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
+		return nil, err
 	}
 
 	if len(deps) > 0 {
@@ -114,9 +114,9 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 
 	// Add dependencies
 	if len(deps) > 0 {
-		existingDeps, err := s.readDependencies()
+		existingDeps, err := s.readDependenciesWithContext()
 		if err != nil {
-			return nil, fmt.Errorf("read dependencies: %w", err)
+			return nil, err
 		}
 
 		for _, dep := range deps {
@@ -181,9 +181,9 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		opts.Type = &normalized
 	}
 
-	todos, err := s.readTodos()
+	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
+		return nil, err
 	}
 
 	// Build a set of IDs to update
@@ -341,9 +341,9 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 		return nil, err
 	}
 
-	todos, err := s.readTodos()
+	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
+		return nil, err
 	}
 
 	todoByID := todoMapByID(todos)
@@ -420,9 +420,9 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 	titleQuery := strings.ToLower(filter.TitleSubstring)
 	descriptionQuery := strings.ToLower(filter.DescriptionSubstring)
 
-	todos, err := s.readTodos()
+	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
+		return nil, err
 	}
 
 	// Build ID set if filtering by IDs
@@ -493,14 +493,14 @@ func missingTodoIDsError(missing []string) error {
 
 // Ready returns open todos with no unresolved blockers, sorted by priority.
 func (s *Store) Ready(limit int) ([]Todo, error) {
-	todos, err := s.readTodos()
+	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
+		return nil, err
 	}
 
-	deps, err := s.readDependencies()
+	deps, err := s.readDependenciesWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read dependencies: %w", err)
+		return nil, err
 	}
 
 	// Build map of todo ID -> todo for quick lookup
@@ -568,9 +568,9 @@ func (s *Store) DepAdd(todoID, dependsOnID string) (*Dependency, error) {
 	}
 
 	// Read existing dependencies
-	deps, err := s.readDependencies()
+	deps, err := s.readDependenciesWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read dependencies: %w", err)
+		return nil, err
 	}
 
 	// Check for duplicate
@@ -606,14 +606,14 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 	}
 	id = resolvedIDs[0]
 
-	todos, err := s.readTodos()
+	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
+		return nil, err
 	}
 
-	deps, err := s.readDependencies()
+	deps, err := s.readDependenciesWithContext()
 	if err != nil {
-		return nil, fmt.Errorf("read dependencies: %w", err)
+		return nil, err
 	}
 
 	// Build lookup maps
