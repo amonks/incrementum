@@ -25,6 +25,20 @@ func TestReflowJobTextPreservesParagraphs(t *testing.T) {
 	}
 }
 
+func TestFormatJobFieldWrapsValue(t *testing.T) {
+	value := strings.Repeat("word ", 40)
+	output := formatJobField("Title", value)
+
+	firstIndent := strings.Repeat(" ", jobDocumentIndent)
+	if !strings.HasPrefix(output, firstIndent+"Title: ") {
+		t.Fatalf("expected title prefix, got %q", output)
+	}
+	continuationIndent := strings.Repeat(" ", jobDocumentIndent+len("Title: "))
+	if !strings.Contains(output, "\n"+continuationIndent) {
+		t.Fatalf("expected wrapped continuation indentation, got %q", output)
+	}
+}
+
 func TestFormatCommitMessagesOutputPreservesIndentation(t *testing.T) {
 	entries := []jobpkg.CommitLogEntry{{
 		ID:      "commit-123",

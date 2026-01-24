@@ -122,10 +122,10 @@ func printJobStart(info jobpkg.StartInfo) {
 	fmt.Printf("Workdir: %s\n", info.Workdir)
 	fmt.Println("Todo:")
 	indent := strings.Repeat(" ", jobDocumentIndent)
-	fmt.Printf("%sID: %s\n", indent, info.Todo.ID)
-	fmt.Printf("%sTitle: %s\n", indent, info.Todo.Title)
-	fmt.Printf("%sType: %s\n", indent, info.Todo.Type)
-	fmt.Printf("%sPriority: %d (%s)\n", indent, info.Todo.Priority, todo.PriorityName(info.Todo.Priority))
+	fmt.Printf("%s\n", formatJobField("ID", info.Todo.ID))
+	fmt.Printf("%s\n", formatJobField("Title", info.Todo.Title))
+	fmt.Printf("%s\n", formatJobField("Type", string(info.Todo.Type)))
+	fmt.Printf("%s\n", formatJobField("Priority", fmt.Sprintf("%d (%s)", info.Todo.Priority, todo.PriorityName(info.Todo.Priority))))
 	fmt.Printf("%sDescription:\n", indent)
 	description := reflowJobText(info.Todo.Description, jobLineWidth-jobSubdocumentIndent)
 	fmt.Printf("%s\n\n", indentBlock(description, jobSubdocumentIndent))
@@ -226,6 +226,33 @@ const (
 	jobDocumentIndent    = 4
 	jobSubdocumentIndent = 8
 )
+
+func formatJobField(label, value string) string {
+	prefix := fmt.Sprintf("%s: ", label)
+	value = strings.TrimSpace(value)
+	if value == "" {
+		value = "-"
+	}
+	value = internalstrings.NormalizeWhitespace(value)
+	if value == "" {
+		value = "-"
+	}
+
+	wrapWidth := jobLineWidth - jobDocumentIndent - len(prefix)
+	if wrapWidth < 1 {
+		wrapWidth = 1
+	}
+	wrapped := wordwrap.String(value, wrapWidth)
+	lines := strings.Split(wrapped, "\n")
+	for i, line := range lines {
+		if i == 0 {
+			lines[i] = prefix + line
+			continue
+		}
+		lines[i] = strings.Repeat(" ", len(prefix)) + line
+	}
+	return indentBlock(strings.Join(lines, "\n"), jobDocumentIndent)
+}
 
 func reflowJobText(value string, width int) string {
 	value = strings.TrimSpace(value)
