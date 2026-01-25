@@ -536,15 +536,25 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		return nil, err
 	}
 
-	// Build map of todo ID -> todo for quick lookup
-	todoMap := todoMapByID(todos)
-
 	// Build a set of todos that have open blockers.
-	blocked := make(map[string]bool, len(deps))
-	for _, dep := range deps {
-		blocker, ok := todoMap[dep.DependsOnID]
-		if ok && !blocker.Status.IsResolved() {
-			blocked[dep.TodoID] = true
+	var blocked map[string]bool
+	if len(deps) > 0 {
+		blockerIDs := make(map[string]struct{}, len(deps))
+		for _, dep := range deps {
+			blockerIDs[dep.DependsOnID] = struct{}{}
+		}
+		resolvedBlockers := make(map[string]bool, len(blockerIDs))
+		for _, todo := range todos {
+			if _, ok := blockerIDs[todo.ID]; ok {
+				resolvedBlockers[todo.ID] = todo.Status.IsResolved()
+			}
+		}
+		blocked = make(map[string]bool, len(deps))
+		for _, dep := range deps {
+			resolved, ok := resolvedBlockers[dep.DependsOnID]
+			if ok && !resolved {
+				blocked[dep.TodoID] = true
+			}
 		}
 	}
 
@@ -561,7 +571,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		if todo.Status != StatusOpen {
 			continue
 		}
-		if blocked[todo.ID] {
+		if blocked != nil && blocked[todo.ID] {
 			continue
 		}
 		if useLimit {

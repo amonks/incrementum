@@ -18,15 +18,15 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,716,592 | 734,003 | 10,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,384,061 | 6,813,647 | 100,003 |
-| `BenchmarkWriteJSONL1K` | 904,333 | 355,084 | 3,010 |
-| `BenchmarkWriteJSONL10K` | 7,769,059 | 2,952,784 | 30,019 |
-| `BenchmarkStoreList1K` | 1,798,517 | 923,378 | 10,013 |
-| `BenchmarkStoreList10K` | 18,716,042 | 8,657,771 | 100,013 |
-| `BenchmarkStoreReady1K` | 2,073,456 | 1,160,362 | 11,787 |
-| `BenchmarkStoreReady10K` | 20,652,689 | 10,212,121 | 117,571 |
-| `BenchmarkStoreReadyLimit10K` | 20,611,423 | 8,372,889 | 117,581 |
+| `BenchmarkReadJSONLFromReader1K` | 1,716,992 | 734,005 | 10,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,362,989 | 6,813,651 | 100,003 |
+| `BenchmarkWriteJSONL1K` | 920,829 | 355,088 | 3,010 |
+| `BenchmarkWriteJSONL10K` | 7,875,987 | 2,952,807 | 30,019 |
+| `BenchmarkStoreList1K` | 1,799,719 | 923,379 | 10,013 |
+| `BenchmarkStoreList10K` | 18,631,573 | 8,657,820 | 100,013 |
+| `BenchmarkStoreReady1K` | 2,079,282 | 1,132,969 | 11,788 |
+| `BenchmarkStoreReady10K` | 20,660,150 | 9,993,690 | 117,556 |
+| `BenchmarkStoreReadyLimit10K` | 20,650,731 | 8,154,458 | 117,566 |
 
 ## Improvements log
 
@@ -41,6 +41,7 @@
 - 2026-01-25: When Ready runs with a limit, select into the heap while scanning instead of building the full ready slice, trimming bytes/op for ready-limit benchmarks.
 - 2026-01-25: Track blocked todos with a map instead of per-todo blocker slices in Ready, reducing allocation pressure for ready queries.
 - 2026-01-25: Disabled HTML escaping in JSONL writes to shave overhead from JSON encoding while preserving valid output.
+- 2026-01-25: Resolve dependency blocker statuses by the dependency ID set instead of mapping every todo, cutting Ready bytes/op by avoiding a full todo lookup map.
 
 ## Profiling notes
 
@@ -49,9 +50,9 @@
 - 2026-01-25 (BenchmarkStoreList10K): CPU profile shows syscall/syscall and bufio.Reader.ReadSlice at the top, indicating file I/O and buffering overhead dominate list queries.
 - 2026-01-25 (BenchmarkStoreList10K): Heap profile is mostly readJSONLFromReader and encoding/json.Unmarshal allocations while loading todos, with list filtering contributing minimal alloc space.
 - 2026-01-25 (BenchmarkStoreReady10K): CPU profile again centers on syscall overhead and buffered reads, matching list workloads.
-- 2026-01-25 (BenchmarkStoreReady10K): Heap allocations come from readJSONLFromReader for todos/dependencies plus JSON decoding and building the ID map.
+- 2026-01-25 (BenchmarkStoreReady10K): Heap allocations come from readJSONLFromReader for todos/dependencies plus JSON decoding, with dependency blocker maps contributing the next largest share.
 - 2026-01-25 (BenchmarkStoreReadyLimit10K): CPU profile still dominated by syscall/syscall with json decoding work next, so Ready-limit performance remains bound by file I/O.
-- 2026-01-25 (BenchmarkStoreReadyLimit10K): Heap allocations mostly come from readJSONLFromReader and encoding/json.Unmarshal, with todoMapByID contributing the next largest share.
+- 2026-01-25 (BenchmarkStoreReadyLimit10K): Heap allocations mostly come from readJSONLFromReader and encoding/json.Unmarshal, with dependency blocker maps contributing the next largest share.
 - 2026-01-25 (BenchmarkWriteJSONL10K): CPU profile dominated by syscall.syscall, indicating buffered writes still spend most time in file I/O.
 - 2026-01-25 (BenchmarkWriteJSONL10K): Heap allocations concentrate in writeJSONL and time.Time.MarshalJSON via encoding/json, showing time encoding as the largest allocation source.
 
