@@ -30,9 +30,9 @@ var swarmServeCmd = &cobra.Command{
 }
 
 var swarmDoCmd = &cobra.Command{
-	Use:   "do",
-	Short: "Create a todo and start a job",
-	Args:  cobra.NoArgs,
+	Use:   "do [todo-id]",
+	Short: "Start a swarm job for a new or existing todo",
+	Args:  cobra.MaximumNArgs(1),
 	RunE:  runSwarmDo,
 }
 
@@ -114,13 +114,18 @@ func runSwarmServe(cmd *cobra.Command, _ []string) error {
 	return server.Serve(addr)
 }
 
-func runSwarmDo(cmd *cobra.Command, _ []string) error {
+func runSwarmDo(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("description") {
 		desc, err := resolveDescriptionFromStdin(jobDoDescription, os.Stdin)
 		if err != nil {
 			return err
 		}
 		jobDoDescription = desc
+	}
+
+	hasCreateFlags := jobDoHasCreateFlags(cmd)
+	if len(args) > 0 && (hasCreateFlags || jobDoEdit || jobDoNoEdit) {
+		return fmt.Errorf("todo id cannot be combined with todo creation flags")
 	}
 	if strings.TrimSpace(swarmPath) == "" {
 		return fmt.Errorf("path is required")
@@ -135,10 +140,15 @@ func runSwarmDo(cmd *cobra.Command, _ []string) error {
 	}
 	client := swarm.NewClient(addr)
 
-	hasCreateFlags := jobDoHasCreateFlags(cmd)
-	todoID, err := createTodoForSwarm(cmd, path, hasCreateFlags)
-	if err != nil {
-		return err
+	todoID := ""
+	if len(args) > 0 {
+		todoID = args[0]
+	} else {
+		createdID, err := createTodoForSwarm(cmd, path, hasCreateFlags)
+		if err != nil {
+			return err
+		}
+		todoID = createdID
 	}
 	jobID, err := client.Do(cmd.Context(), todoID)
 	if err != nil {
