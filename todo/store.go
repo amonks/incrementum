@@ -686,18 +686,19 @@ func appendJSONTime(buf []byte, value time.Time) []byte {
 }
 
 func readJSONLStore[T any](store *Store, filename string) ([]T, error) {
-	if store.readOnly {
-		return readJSONLAtBookmark[T](store.client, store.repoPath, filename)
-	}
-
-	path := storeFilePath(store.wsPath, filename)
 	var items []T
-	err := withFileLock(path, func(file *os.File) error {
+	found, err := withStoreReader(store, filename, func(reader io.Reader) error {
 		var err error
-		items, err = readJSONLFromReader[T](file)
+		items, err = readJSONLFromReader[T](reader)
 		return err
 	})
-	return items, err
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, nil
+	}
+	return items, nil
 }
 
 func readJSONLStoreWithContext[T any](store *Store, filename, label string) ([]T, error) {
@@ -712,25 +713,38 @@ func (s *Store) readTodosByExactIDs(missing map[string]struct{}) (map[string]Tod
 	if len(missing) == 0 {
 		return nil, nil
 	}
-	if s.readOnly {
-		output, err := readBookmarkFile(s.client, s.repoPath, TodosFile)
-		if err != nil {
-			return nil, err
-		}
-		if output == nil {
-			return nil, nil
-		}
-		return readTodosByExactIDsFromReader(bytes.NewReader(output), missing)
-	}
-
-	path := storeFilePath(s.wsPath, TodosFile)
 	var items map[string]Todo
-	err := withFileLock(path, func(file *os.File) error {
+	found, err := withStoreReader(s, TodosFile, func(reader io.Reader) error {
 		var err error
-		items, err = readTodosByExactIDsFromReader(file, missing)
+		items, err = readTodosByExactIDsFromReader(reader, missing)
 		return err
 	})
-	return items, err
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, nil
+	}
+	return items, nil
+}
+
+func withStoreReader(store *Store, filename string, fn func(io.Reader) error) (bool, error) {
+	if store.readOnly {
+		output, err := readBookmarkFile(store.client, store.repoPath, filename)
+		if err != nil {
+			return false, err
+		}
+		if output == nil {
+			return false, nil
+		}
+		return true, fn(bytes.NewReader(output))
+	}
+
+	path := storeFilePath(store.wsPath, filename)
+	err := withFileLock(path, func(file *os.File) error {
+		return fn(file)
+	})
+	return true, err
 }
 
 // readTodos reads all todos from the store.
