@@ -445,8 +445,9 @@ func (m *model) handleTodosLoaded(msg todosLoadedMsg) {
 		m.setStatus(fmt.Sprintf("Todo load failed: %v", msg.err), statusError)
 		return
 	}
-	items := make([]list.Item, 0, len(msg.todos))
-	for _, item := range msg.todos {
+	ordered := orderTodosForDisplay(msg.todos)
+	items := make([]list.Item, 0, len(ordered))
+	for _, item := range ordered {
 		items = append(items, todoItem{todo: item})
 	}
 	if m.todoDetail.isDraft {

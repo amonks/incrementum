@@ -33,12 +33,14 @@ func (item todoItem) FilterValue() string {
 type todoItemDelegate struct {
 	normalStyle   lipgloss.Style
 	selectedStyle lipgloss.Style
+	doneStyle     lipgloss.Style
 }
 
 func newTodoItemDelegate() todoItemDelegate {
 	return todoItemDelegate{
 		normalStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
 		selectedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("230")).Background(lipgloss.Color("24")),
+		doneStyle:     valueMuted,
 	}
 }
 
@@ -56,6 +58,8 @@ func (d todoItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 	style := d.normalStyle
 	if index == m.Index() {
 		style = d.selectedStyle
+	} else if !item.isDraft && isDoneStatus(item.todo.Status) {
+		style = d.doneStyle
 	}
 	fmt.Fprint(w, style.Render(line))
 }
@@ -75,6 +79,43 @@ func formatTodoItem(item todoItem, width int) string {
 	meta := fmt.Sprintf("%s/%s/%s", status, typeName, priority)
 	line := fmt.Sprintf("%s  %s  [%s]", id, title, meta)
 	return truncateText(line, width)
+}
+
+func orderTodosForDisplay(todos []todo.Todo) []todo.Todo {
+	if len(todos) == 0 {
+		return nil
+	}
+	proposed := make([]todo.Todo, 0, len(todos))
+	open := make([]todo.Todo, 0, len(todos))
+	done := make([]todo.Todo, 0, len(todos))
+	other := make([]todo.Todo, 0, len(todos))
+	for _, item := range todos {
+		switch item.Status {
+		case todo.StatusProposed:
+			proposed = append(proposed, item)
+		case "", todo.StatusOpen, todo.StatusInProgress:
+			open = append(open, item)
+		case todo.StatusDone, todo.StatusClosed:
+			done = append(done, item)
+		default:
+			other = append(other, item)
+		}
+	}
+	ordered := make([]todo.Todo, 0, len(todos))
+	ordered = append(ordered, proposed...)
+	ordered = append(ordered, open...)
+	ordered = append(ordered, done...)
+	ordered = append(ordered, other...)
+	return ordered
+}
+
+func isDoneStatus(status todo.Status) bool {
+	switch status {
+	case todo.StatusDone, todo.StatusClosed:
+		return true
+	default:
+		return false
+	}
 }
 
 type todoFieldKind int

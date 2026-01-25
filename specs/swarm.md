@@ -150,6 +150,9 @@ The help overlay lists the available shortcuts and closes with `?` or `esc`.
 The list pane shows todos from the swarm server (via `POST /todos/list`) using
 the same defaults as `todo.List` (all non-tombstone todos).
 
+- Todos are grouped by status: proposed first, then open/in-progress, then done
+  or closed; done/closed entries render in a muted tone.
+
 List pane actions:
 
 - `c`: create a new todo draft and focus the detail pane for editing.
@@ -227,6 +230,8 @@ library.
 
 - The list pane shows todos from `POST /todos/list` using the same defaults as
   `todo.List` (all non-tombstone todos).
+- Todos are grouped by status: proposed first, then open/in-progress, then
+  done/closed; done/closed entries appear in a muted style.
 - A "Create" action renders a blank detail form for a new todo.
 - Detail fields and read-only fields match the TUI (including id and timestamps).
 - Saving uses the same behavior as the TUI: new todos call

@@ -15,6 +15,7 @@ func newTemplates() *template.Template {
 		"formatOptionalTime": formatOptionalTime,
 		"priorityLabel":      todo.PriorityName,
 		"isActiveJob":        func(status job.Status) bool { return status == job.StatusActive },
+		"isDoneTodo":         isDoneTodoStatus,
 	}
 	return template.Must(template.New("page").Funcs(funcs).Parse(pageTemplate))
 }
@@ -136,6 +137,12 @@ const pageTemplate = `<!doctype html>
     .list-item.active a {
       border-color: #c7baa8;
       background: #f6f0e6;
+    }
+    .list-item.done a {
+      color: #9b9186;
+    }
+    .list-item.done .item-meta {
+      color: #b1a79d;
     }
     .item-title {
       font-weight: 600;
@@ -269,7 +276,7 @@ const pageTemplate = `<!doctype html>
         </div>
         <ul class="item-list">
           {{range .Todos}}
-            <li class="list-item {{if eq .ID $.SelectedTodoID}}active{{end}}">
+            <li class="list-item{{if eq .ID $.SelectedTodoID}} active{{end}}{{if isDoneTodo .Status}} done{{end}}">
               <a href="/web/todos?id={{.ID}}">
                 <span class="item-title">{{.Title}}</span>
                 <span class="item-meta">{{.ID}} · {{.Status}}</span>

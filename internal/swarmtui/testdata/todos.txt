@@ -2,23 +2,23 @@
 Keys: up/down move | enter edit | c new | s submit to swarm | tab switch tabs | ? help | q quit
 +---------------------------------++-------------------------------------------------------------------+
 |    Todos                        || Editable                                                          |
-|                                 || Title: Fix TUI navigation                                         |
-| todo-1234  Fix TUI navigat...   || Description:                                                      |
-| todo-9876  Add screencap t...   || Ensure lists move with arrows and                                 |
-|                                 || j/k.                                                              |
+|                                 || Title: Review proposed CLI updates                                |
+| todo-7777  Review proposed...   || Description:                                                      |
+| todo-1234  Fix TUI navigat...   || Collect feedback from the tooling                                 |
+| todo-9876  Add screencap t...   || sync before starting.                                             |
+| todo-3333  Ship swarm web ...   ||                                                                   |
 |                                 ||                                                                   |
 |                                 ||                                                                   |
 |                                 ||                                                                   |
-|                                 ||                                                                   |
-|                                 || Status: in_progress                                               |
-|                                 || Priority: high                                                    |
+|                                 || Status: proposed                                                  |
+|                                 || Priority: medium                                                  |
 |                                 || Type: task                                                        |
 |                                 ||                                                                   |
 |                                 || Read-only                                                         |
-|                                 || ID: todo-1234                                                     |
-|                                 || Created: 2026-01-18 10:30:00                                      |
-|                                 || Updated: 2026-01-19 10:30:00                                      |
-|                                 || Started: 2026-01-20 07:30:00                                      |
+|                                 || ID: todo-7777                                                     |
+|                                 || Created: 2026-01-18 22:30:00                                      |
+|                                 || Updated: 2026-01-20 04:30:00                                      |
+|                                 || Started: -                                                        |
 |                                 || Closed: -                                                         |
 |                                 || Completed: -                                                      |
 |                                 || Deleted: -                                                        |

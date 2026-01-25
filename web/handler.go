@@ -376,10 +376,11 @@ func (h *Handler) refreshTodos(ctx context.Context, baseURL string) ([]todo.Todo
 		h.mu.Unlock()
 		return cached, err
 	}
+	ordered := orderTodosForDisplay(response.Todos)
 	h.mu.Lock()
-	h.todos = append([]todo.Todo(nil), response.Todos...)
+	h.todos = append([]todo.Todo(nil), ordered...)
 	h.mu.Unlock()
-	return response.Todos, nil
+	return ordered, nil
 }
 
 func (h *Handler) refreshJobs(ctx context.Context, baseURL string) ([]job.Job, error) {
@@ -607,6 +608,43 @@ func selectTodo(todos []todo.Todo, id string) *todo.Todo {
 		}
 	}
 	return nil
+}
+
+func orderTodosForDisplay(todos []todo.Todo) []todo.Todo {
+	if len(todos) == 0 {
+		return nil
+	}
+	proposed := make([]todo.Todo, 0, len(todos))
+	open := make([]todo.Todo, 0, len(todos))
+	done := make([]todo.Todo, 0, len(todos))
+	other := make([]todo.Todo, 0, len(todos))
+	for _, item := range todos {
+		switch item.Status {
+		case todo.StatusProposed:
+			proposed = append(proposed, item)
+		case "", todo.StatusOpen, todo.StatusInProgress:
+			open = append(open, item)
+		case todo.StatusDone, todo.StatusClosed:
+			done = append(done, item)
+		default:
+			other = append(other, item)
+		}
+	}
+	ordered := make([]todo.Todo, 0, len(todos))
+	ordered = append(ordered, proposed...)
+	ordered = append(ordered, open...)
+	ordered = append(ordered, done...)
+	ordered = append(ordered, other...)
+	return ordered
+}
+
+func isDoneTodoStatus(status todo.Status) bool {
+	switch status {
+	case todo.StatusDone, todo.StatusClosed:
+		return true
+	default:
+		return false
+	}
 }
 
 func selectJob(jobs []job.Job, id string) *job.Job {

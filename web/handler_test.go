@@ -77,6 +77,105 @@ func TestTodosViewDefaultsToFirstTodo(t *testing.T) {
 	}
 }
 
+func TestTodosViewOrdersAndMarksDone(t *testing.T) {
+	now := time.Now()
+	todos := []todo.Todo{
+		{
+			ID:        "todo-open",
+			Title:     "Open todo",
+			Status:    todo.StatusOpen,
+			Priority:  todo.PriorityMedium,
+			Type:      todo.TypeTask,
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			ID:        "todo-done",
+			Title:     "Done todo",
+			Status:    todo.StatusDone,
+			Priority:  todo.PriorityLow,
+			Type:      todo.TypeTask,
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			ID:        "todo-proposed",
+			Title:     "Proposed todo",
+			Status:    todo.StatusProposed,
+			Priority:  todo.PriorityHigh,
+			Type:      todo.TypeTask,
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			ID:        "todo-progress",
+			Title:     "In progress todo",
+			Status:    todo.StatusInProgress,
+			Priority:  todo.PriorityMedium,
+			Type:      todo.TypeTask,
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			ID:        "todo-closed",
+			Title:     "Closed todo",
+			Status:    todo.StatusClosed,
+			Priority:  todo.PriorityLow,
+			Type:      todo.TypeTask,
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/todos/list", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(todosListResponse{Todos: todos})
+	})
+
+	webHandler := NewHandler(Options{})
+	mux.Handle("/web/", webHandler)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/web/todos")
+	if err != nil {
+		t.Fatalf("get todos: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	output := string(body)
+
+	indices := []int{
+		strings.Index(output, "todo-proposed"),
+		strings.Index(output, "todo-open"),
+		strings.Index(output, "todo-progress"),
+		strings.Index(output, "todo-done"),
+		strings.Index(output, "todo-closed"),
+	}
+	for i, idx := range indices {
+		if idx == -1 {
+			t.Fatalf("expected todo %d to appear in output", i)
+		}
+		if i > 0 && indices[i-1] > idx {
+			t.Fatalf("expected todos to be ordered by status, got %v", indices)
+		}
+	}
+
+	if strings.Count(output, "list-item done") != 2 {
+		t.Fatalf("expected done todos to be grayed out, got %s", output)
+	}
+}
+
 func TestTodoCreateRedirectsToNewTodo(t *testing.T) {
 	createdID := "todo-9"
 	now := time.Now()
