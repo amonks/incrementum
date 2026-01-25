@@ -9,6 +9,8 @@ func TestDurationData(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	start := now.Add(-10 * time.Minute)
 	completed := start.Add(3 * time.Minute)
+	futureStart := now.Add(4 * time.Minute)
+	pastCompleted := now.Add(-2 * time.Minute)
 
 	cases := []struct {
 		name            string
@@ -34,6 +36,13 @@ func TestDurationData(t *testing.T) {
 			ok:        true,
 		},
 		{
+			name:      "active clamps future",
+			startedAt: futureStart,
+			active:    true,
+			want:      0,
+			ok:        true,
+		},
+		{
 			name:            "duration seconds preferred",
 			startedAt:       start,
 			completedAt:     now,
@@ -46,6 +55,13 @@ func TestDurationData(t *testing.T) {
 			startedAt:   start,
 			completedAt: completed,
 			want:        3 * time.Minute,
+			ok:          true,
+		},
+		{
+			name:        "completed clamps negative",
+			startedAt:   now,
+			completedAt: pastCompleted,
+			want:        0,
 			ok:          true,
 		},
 		{

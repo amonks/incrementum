@@ -7,11 +7,7 @@ func AgeData(startedAt time.Time, now time.Time) (time.Duration, bool) {
 	if startedAt.IsZero() {
 		return 0, false
 	}
-	age := now.Sub(startedAt)
-	if age < 0 {
-		age = 0
-	}
-	return age, true
+	return clampDuration(now.Sub(startedAt)), true
 }
 
 // Age computes display age.
@@ -26,7 +22,7 @@ func DurationData(startedAt time.Time, completedAt time.Time, durationSeconds in
 		if startedAt.IsZero() {
 			return 0, false
 		}
-		return now.Sub(startedAt), true
+		return clampDuration(now.Sub(startedAt)), true
 	}
 
 	if durationSeconds > 0 {
@@ -34,8 +30,15 @@ func DurationData(startedAt time.Time, completedAt time.Time, durationSeconds in
 	}
 
 	if !completedAt.IsZero() && !startedAt.IsZero() {
-		return completedAt.Sub(startedAt), true
+		return clampDuration(completedAt.Sub(startedAt)), true
 	}
 
 	return 0, false
+}
+
+func clampDuration(duration time.Duration) time.Duration {
+	if duration < 0 {
+		return 0
+	}
+	return duration
 }
