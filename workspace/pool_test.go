@@ -138,6 +138,44 @@ func TestPool_Acquire_RejectsMultilinePurpose(t *testing.T) {
 	}
 }
 
+func TestPool_Acquire_MissingChangeIDFallsBackToAt(t *testing.T) {
+	repoPath := setupTestRepo(t)
+	workspacesDir := t.TempDir()
+	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
+	stateDir := t.TempDir()
+
+	pool, err := workspace.OpenWithOptions(workspace.Options{
+		StateDir:      stateDir,
+		WorkspacesDir: workspacesDir,
+	})
+	if err != nil {
+		t.Fatalf("failed to open pool: %v", err)
+	}
+
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{
+		Purpose: "test purpose",
+		Rev:     "deadbeefdead",
+	})
+	if err != nil {
+		t.Fatalf("failed to acquire workspace: %v", err)
+	}
+
+	list, err := pool.List(repoPath)
+	if err != nil {
+		t.Fatalf("failed to list workspaces: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 workspace, got %d", len(list))
+	}
+	if list[0].Rev != "@" {
+		t.Fatalf("expected fallback rev \"@\", got %q", list[0].Rev)
+	}
+
+	if err := pool.Release(wsPath); err != nil {
+		t.Fatalf("failed to release workspace: %v", err)
+	}
+}
+
 func TestPool_Acquire_ReusesAvailableWorkspace(t *testing.T) {
 	repoPath := setupTestRepo(t)
 	workspacesDir := t.TempDir()

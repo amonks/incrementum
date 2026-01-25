@@ -200,21 +200,26 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	if opts.Rev != "@" {
 		if err := p.jj.Edit(wsPath, opts.Rev); err != nil {
 			if !strings.Contains(err.Error(), "immutable") {
-				return "", fmt.Errorf("jj edit: %w", err)
-			}
-			var (
-				newRev string
-				newErr error
-			)
-			if strings.TrimSpace(opts.NewChangeMessage) != "" {
-				newRev, newErr = p.jj.NewChangeWithMessage(wsPath, opts.Rev, opts.NewChangeMessage)
+				if isMissingRevisionError(err) && looksLikeChangeID(opts.Rev) {
+					actualRev = "@"
+				} else {
+					return "", fmt.Errorf("jj edit: %w", err)
+				}
 			} else {
-				newRev, newErr = p.jj.NewChange(wsPath, opts.Rev)
+				var (
+					newRev string
+					newErr error
+				)
+				if strings.TrimSpace(opts.NewChangeMessage) != "" {
+					newRev, newErr = p.jj.NewChangeWithMessage(wsPath, opts.Rev, opts.NewChangeMessage)
+				} else {
+					newRev, newErr = p.jj.NewChange(wsPath, opts.Rev)
+				}
+				if newErr != nil {
+					return "", fmt.Errorf("jj new: %w", newErr)
+				}
+				actualRev = newRev
 			}
-			if newErr != nil {
-				return "", fmt.Errorf("jj new: %w", newErr)
-			}
-			actualRev = newRev
 		}
 	}
 
@@ -403,6 +408,29 @@ func workspaceStatusRank(status Status) int {
 	default:
 		return 2
 	}
+}
+
+func isMissingRevisionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "doesn't exist") || strings.Contains(message, "does not exist")
+}
+
+func looksLikeChangeID(rev string) bool {
+	if len(rev) < 12 {
+		return false
+	}
+	for _, r := range rev {
+		switch {
+		case r >= '0' && r <= '9':
+		case r >= 'a' && r <= 'z':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // RepoRoot returns the jj repository root for the given path.
