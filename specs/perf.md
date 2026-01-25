@@ -18,14 +18,14 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,768,058 | 1,090,174 | 10,014 |
-| `BenchmarkReadJSONLFromReader10K` | 18,891,164 | 14,149,334 | 100,022 |
-| `BenchmarkWriteJSONL1K` | 1,154,578 | 293,531 | 3,010 |
-| `BenchmarkWriteJSONL10K` | 10,299,641 | 2,891,439 | 30,019 |
-| `BenchmarkStoreList1K` | 1,933,508 | 1,696,935 | 10,034 |
-| `BenchmarkStoreList10K` | 21,874,562 | 23,423,309 | 100,050 |
-| `BenchmarkStoreReady1K` | 2,198,708 | 1,506,115 | 12,072 |
-| `BenchmarkStoreReady10K` | 23,010,874 | 18,353,226 | 120,134 |
+| `BenchmarkReadJSONLFromReader1K` | 1,722,222 | 672,572 | 10,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,520,060 | 6,752,132 | 100,003 |
+| `BenchmarkWriteJSONL1K` | 1,088,288 | 293,503 | 3,010 |
+| `BenchmarkWriteJSONL10K` | 9,367,377 | 2,891,447 | 30,019 |
+| `BenchmarkStoreList1K` | 1,873,137 | 1,279,540 | 10,024 |
+| `BenchmarkStoreList10K` | 20,992,711 | 16,026,289 | 100,032 |
+| `BenchmarkStoreReady1K` | 2,123,973 | 1,078,832 | 12,055 |
+| `BenchmarkStoreReady10K` | 21,755,478 | 10,604,059 | 120,104 |
 
 ## Improvements log
 
@@ -33,6 +33,7 @@
 - 2026-01-25: Avoided copying when a JSONL line fits in the buffered reader by returning the underlying slice, reducing allocations per line.
 - 2026-01-25: Buffered JSONL writes before renaming the temp file, trimming syscall overhead and improving write throughput.
 - 2026-01-25: Added benchmarks for store-level list/ready operations to track end-to-end todo command costs beyond JSONL parsing.
+- 2026-01-25: Estimated JSONL item counts from reader sizes to preallocate slices, cutting bytes/op for reads and store queries.
 
 ## Profiling notes
 

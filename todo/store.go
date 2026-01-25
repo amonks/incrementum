@@ -279,6 +279,7 @@ func readJSONL[T any](path string) ([]T, error) {
 
 func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
+	readerSize := estimateReaderSize(reader)
 	buf := bufio.NewReader(reader)
 	itemIndex := 0
 	for {
@@ -299,6 +300,9 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 		if len(line) > maxJSONLineBytes {
 			return nil, fmt.Errorf("decode item %d: exceeds max JSON line size", itemIndex+1)
 		}
+		if items == nil && readerSize > 0 {
+			items = make([]T, 0, estimateJSONLItems(readerSize, len(line)))
+		}
 		var item T
 		if err := json.Unmarshal(line, &item); err != nil {
 			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
@@ -311,6 +315,50 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	}
 
 	return items, nil
+}
+
+type readerStat interface {
+	Stat() (os.FileInfo, error)
+}
+
+type readerSizer interface {
+	Size() int64
+}
+
+type readerLener interface {
+	Len() int
+}
+
+func estimateReaderSize(reader io.Reader) int64 {
+	switch r := reader.(type) {
+	case readerSizer:
+		return r.Size()
+	case readerLener:
+		return int64(r.Len())
+	case readerStat:
+		info, err := r.Stat()
+		if err != nil {
+			return 0
+		}
+		return info.Size()
+	default:
+		return 0
+	}
+}
+
+func estimateJSONLItems(totalSize int64, lineSize int) int {
+	if totalSize <= 0 || lineSize <= 0 {
+		return 0
+	}
+	estimated := totalSize / int64(lineSize)
+	maxInt := int(^uint(0) >> 1)
+	if estimated > int64(maxInt) {
+		estimated = int64(maxInt)
+	}
+	if estimated < 1 {
+		estimated = 1
+	}
+	return int(estimated)
 }
 
 func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
