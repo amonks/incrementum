@@ -771,3 +771,97 @@ func TestTailWaitsForEventLog(t *testing.T) {
 		t.Fatalf("append event: %v", err)
 	}
 }
+
+func TestTailWaitsForCompleteEventLine(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+	eventsDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath:        repoDir,
+		StateDir:        stateDir,
+		Pool:            noopPool{},
+		EventLogOptions: job.EventLogOptions{EventsDir: eventsDir},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	manager, err := job.Open(repoDir, job.OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open job manager: %v", err)
+	}
+	created, err := manager.Create("todo-6", time.Now())
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+	jobID := created.ID
+
+	path, err := job.EventLogPath(jobID, job.EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("event log path: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("create events dir: %v", err)
+	}
+	partial := `{"name":"job.stage","data":"{\"stage\":\"planning\"}"`
+	if err := os.WriteFile(path, []byte(partial), 0o644); err != nil {
+		t.Fatalf("write partial event: %v", err)
+	}
+
+	serverInstance := httptest.NewServer(server.Handler())
+	defer serverInstance.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	appendErrCh := make(chan error, 1)
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			appendErrCh <- err
+			return
+		}
+		if _, err := file.WriteString("}\n"); err != nil {
+			_ = file.Close()
+			appendErrCh <- err
+			return
+		}
+		if err := file.Close(); err != nil {
+			appendErrCh <- err
+			return
+		}
+		appendErrCh <- nil
+	}()
+
+	payload, err := json.Marshal(tailRequest{JobID: jobID})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, serverInstance.URL+"/tail", bytes.NewReader(payload))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
+
+	decoder := json.NewDecoder(response.Body)
+	var gotFirst job.Event
+	if err := decoder.Decode(&gotFirst); err != nil {
+		t.Fatalf("decode event: %v", err)
+	}
+	if gotFirst.Name != "job.stage" {
+		t.Fatalf("expected event name %q, got %q", "job.stage", gotFirst.Name)
+	}
+	if err := <-appendErrCh; err != nil {
+		t.Fatalf("append event: %v", err)
+	}
+}

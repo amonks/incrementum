@@ -737,21 +737,28 @@ func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts
 	encoder := json.NewEncoder(w)
 
 	reader := bufio.NewReader(file)
+	var pending []byte
 	for {
-		line, err := reader.ReadString('\n')
+		chunk, err := reader.ReadBytes('\n')
 		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
-		line = strings.TrimSpace(line)
-		if line != "" {
-			var event job.Event
-			if unmarshalErr := json.Unmarshal([]byte(line), &event); unmarshalErr != nil {
-				return fmt.Errorf("decode job event: %w", unmarshalErr)
+		if len(chunk) > 0 {
+			pending = append(pending, chunk...)
+			if chunk[len(chunk)-1] == '\n' {
+				line := strings.TrimSpace(string(pending))
+				pending = pending[:0]
+				if line != "" {
+					var event job.Event
+					if unmarshalErr := json.Unmarshal([]byte(line), &event); unmarshalErr != nil {
+						return fmt.Errorf("decode job event: %w", unmarshalErr)
+					}
+					if err := encoder.Encode(event); err != nil {
+						return err
+					}
+					flusher.Flush()
+				}
 			}
-			if err := encoder.Encode(event); err != nil {
-				return err
-			}
-			flusher.Flush()
 		}
 		if errors.Is(err, io.EOF) {
 			select {
