@@ -70,6 +70,7 @@
 - 2026-01-25: Preallocated Update's ID set and updated slice to avoid repeated growth while applying todo updates.
 - 2026-01-25: Skip building a full ID index when resolving already-normalized full-length IDs, reducing Update allocations for common cases.
 - 2026-01-25: Reused the missing-ID map for exact ID resolution so Update avoids allocating a duplicate map when checking for missing todos.
+- 2026-01-25: Built the Show todo lookup map only for requested IDs to avoid allocating a full todo ID map on every show command.
 
 ## Profiling notes
 

@@ -308,18 +308,30 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 		return nil, err
 	}
 
-	todoByID := todoMapByID(todos)
+	todoByID := make(map[string]*Todo, len(resolvedIDs))
+	for _, id := range resolvedIDs {
+		if _, ok := todoByID[id]; !ok {
+			todoByID[id] = nil
+		}
+	}
+	if len(todoByID) > 0 {
+		for i := range todos {
+			if _, ok := todoByID[todos[i].ID]; ok {
+				todoByID[todos[i].ID] = &todos[i]
+			}
+		}
+	}
 
-	var result []Todo
-	seen := make(map[string]bool)
+	result := make([]Todo, 0, len(resolvedIDs))
+	seen := make(map[string]struct{}, len(resolvedIDs))
 	var missing []string
 	for _, id := range resolvedIDs {
-		if seen[id] {
+		if _, ok := seen[id]; ok {
 			continue
 		}
-		seen[id] = true
+		seen[id] = struct{}{}
 		todo, ok := todoByID[id]
-		if !ok {
+		if !ok || todo == nil {
 			missing = append(missing, id)
 			continue
 		}
