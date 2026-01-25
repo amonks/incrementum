@@ -62,10 +62,12 @@ var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
 		}
 		return s
 	},
+	"validTypes":    validTodoTypes,
+	"validStatuses": validTodoStatuses,
 }).Parse(`title = {{ printf "%q" .Title }}
-type = {{ printf "%q" .Type }} # task, bug, feature
+type = {{ printf "%q" .Type }} # {{ validTypes }}
 priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
-status = {{ printf "%q" .Status }} # open, proposed, in_progress, closed, done, tombstone
+status = {{ printf "%q" .Status }} # {{ validStatuses }}
 ---
 {{ description .Description }}
 `))
@@ -108,13 +110,13 @@ func ParseTodoTOML(content string) (*ParsedTodo, error) {
 		return nil, err
 	}
 	if !todo.TodoType(parsed.Type).IsValid() {
-		return nil, fmt.Errorf("invalid type %q: must be task, bug, or feature", parsed.Type)
+		return nil, fmt.Errorf("invalid type %q: must be %s", parsed.Type, validTodoTypes())
 	}
 	if err := todo.ValidatePriority(parsed.Priority); err != nil {
 		return nil, err
 	}
 	if parsed.Status != nil && !todo.Status(*parsed.Status).IsValid() {
-		return nil, fmt.Errorf("invalid status %q: must be %s", *parsed.Status, validation.FormatValidValues(todo.ValidStatuses()))
+		return nil, fmt.Errorf("invalid status %q: must be %s", *parsed.Status, validTodoStatuses())
 	}
 
 	return &parsed, nil
@@ -141,6 +143,14 @@ func splitFrontmatter(content string) (string, string) {
 	frontmatter := strings.Join(lines[:separatorIndex], "\n")
 	body := strings.Join(lines[separatorIndex+1:], "\n")
 	return frontmatter, body
+}
+
+func validTodoTypes() string {
+	return validation.FormatValidValues(todo.ValidTodoTypes())
+}
+
+func validTodoStatuses() string {
+	return validation.FormatValidValues(todo.ValidStatuses())
 }
 
 func createTodoTempFile() (*os.File, error) {
