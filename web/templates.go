@@ -223,9 +223,28 @@ const pageTemplate = `<!doctype html>
       border: 1px solid #e0d6c6;
       border-radius: 8px;
       padding: 12px;
-      white-space: pre-wrap;
       font-family: "Menlo", "Consolas", monospace;
       font-size: 13px;
+    }
+    .log-entry {
+      margin-bottom: 12px;
+    }
+    .log-entry:last-child {
+      margin-bottom: 0;
+    }
+    .log-label {
+      font-weight: 600;
+      color: #6a4b2e;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+    .log-body {
+      white-space: pre-wrap;
+      color: #2b2520;
+    }
+    .log-inline {
+      color: #2b2520;
+      margin-left: 6px;
     }
     .confirm {
       display: flex;
@@ -313,8 +332,8 @@ const pageTemplate = `<!doctype html>
             {{end}}
           </div>
           <h3>Log</h3>
-          {{if .JobLog}}
-            <pre class="log">{{.JobLog}}</pre>
+          {{if .JobLogHTML}}
+            <div class="log">{{.JobLogHTML}}</div>
           {{else}}
             <p class="muted">No events yet.</p>
           {{end}}

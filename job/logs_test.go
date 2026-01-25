@@ -31,7 +31,8 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 	if err := appendJobEvent(log, jobEventCommitMessage, commitMessageEventData{Label: "Draft", Message: "feat: add logs"}); err != nil {
 		t.Fatalf("append commit message event: %v", err)
 	}
-	if err := log.Append(Event{Name: "message", Data: "Opencode line.\nMore output."}); err != nil {
+	opencodeToolEvent := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"read","state":{"status":"completed","input":{"filePath":"/tmp/example.txt"}}}}}`
+	if err := log.Append(Event{Data: opencodeToolEvent}); err != nil {
 		t.Fatalf("append opencode event: %v", err)
 	}
 	if err := appendJobEvent(log, jobEventStage, stageEventData{Stage: StageTesting}); err != nil {
@@ -63,9 +64,7 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"        Opencode line.",
 		"    Draft commit message:",
 		"        feat: add logs",
-		"    Opencode event (message):",
-		"        Opencode line.",
-		"        More output.",
+		"    Opencode tool: read file '/tmp/example.txt'",
 		"Implementation prompt complete; running tests:",
 		"Command: go test ./...",
 		"Exit Code: 1",
@@ -203,15 +202,13 @@ func TestEventFormatterAppendsOutput(t *testing.T) {
 		t.Fatalf("expected prompt output, got %q", chunk)
 	}
 
-	chunk, err = formatter.Append(Event{Name: "message", Data: "Streaming line"})
+	opencodeToolEvent := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"glob","state":{"status":"completed","input":{"pattern":"**/*.go","path":"/tmp"}}}}}`
+	chunk, err = formatter.Append(Event{Data: opencodeToolEvent})
 	if err != nil {
 		t.Fatalf("append opencode event: %v", err)
 	}
-	if !strings.Contains(chunk, "Opencode event (message):") {
-		t.Fatalf("expected opencode label, got %q", chunk)
-	}
-	if !strings.Contains(chunk, "Streaming line") {
-		t.Fatalf("expected opencode output, got %q", chunk)
+	if !strings.Contains(chunk, "Opencode tool: glob '") {
+		t.Fatalf("expected opencode tool output, got %q", chunk)
 	}
 
 	chunk, err = formatter.Append(Event{Name: "job.opencode.error", Data: "{\"purpose\":\"implement\",\"error\":\"opencode session not found\"}"})
@@ -223,5 +220,71 @@ func TestEventFormatterAppendsOutput(t *testing.T) {
 	}
 	if !strings.Contains(chunk, "opencode session not found") {
 		t.Fatalf("expected opencode error details, got %q", chunk)
+	}
+}
+
+func TestEventFormatterRendersOpencodeMessages(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	userMessage := `{"type":"message.updated","properties":{"info":{"id":"msg-user","role":"user"}}}`
+	userPrompt := `{"type":"message.part.updated","properties":{"part":{"id":"prt-user","messageID":"msg-user","type":"text","text":"Prompt line."}}}`
+	if _, err := formatter.Append(Event{Data: userMessage}); err != nil {
+		t.Fatalf("append user message event: %v", err)
+	}
+	chunk, err := formatter.Append(Event{Data: userPrompt})
+	if err != nil {
+		t.Fatalf("append user prompt event: %v", err)
+	}
+	if !strings.Contains(chunk, "Opencode prompt:") {
+		t.Fatalf("expected opencode prompt label, got %q", chunk)
+	}
+	if !strings.Contains(chunk, "Prompt line.") {
+		t.Fatalf("expected opencode prompt text, got %q", chunk)
+	}
+
+	assistantMessage := `{"type":"message.updated","properties":{"info":{"id":"msg-assistant","role":"assistant"}}}`
+	assistantText := `{"type":"message.part.updated","properties":{"part":{"id":"prt-assistant","messageID":"msg-assistant","type":"text","text":"Response line."}}}`
+	assistantThinking := `{"type":"message.part.updated","properties":{"part":{"id":"prt-reason","messageID":"msg-assistant","type":"reasoning","text":"Thinking line."}}}`
+	assistantComplete := `{"type":"message.updated","properties":{"info":{"id":"msg-assistant","role":"assistant","time":{"completed":1}}}}`
+	if _, err := formatter.Append(Event{Data: assistantMessage}); err != nil {
+		t.Fatalf("append assistant message event: %v", err)
+	}
+	if _, err := formatter.Append(Event{Data: assistantText}); err != nil {
+		t.Fatalf("append assistant text event: %v", err)
+	}
+	if _, err := formatter.Append(Event{Data: assistantThinking}); err != nil {
+		t.Fatalf("append assistant thinking event: %v", err)
+	}
+	chunk, err = formatter.Append(Event{Data: assistantComplete})
+	if err != nil {
+		t.Fatalf("append assistant complete event: %v", err)
+	}
+	if !strings.Contains(chunk, "Opencode thinking:") {
+		t.Fatalf("expected opencode thinking label, got %q", chunk)
+	}
+	if !strings.Contains(chunk, "Thinking line.") {
+		t.Fatalf("expected opencode thinking text, got %q", chunk)
+	}
+	if !strings.Contains(chunk, "Opencode response:") {
+		t.Fatalf("expected opencode response label, got %q", chunk)
+	}
+	if !strings.Contains(chunk, "Response line.") {
+		t.Fatalf("expected opencode response text, got %q", chunk)
+	}
+}
+
+func TestEventFormatterFallsBackOnMalformedOpencodeMessage(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	malformed := `{"type":"message.updated","properties":"nope"}`
+	chunk, err := formatter.Append(Event{Data: malformed})
+	if err != nil {
+		t.Fatalf("append malformed opencode event: %v", err)
+	}
+	if !strings.Contains(chunk, "Opencode event (message.updated):") {
+		t.Fatalf("expected fallback opencode label, got %q", chunk)
+	}
+	if !strings.Contains(chunk, `"type":"message.updated"`) {
+		t.Fatalf("expected raw opencode payload, got %q", chunk)
 	}
 }

@@ -90,7 +90,7 @@ type pageData struct {
 	SelectedJobID   string
 	Create          bool
 	TodoForm        todoFormValues
-	JobLog          string
+	JobLogHTML      template.HTML
 	TodoError       string
 	JobError        string
 	StatusOptions   []selectOption
@@ -264,7 +264,7 @@ func (h *Handler) handleJobs(w http.ResponseWriter, r *http.Request) {
 		jobError = draft.err
 	}
 
-	jobLog := ""
+	jobLog := template.HTML("")
 	if selectedJob != nil {
 		events, err := h.fetchJobEvents(r.Context(), baseURL, selectedJob.ID)
 		if err != nil {
@@ -284,7 +284,7 @@ func (h *Handler) handleJobs(w http.ResponseWriter, r *http.Request) {
 		Jobs:          jobs,
 		SelectedJob:   selectedJob,
 		SelectedJobID: selectedID,
-		JobLog:        jobLog,
+		JobLogHTML:    jobLog,
 		JobError:      jobError,
 	}
 	h.templates.Render(w, data)
@@ -659,8 +659,8 @@ func selectJob(jobs []job.Job, id string) *job.Job {
 	return nil
 }
 
-func formatJobEvents(events []job.Event) (string, error) {
-	formatter := job.NewEventFormatter()
+func formatJobEvents(events []job.Event) (template.HTML, error) {
+	formatter := job.NewEventHTMLFormatter()
 	var builder strings.Builder
 	for _, event := range events {
 		chunk, err := formatter.Append(event)
@@ -668,10 +668,10 @@ func formatJobEvents(events []job.Event) (string, error) {
 			return "", err
 		}
 		if chunk != "" {
-			builder.WriteString(chunk)
+			builder.WriteString(string(chunk))
 		}
 	}
-	return strings.TrimRight(builder.String(), "\n"), nil
+	return template.HTML(builder.String()), nil
 }
 
 func statusOptions() []selectOption {

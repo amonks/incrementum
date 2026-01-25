@@ -34,9 +34,11 @@ func LogSnapshot(jobID string, opts EventLogOptions) (string, error) {
 }
 
 type logSnapshotWriter struct {
-	builder     strings.Builder
-	started     bool
-	skipSpacing bool
+	builder      strings.Builder
+	started      bool
+	skipSpacing  bool
+	lastCategory string
+	opencode     *opencodeEventInterpreter
 }
 
 func (writer *logSnapshotWriter) Append(event Event) error {
@@ -48,6 +50,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				return err
 			}
 			writer.writeStage(StageMessage(data.Stage))
+			writer.lastCategory = "job"
 		case jobEventPrompt:
 			data, err := decodeEventData[promptEventData](event.Data)
 			if err != nil {
@@ -57,6 +60,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(promptLabel(data.Purpose), documentIndent),
 				formatMarkdownBody(data.Prompt, subdocumentIndent),
 			)
+			writer.lastCategory = "job"
 		case jobEventCommitMessage:
 			data, err := decodeEventData[commitMessageEventData](event.Data)
 			if err != nil {
@@ -67,6 +71,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(label, documentIndent),
 				formatCommitMessageBody(data.Message, subdocumentIndent, data.Preformatted),
 			)
+			writer.lastCategory = "job"
 		case jobEventTranscript:
 			data, err := decodeEventData[transcriptEventData](event.Data)
 			if err != nil {
@@ -77,6 +82,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel("Opencode transcript:", documentIndent),
 				formatTranscriptBody(data.Transcript, subdocumentIndent),
 			)
+			writer.lastCategory = "job"
 		case jobEventReview:
 			data, err := decodeEventData[reviewEventData](event.Data)
 			if err != nil {
@@ -86,12 +92,14 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(reviewLabel(data.Purpose), documentIndent),
 				formatLogBody(data.Details, subdocumentIndent, true),
 			)
+			writer.lastCategory = "job"
 		case jobEventTests:
 			data, err := decodeEventData[testsEventData](event.Data)
 			if err != nil {
 				return err
 			}
 			writer.writeTests(data.Results)
+			writer.lastCategory = "job"
 		case jobEventOpencodeError:
 			data, err := decodeEventData[opencodeErrorEventData](event.Data)
 			if err != nil {
@@ -101,6 +109,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(opencodeErrorLabel(data.Purpose), documentIndent),
 				formatLogBody(data.Error, subdocumentIndent, false),
 			)
+			writer.lastCategory = "job"
 		case jobEventOpencodeStart, jobEventOpencodeEnd:
 			return nil
 		default:
@@ -113,11 +122,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 		return nil
 	}
 
-	writer.writeBlock(
-		formatLogLabel(opencodeEventLabel(event.Name), documentIndent),
-		formatLogBody(event.Data, subdocumentIndent, false),
-	)
-	return nil
+	return writer.appendOpencodeEvent(event)
 }
 
 func opencodeEventLabel(name string) string {
@@ -163,6 +168,31 @@ func (writer *logSnapshotWriter) writeBlock(lines ...string) {
 		writer.builder.WriteString(line)
 		writer.builder.WriteString("\n")
 	}
+}
+
+func (writer *logSnapshotWriter) appendOpencodeEvent(event Event) error {
+	if writer.opencode == nil {
+		writer.opencode = newOpencodeEventInterpreter(nil)
+	}
+	outputs, err := writer.opencode.Handle(event)
+	if err != nil {
+		return err
+	}
+	if len(outputs) == 0 {
+		return nil
+	}
+	for _, output := range outputs {
+		lines := formatOpencodeText(output)
+		if len(lines) == 0 {
+			continue
+		}
+		if writer.lastCategory == "opencode" {
+			writer.skipSpacing = true
+		}
+		writer.writeBlock(lines...)
+		writer.lastCategory = "opencode"
+	}
+	return nil
 }
 
 func (writer *logSnapshotWriter) writeTests(results []testResultEventData) {
