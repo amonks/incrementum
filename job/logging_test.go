@@ -74,21 +74,51 @@ func TestConsoleLoggerFormatsEntries(t *testing.T) {
 	}
 }
 
-func TestConsoleLoggerReflowsParagraphs(t *testing.T) {
+func TestConsoleLoggerRendersMarkdownPrompt(t *testing.T) {
 	var buf bytes.Buffer
 	logger := NewConsoleLogger(&buf)
 
 	logger.Prompt(PromptLog{
 		Purpose: "implement",
-		Prompt:  "First paragraph line one.\nSecond line stays in the same paragraph.\n\nSecond paragraph follows next.",
+		Prompt:  "Checklist:\n\n- First item\n- Second item\n\n```bash\necho first\necho second\n```",
 	})
 
 	output := stripANSI(buf.String())
-	if !strings.Contains(output, "First paragraph line one. Second line stays in the same paragraph.") {
-		t.Fatalf("expected paragraph lines to reflow, got %q", output)
+	checks := []*regexp.Regexp{
+		regexp.MustCompile(`(?m)^\s+Checklist:$`),
+		regexp.MustCompile(`(?m)^\s+.*First item$`),
+		regexp.MustCompile(`(?m)^\s+.*Second item$`),
+		regexp.MustCompile(`(?m)^\s+echo first$`),
+		regexp.MustCompile(`(?m)^\s+echo second$`),
 	}
-	if !strings.Contains(output, "\n        \n") {
-		t.Fatalf("expected paragraph break to be preserved, got %q", output)
+	for _, check := range checks {
+		if !check.MatchString(output) {
+			t.Fatalf("expected markdown output to match %q, got %q", check.String(), output)
+		}
+	}
+}
+
+func TestConsoleLoggerRendersMarkdownCommitMessage(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewConsoleLogger(&buf)
+
+	logger.CommitMessage(CommitMessageLog{
+		Label:   "Draft",
+		Message: "Summary:\n\n- First item\n- Second item\n\n```bash\necho first\necho second\n```",
+	})
+
+	output := stripANSI(buf.String())
+	checks := []*regexp.Regexp{
+		regexp.MustCompile(`(?m)^\s+Summary:$`),
+		regexp.MustCompile(`(?m)^\s+.*First item$`),
+		regexp.MustCompile(`(?m)^\s+.*Second item$`),
+		regexp.MustCompile(`(?m)^\s+echo first$`),
+		regexp.MustCompile(`(?m)^\s+echo second$`),
+	}
+	for _, check := range checks {
+		if !check.MatchString(output) {
+			t.Fatalf("expected markdown commit message output to match %q, got %q", check.String(), output)
+		}
 	}
 }
 
@@ -102,11 +132,15 @@ func TestConsoleLoggerPreservesPromptIndentation(t *testing.T) {
 	})
 
 	output := stripANSI(buf.String())
-	if !strings.Contains(output, "\n        Summary:") {
-		t.Fatalf("expected summary indentation, got %q", output)
+	checks := []*regexp.Regexp{
+		regexp.MustCompile(`(?m)^\s+Summary:$`),
+		regexp.MustCompile(`(?m)^\s+Detail one$`),
+		regexp.MustCompile(`(?m)^\s+Detail two$`),
 	}
-	if !strings.Contains(output, "\n            Detail one Detail two") {
-		t.Fatalf("expected nested indentation, got %q", output)
+	for _, check := range checks {
+		if !check.MatchString(output) {
+			t.Fatalf("expected indentation output to match %q, got %q", check.String(), output)
+		}
 	}
 }
 

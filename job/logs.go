@@ -54,7 +54,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 		}
 		writer.writeBlock(
 			formatLogLabel(promptLabel(data.Purpose), documentIndent),
-			formatLogBody(data.Prompt, subdocumentIndent, true),
+			formatMarkdownBody(data.Prompt, subdocumentIndent),
 		)
 	case jobEventCommitMessage:
 		data, err := decodeEventData[commitMessageEventData](event.Data)
@@ -64,7 +64,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 		label := commitMessageLabel(data.Label)
 		writer.writeBlock(
 			formatLogLabel(label, documentIndent),
-			formatLogBody(data.Message, subdocumentIndent, true),
+			formatCommitMessageBody(data.Message, subdocumentIndent, data.Preformatted),
 		)
 	case jobEventTranscript:
 		data, err := decodeEventData[transcriptEventData](event.Data)

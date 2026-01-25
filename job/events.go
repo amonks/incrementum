@@ -197,8 +197,9 @@ type transcriptEventData struct {
 }
 
 type commitMessageEventData struct {
-	Label   string `json:"label"`
-	Message string `json:"message"`
+	Label        string `json:"label"`
+	Message      string `json:"message"`
+	Preformatted bool   `json:"preformatted,omitempty"`
 }
 
 type reviewEventData struct {

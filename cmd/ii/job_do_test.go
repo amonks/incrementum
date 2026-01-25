@@ -1,27 +1,31 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
 	jobpkg "github.com/amonks/incrementum/job"
 )
 
-func TestReflowJobTextPreservesParagraphs(t *testing.T) {
-	input := "First paragraph line one.\nSecond line stays with paragraph.\n\nSecond paragraph follows."
+func TestReflowJobTextPreservesMarkdown(t *testing.T) {
+	input := "Intro line.\n\n- First item\n- Second item\n\n```text\nline one\nline two\n```"
 	output := reflowJobText(input, 80)
 
 	if output == "-" {
 		t.Fatalf("expected non-empty output, got %q", output)
 	}
-	if output == input {
-		t.Fatalf("expected reflowing to normalize whitespace, got %q", output)
+	checks := []*regexp.Regexp{
+		regexp.MustCompile(`(?m)^\s+Intro line\.$`),
+		regexp.MustCompile(`(?m)^\s+.*First item$`),
+		regexp.MustCompile(`(?m)^\s+.*Second item$`),
+		regexp.MustCompile(`(?m)^\s+line one$`),
+		regexp.MustCompile(`(?m)^\s+line two$`),
 	}
-	if !strings.Contains(output, "\n\n") {
-		t.Fatalf("expected paragraph break preserved, got %q", output)
-	}
-	if !strings.Contains(output, "First paragraph line one. Second line stays with paragraph.") {
-		t.Fatalf("expected paragraph to reflow, got %q", output)
+	for _, check := range checks {
+		if !check.MatchString(output) {
+			t.Fatalf("expected markdown output to match %q, got %q", check.String(), output)
+		}
 	}
 }
 

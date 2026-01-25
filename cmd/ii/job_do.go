@@ -106,15 +106,31 @@ func formatCommitMessagesOutput(entries []jobpkg.CommitLogEntry) string {
 		}
 		out.WriteString(jobpkg.IndentBlock(label+":", jobDocumentIndent))
 		out.WriteString("\n")
-		out.WriteString(jobpkg.ReflowIndentedText(entry.Message, jobLineWidth, jobSubdocumentIndent))
+		out.WriteString(formatCommitMessageBody(entry.Message, jobSubdocumentIndent))
 		out.WriteString("\n")
 	}
 	return strings.TrimRight(out.String(), "\n")
 }
 
 func formatCommitMessageOutput(message string) string {
-	formatted := jobpkg.ReflowIndentedText(message, jobLineWidth, jobDocumentIndent)
+	formatted := formatCommitMessageBody(message, jobDocumentIndent)
 	return fmt.Sprintf("Commit message:\n\n%s", formatted)
+}
+
+func formatCommitMessageBody(message string, indent int) string {
+	message = strings.TrimRight(message, "\r\n")
+	if strings.TrimSpace(message) == "" {
+		return jobpkg.IndentBlock("-", indent)
+	}
+	width := jobLineWidth - indent
+	if width < 1 {
+		width = 1
+	}
+	formatted := jobpkg.RenderMarkdown(message, width)
+	if strings.TrimSpace(formatted) == "" {
+		return jobpkg.IndentBlock("-", indent)
+	}
+	return jobpkg.IndentBlock(formatted, indent)
 }
 
 func printJobStart(info jobpkg.StartInfo) {
@@ -255,7 +271,7 @@ func formatJobField(label, value string) string {
 }
 
 func reflowJobText(value string, width int) string {
-	formatted := jobpkg.ReflowParagraphs(value, width)
+	formatted := jobpkg.RenderMarkdown(value, width)
 	if strings.TrimSpace(formatted) == "" {
 		return "-"
 	}

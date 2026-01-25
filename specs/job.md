@@ -165,7 +165,8 @@ any stage -> failed (unrecoverable error)
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Format final message with a fixed commit message layout (not templated). The
    format uses the opencode-generated summary/body plus a todo block, reflowed to
-   80/76/72 columns with 0/4/8-space indentation.
+   80/76/72 columns with 0/4/8-space indentation. Todo descriptions are rendered
+   via the markdown renderer to preserve lists and code blocks.
 3. Best-effort `jj workspace update-stale` in the repo working directory.
 4. Run `jj commit -m "<formatted message>"` in the repo working directory.
 5. If commit fails: mark job `failed`.
@@ -187,7 +188,7 @@ This commit is a step towards implementing this todo:
     Type: <type>
     Priority: <priority> (<name>)
     Description:
-        <reflowed description>
+        <markdown-rendered description>
 ```
 
 ## Failure Handling
@@ -263,11 +264,13 @@ Behavior:
 5. Output job context: workdir and full todo details.
 6. Create job record with status `active`, stage `implementing`.
 7. Run state machine to completion.
-8. Output progress: stage transitions and formatted logs (prompts, opencode
-   transcripts, commit messages, test results, review feedback) with 80-column
-   reflow and 0/4/8-space indentation for document hierarchy.
-9. On success: mark todo done and print final commit info with 80-column reflow
-   and 0/4/8-space indentation.
+8. Output progress: stage transitions and formatted logs (prompts and commit
+   messages rendered via the markdown renderer, opencode transcripts, test
+   results, review feedback) with 80-column wrapping and 0/4/8-space
+   indentation for document hierarchy.
+9. On success: mark todo done and print final commit info with 80-column
+   wrapping and 0/4/8-space indentation (todo descriptions are
+   markdown-rendered).
 10. On failure/abandon: reopen todo and print reason.
 
 Exit codes:

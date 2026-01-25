@@ -710,7 +710,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 	logMessage := formatCommitMessageWithWidth(opts.Item, message, lineWidth-subdocumentIndent)
 	opts.Result.CommitMessage = finalMessage
 	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: logMessage, Preformatted: true})
-	if err := appendJobEvent(opts.RunOptions.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Final", Message: finalMessage}); err != nil {
+	if err := appendJobEvent(opts.RunOptions.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Final", Message: finalMessage, Preformatted: true}); err != nil {
 		return Job{}, err
 	}
 

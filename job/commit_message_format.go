@@ -56,8 +56,10 @@ func formatCommitTodoWithWidth(item todo.Todo, width int) string {
 	description := strings.TrimSpace(item.Description)
 	if description == "" {
 		description = "-"
+		description = IndentBlock(description, subdocumentIndent)
+		return fieldBlock + "\n" + description
 	}
-	description = ReflowParagraphs(description, width-subdocumentIndent)
+	description = RenderMarkdown(description, width-subdocumentIndent)
 	if description == "" {
 		description = "-"
 	}

@@ -85,7 +85,7 @@ func (logger *ConsoleLogger) Prompt(entry PromptLog) {
 	label := promptLabel(entry.Purpose)
 	lines := []string{
 		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
-		formatLogBody(entry.Prompt, subdocumentIndent, true),
+		formatMarkdownBody(entry.Prompt, subdocumentIndent),
 	}
 	if strings.TrimSpace(entry.Transcript) != "" {
 		lines = append(lines,
@@ -102,10 +102,9 @@ func (logger *ConsoleLogger) CommitMessage(entry CommitMessageLog) {
 		return
 	}
 	label := commitMessageLabel(entry.Label)
-	wrap := !entry.Preformatted
 	logger.writeBlock(
 		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
-		formatLogBody(entry.Message, subdocumentIndent, wrap),
+		formatCommitMessageBody(entry.Message, subdocumentIndent, entry.Preformatted),
 	)
 }
 
@@ -171,6 +170,52 @@ func formatLogBody(body string, indent int, wrap bool) string {
 		return ReflowIndentedText(body, lineWidth, indent)
 	}
 	return IndentBlock(body, indent)
+}
+
+func formatCommitMessageBody(body string, indent int, preformatted bool) string {
+	body = strings.TrimRight(body, "\r\n")
+	if strings.TrimSpace(body) == "" {
+		return IndentBlock("-", indent)
+	}
+	width := lineWidth - indent
+	if width < 1 {
+		width = 1
+	}
+	if preformatted {
+		body = preserveMarkdownLineBreaks(body)
+	}
+	rendered := RenderMarkdown(body, width)
+	if strings.TrimSpace(rendered) == "" {
+		return IndentBlock("-", indent)
+	}
+	return IndentBlock(rendered, indent)
+}
+
+func preserveMarkdownLineBreaks(value string) string {
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		lines[i] = line + "  "
+	}
+	return strings.Join(lines, "\n")
+}
+
+func formatMarkdownBody(body string, indent int) string {
+	body = strings.TrimRight(body, "\r\n")
+	if strings.TrimSpace(body) == "" {
+		return IndentBlock("-", indent)
+	}
+	width := lineWidth - indent
+	if width < 1 {
+		width = 1
+	}
+	rendered := RenderMarkdown(body, width)
+	if strings.TrimSpace(rendered) == "" {
+		return IndentBlock("-", indent)
+	}
+	return IndentBlock(rendered, indent)
 }
 
 func formatTestLogBody(rows [][]string) string {
