@@ -57,6 +57,7 @@
 | [internal-ids.md](./internal-ids.md)                   | [internal/ids/](../internal/ids/)                   | Unique prefix length calculation for IDs             |
 | [internal-jj.md](./internal-jj.md)                     | [internal/jj/](../internal/jj/)                     | Go wrapper around jj CLI commands                    |
 | [internal-listflags.md](./internal-listflags.md)       | [internal/listflags/](../internal/listflags/)       | Shared Cobra list flags                              |
+| [internal-markdown.md](./internal-markdown.md)         | [internal/markdown/](../internal/markdown/)         | Markdown rendering helpers for terminal output       |
 | [internal-opencode.md](./internal-opencode.md)         | [internal/opencode/](../internal/opencode/)         | Read opencode session storage files                  |
 | [internal-paths.md](./internal-paths.md)               | [internal/paths/](../internal/paths/)               | Default state and workspace paths                    |
 | [internal-state.md](./internal-state.md)               | [internal/state/](../internal/state/)               | Shared state file management                         |

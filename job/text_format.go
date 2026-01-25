@@ -2,11 +2,9 @@ package job
 
 import (
 	"strings"
-	"sync"
 
+	"github.com/amonks/incrementum/internal/markdown"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/styles"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -14,11 +12,6 @@ const (
 	lineWidth         = 80
 	documentIndent    = 4
 	subdocumentIndent = 8
-)
-
-var (
-	markdownRendererMu sync.Mutex
-	markdownRenderers  = map[int]*glamour.TermRenderer{}
 )
 
 func wrapLines(value string, width int) string {
@@ -29,41 +22,14 @@ func wrapLines(value string, width int) string {
 
 // RenderMarkdown formats markdown text for terminal display.
 func RenderMarkdown(value string, width int) string {
-	value = strings.ReplaceAll(value, "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "\n")
-	value = strings.TrimRight(value, "\n")
-	if strings.TrimSpace(value) == "" {
-		return ""
-	}
 	if width < 1 {
 		width = 1
 	}
-	var renderer *glamour.TermRenderer
-	markdownRendererMu.Lock()
-	if cached, ok := markdownRenderers[width]; ok {
-		renderer = cached
-	} else {
-		style := styles.ASCIIStyleConfig
-		style.Item.BlockPrefix = "- "
-		style.ImageText.Format = "Image: {{.text}} ->"
-		created, err := glamour.NewTermRenderer(
-			glamour.WithStyles(style),
-			glamour.WithWordWrap(width),
-		)
-		if err == nil {
-			markdownRenderers[width] = created
-			renderer = created
-		}
+	rendered := markdown.Render(width, 0, []byte(value))
+	if len(rendered) == 0 {
+		return ""
 	}
-	markdownRendererMu.Unlock()
-	if renderer == nil {
-		return value
-	}
-	formatted, err := renderer.Render(value)
-	if err != nil {
-		return value
-	}
-	return strings.TrimRight(formatted, "\n")
+	return string(rendered)
 }
 
 // ReflowParagraphs wraps and normalizes paragraph text.

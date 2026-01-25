@@ -125,6 +125,25 @@ func TestConsoleLoggerRendersMarkdownCommitMessage(t *testing.T) {
 	}
 }
 
+func TestConsoleLoggerRendersMarkdownReview(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewConsoleLogger(&buf)
+
+	logger.Review(ReviewLog{Purpose: "review", Feedback: ReviewFeedback{Outcome: ReviewOutcomeRequestChanges, Details: "Checklist:\n\n- First item\n- Second item"}})
+
+	output := stripANSI(buf.String())
+	checks := []*regexp.Regexp{
+		regexp.MustCompile(`(?m)^\s+Checklist:$`),
+		regexp.MustCompile(`(?m)^\s+.*First item$`),
+		regexp.MustCompile(`(?m)^\s+.*Second item$`),
+	}
+	for _, check := range checks {
+		if !check.MatchString(output) {
+			t.Fatalf("expected markdown review output to match %q, got %q", check.String(), output)
+		}
+	}
+}
+
 func TestConsoleLoggerPreservesPromptIndentation(t *testing.T) {
 	var buf bytes.Buffer
 	logger := NewConsoleLogger(&buf)
