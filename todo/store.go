@@ -537,16 +537,14 @@ func writeJSONLWithWriter(path string, write func(*bufio.Writer) error) error {
 	}()
 
 	if err := write(buffered); err != nil {
-		closeErr := f.Close()
-		os.Remove(tmpPath)
+		closeErr := closeAndRemoveTempFile(tmpPath, f)
 		if closeErr != nil {
 			return errors.Join(err, closeErr)
 		}
 		return err
 	}
 	if err := buffered.Flush(); err != nil {
-		closeErr := f.Close()
-		os.Remove(tmpPath)
+		closeErr := closeAndRemoveTempFile(tmpPath, f)
 		if closeErr != nil {
 			return errors.Join(fmt.Errorf("flush temp file: %w", err), closeErr)
 		}
@@ -554,17 +552,27 @@ func writeJSONLWithWriter(path string, write func(*bufio.Writer) error) error {
 	}
 
 	if err := f.Close(); err != nil {
-		os.Remove(tmpPath)
+		removeTempFile(tmpPath)
 		return fmt.Errorf("close temp file: %w", err)
 	}
 
 	// Atomic rename
 	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
+		removeTempFile(tmpPath)
 		return fmt.Errorf("rename temp file: %w", err)
 	}
 
 	return nil
+}
+
+func removeTempFile(path string) {
+	_ = os.Remove(path)
+}
+
+func closeAndRemoveTempFile(path string, file *os.File) error {
+	closeErr := file.Close()
+	removeTempFile(path)
+	return closeErr
 }
 
 var jsonHexDigits = []byte("0123456789abcdef")
