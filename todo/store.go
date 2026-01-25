@@ -28,6 +28,7 @@ const (
 	DependenciesFile = "dependencies.jsonl"
 
 	maxJSONLineBytes = 1024 * 1024
+	jsonlBufferSize  = 64 * 1024
 )
 
 // Store provides access to the todo data for a jujutsu repository.
@@ -280,7 +281,7 @@ func readJSONL[T any](path string) ([]T, error) {
 func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
 	readerSize := estimateReaderSize(reader)
-	buf := bufio.NewReader(reader)
+	buf := bufio.NewReaderSize(reader, jsonlBufferSize)
 	itemIndex := 0
 	for {
 		line, err := readJSONLLine(buf)
@@ -410,7 +411,7 @@ func writeJSONL[T any](path string, items []T) error {
 		return fmt.Errorf("create temp file: %w", err)
 	}
 
-	buffered := bufio.NewWriter(f)
+	buffered := bufio.NewWriterSize(f, jsonlBufferSize)
 	encoder := json.NewEncoder(buffered)
 	for i, item := range items {
 		if err := encoder.Encode(item); err != nil {
