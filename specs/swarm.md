@@ -114,6 +114,8 @@ swarm server and operates on todos and jobs. It uses the same configuration and
 
 - `enter`: move focus from the list pane to the detail pane.
 - `esc`: return focus to the list pane.
+- When the detail pane is focused, `pgup`/`pgdown` and `home`/`end` scroll the
+  pane contents.
 
 ### Todo Tab
 

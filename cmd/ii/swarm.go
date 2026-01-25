@@ -11,6 +11,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/internal/listflags"
+	"github.com/amonks/incrementum/internal/swarmtui"
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/swarm"
@@ -63,6 +64,12 @@ var swarmListCmd = &cobra.Command{
 	RunE:  runSwarmList,
 }
 
+var swarmClientCmd = &cobra.Command{
+	Use:   "client",
+	Short: "Launch the swarm TUI client",
+	RunE:  runSwarmClient,
+}
+
 var (
 	swarmAddr       string
 	swarmPath       string
@@ -73,7 +80,7 @@ var (
 
 func init() {
 	rootCmd.AddCommand(swarmCmd)
-	swarmCmd.AddCommand(swarmServeCmd, swarmDoCmd, swarmKillCmd, swarmTailCmd, swarmLogsCmd, swarmListCmd)
+	swarmCmd.AddCommand(swarmServeCmd, swarmDoCmd, swarmKillCmd, swarmTailCmd, swarmLogsCmd, swarmListCmd, swarmClientCmd)
 	addDescriptionFlagAliases(swarmDoCmd)
 
 	swarmServeCmd.Flags().StringVar(&swarmAddr, "addr", "", "Swarm server address")
@@ -95,6 +102,8 @@ func init() {
 	swarmListCmd.Flags().StringVar(&swarmListStatus, "status", "", "Filter by status")
 	swarmListCmd.Flags().BoolVar(&swarmListJSON, "json", false, "Output as JSON")
 	listflags.AddAllFlag(swarmListCmd, &swarmListAll)
+
+	swarmClientCmd.Flags().StringVar(&swarmAddr, "addr", "", "Swarm server address")
 }
 
 func runSwarmServe(cmd *cobra.Command, _ []string) error {
@@ -273,6 +282,19 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 		JobPrefixLengths:  jobPrefixLengths,
 	}))
 	return nil
+}
+
+func runSwarmClient(cmd *cobra.Command, _ []string) error {
+	repoPath, err := getRepoPath()
+	if err != nil {
+		return err
+	}
+	addr, err := swarm.ResolveAddr(repoPath, swarmAddr)
+	if err != nil {
+		return err
+	}
+	client := swarm.NewClient(addr)
+	return swarmtui.Run(cmd.Context(), client)
 }
 
 func createTodoForSwarm(cmd *cobra.Command, repoPath string, hasCreateFlags bool) (string, error) {
