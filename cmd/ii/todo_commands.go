@@ -578,9 +578,7 @@ func runTodoShow(cmd *cobra.Command, args []string) error {
 	}
 
 	if todoShowJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(todos)
+		return encodeJSONToStdout(todos)
 	}
 
 	highlight, err := todoLogHighlighterForStore(store)
@@ -601,9 +599,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		if errors.Is(err, todo.ErrNoTodoStore) {
 			if todoListJSON {
-				enc := json.NewEncoder(os.Stdout)
-				enc.SetIndent("", "  ")
-				return enc.Encode([]todo.Todo{})
+				return encodeJSONToStdout([]todo.Todo{})
 			}
 			printTodoTable(nil, nil, time.Now())
 			return nil
@@ -662,9 +658,7 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	}
 
 	if todoListJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(todos)
+		return encodeJSONToStdout(todos)
 	}
 
 	if len(todos) == 0 {
@@ -715,9 +709,7 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		if errors.Is(err, todo.ErrNoTodoStore) {
 			if todoReadyJSON {
-				enc := json.NewEncoder(os.Stdout)
-				enc.SetIndent("", "  ")
-				return enc.Encode([]todo.Todo{})
+				return encodeJSONToStdout([]todo.Todo{})
 			}
 			fmt.Println("No ready todos found.")
 			return nil
@@ -740,9 +732,7 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 	}
 
 	if todoReadyJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(todos)
+		return encodeJSONToStdout(todos)
 	}
 
 	if len(todos) == 0 {
@@ -837,6 +827,12 @@ func todoListPriorityFilter(priority int, changed bool) (*int, error) {
 		return nil, err
 	}
 	return &priority, nil
+}
+
+func encodeJSONToStdout(value any) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(value)
 }
 
 func printTodoActionResults(store *todo.Store, verb string, items []todo.Todo) error {
