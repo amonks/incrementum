@@ -56,6 +56,10 @@ exec jj log --no-graph
 stdout '(?m)^feat: add swarm-one.txt$'
 stdout '(?m)^feat: add swarm-two.txt$'
 
+# verify swarm outputs landed on disk
+exists swarm-one.txt
+exists swarm-two.txt
+
 -- wait_for_port.py --
 import os
 import socket
