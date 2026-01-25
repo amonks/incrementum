@@ -23,7 +23,7 @@ const (
 	commitMessageFilename = ".incrementum-commit-message"
 )
 
-var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.Message[^}]*\}\}`)
+var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.(Message|CommitMessageBlock)[^}]*\}\}`)
 
 // RunOptions configures job execution.
 type RunOptions struct {
@@ -856,7 +856,7 @@ func ensureCommitMessageInPrompt(prompt, message string) string {
 		return prompt
 	}
 	trimmed := strings.TrimRight(prompt, "\n")
-	return trimmed + "\n\n<commit_message>\n{{.Message}}\n</commit_message>\n"
+	return trimmed + "\n\n{{.CommitMessageBlock}}\n"
 }
 
 type commitMessageMissingError struct {

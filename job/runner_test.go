@@ -476,8 +476,8 @@ func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) 
 		t.Fatalf("run reviewing stage: %v", err)
 	}
 
-	if !strings.Contains(seenPrompt, "<commit_message>") {
-		t.Fatalf("expected prompt to include injected commit message tag, got %q", seenPrompt)
+	if !strings.Contains(seenPrompt, "Commit message\n\n    "+commitMessage) {
+		t.Fatalf("expected prompt to include injected commit message block, got %q", seenPrompt)
 	}
 	if !strings.Contains(seenPrompt, commitMessage) {
 		t.Fatalf("expected prompt to include commit message, got %q", seenPrompt)

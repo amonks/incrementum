@@ -151,8 +151,9 @@ any stage -> failed (unrecoverable error)
    - `prompt-commit-review.tmpl` during the work loop, or
    - `prompt-project-review.tmpl` during the final project review.
 4. Template receives: `Todo`, `Message` (commit message from the implementing stage).
-   If the review template does not reference `Message`, the job appends a
-   `<commit_message>` block with the message before rendering.
+   If the review template does not reference `Message` or `CommitMessageBlock`,
+   the job appends a `Commit message` block with heading-and-indent formatting
+   before rendering.
    - If the commit message is required for the step review and missing, fail with
      a descriptive error that calls out the opencode implementation prompt and
      expected `.incrementum-commit-message` location.
@@ -241,9 +242,9 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 
 | File                   | Stage        | Variables                             |
 | ---------------------- | ------------ | ------------------------------------- |
-| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`   |
-| `prompt-feedback.tmpl`       | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`   |
-| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`    |
+| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`, `FeedbackBlock`, `CommitMessageBlock`   |
+| `prompt-feedback.tmpl`       | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`, `FeedbackBlock`, `CommitMessageBlock`   |
+| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`, `CommitMessageBlock`    |
 | `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`               |
 
 Templates use Go `text/template` syntax (commit messages are generated in code).
@@ -254,8 +255,12 @@ Templates use Go `text/template` syntax (commit messages are generated in code).
 `Message`.
 `WorkspacePath` is the absolute path to the job's workspace root.
 `ReviewInstructions` is the standard review output instructions block.
-`TodoBlock` is a formatted `<todo>` block that includes ID, title, type,
-priority, and description.
+`TodoBlock` is a formatted heading-and-indent block that includes ID, title,
+type, priority, and description; each field is on its own indented line and the
+description text is reflowed and indented one level deeper.
+`FeedbackBlock` is a formatted heading-and-indent block for the feedback text.
+`CommitMessageBlock` is a formatted heading-and-indent block for the commit
+message text.
 
 The prompt renderer provides a `review_questions` template definition with the
 default review question list.

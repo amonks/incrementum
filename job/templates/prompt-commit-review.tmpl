@@ -3,9 +3,7 @@ towards our todo and is described by the commit message below.
 
 Workspace root: {{.WorkspacePath}}
 
-<commit_message>
-{{.Message}}
-</commit_message>
+{{.CommitMessageBlock}}
 
 {{if .CommitLog}}Previous commits for this todo:
 {{range .CommitLog}}- ID: {{.ID}}

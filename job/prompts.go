@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -46,6 +47,8 @@ type PromptData struct {
 	WorkspacePath       string
 	ReviewInstructions  string
 	TodoBlock           string
+	FeedbackBlock       string
+	CommitMessageBlock  string
 }
 
 func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitLogEntry, transcripts []OpencodeTranscript, workspacePath string) PromptData {
@@ -58,13 +61,47 @@ func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitL
 		WorkspacePath:       workspacePath,
 		ReviewInstructions:  reviewInstructionsText,
 		TodoBlock:           formatTodoBlock(item),
+		FeedbackBlock:       formatPromptBlock("Previous feedback", feedback),
+		CommitMessageBlock:  formatPromptBlock("Commit message", message),
 	}
 }
 
 func formatTodoBlock(item todo.Todo) string {
-	var out strings.Builder
-	fmt.Fprintf(&out, "<todo>\n- ID: %s\n- Title: %s\n- Type: %s\n- Priority: %d\n\nDescription:\n%s\n</todo>", item.ID, item.Title, item.Type, item.Priority, item.Description)
-	return out.String()
+	description := strings.TrimRight(item.Description, "\r\n")
+	if strings.TrimSpace(description) == "" {
+		description = "-"
+	}
+	description = ReflowIndentedText(description, lineWidth, subdocumentIndent)
+	fields := []string{
+		formatTodoField("ID", item.ID),
+		formatTodoField("Title", item.Title),
+		formatTodoField("Type", string(item.Type)),
+		formatTodoField("Priority", fmt.Sprintf("%d", item.Priority)),
+		"Description:",
+	}
+	fieldBlock := IndentBlock(strings.Join(fields, "\n"), documentIndent)
+	return fmt.Sprintf("Todo\n\n%s\n%s", fieldBlock, description)
+}
+
+func formatPromptBlock(label, body string) string {
+	body = strings.TrimRight(body, "\r\n")
+	if strings.TrimSpace(body) == "" {
+		body = "-"
+	}
+	formatted := ReflowIndentedText(body, lineWidth, documentIndent)
+	return fmt.Sprintf("%s\n\n%s", label, formatted)
+}
+
+func formatTodoField(label, value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		value = "-"
+	}
+	value = internalstrings.NormalizeWhitespace(value)
+	if value == "" {
+		value = "-"
+	}
+	return fmt.Sprintf("%s: %s", label, value)
 }
 
 // LoadPrompt loads a prompt template for the repo.

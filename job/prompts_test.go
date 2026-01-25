@@ -112,15 +112,42 @@ func TestRenderPrompt_InterpolatesReviewInstructions(t *testing.T) {
 }
 
 func TestRenderPrompt_InterpolatesTodoBlock(t *testing.T) {
-	data := PromptData{TodoBlock: "<todo>id</todo>"}
+	data := PromptData{TodoBlock: "Todo\n\n    id"}
 
 	rendered, err := RenderPrompt("{{.TodoBlock}}", data)
 	if err != nil {
 		t.Fatalf("render prompt: %v", err)
 	}
 
-	if strings.TrimSpace(rendered) != "<todo>id</todo>" {
+	if strings.TrimSpace(rendered) != "Todo\n\n    id" {
 		t.Fatalf("expected todo block to render, got %q", rendered)
+	}
+}
+
+func TestFormatTodoBlock_PreservesFieldLines(t *testing.T) {
+	item := todo.Todo{
+		ID:          "todo-123",
+		Title:       "Ship it",
+		Description: "Do the thing",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	formatted := formatTodoBlock(item)
+
+	expected := strings.Join([]string{
+		"Todo",
+		"",
+		"    ID: todo-123",
+		"    Title: Ship it",
+		"    Type: task",
+		"    Priority: 2",
+		"    Description:",
+		"        Do the thing",
+	}, "\n")
+
+	if strings.TrimRight(formatted, "\n") != expected {
+		t.Fatalf("expected todo block fields to stay on separate lines, got %q", formatted)
 	}
 }
 
