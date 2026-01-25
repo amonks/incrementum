@@ -705,15 +705,12 @@ func (s *Store) readTodosByExactIDs(missing map[string]struct{}) (map[string]Tod
 		return nil, nil
 	}
 	if s.readOnly {
-		if s.client == nil {
-			return nil, fmt.Errorf("todo store is missing jj client")
-		}
-		output, err := s.client.FileShow(s.repoPath, BookmarkName, TodosFile)
-		if errors.Is(err, jj.ErrFileNotFound) {
-			return nil, nil
-		}
+		output, err := readBookmarkFile(s.client, s.repoPath, TodosFile)
 		if err != nil {
 			return nil, err
+		}
+		if output == nil {
+			return nil, nil
 		}
 		return readTodosByExactIDsFromReader(bytes.NewReader(output), missing)
 	}
@@ -893,6 +890,17 @@ func validateTodoIDs(ids []string) error {
 }
 
 func readJSONLAtBookmark[T any](client *jj.Client, repoPath, path string) ([]T, error) {
+	output, err := readBookmarkFile(client, repoPath, path)
+	if err != nil {
+		return nil, err
+	}
+	if output == nil {
+		return nil, nil
+	}
+	return readJSONLFromReader[T](bytes.NewReader(output))
+}
+
+func readBookmarkFile(client *jj.Client, repoPath, path string) ([]byte, error) {
 	if client == nil {
 		return nil, fmt.Errorf("todo store is missing jj client")
 	}
@@ -903,7 +911,7 @@ func readJSONLAtBookmark[T any](client *jj.Client, repoPath, path string) ([]T, 
 	if err != nil {
 		return nil, err
 	}
-	return readJSONLFromReader[T](bytes.NewReader(output))
+	return output, nil
 }
 
 func (s *Store) ensureWritable() error {
