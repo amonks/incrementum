@@ -18,19 +18,19 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,689,516 | 477,386 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,133,303 | 4,835,432 | 90,008 |
-| `BenchmarkWriteJSONL1K` | 453,359 | 1,433 | 9 |
-| `BenchmarkWriteJSONL10K` | 2,933,152 | 1,539 | 9 |
-| `BenchmarkStoreList1K` | 1,758,127 | 666,799 | 9,011 |
-| `BenchmarkStoreList10K` | 17,875,307 | 6,692,570 | 90,016 |
-| `BenchmarkStoreReady1K` | 2,010,735 | 781,801 | 10,532 |
-| `BenchmarkStoreReady10K` | 20,258,104 | 7,752,799 | 105,051 |
-| `BenchmarkStoreReadyLimit10K` | 19,972,055 | 5,841,618 | 105,057 |
-| `BenchmarkStoreDepTree1K` | 2,915,522 | 1,395,553 | 18,062 |
-| `BenchmarkStoreDepTree10K` | 30,694,543 | 12,920,111 | 180,273 |
-| `BenchmarkStoreUpdate1K` | 2,203,422 | 483,838 | 9,026 |
-| `BenchmarkStoreUpdate10K` | 20,428,697 | 4,898,506 | 90,033 |
+| `BenchmarkReadJSONLFromReader1K` | 1,710,182 | 477,378 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,212,735 | 4,835,619 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 456,480 | 1,409 | 9 |
+| `BenchmarkWriteJSONL10K` | 3,283,818 | 1,690 | 9 |
+| `BenchmarkStoreList1K` | 1,775,241 | 666,798 | 9,011 |
+| `BenchmarkStoreList10K` | 17,976,452 | 6,679,560 | 90,015 |
+| `BenchmarkStoreReady1K` | 2,043,116 | 782,049 | 10,532 |
+| `BenchmarkStoreReady10K` | 20,434,423 | 7,760,091 | 105,051 |
+| `BenchmarkStoreReadyLimit10K` | 20,212,256 | 5,841,751 | 105,057 |
+| `BenchmarkStoreDepTree1K` | 2,912,435 | 1,310,353 | 18,054 |
+| `BenchmarkStoreDepTree10K` | 30,744,533 | 12,163,537 | 180,237 |
+| `BenchmarkStoreUpdate1K` | 2,272,563 | 487,887 | 9,027 |
+| `BenchmarkStoreUpdate10K` | 20,708,596 | 4,907,225 | 90,033 |
 
 ## Improvements log
 
@@ -66,6 +66,7 @@
 - 2026-01-25: Track blocker resolution states in a single map for Ready to reduce map allocations while keeping missing blockers non-blocking.
 - 2026-01-25: Preallocated Update's ID set and updated slice to avoid repeated growth while applying todo updates.
 - 2026-01-25: Skip building a full ID index when resolving already-normalized full-length IDs, reducing Update allocations for common cases.
+- 2026-01-25: Reused the missing-ID map for exact ID resolution so Update avoids allocating a duplicate map when checking for missing todos.
 
 ## Profiling notes
 

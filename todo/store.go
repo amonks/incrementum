@@ -757,19 +757,15 @@ func resolveExactTodoIDs(ids []string, todos []Todo) ([]string, bool, error) {
 	if len(ids) == 0 {
 		return nil, true, ErrTodoNotFound
 	}
-	requested := make(map[string]struct{}, len(ids))
+	missing := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
 		if len(id) != internalids.DefaultLength || !isNormalizedID(id) {
 			return nil, false, nil
 		}
-		requested[id] = struct{}{}
-	}
-	if len(requested) == 0 {
-		return nil, true, ErrTodoNotFound
-	}
-	missing := make(map[string]struct{}, len(requested))
-	for id := range requested {
 		missing[id] = struct{}{}
+	}
+	if len(missing) == 0 {
+		return nil, true, ErrTodoNotFound
 	}
 	for _, todo := range todos {
 		if _, ok := missing[todo.ID]; ok {
