@@ -47,6 +47,8 @@
 - 2026-01-25 (BenchmarkStoreList10K): Heap profile is mostly readJSONLFromReader and encoding/json.Unmarshal allocations while loading todos, with list filtering contributing minimal alloc space.
 - 2026-01-25 (BenchmarkStoreReady10K): CPU profile again centers on syscall overhead and buffered reads, matching list workloads.
 - 2026-01-25 (BenchmarkStoreReady10K): Heap allocations come from readJSONLFromReader for todos/dependencies plus JSON decoding and building the ID map.
+- 2026-01-25 (BenchmarkWriteJSONL10K): CPU profile dominated by syscall.syscall, indicating buffered writes still spend most time in file I/O.
+- 2026-01-25 (BenchmarkWriteJSONL10K): Heap allocations concentrate in writeJSONL and time.Time.MarshalJSON via encoding/json, showing time encoding as the largest allocation source.
 
 ## Profiling commands
 
@@ -56,4 +58,6 @@
 - Heap profile (store list): `go test ./todo -bench=StoreList10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-list.mem.pprof`
 - CPU profile (store ready): `go test ./todo -bench=StoreReady10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-store-ready.pprof`
 - Heap profile (store ready): `go test ./todo -bench=StoreReady10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-ready.mem.pprof`
+- CPU profile (write JSONL): `go test ./todo -bench=WriteJSONL10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-write-jsonl.pprof`
+- Heap profile (write JSONL): `go test ./todo -bench=WriteJSONL10K -run=^$ -benchmem -memprofile /tmp/ii-todo-write-jsonl.mem.pprof`
 - Explore: `go tool pprof -http :0 /tmp/ii-todo-read-jsonl.pprof`
