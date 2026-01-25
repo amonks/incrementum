@@ -218,11 +218,6 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 		}
 	}
 
-	if err := p.ensureReleaseChange(wsPath, actualRev); err != nil {
-		p.Release(wsPath)
-		return "", err
-	}
-
 	if actualRev != opts.Rev {
 		if err := p.stateStore.Update(func(st *statestore.State) error {
 			wsKey := repoName + "/" + wsName
@@ -294,18 +289,6 @@ func (p *Pool) releaseToAvailable(wsPath string) error {
 		}
 		return fmt.Errorf("workspace not found: %s", wsPath)
 	})
-}
-
-func (p *Pool) ensureReleaseChange(wsPath, rev string) error {
-	if _, err := p.jj.NewChange(wsPath, "root()"); err != nil {
-		return fmt.Errorf("jj new root(): %w", err)
-	}
-
-	if err := p.jj.Edit(wsPath, rev); err != nil {
-		return fmt.Errorf("jj edit: %w", err)
-	}
-
-	return nil
 }
 
 // ReleaseByName returns a workspace to the pool by name.
