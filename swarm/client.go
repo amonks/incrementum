@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/amonks/incrementum/job"
+	"github.com/amonks/incrementum/todo"
 )
 
 // Client calls swarm RPCs.
@@ -58,6 +59,33 @@ func (c *Client) List(ctx context.Context) ([]job.Job, error) {
 		return nil, err
 	}
 	return response.Jobs, nil
+}
+
+// ListTodos returns todos from the swarm server.
+func (c *Client) ListTodos(ctx context.Context, filter todo.ListFilter) ([]todo.Todo, error) {
+	var response todosListResponse
+	if err := c.post(ctx, "/todos/list", todosListRequest{Filter: filter}, &response); err != nil {
+		return nil, err
+	}
+	return response.Todos, nil
+}
+
+// CreateTodo creates a todo via the swarm server.
+func (c *Client) CreateTodo(ctx context.Context, title string, options todo.CreateOptions) (*todo.Todo, error) {
+	var response todosCreateResponse
+	if err := c.post(ctx, "/todos/create", todosCreateRequest{Title: title, Options: options}, &response); err != nil {
+		return nil, err
+	}
+	return &response.Todo, nil
+}
+
+// UpdateTodos updates todos via the swarm server.
+func (c *Client) UpdateTodos(ctx context.Context, ids []string, options todo.UpdateOptions) ([]todo.Todo, error) {
+	var response todosUpdateResponse
+	if err := c.post(ctx, "/todos/update", todosUpdateRequest{IDs: ids, Options: options}, &response); err != nil {
+		return nil, err
+	}
+	return response.Todos, nil
 }
 
 // Tail streams events for a job.

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/job"
+	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -103,6 +104,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/tail", s.handleTail)
 	mux.HandleFunc("/logs", s.handleLogs)
 	mux.HandleFunc("/list", s.handleList)
+	mux.HandleFunc("/todos/list", s.handleTodosList)
+	mux.HandleFunc("/todos/create", s.handleTodosCreate)
+	mux.HandleFunc("/todos/update", s.handleTodosUpdate)
 	return mux
 }
 
@@ -184,6 +188,95 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, listResponse{Jobs: jobs})
+}
+
+func (s *Server) handleTodosList(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodPost) {
+		return
+	}
+	var payload todosListRequest
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	store, err := todo.Open(s.repoPath, todo.OpenOptions{
+		CreateIfMissing: false,
+		PromptToCreate:  false,
+		ReadOnly:        true,
+		Purpose:         "swarm todos list",
+	})
+	if err != nil {
+		if errors.Is(err, todo.ErrNoTodoStore) {
+			writeJSON(w, http.StatusOK, todosListResponse{Todos: []todo.Todo{}})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer store.Release()
+
+	todos, err := store.List(payload.Filter)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, todosListResponse{Todos: todos})
+}
+
+func (s *Server) handleTodosCreate(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodPost) {
+		return
+	}
+	var payload todosCreateRequest
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	store, err := todo.Open(s.repoPath, todo.OpenOptions{
+		CreateIfMissing: true,
+		PromptToCreate:  false,
+		Purpose:         "swarm todos create",
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer store.Release()
+
+	created, err := store.Create(payload.Title, payload.Options)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, todosCreateResponse{Todo: *created})
+}
+
+func (s *Server) handleTodosUpdate(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodPost) {
+		return
+	}
+	var payload todosUpdateRequest
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	store, err := todo.Open(s.repoPath, todo.OpenOptions{
+		CreateIfMissing: true,
+		PromptToCreate:  false,
+		Purpose:         "swarm todos update",
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer store.Release()
+
+	updated, err := store.Update(payload.IDs, payload.Options)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, todosUpdateResponse{Todos: updated})
 }
 
 func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
@@ -317,6 +410,32 @@ type tailRequest struct {
 
 type listResponse struct {
 	Jobs []job.Job `json:"jobs"`
+}
+
+type todosListRequest struct {
+	Filter todo.ListFilter `json:"filter"`
+}
+
+type todosListResponse struct {
+	Todos []todo.Todo `json:"todos"`
+}
+
+type todosCreateRequest struct {
+	Title   string             `json:"title"`
+	Options todo.CreateOptions `json:"options"`
+}
+
+type todosCreateResponse struct {
+	Todo todo.Todo `json:"todo"`
+}
+
+type todosUpdateRequest struct {
+	IDs     []string           `json:"ids"`
+	Options todo.UpdateOptions `json:"options"`
+}
+
+type todosUpdateResponse struct {
+	Todos []todo.Todo `json:"todos"`
 }
 
 type emptyResponse struct{}
