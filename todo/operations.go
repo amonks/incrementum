@@ -702,8 +702,18 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 
 	// Group dependencies by todo ID
 	depsByTodo := make(map[string][]Dependency, len(deps))
-	for _, d := range deps {
-		depsByTodo[d.TodoID] = append(depsByTodo[d.TodoID], d)
+	if len(deps) > 0 {
+		depCounts := make(map[string]int, len(deps))
+		for _, d := range deps {
+			depCounts[d.TodoID]++
+		}
+		depsByTodo = make(map[string][]Dependency, len(depCounts))
+		for todoID, count := range depCounts {
+			depsByTodo[todoID] = make([]Dependency, 0, count)
+		}
+		for _, d := range deps {
+			depsByTodo[d.TodoID] = append(depsByTodo[d.TodoID], d)
+		}
 	}
 
 	// Find the root todo

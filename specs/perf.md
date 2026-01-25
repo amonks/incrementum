@@ -18,19 +18,19 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,687,891 | 477,579 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,115,028 | 4,835,511 | 90,008 |
-| `BenchmarkWriteJSONL1K` | 443,881 | 1,413 | 9 |
-| `BenchmarkWriteJSONL10K` | 2,907,247 | 1,558 | 9 |
-| `BenchmarkStoreList1K` | 1,757,822 | 666,998 | 9,011 |
-| `BenchmarkStoreList10K` | 17,671,987 | 6,681,534 | 90,015 |
-| `BenchmarkStoreReady1K` | 2,015,715 | 795,174 | 10,535 |
-| `BenchmarkStoreReady10K` | 20,380,152 | 7,854,357 | 105,060 |
-| `BenchmarkStoreReadyLimit10K` | 20,085,143 | 5,950,877 | 105,066 |
-| `BenchmarkStoreDepTree1K` | 2,895,243 | 1,276,744 | 18,066 |
-| `BenchmarkStoreDepTree10K` | 30,950,278 | 12,122,679 | 180,252 |
-| `BenchmarkStoreUpdate1K` | 2,304,763 | 629,286 | 9,050 |
-| `BenchmarkStoreUpdate10K` | 22,087,086 | 6,125,089 | 90,116 |
+| `BenchmarkReadJSONLFromReader1K` | 1,682,933 | 477,383 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,060,271 | 4,835,431 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 442,317 | 1,408 | 9 |
+| `BenchmarkWriteJSONL10K` | 2,954,590 | 1,540 | 9 |
+| `BenchmarkStoreList1K` | 1,750,638 | 666,796 | 9,011 |
+| `BenchmarkStoreList10K` | 17,791,580 | 6,679,530 | 90,015 |
+| `BenchmarkStoreReady1K` | 2,016,737 | 796,516 | 10,535 |
+| `BenchmarkStoreReady10K` | 20,365,006 | 7,845,747 | 105,060 |
+| `BenchmarkStoreReadyLimit10K` | 20,083,932 | 5,950,835 | 105,066 |
+| `BenchmarkStoreDepTree1K` | 2,956,716 | 1,451,197 | 18,077 |
+| `BenchmarkStoreDepTree10K` | 31,392,428 | 13,397,094 | 180,321 |
+| `BenchmarkStoreUpdate1K` | 2,317,862 | 628,731 | 9,050 |
+| `BenchmarkStoreUpdate10K` | 21,706,572 | 6,125,325 | 90,116 |
 
 ## Improvements log
 
@@ -56,6 +56,7 @@
 - 2026-01-25: Added store update benchmarks to track update/write costs alongside read-heavy list/ready operations.
 - 2026-01-25: Reused the JSONL line buffer when assembling oversized lines so multi-chunk reads avoid repeated allocations.
 - 2026-01-25: Preallocated dependency maps and per-node children slices when building dep trees to reduce allocation churn during dep tree queries.
+- 2026-01-25: Preallocated dep-tree dependency slices when grouping dependencies by todo, trimming allocation growth during dep tree traversal.
 - 2026-01-25: Pooled JSONL reader buffers to reuse the 64 KiB read and line scratch buffers across reads, reducing read allocations and downstream store bytes/op.
 - 2026-01-25: Pooled JSONL writer buffers so write paths reuse the 64 KiB buffer instead of allocating a fresh bufio.Writer each time.
 - 2026-01-25: Removed the redundant seek before reading locked JSONL files so store reads avoid an extra syscall per file.
