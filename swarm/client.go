@@ -53,9 +53,9 @@ func (c *Client) Logs(ctx context.Context, jobID string) ([]job.Event, error) {
 }
 
 // List returns jobs from the swarm server.
-func (c *Client) List(ctx context.Context) ([]job.Job, error) {
+func (c *Client) List(ctx context.Context, filter job.ListFilter) ([]job.Job, error) {
 	var response listResponse
-	if err := c.post(ctx, "/list", emptyResponse{}, &response); err != nil {
+	if err := c.post(ctx, "/list", listRequest{Filter: filter}, &response); err != nil {
 		return nil, err
 	}
 	return response.Jobs, nil

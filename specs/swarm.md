@@ -27,7 +27,8 @@ RPCs use JSON over HTTP with the following endpoints:
   to appear and relies on the request context for cancellation.
 - `POST /logs` with `{ "job_id": "..." }` returns `{ "events": [...] }` (empty
   list if the event log does not exist yet).
-- `POST /list` returns `{ "jobs": [...] }`.
+- `POST /list` with `{ "filter": { ... } }` returns `{ "jobs": [...] }` and
+  accepts the JSON form of `job.ListFilter`.
 
 Todo RPCs follow the todo store API shapes:
 

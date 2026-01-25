@@ -227,7 +227,7 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 	}
 	client := swarm.NewClient(addr)
 
-	jobs, err := client.List(cmd.Context())
+	jobs, err := client.List(cmd.Context(), job.ListFilter{IncludeAll: true})
 	if err != nil {
 		return err
 	}

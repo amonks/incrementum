@@ -724,7 +724,7 @@ func (m model) loadTodosCmd() tea.Cmd {
 
 func (m model) loadJobsCmd() tea.Cmd {
 	return func() tea.Msg {
-		jobs, err := m.client.List(m.ctx)
+		jobs, err := m.client.List(m.ctx, job.ListFilter{})
 		return jobsLoadedMsg{jobs: jobs, err: err}
 	}
 }

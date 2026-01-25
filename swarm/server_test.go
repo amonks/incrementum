@@ -97,6 +97,75 @@ func TestLogsReturnsEmptyEventsJSON(t *testing.T) {
 	}
 }
 
+func TestListFiltersActiveJobsByDefault(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath: repoDir,
+		StateDir: stateDir,
+		Pool:     noopPool{},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	manager, err := job.Open(repoDir, job.OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open job manager: %v", err)
+	}
+
+	activeJob, err := manager.Create("todo-active", time.Now())
+	if err != nil {
+		t.Fatalf("create active job: %v", err)
+	}
+	completedJob, err := manager.Create("todo-complete", time.Now().Add(time.Second))
+	if err != nil {
+		t.Fatalf("create completed job: %v", err)
+	}
+	status := job.StatusCompleted
+	if _, err := manager.Update(completedJob.ID, job.UpdateOptions{Status: &status}, time.Now()); err != nil {
+		t.Fatalf("update job status: %v", err)
+	}
+
+	body, err := json.Marshal(listRequest{Filter: job.ListFilter{}})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/list", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var payload listResponse
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.Jobs) != 1 || payload.Jobs[0].ID != activeJob.ID {
+		t.Fatalf("expected active job list, got %v", payload.Jobs)
+	}
+
+	body, err = json.Marshal(listRequest{Filter: job.ListFilter{IncludeAll: true}})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request = httptest.NewRequest(http.MethodPost, "/list", bytes.NewReader(body))
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.Jobs) != 2 {
+		t.Fatalf("expected two jobs, got %d", len(payload.Jobs))
+	}
+}
+
 func TestDoStartsJobWithWorkspace(t *testing.T) {
 	repoDir := t.TempDir()
 	stateDir := t.TempDir()

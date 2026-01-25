@@ -182,7 +182,12 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 	if !requireMethod(w, r, http.MethodPost) {
 		return
 	}
-	jobs, err := s.manager.List(job.ListFilter{IncludeAll: true})
+	var payload listRequest
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	jobs, err := s.manager.List(payload.Filter)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -410,6 +415,10 @@ type tailRequest struct {
 
 type listResponse struct {
 	Jobs []job.Job `json:"jobs"`
+}
+
+type listRequest struct {
+	Filter job.ListFilter `json:"filter"`
 }
 
 type todosListRequest struct {
