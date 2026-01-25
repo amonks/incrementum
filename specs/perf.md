@@ -23,9 +23,9 @@
 | `BenchmarkWriteJSONL1K` | 1,154,578 | 293,531 | 3,010 |
 | `BenchmarkWriteJSONL10K` | 10,299,641 | 2,891,439 | 30,019 |
 | `BenchmarkStoreList1K` | 1,933,508 | 1,696,935 | 10,034 |
-| `BenchmarkStoreList10K` | 22,328,219 | 23,423,388 | 100,050 |
+| `BenchmarkStoreList10K` | 21,874,562 | 23,423,309 | 100,050 |
 | `BenchmarkStoreReady1K` | 2,198,708 | 1,506,115 | 12,072 |
-| `BenchmarkStoreReady10K` | 23,717,254 | 18,352,908 | 120,134 |
+| `BenchmarkStoreReady10K` | 23,010,874 | 18,353,226 | 120,134 |
 
 ## Improvements log
 
@@ -38,9 +38,17 @@
 
 - 2026-01-25 (BenchmarkReadJSONLFromReader10K): CPU profile dominated by runtime.madvise and scheduler/GC work, suggesting allocations are the primary cost driver.
 - 2026-01-25 (BenchmarkReadJSONLFromReader10K): Heap profile allocations concentrate in readJSONLFromReader/readJSONLLine buffering and encoding/json.Unmarshal.
+- 2026-01-25 (BenchmarkStoreList10K): CPU profile shows syscall/syscall and bufio.Reader.ReadSlice at the top, indicating file I/O and buffering overhead dominate list queries.
+- 2026-01-25 (BenchmarkStoreList10K): Heap profile is mostly readJSONLFromReader and encoding/json.Unmarshal allocations while loading todos, with list filtering contributing minimal alloc space.
+- 2026-01-25 (BenchmarkStoreReady10K): CPU profile again centers on syscall overhead and buffered reads, matching list workloads.
+- 2026-01-25 (BenchmarkStoreReady10K): Heap allocations come from readJSONLFromReader for todos/dependencies plus JSON decoding and building the ID map.
 
 ## Profiling commands
 
 - CPU profile: `go test ./todo -bench=ReadJSONLFromReader10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-read-jsonl.pprof`
 - Heap profile: `go test ./todo -bench=ReadJSONLFromReader10K -run=^$ -benchmem -memprofile /tmp/ii-todo-read-jsonl.mem.pprof`
+- CPU profile (store list): `go test ./todo -bench=StoreList10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-store-list.pprof`
+- Heap profile (store list): `go test ./todo -bench=StoreList10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-list.mem.pprof`
+- CPU profile (store ready): `go test ./todo -bench=StoreReady10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-store-ready.pprof`
+- Heap profile (store ready): `go test ./todo -bench=StoreReady10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-ready.mem.pprof`
 - Explore: `go tool pprof -http :0 /tmp/ii-todo-read-jsonl.pprof`
