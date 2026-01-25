@@ -124,7 +124,7 @@ func formatOpencodeTable(sessions []opencode.OpencodeSession, highlight func(str
 		if session.ExitCode != nil {
 			exit = strconv.Itoa(*session.ExitCode)
 		}
-		prefixLen := prefixLengths[strings.ToLower(session.ID)]
+		prefixLen := ui.PrefixLength(prefixLengths, session.ID)
 
 		rows = append(rows, []string{
 			highlight(session.ID, prefixLen),
@@ -178,7 +178,7 @@ func opencodeFixedColumnsWidth(sessions []opencode.OpencodeSession, highlight fu
 		if session.ExitCode != nil {
 			exit = strconv.Itoa(*session.ExitCode)
 		}
-		prefixLen := prefixLengths[strings.ToLower(session.ID)]
+		prefixLen := ui.PrefixLength(prefixLengths, session.ID)
 
 		maxSession = maxInt(maxSession, ui.TableCellWidth(highlight(session.ID, prefixLen)))
 		maxStatus = maxInt(maxStatus, ui.TableCellWidth(string(session.Status)))

@@ -1,6 +1,6 @@
 package main
 
-import "strings"
+import "github.com/amonks/incrementum/internal/ui"
 
 func logHighlighter(prefixLengths map[string]int, highlight func(string, int) string) func(string) string {
 	if prefixLengths == nil {
@@ -10,10 +10,7 @@ func logHighlighter(prefixLengths map[string]int, highlight func(string, int) st
 		if id == "" {
 			return id
 		}
-		prefixLen, ok := prefixLengths[strings.ToLower(id)]
-		if !ok {
-			return highlight(id, 0)
-		}
+		prefixLen := ui.PrefixLength(prefixLengths, id)
 		return highlight(id, prefixLen)
 	}
 }

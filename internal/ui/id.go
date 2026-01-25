@@ -2,6 +2,7 @@ package ui
 
 import (
 	"os"
+	"strings"
 
 	"github.com/amonks/incrementum/internal/ids"
 	"golang.org/x/term"
@@ -45,4 +46,12 @@ func ansiEnabled() bool {
 // UniqueIDPrefixLengths returns the shortest unique prefix length for each ID.
 func UniqueIDPrefixLengths(inputIDs []string) map[string]int {
 	return ids.UniquePrefixLengths(inputIDs)
+}
+
+// PrefixLength returns the unique prefix length for a case-insensitive ID lookup.
+func PrefixLength(prefixLengths map[string]int, id string) int {
+	if id == "" || prefixLengths == nil {
+		return 0
+	}
+	return prefixLengths[strings.ToLower(id)]
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/ui"
@@ -29,7 +28,7 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 
 	for _, t := range todos {
 		title := ui.TruncateTableCell(t.Title)
-		prefixLen := prefixLengths[strings.ToLower(t.ID)]
+		prefixLen := ui.PrefixLength(prefixLengths, t.ID)
 		highlighted := highlight(t.ID, prefixLen)
 		age := formatTodoAge(t, now)
 		duration := formatTodoDuration(t, now)

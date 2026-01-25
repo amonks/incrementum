@@ -12,6 +12,7 @@ The ui package provides formatting helpers for CLI output.
 - `HighlightID` emphasizes unique prefixes when ANSI output is available.
 - ANSI output is disabled for `NO_COLOR`, `TERM=dumb`, or non-terminals.
 - `UniqueIDPrefixLengths` delegates to `internal/ids` for prefix computation.
+- `PrefixLength` returns the unique prefix length for case-insensitive ID lookups.
 
 ## Table Formatting
 - `FormatTable` uses lipgloss tables to size output to the current viewport width.

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/ui"
 	jobpkg "github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
@@ -206,7 +206,7 @@ func jobTodoTableInfo(repoPath string, purpose string) (map[string]int, map[stri
 	prefixLengths := index.PrefixLengths()
 	titles := make(map[string]string, len(todos))
 	for _, item := range todos {
-		titles[strings.ToLower(item.ID)] = item.Title
+		titles[internalstrings.NormalizeLower(item.ID)] = item.Title
 	}
 	return prefixLengths, titles, nil
 }
@@ -243,7 +243,7 @@ func formatJobTable(opts TableFormatOptions) string {
 		todoPrefixLengths = todoFallback
 	} else {
 		for _, id := range todoIDs {
-			if _, ok := todoPrefixLengths[strings.ToLower(id)]; !ok {
+			if ui.PrefixLength(todoPrefixLengths, id) == 0 {
 				todoPrefixLengths = todoFallback
 				break
 			}
@@ -251,18 +251,16 @@ func formatJobTable(opts TableFormatOptions) string {
 	}
 
 	for _, item := range jobs {
-		jobPrefixLen := jobPrefixLengths[strings.ToLower(item.ID)]
+		jobPrefixLen := ui.PrefixLength(jobPrefixLengths, item.ID)
 		jobID := highlight(item.ID, jobPrefixLen)
 		todoPrefixLen := 0
-		if length, ok := todoPrefixLengths[strings.ToLower(item.TodoID)]; ok {
-			todoPrefixLen = length
-		}
+		todoPrefixLen = ui.PrefixLength(todoPrefixLengths, item.TodoID)
 		todoID := highlight(item.TodoID, todoPrefixLen)
 		age := formatJobAge(item, now)
 		duration := formatJobDuration(item, now)
 		title := ""
 		if opts.TodoTitles != nil {
-			if value, ok := opts.TodoTitles[strings.ToLower(item.TodoID)]; ok {
+			if value, ok := opts.TodoTitles[internalstrings.NormalizeLower(item.TodoID)]; ok {
 				title = ui.TruncateTableCell(value)
 			}
 		}
