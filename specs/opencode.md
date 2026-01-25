@@ -17,7 +17,7 @@ workflows.
 
 - Session state is stored in `~/.local/state/incrementum/state.json` alongside
   workspace state.
-- Opencode session data lives under `~/.local/share/opencode/storage`.
+- Opencode session data lives under `$XDG_DATA_HOME/opencode/storage` (defaults to `~/.local/share/opencode/storage`).
 - Event logs streamed from opencode live under `~/.local/share/incrementum/opencode/events`.
 - Session metadata is read from `storage/session/<project-id>/<session-id>.json`.
 - Prose-only transcripts are reconstructed from `storage/message/<session-id>/`

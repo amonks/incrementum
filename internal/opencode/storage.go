@@ -39,6 +39,9 @@ var errSessionNotFound = errors.New("opencode session not found")
 
 // DefaultRoot returns the default opencode data directory.
 func DefaultRoot() (string, error) {
+	if dataHome := os.Getenv("XDG_DATA_HOME"); dataHome != "" {
+		return filepath.Join(dataHome, "opencode"), nil
+	}
 	home, err := paths.HomeDir()
 	if err != nil {
 		return "", err

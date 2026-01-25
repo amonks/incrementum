@@ -10,6 +10,36 @@ import (
 	"time"
 )
 
+func TestDefaultRootUsesXDGDataHome(t *testing.T) {
+	t.Setenv("XDG_DATA_HOME", filepath.Join("/tmp", "xdg-data"))
+	t.Setenv("HOME", filepath.Join("/tmp", "home"))
+
+	root, err := DefaultRoot()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	expected := filepath.Join("/tmp", "xdg-data", "opencode")
+	if root != expected {
+		t.Fatalf("expected %s, got %s", expected, root)
+	}
+}
+
+func TestDefaultRootUsesHomeDirWhenXDGUnset(t *testing.T) {
+	t.Setenv("XDG_DATA_HOME", "")
+	t.Setenv("HOME", filepath.Join("/tmp", "home"))
+
+	root, err := DefaultRoot()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	expected := filepath.Join("/tmp", "home", ".local", "share", "opencode")
+	if root != expected {
+		t.Fatalf("expected %s, got %s", expected, root)
+	}
+}
+
 func TestSelectSessionNotFoundError(t *testing.T) {
 	root := t.TempDir()
 	repoPath := filepath.Join(root, "repo")
