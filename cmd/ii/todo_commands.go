@@ -454,14 +454,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 			updatedItems = append(updatedItems, updated[0])
 		}
 
-		highlight, err := todoLogHighlighterForStore(store)
-		if err != nil {
-			return err
-		}
-		for _, item := range updatedItems {
-			fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
-		}
-		return nil
+		return printTodoActionResults(store, "Updated", updatedItems)
 	}
 
 	// Non-editor path: at least one flag is required
@@ -494,14 +487,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight, err := todoLogHighlighterForStore(store)
-	if err != nil {
-		return err
-	}
-	for _, item := range updated {
-		fmt.Printf("Updated %s: %s\n", highlight(item.ID), item.Title)
-	}
-	return nil
+	return printTodoActionResults(store, "Updated", updated)
 }
 
 func runTodoClose(cmd *cobra.Command, args []string) error {
@@ -516,14 +502,7 @@ func runTodoClose(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight, err := todoLogHighlighterForStore(store)
-	if err != nil {
-		return err
-	}
-	for _, t := range closed {
-		fmt.Printf("Closed %s: %s\n", highlight(t.ID), t.Title)
-	}
-	return nil
+	return printTodoActionResults(store, "Closed", closed)
 }
 
 func runTodoStart(cmd *cobra.Command, args []string) error {
@@ -538,14 +517,7 @@ func runTodoStart(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight, err := todoLogHighlighterForStore(store)
-	if err != nil {
-		return err
-	}
-	for _, t := range started {
-		fmt.Printf("Started %s: %s\n", highlight(t.ID), t.Title)
-	}
-	return nil
+	return printTodoActionResults(store, "Started", started)
 }
 
 func runTodoFinish(cmd *cobra.Command, args []string) error {
@@ -560,14 +532,7 @@ func runTodoFinish(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight, err := todoLogHighlighterForStore(store)
-	if err != nil {
-		return err
-	}
-	for _, t := range finished {
-		fmt.Printf("Finished %s: %s\n", highlight(t.ID), t.Title)
-	}
-	return nil
+	return printTodoActionResults(store, "Finished", finished)
 }
 
 func runTodoReopen(cmd *cobra.Command, args []string) error {
@@ -582,14 +547,7 @@ func runTodoReopen(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight, err := todoLogHighlighterForStore(store)
-	if err != nil {
-		return err
-	}
-	for _, t := range reopened {
-		fmt.Printf("Reopened %s: %s\n", highlight(t.ID), t.Title)
-	}
-	return nil
+	return printTodoActionResults(store, "Reopened", reopened)
 }
 
 func runTodoDelete(cmd *cobra.Command, args []string) error {
@@ -604,14 +562,7 @@ func runTodoDelete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	highlight, err := todoLogHighlighterForStore(store)
-	if err != nil {
-		return err
-	}
-	for _, t := range deleted {
-		fmt.Printf("Deleted %s: %s\n", highlight(t.ID), t.Title)
-	}
-	return nil
+	return printTodoActionResults(store, "Deleted", deleted)
 }
 
 func runTodoShow(cmd *cobra.Command, args []string) error {
@@ -886,4 +837,15 @@ func todoListPriorityFilter(priority int, changed bool) (*int, error) {
 		return nil, err
 	}
 	return &priority, nil
+}
+
+func printTodoActionResults(store *todo.Store, verb string, items []todo.Todo) error {
+	highlight, err := todoLogHighlighterForStore(store)
+	if err != nil {
+		return err
+	}
+	for _, item := range items {
+		fmt.Printf("%s %s: %s\n", verb, highlight(item.ID), item.Title)
+	}
+	return nil
 }
