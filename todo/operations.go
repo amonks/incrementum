@@ -62,16 +62,12 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 	}
 
 	// Parse and validate dependencies
-	var deps []struct {
-		ID string
-	}
+	deps := make([]string, 0, len(opts.Dependencies))
 	for _, depID := range opts.Dependencies {
 		if strings.Contains(depID, ":") {
 			return nil, fmt.Errorf("invalid dependency format %q: expected '<id>'", depID)
 		}
-		deps = append(deps, struct {
-			ID string
-		}{ID: depID})
+		deps = append(deps, depID)
 	}
 
 	now := time.Now()
@@ -93,26 +89,20 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 	}
 
 	if len(deps) > 0 {
-		depIDs := make([]string, 0, len(deps))
-		for _, dep := range deps {
-			depIDs = append(depIDs, dep.ID)
-		}
-		resolvedIDs, err := resolveTodoIDsWithTodos(depIDs, todos)
+		resolvedIDs, err := resolveTodoIDsWithTodos(deps, todos)
 		if err != nil {
 			return nil, err
 		}
-		for i := range deps {
-			deps[i].ID = resolvedIDs[i]
-		}
+		deps = resolvedIDs
 		seen := make(map[string]struct{})
-		for _, dep := range deps {
-			if dep.ID == todo.ID {
+		for _, depID := range deps {
+			if depID == todo.ID {
 				return nil, ErrSelfDependency
 			}
-			if _, ok := seen[dep.ID]; ok {
+			if _, ok := seen[depID]; ok {
 				return nil, ErrDuplicateDependency
 			}
-			seen[dep.ID] = struct{}{}
+			seen[depID] = struct{}{}
 		}
 	}
 
@@ -131,10 +121,10 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 			return nil, err
 		}
 
-		for _, dep := range deps {
+		for _, depID := range deps {
 			existingDeps = append(existingDeps, Dependency{
 				TodoID:      todo.ID,
-				DependsOnID: dep.ID,
+				DependsOnID: depID,
 				CreatedAt:   now,
 			})
 		}
