@@ -144,3 +144,111 @@ func TestTodoCreateRedirectsToNewTodo(t *testing.T) {
 		t.Fatalf("expected redirect to todo, got %q", location)
 	}
 }
+
+func TestJobsViewDefaultsToFirstJob(t *testing.T) {
+	now := time.Now()
+	jobs := []job.Job{
+		{
+			ID:        "job-1",
+			TodoID:    "todo-1",
+			Stage:     job.StageImplementing,
+			Status:    job.StatusActive,
+			CreatedAt: now,
+			StartedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			ID:        "job-2",
+			TodoID:    "todo-2",
+			Stage:     job.StageTesting,
+			Status:    job.StatusFailed,
+			CreatedAt: now,
+			StartedAt: now,
+			UpdatedAt: now,
+		},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/list", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(listResponse{Jobs: jobs})
+	})
+	mux.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(logsResponse{Events: []job.Event{}})
+	})
+
+	webHandler := NewHandler(Options{})
+	mux.Handle("/web/", webHandler)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/web/jobs")
+	if err != nil {
+		t.Fatalf("get jobs: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	output := string(body)
+	if !strings.Contains(output, "Job job-1") {
+		t.Fatalf("expected page to include first job heading, got %s", output)
+	}
+}
+
+func TestJobsStartRedirectsToNewJob(t *testing.T) {
+	jobID := "job-99"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		var request doRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if request.TodoID != "todo-1" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(doResponse{JobID: jobID})
+	})
+
+	webHandler := NewHandler(Options{})
+	mux.Handle("/web/", webHandler)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	form := url.Values{}
+	form.Set("confirm", "yes")
+
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	resp, err := client.PostForm(server.URL+"/web/jobs/start?id=todo-1", form)
+	if err != nil {
+		t.Fatalf("post start: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected status 303, got %d", resp.StatusCode)
+	}
+	location := resp.Header.Get("Location")
+	if location != "/web/jobs?id="+jobID {
+		t.Fatalf("expected redirect to job, got %q", location)
+	}
+}
