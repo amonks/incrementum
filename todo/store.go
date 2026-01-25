@@ -424,6 +424,20 @@ func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {
 	return resolveTodoIDsWithTodos(ids, todos)
 }
 
+func (s *Store) readTodosAndResolveIDs(ids []string) ([]Todo, []string, error) {
+	todos, err := s.readTodosWithContext()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolved, err := resolveTodoIDsWithTodos(ids, todos)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return todos, resolved, nil
+}
+
 func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
 	if err := validateTodoIDs(ids); err != nil {
 		return nil, err

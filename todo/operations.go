@@ -152,7 +152,7 @@ type UpdateOptions struct {
 // Update updates one or more todos with the given options.
 // Returns the updated todos.
 func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
-	resolvedIDs, err := s.resolveTodoIDs(ids)
+	todos, resolvedIDs, err := s.readTodosAndResolveIDs(ids)
 	if err != nil {
 		return nil, err
 	}
@@ -181,11 +181,6 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 			return nil, err
 		}
 		opts.Type = &normalized
-	}
-
-	todos, err := s.readTodosWithContext()
-	if err != nil {
-		return nil, err
 	}
 
 	// Build a set of IDs to update
@@ -307,12 +302,7 @@ func (s *Store) Delete(ids []string, reason string) ([]Todo, error) {
 
 // Show returns the full details of one or more todos.
 func (s *Store) Show(ids []string) ([]Todo, error) {
-	resolvedIDs, err := s.resolveTodoIDs(ids)
-	if err != nil {
-		return nil, err
-	}
-
-	todos, err := s.readTodosWithContext()
+	todos, resolvedIDs, err := s.readTodosAndResolveIDs(ids)
 	if err != nil {
 		return nil, err
 	}
@@ -603,7 +593,7 @@ func (s *Store) DepAdd(todoID, dependsOnID string) (*Dependency, error) {
 
 // DepTree returns the dependency tree for a todo.
 func (s *Store) DepTree(id string) (*DepTreeNode, error) {
-	resolvedIDs, err := s.resolveTodoIDs([]string{id})
+	todos, resolvedIDs, err := s.readTodosAndResolveIDs([]string{id})
 	if err != nil {
 		return nil, err
 	}
@@ -611,11 +601,6 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 		return nil, ErrTodoNotFound
 	}
 	id = resolvedIDs[0]
-
-	todos, err := s.readTodosWithContext()
-	if err != nil {
-		return nil, err
-	}
 
 	deps, err := s.readDependenciesWithContext()
 	if err != nil {
