@@ -15,6 +15,7 @@ import (
 
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
+	"github.com/amonks/incrementum/web"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -98,6 +99,10 @@ func NewServer(opts ServerOptions) (*Server, error) {
 
 // Handler returns the HTTP handler for swarm RPCs.
 func (s *Server) Handler() http.Handler {
+	return s.handler("")
+}
+
+func (s *Server) handler(baseURL string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/do", s.handleDo)
 	mux.HandleFunc("/kill", s.handleKill)
@@ -107,13 +112,41 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/todos/list", s.handleTodosList)
 	mux.HandleFunc("/todos/create", s.handleTodosCreate)
 	mux.HandleFunc("/todos/update", s.handleTodosUpdate)
+	webHandler := web.NewHandler(web.Options{BaseURL: baseURL})
+	mux.Handle("/web/", webHandler)
+	mux.Handle("/web", http.RedirectHandler("/web/todos", http.StatusFound))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, "/web/todos", http.StatusFound)
+	})
 	return mux
 }
 
 // Serve runs the server on the given address.
 func (s *Server) Serve(addr string) error {
-	server := &http.Server{Addr: addr, Handler: s.Handler()}
+	server := &http.Server{Addr: addr, Handler: s.handler(resolveWebBaseURL(addr))}
 	return server.ListenAndServe()
+}
+
+func resolveWebBaseURL(addr string) string {
+	trimmed := strings.TrimSpace(addr)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+		return strings.TrimRight(trimmed, "/")
+	}
+	host := trimmed
+	if strings.HasPrefix(host, ":") {
+		host = "127.0.0.1" + host
+	}
+	if strings.HasPrefix(host, "0.0.0.0:") {
+		host = "127.0.0.1:" + strings.TrimPrefix(host, "0.0.0.0:")
+	}
+	return "http://" + host
 }
 
 func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
