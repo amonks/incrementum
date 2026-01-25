@@ -75,6 +75,7 @@ func TestDurationData(t *testing.T) {
 func TestAgeData(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	started := now.Add(-4 * time.Minute)
+	future := now.Add(2 * time.Minute)
 
 	cases := []struct {
 		name      string
@@ -86,6 +87,12 @@ func TestAgeData(t *testing.T) {
 			name:      "uses started time",
 			startedAt: started,
 			want:      4 * time.Minute,
+			ok:        true,
+		},
+		{
+			name:      "clamps future start",
+			startedAt: future,
+			want:      0,
 			ok:        true,
 		},
 		{

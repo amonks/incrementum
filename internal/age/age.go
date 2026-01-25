@@ -7,7 +7,11 @@ func AgeData(startedAt time.Time, now time.Time) (time.Duration, bool) {
 	if startedAt.IsZero() {
 		return 0, false
 	}
-	return now.Sub(startedAt), true
+	age := now.Sub(startedAt)
+	if age < 0 {
+		age = 0
+	}
+	return age, true
 }
 
 // Age computes display age.
