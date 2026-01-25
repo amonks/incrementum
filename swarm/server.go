@@ -740,7 +740,7 @@ func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts
 	var pending []byte
 	for {
 		chunk, err := reader.ReadBytes('\n')
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, bufio.ErrBufferFull) {
 			return err
 		}
 		if len(chunk) > 0 {
@@ -767,6 +767,9 @@ func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts
 			case <-time.After(200 * time.Millisecond):
 				continue
 			}
+		}
+		if errors.Is(err, bufio.ErrBufferFull) {
+			continue
 		}
 	}
 }

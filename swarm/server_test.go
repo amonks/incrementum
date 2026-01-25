@@ -865,3 +865,91 @@ func TestTailWaitsForCompleteEventLine(t *testing.T) {
 		t.Fatalf("append event: %v", err)
 	}
 }
+
+func TestTailStreamsLargeEventLines(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+	eventsDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath:        repoDir,
+		StateDir:        stateDir,
+		Pool:            noopPool{},
+		EventLogOptions: job.EventLogOptions{EventsDir: eventsDir},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	manager, err := job.Open(repoDir, job.OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open job manager: %v", err)
+	}
+	created, err := manager.Create("todo-large", time.Now())
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	log, err := job.OpenEventLog(created.ID, job.EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("open event log: %v", err)
+	}
+	prompt := strings.Repeat("a", 70000)
+	payload, err := json.Marshal(struct {
+		Purpose  string `json:"purpose"`
+		Template string `json:"template"`
+		Prompt   string `json:"prompt"`
+	}{
+		Purpose:  "implement",
+		Template: "prompt-implementation.tmpl",
+		Prompt:   prompt,
+	})
+	if err != nil {
+		_ = log.Close()
+		t.Fatalf("marshal prompt: %v", err)
+	}
+	largeEvent := job.Event{Name: "job.prompt", Data: string(payload)}
+	if err := log.Append(largeEvent); err != nil {
+		_ = log.Close()
+		t.Fatalf("append event: %v", err)
+	}
+	if err := log.Close(); err != nil {
+		t.Fatalf("close event log: %v", err)
+	}
+
+	serverInstance := httptest.NewServer(server.Handler())
+	defer serverInstance.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	requestPayload, err := json.Marshal(tailRequest{JobID: created.ID})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, serverInstance.URL+"/tail", bytes.NewReader(requestPayload))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
+
+	decoder := json.NewDecoder(response.Body)
+	var gotEvent job.Event
+	if err := decoder.Decode(&gotEvent); err != nil {
+		t.Fatalf("decode event: %v", err)
+	}
+	if gotEvent.Name != largeEvent.Name {
+		t.Fatalf("expected event name %q, got %q", largeEvent.Name, gotEvent.Name)
+	}
+	if len(gotEvent.Data) != len(largeEvent.Data) {
+		t.Fatalf("expected data length %d, got %d", len(largeEvent.Data), len(gotEvent.Data))
+	}
+}
