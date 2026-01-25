@@ -362,13 +362,25 @@ func writeJSONL[T any](path string, items []T) error {
 		return fmt.Errorf("create temp file: %w", err)
 	}
 
-	encoder := json.NewEncoder(f)
+	buffered := bufio.NewWriter(f)
+	encoder := json.NewEncoder(buffered)
 	for i, item := range items {
 		if err := encoder.Encode(item); err != nil {
-			f.Close()
+			closeErr := f.Close()
 			os.Remove(tmpPath)
+			if closeErr != nil {
+				return errors.Join(fmt.Errorf("encode item %d: %w", i, err), closeErr)
+			}
 			return fmt.Errorf("encode item %d: %w", i, err)
 		}
+	}
+	if err := buffered.Flush(); err != nil {
+		closeErr := f.Close()
+		os.Remove(tmpPath)
+		if closeErr != nil {
+			return errors.Join(fmt.Errorf("flush temp file: %w", err), closeErr)
+		}
+		return fmt.Errorf("flush temp file: %w", err)
 	}
 
 	if err := f.Close(); err != nil {

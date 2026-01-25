@@ -7,7 +7,7 @@
 
 ## Benchmark setup
 
-- Command: `go test ./todo -bench=ReadJSONLFromReader -run=^$ -benchmem`
+- Command: `go test ./todo -bench='(ReadJSONLFromReader|WriteJSONL)' -run=^$ -benchmem`
 - Environment: darwin/arm64 (Apple M1 Ultra)
 - Benchmark data: JSONL payload synthesized in-memory by `BenchmarkReadJSONLFromReader*`.
 
@@ -17,13 +17,16 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,760,757 | 1,090,164 | 10,014 |
-| `BenchmarkReadJSONLFromReader10K` | 18,511,934 | 14,149,522 | 100,022 |
+| `BenchmarkReadJSONLFromReader1K` | 1,768,058 | 1,090,174 | 10,014 |
+| `BenchmarkReadJSONLFromReader10K` | 18,891,164 | 14,149,334 | 100,022 |
+| `BenchmarkWriteJSONL1K` | 1,154,578 | 293,531 | 3,010 |
+| `BenchmarkWriteJSONL10K` | 10,299,641 | 2,891,439 | 30,019 |
 
 ## Improvements log
 
 - 2026-01-25: Replaced streaming JSONL decoding with a buffered line reader to preserve one-object-per-line semantics and enforce the max JSON line size guard deterministically.
 - 2026-01-25: Avoided copying when a JSONL line fits in the buffered reader by returning the underlying slice, reducing allocations per line.
+- 2026-01-25: Buffered JSONL writes before renaming the temp file, trimming syscall overhead and improving write throughput.
 
 ## Profiling notes
 
