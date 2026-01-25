@@ -49,6 +49,9 @@ func TestTodoUpdateStatusMentionsTombstone(t *testing.T) {
 	if flag == nil {
 		t.Fatal("expected todo update to have --status flag")
 	}
+	if !strings.Contains(flag.Usage, "proposed") {
+		t.Fatalf("expected todo update status usage to mention proposed, got %q", flag.Usage)
+	}
 	if !strings.Contains(flag.Usage, "tombstone") {
 		t.Fatalf("expected todo update status usage to mention tombstone, got %q", flag.Usage)
 	}

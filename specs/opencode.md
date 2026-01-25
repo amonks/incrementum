@@ -58,6 +58,8 @@ Fields (JSON keys):
   unambiguous.
 - `run` starts `opencode serve` bound to `127.0.0.1` and streams events from
   `/event` before invoking `opencode run --attach=<server-url>`.
+- Opencode invocations set `INCREMENTUM_TODO_PROPOSER=true` in the child process
+  environment.
 - `run` updates session status and exit code when the command exits.
 - `kill` records status `killed` and sets `exit_code` to the signal exit code
   reported by opencode when available.

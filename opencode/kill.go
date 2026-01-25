@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -56,6 +57,7 @@ type sessionList struct {
 
 func sessionKill(sessionID string) (sessionMetadata, error) {
 	cmd := exec.Command("opencode", "session", "kill", sessionID, "--format", "json")
+	cmd.Env = ensureTodoProposerEnv(os.Environ())
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {

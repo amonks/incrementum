@@ -31,6 +31,16 @@ func TestReplaceEnvVarOverridesExisting(t *testing.T) {
 	}
 }
 
+func TestEnsureTodoProposerEnvSetsValue(t *testing.T) {
+	env := []string{"PATH=/bin", "INCREMENTUM_TODO_PROPOSER=false"}
+
+	updated := ensureTodoProposerEnv(env)
+
+	if !containsEnv(updated, "INCREMENTUM_TODO_PROPOSER=true") {
+		t.Fatalf("expected proposer env to be true, got %v", updated)
+	}
+}
+
 func containsEnv(env []string, entry string) bool {
 	for _, item := range env {
 		if item == entry {

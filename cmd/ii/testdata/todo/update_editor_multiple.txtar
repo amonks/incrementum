@@ -34,7 +34,7 @@ cat > "$1" <<'EOF'
 title = "Edited by editor"
 type = "task" # task, bug, feature
 priority = 2 # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
-status = "open" # open, in_progress, closed, done
+status = "open" # open, proposed, in_progress, closed, done, tombstone
 ---
 Updated by editor
 EOF

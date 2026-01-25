@@ -155,6 +155,7 @@ func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
 	useEditor := shouldUseEditor(hasCreateFlags, jobDoEdit, jobDoNoEdit, editor.IsInteractive())
 	if useEditor {
 		data := editor.DefaultCreateData()
+		data.Status = string(defaultTodoStatus())
 		if cmd.Flags().Changed("title") {
 			data.Title = jobDoTitle
 		}
@@ -199,6 +200,7 @@ func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
 	defer store.Release()
 
 	created, err := store.Create(jobDoTitle, todo.CreateOptions{
+		Status:       defaultTodoStatus(),
 		Type:         todo.TodoType(jobDoType),
 		Priority:     jobDoPriorityValue(cmd),
 		Description:  jobDoDescription,

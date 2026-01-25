@@ -52,6 +52,7 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 	if env == nil {
 		env = os.Environ()
 	}
+	env = ensureTodoProposerEnv(env)
 	if workDir != "" {
 		env = replaceEnvVar(env, "PWD", workDir)
 	}

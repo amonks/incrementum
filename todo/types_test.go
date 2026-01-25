@@ -8,6 +8,7 @@ func TestStatus_IsValid(t *testing.T) {
 		valid  bool
 	}{
 		{StatusOpen, true},
+		{StatusProposed, true},
 		{StatusInProgress, true},
 		{StatusClosed, true},
 		{StatusDone, true},
@@ -31,6 +32,7 @@ func TestStatus_IsResolved(t *testing.T) {
 		resolved bool
 	}{
 		{StatusOpen, false},
+		{StatusProposed, false},
 		{StatusInProgress, false},
 		{StatusClosed, true},
 		{StatusDone, true},

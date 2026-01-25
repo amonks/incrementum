@@ -279,6 +279,7 @@ func createTodoForSwarm(cmd *cobra.Command, repoPath string, hasCreateFlags bool
 	useEditor := shouldUseEditor(hasCreateFlags, jobDoEdit, jobDoNoEdit, editor.IsInteractive())
 	if useEditor {
 		data := editor.DefaultCreateData()
+		data.Status = string(defaultTodoStatus())
 		if cmd.Flags().Changed("title") {
 			data.Title = jobDoTitle
 		}
@@ -323,6 +324,7 @@ func createTodoForSwarm(cmd *cobra.Command, repoPath string, hasCreateFlags bool
 	defer store.Release()
 
 	created, err := store.Create(jobDoTitle, todo.CreateOptions{
+		Status:       defaultTodoStatus(),
 		Type:         todo.TodoType(jobDoType),
 		Priority:     jobDoPriorityValue(cmd),
 		Description:  jobDoDescription,

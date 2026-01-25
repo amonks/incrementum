@@ -26,6 +26,9 @@ func TestRenderTodoTOML_Create(t *testing.T) {
 	if !strings.Contains(content, "priority = 2") {
 		t.Error("expected default priority 2")
 	}
+	if !strings.Contains(content, `status = "open"`) {
+		t.Error("expected default status open")
+	}
 	if strings.Contains(content, "description =") {
 		t.Error("expected description to be in body")
 	}
@@ -33,14 +36,9 @@ func TestRenderTodoTOML_Create(t *testing.T) {
 		t.Error("expected frontmatter separator")
 	}
 
-	// Should not have status field for create
-	lines := strings.Split(content, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(strings.TrimSpace(line), "status = ") {
-			t.Error("status should not be present for create")
-		}
+	if !strings.Contains(content, "proposed") {
+		t.Error("expected status comment to mention proposed")
 	}
-
 }
 
 func TestRenderTodoTOML_Update(t *testing.T) {
@@ -73,8 +71,8 @@ func TestRenderTodoTOML_Update(t *testing.T) {
 	if !strings.Contains(content, `status = "in_progress"`) {
 		t.Error("expected status to be in_progress")
 	}
-	if !strings.Contains(content, "tombstone") {
-		t.Error("expected status comment to mention tombstone")
+	if !strings.Contains(content, "proposed") {
+		t.Error("expected status comment to mention proposed")
 	}
 	if strings.Contains(content, "description =") {
 		t.Error("expected description to be in body")
@@ -195,16 +193,18 @@ status = "bad"`
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "tombstone") {
-		t.Errorf("expected error to mention tombstone, got %q", err.Error())
+	if !strings.Contains(err.Error(), "proposed") {
+		t.Errorf("expected error to mention proposed, got %q", err.Error())
 	}
 }
 
 func TestToCreateOptions(t *testing.T) {
+	status := "proposed"
 	parsed := &ParsedTodo{
 		Title:       "Test",
 		Type:        "feature",
 		Priority:    1,
+		Status:      &status,
 		Description: "description",
 	}
 
@@ -218,6 +218,9 @@ func TestToCreateOptions(t *testing.T) {
 	}
 	if opts.Description != "description" {
 		t.Errorf("expected description 'description', got %q", opts.Description)
+	}
+	if opts.Status != todo.StatusProposed {
+		t.Errorf("expected status proposed, got %v", opts.Status)
 	}
 }
 

@@ -24,7 +24,7 @@ type TodoData struct {
 	Type string
 	// Priority is the todo priority (0-4).
 	Priority int
-	// Status is the todo status (only for updates).
+	// Status is the todo status.
 	Status string
 	// Description is the todo description.
 	Description string
@@ -37,6 +37,7 @@ func DefaultCreateData() TodoData {
 		Title:       "",
 		Type:        string(todo.TypeTask),
 		Priority:    todo.PriorityMedium,
+		Status:      string(todo.StatusOpen),
 		Description: "",
 	}
 }
@@ -64,9 +65,7 @@ var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
 }).Parse(`title = {{ printf "%q" .Title }}
 type = {{ printf "%q" .Type }} # task, bug, feature
 priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
-{{- if .IsUpdate }}
-status = {{ printf "%q" .Status }} # open, in_progress, closed, done, tombstone
-{{- end }}
+status = {{ printf "%q" .Status }} # open, proposed, in_progress, closed, done, tombstone
 ---
 {{ description .Description }}
 `))
@@ -200,11 +199,16 @@ func EditTodoWithData(data TodoData) (*ParsedTodo, error) {
 
 // ToCreateOptions converts a ParsedTodo to todo.CreateOptions.
 func (p *ParsedTodo) ToCreateOptions() todo.CreateOptions {
-	return todo.CreateOptions{
+	opts := todo.CreateOptions{
 		Type:        todo.TodoType(p.Type),
 		Priority:    todo.PriorityPtr(p.Priority),
 		Description: p.Description,
 	}
+	if p.Status != nil {
+		status := todo.Status(*p.Status)
+		opts.Status = status
+	}
+	return opts
 }
 
 // ToUpdateOptions converts a ParsedTodo to todo.UpdateOptions.

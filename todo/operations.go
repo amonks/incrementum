@@ -9,6 +9,9 @@ import (
 
 // CreateOptions configures a new todo.
 type CreateOptions struct {
+	// Status is the todo status. Defaults to StatusOpen.
+	Status Status
+
 	// Type is the todo type (task, bug, feature). Defaults to TypeTask.
 	Type TodoType
 
@@ -49,6 +52,15 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		return nil, err
 	}
 
+	status := opts.Status
+	if status == "" {
+		status = StatusOpen
+	}
+	normalizedStatus, err := normalizeStatusInput(status)
+	if err != nil {
+		return nil, err
+	}
+
 	// Parse and validate dependencies
 	var deps []struct {
 		ID string
@@ -67,7 +79,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		ID:          GenerateID(title, now),
 		Title:       title,
 		Description: opts.Description,
-		Status:      StatusOpen,
+		Status:      normalizedStatus,
 		Priority:    *priority,
 		Type:        opts.Type,
 		CreatedAt:   now,
@@ -234,7 +246,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 					if opts.DeletedAt == nil && todos[i].DeletedAt == nil {
 						todos[i].DeletedAt = &now
 					}
-				case StatusOpen, StatusInProgress:
+				case StatusOpen, StatusInProgress, StatusProposed:
 					todos[i].ClosedAt = nil
 					todos[i].DeletedAt = nil
 					todos[i].DeleteReason = ""

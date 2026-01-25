@@ -17,6 +17,9 @@ const (
 	// StatusOpen indicates the todo is ready to be worked on.
 	StatusOpen Status = "open"
 
+	// StatusProposed indicates the todo is awaiting review before starting.
+	StatusProposed Status = "proposed"
+
 	// StatusInProgress indicates the todo is currently being worked on.
 	StatusInProgress Status = "in_progress"
 
@@ -32,7 +35,7 @@ const (
 
 // ValidStatuses returns all valid status values.
 func ValidStatuses() []Status {
-	return []Status{StatusOpen, StatusInProgress, StatusClosed, StatusDone, StatusTombstone}
+	return []Status{StatusOpen, StatusProposed, StatusInProgress, StatusClosed, StatusDone, StatusTombstone}
 }
 
 // IsValid returns true if the status is a known valid value.

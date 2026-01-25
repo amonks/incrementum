@@ -200,7 +200,7 @@ func init() {
 	// todo update flags
 	todoUpdateCmd.Flags().StringVar(&todoUpdateTitle, "title", "", "New title")
 	todoUpdateCmd.Flags().StringVarP(&todoUpdateDescription, "description", "d", "", "New description (use '-' to read from stdin)")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, in_progress, closed, done, tombstone)")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, proposed, in_progress, closed, done, tombstone)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
 	todoUpdateCmd.Flags().BoolVarP(&todoUpdateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
@@ -316,6 +316,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	if useEditor {
 		// Pre-populate from flags if provided
 		data := editor.DefaultCreateData()
+		data.Status = string(defaultTodoStatus())
 		if cmd.Flags().Changed("title") {
 			data.Title = todoCreateTitle
 		}
@@ -368,6 +369,7 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	defer store.Release()
 
 	created, err := store.Create(todoCreateTitle, todo.CreateOptions{
+		Status:       defaultTodoStatus(),
 		Type:         todo.TodoType(todoCreateType),
 		Priority:     todoCreatePriorityValue(cmd),
 		Description:  todoCreateDescription,

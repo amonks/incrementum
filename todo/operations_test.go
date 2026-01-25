@@ -65,6 +65,23 @@ func TestStore_Create_WithOptions(t *testing.T) {
 	}
 }
 
+func TestStore_Create_WithStatus(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Review generated todo", CreateOptions{Status: StatusProposed})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	if created.Status != StatusProposed {
+		t.Errorf("expected status 'proposed', got %q", created.Status)
+	}
+}
+
 func TestStore_Create_NormalizesType(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {
@@ -899,7 +916,7 @@ func TestStore_List_InvalidFilters(t *testing.T) {
 	invalidStatus := Status("maybe")
 	if _, err := store.List(ListFilter{Status: &invalidStatus}); err == nil || !errors.Is(err, ErrInvalidStatus) {
 		t.Fatalf("expected invalid status error, got %v", err)
-	} else if !strings.Contains(err.Error(), "valid: open, in_progress, closed, done, tombstone") {
+	} else if !strings.Contains(err.Error(), "valid: open, proposed, in_progress, closed, done, tombstone") {
 		t.Fatalf("expected valid status hint, got %v", err)
 	}
 
