@@ -26,7 +26,7 @@ func (index IDIndex) Resolve(prefix string) (string, error) {
 		return "", ErrTodoNotFound
 	}
 
-	match, found, ambiguous := ids.MatchPrefix(index.ids, prefix)
+	match, found, ambiguous := ids.MatchPrefixNormalized(index.ids, prefix)
 	if !found {
 		return "", ErrTodoNotFound
 	}
@@ -39,5 +39,5 @@ func (index IDIndex) Resolve(prefix string) (string, error) {
 
 // PrefixLengths returns the shortest unique prefix length for each ID.
 func (index IDIndex) PrefixLengths() map[string]int {
-	return ids.UniquePrefixLengths(index.ids)
+	return ids.UniquePrefixLengthsNormalized(index.ids)
 }

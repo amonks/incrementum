@@ -5,7 +5,7 @@ import "strings"
 // NormalizeUniqueIDs lowercases IDs and removes duplicates or empty values.
 func NormalizeUniqueIDs(ids []string) []string {
 	uniqueIDs := make([]string, 0, len(ids))
-	seen := make(map[string]bool)
+	seen := make(map[string]bool, len(ids))
 	for _, id := range ids {
 		idLower := strings.ToLower(id)
 		if idLower == "" || seen[idLower] {
@@ -20,9 +20,15 @@ func NormalizeUniqueIDs(ids []string) []string {
 // UniquePrefixLengths returns the shortest unique prefix length for each ID.
 func UniquePrefixLengths(ids []string) map[string]int {
 	uniqueIDs := NormalizeUniqueIDs(ids)
-	lengths := make(map[string]int, len(uniqueIDs))
-	for _, id := range uniqueIDs {
-		lengths[id] = uniquePrefixLength(id, uniqueIDs)
+	return UniquePrefixLengthsNormalized(uniqueIDs)
+}
+
+// UniquePrefixLengthsNormalized returns the shortest unique prefix length for each ID.
+// It expects ids to already be normalized and de-duplicated.
+func UniquePrefixLengthsNormalized(ids []string) map[string]int {
+	lengths := make(map[string]int, len(ids))
+	for _, id := range ids {
+		lengths[id] = uniquePrefixLength(id, ids)
 	}
 
 	return lengths
@@ -39,6 +45,28 @@ func MatchPrefix(ids []string, prefix string) (string, bool, bool) {
 			continue
 		}
 		if match != "" && !strings.EqualFold(match, id) {
+			return "", true, true
+		}
+		match = id
+	}
+
+	if match == "" {
+		return "", false, false
+	}
+
+	return match, true, false
+}
+
+// MatchPrefixNormalized returns the matching ID for a non-empty prefix.
+// It expects ids to already be normalized and de-duplicated.
+func MatchPrefixNormalized(ids []string, prefix string) (string, bool, bool) {
+	needle := strings.ToLower(prefix)
+	var match string
+	for _, id := range ids {
+		if id != needle && !strings.HasPrefix(id, needle) {
+			continue
+		}
+		if match != "" && match != id {
 			return "", true, true
 		}
 		match = id

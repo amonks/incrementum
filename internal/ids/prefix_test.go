@@ -56,6 +56,18 @@ func TestUniquePrefixLengthsSkipsDuplicatesAndEmpty(t *testing.T) {
 	}
 }
 
+func TestUniquePrefixLengthsNormalized(t *testing.T) {
+	ids := []string{"abc123", "abd234"}
+	lengths := UniquePrefixLengthsNormalized(ids)
+
+	if got := lengths["abc123"]; got != 3 {
+		t.Fatalf("expected abc123 prefix length 3, got %d", got)
+	}
+	if got := lengths["abd234"]; got != 3 {
+		t.Fatalf("expected abd234 prefix length 3, got %d", got)
+	}
+}
+
 func TestMatchPrefix(t *testing.T) {
 	ids := []string{"Abc123", "def456"}
 	match, found, ambiguous := MatchPrefix(ids, "ab")
@@ -98,5 +110,20 @@ func TestMatchPrefixNotFound(t *testing.T) {
 	}
 	if match != "" {
 		t.Fatalf("expected empty match, got %q", match)
+	}
+}
+
+func TestMatchPrefixNormalized(t *testing.T) {
+	ids := []string{"abc123", "def456"}
+	match, found, ambiguous := MatchPrefixNormalized(ids, "ABC")
+
+	if !found {
+		t.Fatalf("expected match to be found")
+	}
+	if ambiguous {
+		t.Fatalf("expected match to be unambiguous")
+	}
+	if match != "abc123" {
+		t.Fatalf("expected match abc123, got %q", match)
 	}
 }

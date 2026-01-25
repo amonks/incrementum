@@ -60,6 +60,7 @@
 - 2026-01-25: Pooled JSONL reader buffers to reuse the 64 KiB read and line scratch buffers across reads, reducing read allocations and downstream store bytes/op.
 - 2026-01-25: Pooled JSONL writer buffers so write paths reuse the 64 KiB buffer instead of allocating a fresh bufio.Writer each time.
 - 2026-01-25: Removed the redundant seek before reading locked JSONL files so store reads avoid an extra syscall per file.
+- 2026-01-25: Reused normalized todo IDs for prefix length and prefix matching to avoid lowercasing work when resolving IDs.
 
 ## Profiling notes
 
