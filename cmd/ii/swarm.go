@@ -134,7 +134,8 @@ func logSwarmServeAddr(addr string) error {
 	if host == "" {
 		host = "0.0.0.0"
 	}
-	fmt.Printf("Swarm server listening on host %s port %s\n", host, port)
+	fullAddr := net.JoinHostPort(host, port)
+	fmt.Printf("Swarm server listening on %s\n", fullAddr)
 	return nil
 }
 

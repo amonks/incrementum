@@ -1,0 +1,4 @@
+Log swarm serve address in full
+
+Print the resolved host:port as a single address when the swarm server starts.
+Update the swarm spec to match the new log format.

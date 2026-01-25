@@ -62,8 +62,8 @@ Port precedence is:
 
 Start the swarm server for the current repository.
 
-On startup, the command logs the hostname and port (for example, `Swarm server
-listening on host 127.0.0.1 port 8088`).
+On startup, the command logs the full address (for example, `Swarm server
+listening on 127.0.0.1:8088`).
 
 ### `ii swarm do [todo-id] [job do flags] [--path=] --addr=`
 
@@ -103,7 +103,7 @@ swarm server and operates on todos and jobs. It uses the same configuration and
 
 ### Layout
 
-- Tab strip across the top with two tabs: `Todo` and `Jobs`.
+- Tab strip across the top with two tabs: `[1] Todo` and `[2] Jobs`, with a help hint.
 - Main content splits into a left list pane and a right detail pane.
 - The list pane scrolls; the detail pane can scroll independently when
   content exceeds the viewport.
@@ -112,12 +112,18 @@ swarm server and operates on todos and jobs. It uses the same configuration and
 ### Global Keys
 
 - `[` / `]`: move between tabs.
+- `1` / `2`: jump directly to the Todo or Jobs tab.
+- `tab` / `shift+tab`: cycle tabs when the list pane is focused.
 - `q` or `ctrl+c`: quit the TUI.
+- `?`: toggle the help overlay.
+
+The help overlay lists the available shortcuts and closes with `?` or `esc`.
 
 ### Pane Focus
 
 - `enter`: move focus from the list pane to the detail pane.
 - `esc`: return focus to the list pane.
+- `up` / `down` or `j` / `k`: move the selection in the list pane.
 - When the detail pane is focused, `pgup`/`pgdown` and `home`/`end` scroll the
   pane contents.
 

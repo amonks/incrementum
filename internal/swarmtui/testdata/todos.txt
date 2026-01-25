@@ -1,0 +1,27 @@
+ [1] Todo  [2] Jobs                                                                 Press ? for help
++---------------------------------++-------------------------------------------------------------------+
+|    Todos                        || Editable                                                          |
+|                                 || Title: Fix TUI navigation                                         |
+| todo-1234  Fix TUI navigat...   || Description:                                                      |
+| todo-9876  Add screencap t...   || Ensure lists move with arrows and                                 |
+|                                 || j/k.                                                              |
+|                                 ||                                                                   |
+|                                 ||                                                                   |
+|                                 ||                                                                   |
+|                                 ||                                                                   |
+|                                 || Status: in_progress                                               |
+|                                 || Priority: high                                                    |
+|                                 || Type: task                                                        |
+|                                 ||                                                                   |
+|                                 || Read-only                                                         |
+|                                 || ID: todo-1234                                                     |
+|                                 || Created: 2026-01-18 10:30:00                                      |
+|                                 || Updated: 2026-01-19 10:30:00                                      |
+|                                 || Started: 2026-01-20 07:30:00                                      |
+|                                 || Closed: -                                                         |
+|                                 || Completed: -                                                      |
+|                                 || Deleted: -                                                        |
+|                                 || Delete reason: -                                                  |
+|                                 ||                                                                   |
+|                                 ||                                                                   |
++---------------------------------++-------------------------------------------------------------------+

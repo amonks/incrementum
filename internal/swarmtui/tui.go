@@ -39,6 +39,7 @@ type modalKind int
 
 const (
 	modalNone modalKind = iota
+	modalHelp
 	modalStartJob
 	modalDiscardEdits
 )
@@ -222,10 +223,36 @@ func (m model) updateJobsTab(msg tea.Msg) tea.Cmd {
 }
 
 func (m model) handleKey(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	switch msg.String() {
+	key := msg.String()
+	switch key {
+	case "?":
+		return m.openHelp(), nil, true
+	}
+
+	if updated, cmd, handled := m.handleListNavigation(key); handled {
+		return updated, cmd, true
+	}
+
+	switch key {
 	case "ctrl+c", "q":
 		m.stopJobTail()
 		return m, tea.Quit, true
+	case "tab":
+		if m.focus == focusList {
+			updated, cmd := m.switchTab(1)
+			return updated, cmd, true
+		}
+	case "shift+tab", "backtab":
+		if m.focus == focusList {
+			updated, cmd := m.switchTab(-1)
+			return updated, cmd, true
+		}
+	case "1":
+		updated, cmd := m.activateTab(tabTodo)
+		return updated, cmd, true
+	case "2":
+		updated, cmd := m.activateTab(tabJobs)
+		return updated, cmd, true
 	case "[":
 		updated, cmd := m.switchTab(-1)
 		return updated, cmd, true
@@ -270,7 +297,11 @@ func (m model) switchTab(delta int) (model, tea.Cmd) {
 		}
 	}
 
-	if newTab == m.activeTab {
+	return m.activateTab(newTab)
+}
+
+func (m model) activateTab(target tabKind) (model, tea.Cmd) {
+	if target == m.activeTab {
 		return m, nil
 	}
 	if m.activeTab == tabJobs {
@@ -279,7 +310,7 @@ func (m model) switchTab(delta int) (model, tea.Cmd) {
 	if m.focus == focusDetail {
 		m = m.setFocus(focusList)
 	}
-	m.activeTab = newTab
+	m.activeTab = target
 	if m.activeTab == tabJobs {
 		if m.updateJobSelection() {
 			return m, m.loadJobLogsCmd(m.selectedJobID)
@@ -519,6 +550,17 @@ func (m model) updateModal(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
+	if m.modal.kind == modalHelp {
+		switch key.String() {
+		case "?", "esc":
+			m.modal = confirmModal{kind: modalNone}
+			return m, nil
+		case "ctrl+c", "q":
+			m.stopJobTail()
+			return m, tea.Quit
+		}
+		return m, nil
+	}
 	selection := m.modal.selected
 	switch key.String() {
 	case "left", "right", "tab", "shift+tab", "backtab":
@@ -644,7 +686,7 @@ func splitWidths(width int) (int, int) {
 }
 
 func (m model) renderTabs() string {
-	labels := []string{"Todo", "Jobs"}
+	labels := []string{"[1] Todo", "[2] Jobs"}
 	parts := make([]string, 0, len(labels))
 	for i, label := range labels {
 		style := tabInactiveStyle
@@ -653,7 +695,14 @@ func (m model) renderTabs() string {
 		}
 		parts = append(parts, style.Render(label))
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+	content := lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+	helpHint := valueMuted.Render("Press ? for help")
+	spacerWidth := m.width - lipgloss.Width(content) - lipgloss.Width(helpHint)
+	if spacerWidth < 1 {
+		spacerWidth = 1
+	}
+	spacer := strings.Repeat(" ", spacerWidth)
+	return tabBarStyle.Width(m.width).Render(content + spacer + helpHint)
 }
 
 func (m model) renderPane(content string, width, height int, focused bool) string {
@@ -698,6 +747,10 @@ func (m model) renderModalOverlay(content string) string {
 }
 
 func (m model) modalView() string {
+	if m.modal.kind == modalHelp {
+		modalStyle := lipgloss.NewStyle().Border(borderASCII).Padding(1, 2)
+		return modalStyle.Render(m.helpContent())
+	}
 	options := []string{m.modal.confirmText, m.modal.cancelText}
 	if len(options) < 2 {
 		options = []string{"OK", "Cancel"}
@@ -720,6 +773,100 @@ func (m model) loadTodosCmd() tea.Cmd {
 		todos, err := m.client.ListTodos(m.ctx, todo.ListFilter{})
 		return todosLoadedMsg{todos: todos, err: err}
 	}
+}
+
+func (m model) handleListNavigation(key string) (model, tea.Cmd, bool) {
+	if m.focus != focusList {
+		return m, nil, false
+	}
+	switch key {
+	case "up", "k":
+		return m.moveListSelection(-1)
+	case "down", "j":
+		return m.moveListSelection(1)
+	case "home":
+		return m.moveListSelection(-1 * len(m.activeItems()))
+	case "end":
+		return m.moveListSelection(len(m.activeItems()))
+	}
+	return m, nil, false
+}
+
+func (m model) moveListSelection(delta int) (model, tea.Cmd, bool) {
+	items := m.activeItems()
+	if len(items) == 0 {
+		return m, nil, true
+	}
+	current := m.activeIndex()
+	if current < 0 {
+		current = 0
+	}
+	next := current + delta
+	if next < 0 {
+		next = 0
+	}
+	if next >= len(items) {
+		next = len(items) - 1
+	}
+	if next == current {
+		return m, nil, true
+	}
+	if m.activeTab == tabTodo {
+		m.todoList.Select(next)
+		m.updateTodoSelection()
+		return m, nil, true
+	}
+	m.jobList.Select(next)
+	if m.updateJobSelection() {
+		return m, m.loadJobLogsCmd(m.selectedJobID), true
+	}
+	return m, nil, true
+}
+
+func (m model) activeItems() []list.Item {
+	if m.activeTab == tabJobs {
+		return m.jobList.Items()
+	}
+	return m.todoList.Items()
+}
+
+func (m model) activeIndex() int {
+	if m.activeTab == tabJobs {
+		return m.jobList.Index()
+	}
+	return m.todoList.Index()
+}
+
+func (m model) openHelp() model {
+	m.modal = confirmModal{kind: modalHelp}
+	return m
+}
+
+func (m model) helpContent() string {
+	sections := []string{
+		labelStyle.Render("Global"),
+		"q or ctrl+c: quit",
+		"[ or ] / 1 or 2 / tab: switch tabs",
+		"?: toggle help",
+		"",
+		labelStyle.Render("Navigation"),
+		"up/down or j/k: move selection",
+		"enter: focus detail pane",
+		"esc: return to list",
+		"",
+		labelStyle.Render("Todo"),
+		"c: create todo",
+		"s: start job",
+		"ctrl+s: save todo",
+		"tab/shift+tab: next/previous field",
+		"",
+		labelStyle.Render("Detail Scroll"),
+		"pgup/pgdown/home/end: scroll detail",
+		"",
+		labelStyle.Render("Help"),
+		"press ? or esc to close",
+	}
+	return strings.Join(sections, "\n")
 }
 
 func (m model) loadJobsCmd() tea.Cmd {
