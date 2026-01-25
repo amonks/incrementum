@@ -54,6 +54,18 @@ var jsonlLineBufPool = sync.Pool{
 	},
 }
 
+var jsonlTodoBufPool = sync.Pool{
+	New: func() any {
+		return make([]byte, 0, 512)
+	},
+}
+
+var jsonlDependencyBufPool = sync.Pool{
+	New: func() any {
+		return make([]byte, 0, 128)
+	},
+}
+
 // Store provides access to the todo data for a jujutsu repository.
 // It manages workspace acquisition and file locking for concurrent access.
 type Store struct {
@@ -428,7 +440,12 @@ func writeJSONL[T any](path string, items []T) error {
 	switch typed := any(items).(type) {
 	case []Todo:
 		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
-			buf := make([]byte, 0, 512)
+			buf := jsonlTodoBufPool.Get().([]byte)
+			defer func() {
+				if cap(buf) <= jsonlBufferSize {
+					jsonlTodoBufPool.Put(buf[:0])
+				}
+			}()
 			for i := range typed {
 				buf = buf[:0]
 				buf = appendTodoJSONLine(buf, &typed[i])
@@ -440,7 +457,12 @@ func writeJSONL[T any](path string, items []T) error {
 		})
 	case []Dependency:
 		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
-			buf := make([]byte, 0, 128)
+			buf := jsonlDependencyBufPool.Get().([]byte)
+			defer func() {
+				if cap(buf) <= jsonlBufferSize {
+					jsonlDependencyBufPool.Put(buf[:0])
+				}
+			}()
 			for i := range typed {
 				buf = buf[:0]
 				buf = appendDependencyJSONLine(buf, &typed[i])
