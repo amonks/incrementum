@@ -191,9 +191,11 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 		}
 	}
 
-	// Edit to the specified revision
-	if err := p.jj.Edit(wsPath, opts.Rev); err != nil {
-		return "", fmt.Errorf("jj edit: %w", err)
+	// Edit to the specified revision unless we're already at @.
+	if opts.Rev != "@" {
+		if err := p.jj.Edit(wsPath, opts.Rev); err != nil {
+			return "", fmt.Errorf("jj edit: %w", err)
+		}
 	}
 
 	if err := p.ensureReleaseChange(wsPath, opts.Rev); err != nil {
