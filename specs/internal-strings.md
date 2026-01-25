@@ -14,3 +14,8 @@ across subsystems.
 ## NormalizeLower
 
 - Lowercases the input string using `strings.ToLower`.
+
+## NormalizeLowerTrimSpace
+
+- Trims surrounding whitespace with `strings.TrimSpace` and then lowercases.
+- Does not alter inner whitespace beyond trimming the edges.

@@ -77,3 +77,36 @@ func TestNormalizeLower(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeLowerTrimSpace(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "trims and lowercases",
+			input: "  DONE  ",
+			want:  "done",
+		},
+		{
+			name:  "inner spaces preserved",
+			input: "  in progress  ",
+			want:  "in progress",
+		},
+		{
+			name:  "whitespace only",
+			input: "  \t\n ",
+			want:  "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := NormalizeLowerTrimSpace(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}

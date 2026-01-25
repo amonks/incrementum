@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/BurntSushi/toml"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/validation"
 	"github.com/amonks/incrementum/todo"
 )
@@ -99,9 +100,9 @@ func ParseTodoTOML(content string) (*ParsedTodo, error) {
 		return nil, fmt.Errorf("parse TOML: %w", err)
 	}
 	parsed.Description = strings.TrimLeft(body, "\n")
-	parsed.Type = strings.ToLower(strings.TrimSpace(parsed.Type))
+	parsed.Type = internalstrings.NormalizeLowerTrimSpace(parsed.Type)
 	if parsed.Status != nil {
-		normalizedStatus := strings.ToLower(strings.TrimSpace(*parsed.Status))
+		normalizedStatus := internalstrings.NormalizeLowerTrimSpace(*parsed.Status)
 		parsed.Status = &normalizedStatus
 	}
 

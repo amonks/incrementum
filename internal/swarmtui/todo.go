@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -460,7 +461,7 @@ func defaultPriorityValue(priority int) string {
 }
 
 func parseStatus(value string) (todo.Status, error) {
-	normalized := strings.ToLower(strings.TrimSpace(value))
+	normalized := internalstrings.NormalizeLowerTrimSpace(value)
 	if normalized == "" {
 		return todo.StatusOpen, nil
 	}
@@ -474,7 +475,7 @@ func parseStatus(value string) (todo.Status, error) {
 }
 
 func parseTodoType(value string) (todo.TodoType, error) {
-	normalized := strings.ToLower(strings.TrimSpace(value))
+	normalized := internalstrings.NormalizeLowerTrimSpace(value)
 	if normalized == "" {
 		return todo.TypeTask, nil
 	}
@@ -486,7 +487,7 @@ func parseTodoType(value string) (todo.TodoType, error) {
 }
 
 func parsePriority(value string) (int, error) {
-	trimmed := strings.ToLower(strings.TrimSpace(value))
+	trimmed := internalstrings.NormalizeLowerTrimSpace(value)
 	if trimmed == "" {
 		return todo.PriorityMedium, nil
 	}
