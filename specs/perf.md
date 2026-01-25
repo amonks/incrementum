@@ -17,12 +17,17 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,691,412 | 872,708 | 6,021 |
-| `BenchmarkReadJSONLFromReader10K` | 17,861,086 | 11,987,941 | 60,029 |
+| `BenchmarkReadJSONLFromReader1K` | 1,784,840 | 1,298,176 | 11,014 |
+| `BenchmarkReadJSONLFromReader10K` | 18,991,273 | 16,229,338 | 110,022 |
 
 ## Improvements log
 
 - 2026-01-25: Replaced streaming JSONL decoding with a buffered line reader to preserve one-object-per-line semantics and enforce the max JSON line size guard deterministically.
+
+## Profiling notes
+
+- 2026-01-25 (BenchmarkReadJSONLFromReader10K): CPU profile dominated by runtime.madvise and scheduler/GC work, suggesting allocations are the primary cost driver.
+- 2026-01-25 (BenchmarkReadJSONLFromReader10K): Heap profile allocations concentrate in readJSONLFromReader/readJSONLLine buffering and encoding/json.Unmarshal.
 
 ## Profiling commands
 
