@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	os.Args = normalizeVersionArgs(os.Args)
 	if err := rootCmd.Execute(); err != nil {
 		var exitErr interface{ ExitCode() int }
 		if errors.As(err, &exitErr) {
@@ -19,6 +20,22 @@ func main() {
 		}
 		os.Exit(1)
 	}
+}
+
+func normalizeVersionArgs(args []string) []string {
+	if len(args) < 2 {
+		return args
+	}
+
+	normalized := make([]string, 0, len(args))
+	normalized = append(normalized, args[0])
+	for _, arg := range args[1:] {
+		if arg == "-version" {
+			arg = "--version"
+		}
+		normalized = append(normalized, arg)
+	}
+	return normalized
 }
 
 var rootCmd = &cobra.Command{
