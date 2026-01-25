@@ -279,28 +279,72 @@ func readJSONL[T any](path string) ([]T, error) {
 
 func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
-	scanner := bufio.NewScanner(reader)
-	scanner.Buffer(make([]byte, 0, 64*1024), maxJSONLineBytes)
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		line := scanner.Bytes()
+	buf := bufio.NewReader(reader)
+	itemIndex := 0
+	for {
+		line, err := readJSONLLine(buf)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+		}
+		if len(line) == 0 && errors.Is(err, io.EOF) {
+			break
+		}
+		line = trimJSONLLineEnding(line)
 		if len(line) == 0 {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			continue
 		}
-
+		if len(line) > maxJSONLineBytes {
+			return nil, fmt.Errorf("decode item %d: exceeds max JSON line size", itemIndex+1)
+		}
 		var item T
 		if err := json.Unmarshal(line, &item); err != nil {
-			return nil, fmt.Errorf("parse line %d: %w", lineNum, err)
+			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
 		}
 		items = append(items, item)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scan file: %w", err)
+		itemIndex++
+		if errors.Is(err, io.EOF) {
+			break
+		}
 	}
 
 	return items, nil
+}
+
+func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
+	var line []byte
+	for {
+		chunk, err := reader.ReadSlice('\n')
+		line = append(line, chunk...)
+		if len(line) > maxJSONLineBytes+2 {
+			return nil, fmt.Errorf("exceeds max JSON line size")
+		}
+		if errors.Is(err, bufio.ErrBufferFull) {
+			continue
+		}
+		if err == nil || errors.Is(err, io.EOF) {
+			if len(line) == 0 && errors.Is(err, io.EOF) {
+				return nil, io.EOF
+			}
+			return line, err
+		}
+		return nil, err
+	}
+}
+
+func trimJSONLLineEnding(line []byte) []byte {
+	if len(line) == 0 {
+		return line
+	}
+	if line[len(line)-1] == '\n' {
+		line = line[:len(line)-1]
+	}
+	if len(line) > 0 && line[len(line)-1] == '\r' {
+		line = line[:len(line)-1]
+	}
+	return line
 }
 
 // writeJSONL writes a slice of items to a JSONL file, overwriting any existing content.

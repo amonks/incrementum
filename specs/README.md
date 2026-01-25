@@ -11,6 +11,10 @@
 - Never mock: tests must exercise real integrations, especially when shelling out to third-party binaries.
 - When you spot unrelated issues, capture them as new todos instead of piggybacking on the current change.
 
+### Performance
+
+- [perf.md](./perf.md) tracks benchmarks, profiling commands, and improvements.
+
 ### CLI Architecture
 
 - The CLI is structured as a single entry point that dispatches subcommands.

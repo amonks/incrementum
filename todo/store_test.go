@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -494,6 +495,43 @@ func TestReadJSONL_Empty(t *testing.T) {
 	}
 	if len(items) != 0 {
 		t.Errorf("expected empty slice, got %d items", len(items))
+	}
+}
+
+func TestReadJSONLFromReader_MaxLineSize(t *testing.T) {
+	line := bytes.Repeat([]byte("a"), maxJSONLineBytes+1)
+	data := append(line, '\n')
+
+	_, err := readJSONLFromReader[Todo](bytes.NewReader(data))
+	if err == nil || !strings.Contains(err.Error(), "exceeds max JSON line size") {
+		t.Fatalf("expected max line size error, got %v", err)
+	}
+}
+
+func TestReadJSONLFromReader_MultilineJSON(t *testing.T) {
+	data := []byte("{\"id\":\"abc12345\",\n\"title\":\"oops\"}\n")
+
+	_, err := readJSONLFromReader[Todo](bytes.NewReader(data))
+	if err == nil {
+		t.Fatalf("expected multiline JSON to return an error")
+	}
+}
+
+func TestReadJSONLFromReader_SkipsBlankLines(t *testing.T) {
+	data := []byte("{\"id\":\"abc12345\",\"title\":\"First\"}\n\n\r\n{\"id\":\"def67890\",\"title\":\"Second\"}\n\n")
+
+	items, err := readJSONLFromReader[Todo](bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(items))
+	}
+	if items[0].ID != "abc12345" {
+		t.Errorf("expected first item ID to be abc12345, got %q", items[0].ID)
+	}
+	if items[1].ID != "def67890" {
+		t.Errorf("expected second item ID to be def67890, got %q", items[1].ID)
 	}
 }
 
