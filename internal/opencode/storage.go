@@ -32,6 +32,8 @@ type LogEntry struct {
 	Text string
 }
 
+const toolOutputIndent = 4
+
 // DefaultRoot returns the default opencode data directory.
 func DefaultRoot() (string, error) {
 	home, err := paths.HomeDir()
@@ -468,7 +470,15 @@ func extractPartText(part partInfo) (string, bool) {
 		if !ok {
 			return "", false
 		}
-		return stringifyOutput(output)
+		stdout, stderr, ok := extractToolOutput(output)
+		if !ok {
+			return "", false
+		}
+		text := formatToolOutput(stdout, stderr)
+		if text == "" {
+			return "", false
+		}
+		return text, true
 	case "reasoning":
 		return "", false
 	default:
@@ -508,6 +518,68 @@ func stringifyOutput(value any) (string, bool) {
 		}
 		return string(data), true
 	}
+}
+
+func extractToolOutput(value any) (string, string, bool) {
+	if value == nil {
+		return "", "", false
+	}
+	switch typed := value.(type) {
+	case map[string]any:
+		stdout, _ := stringifyOutput(typed["stdout"])
+		stderr, _ := stringifyOutput(typed["stderr"])
+		if stdout == "" && stderr == "" {
+			return "", "", false
+		}
+		return stdout, stderr, true
+	case map[string]string:
+		stdout := typed["stdout"]
+		stderr := typed["stderr"]
+		if stdout == "" && stderr == "" {
+			return "", "", false
+		}
+		return stdout, stderr, true
+	default:
+		text, ok := stringifyOutput(value)
+		if !ok {
+			return "", "", false
+		}
+		return text, "", true
+	}
+}
+
+func formatToolOutput(stdout, stderr string) string {
+	sections := make([]string, 0, 2)
+	if section := formatToolOutputSection("Stdout:", stdout); section != "" {
+		sections = append(sections, section)
+	}
+	if section := formatToolOutputSection("Stderr:", stderr); section != "" {
+		sections = append(sections, section)
+	}
+	if len(sections) == 0 {
+		return ""
+	}
+	return strings.Join(sections, "\n") + "\n"
+}
+
+func formatToolOutputSection(label, text string) string {
+	text = strings.TrimRight(text, "\r\n")
+	if strings.TrimSpace(text) == "" {
+		return ""
+	}
+	return label + "\n" + indentToolOutput(text)
+}
+
+func indentToolOutput(text string) string {
+	if toolOutputIndent <= 0 {
+		return text
+	}
+	prefix := strings.Repeat(" ", toolOutputIndent)
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		lines[i] = prefix + line
+	}
+	return strings.Join(lines, "\n")
 }
 
 func decodeJSONFile(path, label string, dest any) error {

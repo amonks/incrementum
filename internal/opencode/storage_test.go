@@ -58,7 +58,10 @@ func TestStorageSessionLogText(t *testing.T) {
 		"type":      "tool",
 		"tool":      "read",
 		"state": map[string]any{
-			"output": "Tool output\n",
+			"output": map[string]any{
+				"stdout": "Tool output\n",
+				"stderr": "Tool error\n",
+			},
 		},
 	})
 	writeJSON(t, filepath.Join(partAssistantDir, "prt_200_text.json"), map[string]any{
@@ -74,7 +77,7 @@ func TestStorageSessionLogText(t *testing.T) {
 		t.Fatalf("read session log: %v", err)
 	}
 
-	expected := "Hello\nTool output\nGoodbye\n"
+	expected := "Hello\nStdout:\n    Tool output\nStderr:\n    Tool error\nGoodbye\n"
 	if logText != expected {
 		t.Fatalf("expected log %q, got %q", expected, logText)
 	}
