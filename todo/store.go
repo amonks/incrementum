@@ -40,6 +40,12 @@ var jsonlReaderPool = sync.Pool{
 	},
 }
 
+var jsonlWriterPool = sync.Pool{
+	New: func() any {
+		return bufio.NewWriterSize(io.Discard, jsonlBufferSize)
+	},
+}
+
 var jsonlLineBufPool = sync.Pool{
 	New: func() any {
 		return make([]byte, 0, jsonlBufferSize)
@@ -463,8 +469,13 @@ func writeJSONLWithWriter(path string, write func(*bufio.Writer) error) error {
 	if err != nil {
 		return fmt.Errorf("create temp file: %w", err)
 	}
+	buffered := jsonlWriterPool.Get().(*bufio.Writer)
+	buffered.Reset(f)
+	defer func() {
+		buffered.Reset(io.Discard)
+		jsonlWriterPool.Put(buffered)
+	}()
 
-	buffered := bufio.NewWriterSize(f, jsonlBufferSize)
 	if err := write(buffered); err != nil {
 		closeErr := f.Close()
 		os.Remove(tmpPath)
