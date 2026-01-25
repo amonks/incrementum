@@ -222,7 +222,12 @@ func TestPool_Acquire_ImmutableRevisionCreatesNewChange(t *testing.T) {
 		t.Fatalf("failed to open pool: %v", err)
 	}
 
-	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: "test purpose", Rev: "main"})
+	message := "staging for todo test"
+	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{
+		Purpose:          "test purpose",
+		Rev:              "main",
+		NewChangeMessage: message,
+	})
 	if err != nil {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}
@@ -237,6 +242,14 @@ func TestPool_Acquire_ImmutableRevisionCreatesNewChange(t *testing.T) {
 	}
 	if currentChangeID == mainChangeID {
 		t.Fatalf("expected change to differ from main, got %q", currentChangeID)
+	}
+
+	description, err := client.DescriptionAt(wsPath, "@")
+	if err != nil {
+		t.Fatalf("get change description: %v", err)
+	}
+	if strings.TrimSpace(description) != message {
+		t.Fatalf("expected change description %q, got %q", message, strings.TrimSpace(description))
 	}
 
 	list, err := pool.List(repoPath)

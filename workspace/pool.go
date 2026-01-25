@@ -87,6 +87,10 @@ type AcquireOptions struct {
 	// Purpose describes why the workspace is being acquired.
 	// It must be a single-line string.
 	Purpose string
+
+	// NewChangeMessage is an optional description to apply when a new change
+	// is created because the requested revision is immutable.
+	NewChangeMessage string
 }
 
 // Acquire obtains a workspace from the pool for the given repository.
@@ -198,7 +202,15 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 			if !strings.Contains(err.Error(), "immutable") {
 				return "", fmt.Errorf("jj edit: %w", err)
 			}
-			newRev, newErr := p.jj.NewChange(wsPath, opts.Rev)
+			var (
+				newRev string
+				newErr error
+			)
+			if strings.TrimSpace(opts.NewChangeMessage) != "" {
+				newRev, newErr = p.jj.NewChangeWithMessage(wsPath, opts.Rev, opts.NewChangeMessage)
+			} else {
+				newRev, newErr = p.jj.NewChange(wsPath, opts.Rev)
+			}
 			if newErr != nil {
 				return "", fmt.Errorf("jj new: %w", newErr)
 			}

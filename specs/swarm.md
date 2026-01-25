@@ -10,10 +10,11 @@ subcommand is a thin wrapper around the public package APIs.
 
 - Each job runs in its own workspace.
 - Before running a job, the server acquires a workspace at `main` (creating a
-  new empty change if `main` is immutable) and runs the job from that workspace
-  path.
+	new empty change if `main` is immutable) and runs the job from that workspace
+	path.
+- When a new change is created for a job, its description is set to `staging for todo <id>`.
 - Jobs run within the server process; client commands only stream events or
-  send control signals.
+	send control signals.
 
 ## RPCs
 

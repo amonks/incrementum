@@ -169,6 +169,21 @@ func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
 	return c.CurrentChangeID(workspacePath)
 }
 
+// NewChangeWithMessage creates a new change with the given parent revision and description.
+// Returns the change ID of the newly created change.
+// Note: This moves the working copy to the new change.
+func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) (string, error) {
+	cmd := exec.Command("jj", "new", parentRev, "--no-edit", "--message", message)
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("jj new: %w: %s", err, output)
+	}
+
+	// Get the change ID of the newly created change (now at @)
+	return c.CurrentChangeID(workspacePath)
+}
+
 // ChangeIDAt returns the change ID at the given revision.
 func (c *Client) ChangeIDAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "change_id", "--no-graph")
