@@ -18,18 +18,19 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,711,229 | 542,002 | 9,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,259,478 | 4,893,643 | 90,003 |
-| `BenchmarkWriteJSONL1K` | 430,689 | 66,984 | 11 |
-| `BenchmarkWriteJSONL10K` | 2,657,208 | 66,984 | 11 |
-| `BenchmarkStoreList1K` | 1,781,271 | 731,377 | 9,013 |
-| `BenchmarkStoreList10K` | 17,954,878 | 6,737,850 | 90,013 |
-| `BenchmarkStoreReady1K` | 2,070,240 | 924,971 | 10,538 |
-| `BenchmarkStoreReady10K` | 20,550,498 | 7,913,660 | 105,056 |
-| `BenchmarkStoreReadyLimit10K` | 20,154,747 | 6,074,435 | 105,066 |
+| `BenchmarkReadJSONLFromReader1K` | 1,702,009 | 542,010 | 9,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,215,309 | 4,893,568 | 90,003 |
+| `BenchmarkWriteJSONL1K` | 445,688 | 66,984 | 11 |
+| `BenchmarkWriteJSONL10K` | 2,625,791 | 66,984 | 11 |
+| `BenchmarkStoreList1K` | 1,777,498 | 731,178 | 9,010 |
+| `BenchmarkStoreList10K` | 17,966,736 | 6,737,552 | 90,010 |
+| `BenchmarkStoreReady1K` | 2,040,286 | 924,539 | 10,532 |
+| `BenchmarkStoreReady10K` | 20,424,173 | 7,913,216 | 105,050 |
+| `BenchmarkStoreReadyLimit10K` | 20,023,906 | 6,074,006 | 105,060 |
 
 ## Improvements log
 
+- 2026-01-25: Reused the locked file descriptor for JSONL reads to avoid extra open/close syscalls during store reads.
 - 2026-01-25: Replaced streaming JSONL decoding with a buffered line reader to preserve one-object-per-line semantics and enforce the max JSON line size guard deterministically.
 - 2026-01-25: Avoided copying when a JSONL line fits in the buffered reader by returning the underlying slice, reducing allocations per line.
 - 2026-01-25: Buffered JSONL writes before renaming the temp file, trimming syscall overhead and improving write throughput.

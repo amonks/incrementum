@@ -243,7 +243,7 @@ func storeFilePath(wsPath, filename string) string {
 
 // withFileLock executes fn while holding an exclusive lock on the file at path.
 // Creates the file if it doesn't exist.
-func withFileLock(path string, fn func() error) error {
+func withFileLock(path string, fn func(*os.File) error) error {
 	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return fmt.Errorf("create parent dir: %w", err)
@@ -262,7 +262,7 @@ func withFileLock(path string, fn func() error) error {
 	}
 	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 
-	return fn()
+	return fn(f)
 }
 
 // readJSONL reads all JSON objects from a JSONL file into a slice.
@@ -595,9 +595,12 @@ func readJSONLStore[T any](store *Store, filename string) ([]T, error) {
 
 	path := storeFilePath(store.wsPath, filename)
 	var items []T
-	err := withFileLock(path, func() error {
+	err := withFileLock(path, func(file *os.File) error {
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			return fmt.Errorf("seek file: %w", err)
+		}
 		var err error
-		items, err = readJSONL[T](path)
+		items, err = readJSONLFromReader[T](file)
 		return err
 	})
 	return items, err
@@ -631,7 +634,7 @@ func writeJSONLStore[T any](store *Store, filename string, items []T) error {
 	}
 
 	path := storeFilePath(store.wsPath, filename)
-	err := withFileLock(path, func() error {
+	err := withFileLock(path, func(*os.File) error {
 		return writeJSONL(path, items)
 	})
 	if err != nil {
