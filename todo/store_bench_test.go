@@ -47,6 +47,14 @@ func BenchmarkStoreReadyLimit10K(b *testing.B) {
 	benchmarkStoreReadyLimit(b, 10000, 10)
 }
 
+func BenchmarkStoreShow1K(b *testing.B) {
+	benchmarkStoreShow(b, 1000)
+}
+
+func BenchmarkStoreShow10K(b *testing.B) {
+	benchmarkStoreShow(b, 10000)
+}
+
 func BenchmarkStoreDepTree1K(b *testing.B) {
 	benchmarkStoreDepTree(b, 1000)
 }
@@ -152,6 +160,23 @@ func benchmarkStoreReadyLimit(b *testing.B, count int, limit int) {
 	for i := 0; i < b.N; i++ {
 		if _, err := store.Ready(limit); err != nil {
 			b.Fatalf("ready todos: %v", err)
+		}
+	}
+}
+
+func benchmarkStoreShow(b *testing.B, count int) {
+	store := newTestStore(b)
+	todos := benchmarkTodos(count)
+	if err := store.writeTodos(todos); err != nil {
+		b.Fatalf("write todos: %v", err)
+	}
+	ids := []string{todos[len(todos)/2].ID}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := store.Show(ids); err != nil {
+			b.Fatalf("show todos: %v", err)
 		}
 	}
 }

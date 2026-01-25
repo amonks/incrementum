@@ -8,7 +8,7 @@
 ## Benchmark setup
 
 - Command (JSONL read/write): `go test ./todo -bench='(ReadJSONLFromReader|WriteJSONL)' -run=^$ -benchmem`
-- Command (store operations): `go test ./todo -bench='Store(DepTree|List|Ready|Update)' -run=^$ -benchmem`
+- Command (store operations): `go test ./todo -bench='Store(DepTree|List|Ready|Show|Update)' -run=^$ -benchmem`
 - Environment: darwin/arm64 (Apple M1 Ultra)
 - Benchmark data: JSONL payload synthesized in-memory by `BenchmarkReadJSONLFromReader*`.
 
@@ -27,6 +27,8 @@
 | `BenchmarkStoreReady1K` | 2,043,116 | 782,049 | 10,532 |
 | `BenchmarkStoreReady10K` | 20,434,423 | 7,760,091 | 105,051 |
 | `BenchmarkStoreReadyLimit10K` | 20,212,256 | 5,841,751 | 105,057 |
+| `BenchmarkStoreShow1K` | 1,776,881 | 535,724 | 9,016 |
+| `BenchmarkStoreShow10K` | 18,067,475 | 5,280,791 | 90,049 |
 | `BenchmarkStoreDepTree1K` | 2,912,435 | 1,310,353 | 18,054 |
 | `BenchmarkStoreDepTree10K` | 30,744,533 | 12,163,537 | 180,237 |
 | `BenchmarkStoreUpdate1K` | 2,272,563 | 487,887 | 9,027 |
@@ -54,6 +56,7 @@
 - 2026-01-25: Reused the todo list/ready in-memory results to compute ID prefix lengths in `ii todo`, eliminating redundant JSONL reads for list/ready output.
 - 2026-01-25: Added dependency tree benchmarks to track `ii todo dep tree` performance at scale.
 - 2026-01-25: Added store update benchmarks to track update/write costs alongside read-heavy list/ready operations.
+- 2026-01-25: Added store show benchmarks to track `ii todo show` costs alongside other read-only commands.
 - 2026-01-25: Reused the JSONL line buffer when assembling oversized lines so multi-chunk reads avoid repeated allocations.
 - 2026-01-25: Preallocated dependency maps and per-node children slices when building dep trees to reduce allocation churn during dep tree queries.
 - 2026-01-25: Preallocated dep-tree dependency slices when grouping dependencies by todo, trimming allocation growth during dep tree traversal.
