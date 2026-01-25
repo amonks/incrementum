@@ -9,4 +9,4 @@ exec $II workspace list --json
 stdout '"Name": "ws-001"'
 stdout '"Status": "acquired"'
 stdout '"Purpose": "list-json"'
-stdout '"Rev": "@"'
+stdout '"Rev": "[0-9a-z]{12,}"'

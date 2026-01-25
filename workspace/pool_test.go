@@ -26,6 +26,23 @@ func setupTestRepo(t *testing.T) string {
 	return tmpDir
 }
 
+func ensureMainBookmark(t *testing.T, repoPath string) {
+	t.Helper()
+	client := jj.New()
+	bookmarks, err := client.BookmarkList(repoPath)
+	if err != nil {
+		t.Fatalf("list bookmarks: %v", err)
+	}
+	for _, bookmark := range bookmarks {
+		if bookmark == "main" {
+			return
+		}
+	}
+	if err := client.BookmarkCreate(repoPath, "main", "@"); err != nil {
+		t.Fatalf("create main bookmark: %v", err)
+	}
+}
+
 func acquireOptions() workspace.AcquireOptions {
 	return workspace.AcquireOptions{Purpose: "test purpose"}
 }
@@ -138,8 +155,9 @@ func TestPool_Acquire_RejectsMultilinePurpose(t *testing.T) {
 	}
 }
 
-func TestPool_Acquire_MissingChangeIDFallsBackToAt(t *testing.T) {
+func TestPool_Acquire_MissingChangeIDFallsBackToMain(t *testing.T) {
 	repoPath := setupTestRepo(t)
+	ensureMainBookmark(t, repoPath)
 	workspacesDir := t.TempDir()
 	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
 	stateDir := t.TempDir()
@@ -160,6 +178,19 @@ func TestPool_Acquire_MissingChangeIDFallsBackToAt(t *testing.T) {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}
 
+	client := jj.New()
+	currentChangeID, err := client.CurrentChangeID(wsPath)
+	if err != nil {
+		t.Fatalf("get current change id: %v", err)
+	}
+	mainChangeID, err := client.ChangeIDAt(wsPath, "main")
+	if err != nil {
+		t.Fatalf("get main change id: %v", err)
+	}
+	if currentChangeID == mainChangeID {
+		t.Fatalf("expected change to differ from main, got %q", currentChangeID)
+	}
+
 	list, err := pool.List(repoPath)
 	if err != nil {
 		t.Fatalf("failed to list workspaces: %v", err)
@@ -167,8 +198,8 @@ func TestPool_Acquire_MissingChangeIDFallsBackToAt(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatalf("expected 1 workspace, got %d", len(list))
 	}
-	if list[0].Rev != "@" {
-		t.Fatalf("expected fallback rev \"@\", got %q", list[0].Rev)
+	if list[0].Rev != currentChangeID {
+		t.Fatalf("expected stored rev %q, got %q", currentChangeID, list[0].Rev)
 	}
 
 	if err := pool.Release(wsPath); err != nil {
@@ -230,27 +261,10 @@ func TestPool_Acquire_ReusesAvailableWorkspace(t *testing.T) {
 
 func TestPool_Acquire_ImmutableRevisionCreatesNewChange(t *testing.T) {
 	repoPath := setupTestRepo(t)
+	ensureMainBookmark(t, repoPath)
 	workspacesDir := t.TempDir()
 	workspacesDir, _ = filepath.EvalSymlinks(workspacesDir)
 	stateDir := t.TempDir()
-
-	client := jj.New()
-	bookmarks, err := client.BookmarkList(repoPath)
-	if err != nil {
-		t.Fatalf("list bookmarks: %v", err)
-	}
-	mainFound := false
-	for _, bookmark := range bookmarks {
-		if bookmark == "main" {
-			mainFound = true
-			break
-		}
-	}
-	if !mainFound {
-		if err := client.BookmarkCreate(repoPath, "main", "@"); err != nil {
-			t.Fatalf("create main bookmark: %v", err)
-		}
-	}
 
 	pool, err := workspace.OpenWithOptions(workspace.Options{
 		StateDir:      stateDir,
@@ -270,6 +284,7 @@ func TestPool_Acquire_ImmutableRevisionCreatesNewChange(t *testing.T) {
 		t.Fatalf("failed to acquire workspace: %v", err)
 	}
 
+	client := jj.New()
 	currentChangeID, err := client.CurrentChangeID(wsPath)
 	if err != nil {
 		t.Fatalf("get current change id: %v", err)

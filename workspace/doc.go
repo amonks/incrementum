@@ -15,7 +15,7 @@
 //	}
 //
 //	wsPath, err := pool.Acquire("/path/to/repo", workspace.AcquireOptions{
-//	    Rev: "@",
+//	    Rev: "main",
 //	    Purpose: "feature work",
 //	})
 //	if err != nil {

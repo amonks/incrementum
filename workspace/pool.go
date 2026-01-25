@@ -81,7 +81,7 @@ func (p *Pool) RepoSlug(repoPath string) (string, error) {
 
 // AcquireOptions configures a workspace acquire operation.
 type AcquireOptions struct {
-	// Rev is the jj revision to check out. Defaults to "@" if empty.
+	// Rev is the jj revision to base a new change on. Defaults to "main" if empty.
 	Rev string
 
 	// Purpose describes why the workspace is being acquired.
@@ -96,8 +96,8 @@ type AcquireOptions struct {
 // Acquire obtains a workspace from the pool for the given repository.
 //
 // If an available workspace exists, it will be reused. Otherwise, a new
-// workspace is created. The workspace is checked out to the specified
-// revision (or @ by default).
+// workspace is created. The workspace is checked out to a new change based on
+// the specified revision (or main by default).
 //
 // The returned path is the root directory of the acquired workspace.
 // Call Release when done to return the workspace to the pool.
@@ -108,7 +108,7 @@ type AcquireOptions struct {
 func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	// Apply defaults
 	if opts.Rev == "" {
-		opts.Rev = "@"
+		opts.Rev = "main"
 	}
 	if strings.TrimSpace(opts.Purpose) == "" {
 		return "", fmt.Errorf("purpose is required")
@@ -195,31 +195,20 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 		}
 	}
 
-	// Edit to the specified revision unless we're already at @.
-	actualRev := opts.Rev
-	if opts.Rev != "@" {
-		if err := p.jj.Edit(wsPath, opts.Rev); err != nil {
-			if !strings.Contains(err.Error(), "immutable") {
-				if isMissingRevisionError(err) && looksLikeChangeID(opts.Rev) {
-					actualRev = "@"
-				} else {
-					return "", fmt.Errorf("jj edit: %w", err)
-				}
-			} else {
-				var (
-					newRev string
-					newErr error
-				)
-				if strings.TrimSpace(opts.NewChangeMessage) != "" {
-					newRev, newErr = p.jj.NewChangeWithMessage(wsPath, opts.Rev, opts.NewChangeMessage)
-				} else {
-					newRev, newErr = p.jj.NewChange(wsPath, opts.Rev)
-				}
-				if newErr != nil {
-					return "", fmt.Errorf("jj new: %w", newErr)
-				}
-				actualRev = newRev
-			}
+	newChange := func(parentRev string) (string, error) {
+		if strings.TrimSpace(opts.NewChangeMessage) != "" {
+			return p.jj.NewChangeWithMessage(wsPath, parentRev, opts.NewChangeMessage)
+		}
+		return p.jj.NewChange(wsPath, parentRev)
+	}
+
+	actualRev, err := newChange(opts.Rev)
+	if err != nil {
+		if isMissingRevisionError(err) && looksLikeChangeID(opts.Rev) {
+			actualRev, err = newChange("main")
+		}
+		if err != nil {
+			return "", fmt.Errorf("jj new: %w", err)
 		}
 	}
 

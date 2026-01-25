@@ -18,14 +18,13 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 
 ## Workspace Lifecycle
 ### Acquire
-- Defaults: `Rev` defaults to `@`.
+- Defaults: `Rev` defaults to `main`.
 - On acquire, the state store does the following under a lock:
   - Reuse the first available workspace for the repo when possible.
   - Otherwise allocate a new `ws-###` name and mark it acquired.
 - If a new workspace is allocated, `jj workspace add` is executed and the workspace directory is created.
-- The workspace is checked out to the requested revision with `jj edit` unless the revision is `@`.
-- If `jj edit` fails because the revision is immutable (for example, a bookmark), the pool creates a new change with the requested revision as the parent and uses that change ID instead.
-- If `jj edit` fails because the revision is missing and looks like a change ID, the workspace stays on its current change and the stored revision is reset to `@`.
+- Once a workspace is selected, a new change is created with `jj new <rev>` to ensure the workspace is always checked out to a fresh change.
+- If the requested revision is missing and looks like a change ID, the pool retries with `main` as the parent.
 - When `NewChangeMessage` is provided, it is used as the description for that newly created change.
 - `incrementum.toml` is loaded from the source repo and the workspace `on-create` hook runs for every acquire (including reuse).
 - A workspace is marked `Provisioned` once the hooks run successfully.
