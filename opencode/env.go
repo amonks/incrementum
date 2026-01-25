@@ -1,7 +1,7 @@
 package opencode
 
-const opencodeTodoProposerEnvVar = "INCREMENTUM_TODO_PROPOSER"
+import "github.com/amonks/incrementum/internal/todoenv"
 
 func ensureTodoProposerEnv(env []string) []string {
-	return replaceEnvVar(env, opencodeTodoProposerEnvVar, "true")
+	return replaceEnvVar(env, todoenv.ProposerEnvVar, "true")
 }

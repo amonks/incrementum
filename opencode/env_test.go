@@ -3,6 +3,8 @@ package opencode
 import (
 	"strings"
 	"testing"
+
+	"github.com/amonks/incrementum/internal/todoenv"
 )
 
 func TestReplaceEnvVarOverridesExisting(t *testing.T) {
@@ -32,11 +34,11 @@ func TestReplaceEnvVarOverridesExisting(t *testing.T) {
 }
 
 func TestEnsureTodoProposerEnvSetsValue(t *testing.T) {
-	env := []string{"PATH=/bin", "INCREMENTUM_TODO_PROPOSER=false"}
+	env := []string{"PATH=/bin", todoenv.ProposerEnvVar + "=false"}
 
 	updated := ensureTodoProposerEnv(env)
 
-	if !containsEnv(updated, "INCREMENTUM_TODO_PROPOSER=true") {
+	if !containsEnv(updated, todoenv.ProposerEnvVar+"=true") {
 		t.Fatalf("expected proposer env to be true, got %v", updated)
 	}
 }

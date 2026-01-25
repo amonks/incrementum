@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/amonks/incrementum/internal/todoenv"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 )
@@ -676,13 +676,8 @@ func todoRedirectPath(todoID string) string {
 }
 
 func defaultTodoStatus() todo.Status {
-	if strings.EqualFold(os.Getenv(todoProposerEnvVar), "true") {
-		return todo.StatusProposed
-	}
-	return todo.StatusOpen
+	return todoenv.DefaultStatus()
 }
-
-const todoProposerEnvVar = "INCREMENTUM_TODO_PROPOSER"
 
 func writeMethodNotAllowed(w http.ResponseWriter, allow string) {
 	w.Header().Set("Allow", allow)
