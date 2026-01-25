@@ -15,9 +15,8 @@ trace and returns a 500 error instead of crashing.
 ## Job Orchestration
 
 - Each job runs in its own workspace.
-- Before running a job, the server acquires a workspace at `main` (creating a
-  new empty change if `main` is immutable) and runs the job from that workspace
-  path.
+- Before running a job, the server acquires a workspace at `main`, creates a
+  fresh change based on that revision, and runs the job from the workspace path.
 - When a new change is created for a job, its description is set to `staging for todo <id>`.
 - Jobs run within the server process; client commands only stream events or
   send control signals.
