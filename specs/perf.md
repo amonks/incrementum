@@ -18,15 +18,15 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,724,306 | 734,003 | 10,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,462,085 | 6,813,650 | 100,003 |
-| `BenchmarkWriteJSONL1K` | 888,601 | 355,089 | 3,010 |
-| `BenchmarkWriteJSONL10K` | 7,580,939 | 2,952,781 | 30,019 |
-| `BenchmarkStoreList1K` | 1,805,846 | 923,378 | 10,013 |
-| `BenchmarkStoreList10K` | 18,694,019 | 8,657,851 | 100,013 |
-| `BenchmarkStoreReady1K` | 2,086,309 | 1,132,969 | 11,788 |
-| `BenchmarkStoreReady10K` | 20,781,276 | 9,993,677 | 117,556 |
-| `BenchmarkStoreReadyLimit10K` | 20,610,129 | 8,154,460 | 117,566 |
+| `BenchmarkReadJSONLFromReader1K` | 1,716,795 | 734,012 | 10,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,674,812 | 6,813,567 | 100,003 |
+| `BenchmarkWriteJSONL1K` | 851,608 | 355,051 | 3,010 |
+| `BenchmarkWriteJSONL10K` | 7,062,596 | 2,952,813 | 30,019 |
+| `BenchmarkStoreList1K` | 1,811,208 | 923,378 | 10,013 |
+| `BenchmarkStoreList10K` | 18,459,703 | 8,657,771 | 100,013 |
+| `BenchmarkStoreReady1K` | 2,202,771 | 1,132,937 | 11,788 |
+| `BenchmarkStoreReady10K` | 20,773,313 | 9,993,702 | 117,556 |
+| `BenchmarkStoreReadyLimit10K` | 20,571,470 | 8,154,462 | 117,566 |
 
 ## Improvements log
 
@@ -43,6 +43,7 @@
 - 2026-01-25: Disabled HTML escaping in JSONL writes to shave overhead from JSON encoding while preserving valid output.
 - 2026-01-25: Resolve dependency blocker statuses by the dependency ID set instead of mapping every todo, cutting Ready bytes/op by avoiding a full todo lookup map.
 - 2026-01-25: Switched JSONL line reads to bufio.ReadLine to avoid extra newline handling work while keeping the max line size guard intact.
+- 2026-01-25: Dropped redundant JSONL line-ending trimming now that bufio.ReadLine already strips terminators, reducing per-line work during JSONL reads.
 
 ## Profiling notes
 

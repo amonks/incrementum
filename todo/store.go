@@ -291,7 +291,6 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 		if len(line) == 0 && errors.Is(err, io.EOF) {
 			break
 		}
-		line = trimJSONLLineEnding(line)
 		if len(line) == 0 {
 			if errors.Is(err, io.EOF) {
 				break
@@ -387,19 +386,6 @@ func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
 			return line, err
 		}
 	}
-}
-
-func trimJSONLLineEnding(line []byte) []byte {
-	if len(line) == 0 {
-		return line
-	}
-	if line[len(line)-1] == '\n' {
-		line = line[:len(line)-1]
-	}
-	if len(line) > 0 && line[len(line)-1] == '\r' {
-		line = line[:len(line)-1]
-	}
-	return line
 }
 
 // writeJSONL writes a slice of items to a JSONL file, overwriting any existing content.
