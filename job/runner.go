@@ -148,7 +148,7 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, errors.Join(err, reopenErr)
 	}
 
-	created, err := manager.Create(item.ID, startedAt)
+	created, err := manager.Create(item.ID, startedAt, opts.OpencodeAgent)
 	if err != nil {
 		reopenErr := reopenTodo(repoPath, item.ID)
 		return result, errors.Join(err, reopenErr)

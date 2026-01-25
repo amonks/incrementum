@@ -50,6 +50,7 @@ Fields (JSON keys):
 - `id`: 8-character job id (hash of todo_id + timestamp).
 - `repo`: repo slug.
 - `todo_id`: full resolved todo id.
+- `agent`: opencode agent name (empty string when unset).
 - `stage`: `implementing`, `testing`, `reviewing`, `committing`.
 - `feedback`: feedback from last failed stage (test results table or review
   feedback).

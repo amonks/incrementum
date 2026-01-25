@@ -37,7 +37,7 @@ func Open(repoPath string, opts OpenOptions) (*Manager, error) {
 }
 
 // Create stores a new job with active status and implementing stage.
-func (m *Manager) Create(todoID string, startedAt time.Time) (Job, error) {
+func (m *Manager) Create(todoID string, startedAt time.Time, agent string) (Job, error) {
 	if strings.TrimSpace(todoID) == "" {
 		return Job{}, fmt.Errorf("todo id is required")
 	}
@@ -52,6 +52,7 @@ func (m *Manager) Create(todoID string, startedAt time.Time) (Job, error) {
 		ID:        jobID,
 		Repo:      repoName,
 		TodoID:    todoID,
+		Agent:     strings.TrimSpace(agent),
 		Stage:     StageImplementing,
 		Status:    StatusActive,
 		CreatedAt: startedAt,

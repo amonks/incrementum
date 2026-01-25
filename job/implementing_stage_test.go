@@ -20,7 +20,7 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 	}
 
 	now := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
-	current, err := manager.Create("todo-1", now)
+	current, err := manager.Create("todo-1", now, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}

@@ -55,7 +55,7 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 11, 0, 0, 0, time.UTC)
-	created, err := manager.Create("todo-789", startedAt)
+	created, err := manager.Create("todo-789", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *tes
 	}
 
 	startedAt := time.Date(2026, 1, 12, 11, 10, 0, 0, time.UTC)
-	created, err := manager.Create("todo-111", startedAt)
+	created, err := manager.Create("todo-111", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestRunImplementingStageIncludesCommitLog(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 11, 20, 0, 0, time.UTC)
-	created, err := manager.Create("todo-212", startedAt)
+	created, err := manager.Create("todo-212", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -246,7 +246,7 @@ func TestRunReviewingStagePassesCommitMessage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 11, 30, 0, 0, time.UTC)
-	created, err := manager.Create("todo-456", startedAt)
+	created, err := manager.Create("todo-456", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -307,7 +307,7 @@ func TestRunReviewingStageReadsCommitMessageFile(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 30, 0, 0, time.UTC)
-	created, err := manager.Create("todo-987", startedAt)
+	created, err := manager.Create("todo-987", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -368,7 +368,7 @@ func TestRunReviewingStageMissingCommitMessageExplainsContext(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 40, 0, 0, time.UTC)
-	current, err := manager.Create("todo-123", startedAt)
+	current, err := manager.Create("todo-123", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -436,7 +436,7 @@ func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) 
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 45, 0, 0, time.UTC)
-	created, err := manager.Create("todo-654", startedAt)
+	created, err := manager.Create("todo-654", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -492,7 +492,7 @@ func TestRunCommittingStageFormatsCommitMessage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 13, 0, 0, 0, time.UTC)
-	current, err := manager.Create("todo-333", startedAt)
+	current, err := manager.Create("todo-333", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -575,7 +575,7 @@ func TestRunCommittingStageLogsFormattedCommitMessage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 13, 5, 0, 0, time.UTC)
-	current, err := manager.Create("todo-commit-log", startedAt)
+	current, err := manager.Create("todo-commit-log", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -670,7 +670,7 @@ func TestRunCommittingStageOmitsCommitLog(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 13, 10, 0, 0, time.UTC)
-	current, err := manager.Create("todo-commit-log-template", startedAt)
+	current, err := manager.Create("todo-commit-log-template", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -736,7 +736,7 @@ func TestRunCommittingStageOmitsEmptyCommitLog(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 13, 12, 0, 0, time.UTC)
-	current, err := manager.Create("todo-empty-commit-log", startedAt)
+	current, err := manager.Create("todo-empty-commit-log", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -802,7 +802,7 @@ func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 13, 15, 0, 0, time.UTC)
-	current, err := manager.Create("todo-commit-log", startedAt)
+	current, err := manager.Create("todo-commit-log", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}

@@ -225,7 +225,7 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 0, 0, 0, time.UTC)
-	current, err := manager.Create("todo-logger", startedAt)
+	current, err := manager.Create("todo-logger", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -305,7 +305,7 @@ func TestRunImplementingStageUsesFeedbackPrompt(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 10, 0, 0, time.UTC)
-	current, err := manager.Create("todo-feedback", startedAt)
+	current, err := manager.Create("todo-feedback", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -372,7 +372,7 @@ func TestRunImplementingStageRecordsEventLog(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 20, 0, 0, time.UTC)
-	current, err := manager.Create("todo-events", startedAt)
+	current, err := manager.Create("todo-events", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -479,7 +479,7 @@ func TestRunReviewingStageLogsFeedback(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 30, 0, 0, time.UTC)
-	current, err := manager.Create("todo-review-log", startedAt)
+	current, err := manager.Create("todo-review-log", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -548,7 +548,7 @@ func TestRunTestingStageLogsResults(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 12, 45, 0, 0, time.UTC)
-	current, err := manager.Create("todo-test-log", startedAt)
+	current, err := manager.Create("todo-test-log", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -594,7 +594,7 @@ func TestRunCommittingStageLogsFinalMessage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 12, 13, 0, 0, 0, time.UTC)
-	current, err := manager.Create("todo-commit-log", startedAt)
+	current, err := manager.Create("todo-commit-log", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}

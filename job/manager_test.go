@@ -17,7 +17,7 @@ func TestManager_CreateAndFind(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 4, 10, 8, 30, 0, 0, time.UTC)
-	created, err := manager.Create("todo-123", startedAt)
+	created, err := manager.Create("todo-123", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestManager_Update(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 6, 1, 9, 30, 0, 0, time.UTC)
-	created, err := manager.Create("todo-456", startedAt)
+	created, err := manager.Create("todo-456", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -276,7 +276,7 @@ func TestManager_Update_InvalidStage(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 6, 2, 11, 0, 0, 0, time.UTC)
-	created, err := manager.Create("todo-789", startedAt)
+	created, err := manager.Create("todo-789", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -300,7 +300,7 @@ func TestManager_Update_InvalidStatus(t *testing.T) {
 	}
 
 	startedAt := time.Date(2025, 6, 2, 12, 0, 0, 0, time.UTC)
-	created, err := manager.Create("todo-790", startedAt)
+	created, err := manager.Create("todo-790", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}

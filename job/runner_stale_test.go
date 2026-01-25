@@ -21,7 +21,7 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 10, 9, 0, 0, 0, time.UTC)
-	created, err := manager.Create("todo-123", startedAt)
+	created, err := manager.Create("todo-123", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestRunReviewingStageUpdatesStaleWorkspace(t *testing.T) {
 	}
 
 	startedAt := time.Date(2026, 1, 11, 10, 0, 0, 0, time.UTC)
-	created, err := manager.Create("todo-456", startedAt)
+	created, err := manager.Create("todo-456", startedAt, "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
