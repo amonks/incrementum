@@ -190,6 +190,8 @@ library.
 - The left pane lists items; the right pane shows details for the selected item.
 - The list selection is controlled by a query parameter (`/web/todos?id=...`,
   `/web/jobs?id=...`) and defaults to the first item.
+- The todos view supports `?create=1` to show a blank detail form without
+  selecting an existing todo.
 - The detail pane uses HTML forms for editing or triggering actions.
 - The UI uses minimal CSS included in the HTML template; no external assets or
   JavaScript are required.
@@ -204,6 +206,19 @@ library.
   `POST /todos/create`, existing todos call `POST /todos/update`.
 - A "Start job" action confirms intent and calls `POST /do`.
 
+#### Todo Detail Forms
+
+- Editable fields are submitted with the same names as the todo JSON keys.
+- `status`, `priority`, and `type` are rendered as `<select>` inputs with the
+  same allowed values as the todo store.
+- `description` is rendered as a multi-line `<textarea>`.
+- Read-only fields render as plain text and are omitted from submissions.
+- The create form defaults to the same values as `todo create`.
+- Form submissions redirect back to `/web/todos` with the selected todo id (or
+  `?create=1` when creation fails).
+- Errors returned from the RPCs render an inline error message in the detail
+  pane and preserve any user-entered field values.
+
 ### Jobs View
 
 - The list pane shows jobs from `POST /list` (active by default).
@@ -211,3 +226,4 @@ library.
   `ii swarm logs`.
 - Active jobs show a "Refresh" action that re-fetches events via `POST /logs`.
 - A "Kill job" action interrupts the job via `POST /kill`.
+- Job form actions redirect back to `/web/jobs` with the selected job id.
