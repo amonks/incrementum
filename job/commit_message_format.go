@@ -24,7 +24,7 @@ func formatCommitMessageWithWidth(item todo.Todo, message string, width int) str
 
 	formatted += "\n\nThis commit is a step towards implementing this todo:\n\n"
 	formatted += formatCommitTodoWithWidth(item, width)
-	return formatted
+	return normalizeFormattedCommitMessage(formatted)
 }
 
 func splitCommitMessage(message string) (string, string) {

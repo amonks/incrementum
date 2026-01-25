@@ -20,6 +20,22 @@ func normalizeCommitMessage(message string) string {
 	return trimLeadingBlankLines(message)
 }
 
+func normalizeFormattedCommitMessage(message string) string {
+	message = normalizeCommitMessage(message)
+	if message == "" {
+		return ""
+	}
+	lines := strings.Split(message, "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		lines[i] = strings.TrimLeftFunc(line, unicode.IsSpace)
+		break
+	}
+	return normalizeCommitMessage(strings.Join(lines, "\n"))
+}
+
 func trimLeadingBlankLines(message string) string {
 	lines := strings.Split(message, "\n")
 	start := 0

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/amonks/incrementum/todo"
 )
@@ -111,6 +112,29 @@ func TestFormatCommitMessage(t *testing.T) {
 		if !strings.Contains(formatted, check) {
 			t.Fatalf("expected commit message to include %q, got %q", check, formatted)
 		}
+	}
+}
+
+func TestFormatCommitMessageNormalizesOutput(t *testing.T) {
+	item := todo.Todo{
+		ID:          "todo-909",
+		Title:       "Normalize commit output",
+		Description: "Ensure formatted commit output trims leading whitespace.",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityLow,
+	}
+	message := "\n\nfeat: add widgets    \n\nBody line\t\n"
+
+	formatted := formatCommitMessage(item, message)
+	lines := strings.Split(formatted, "\n")
+	if len(lines) == 0 {
+		t.Fatal("expected formatted commit message")
+	}
+	if lines[0] != "feat: add widgets" {
+		t.Fatalf("expected normalized summary, got %q", lines[0])
+	}
+	if strings.TrimRightFunc(lines[0], unicode.IsSpace) != lines[0] {
+		t.Fatalf("expected summary to have no trailing whitespace, got %q", lines[0])
 	}
 }
 
