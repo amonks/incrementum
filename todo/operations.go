@@ -567,20 +567,27 @@ func (s *Store) readyWithTodos(limit int) ([]Todo, []Todo, error) {
 	// Build a set of todos that have open blockers.
 	var blocked map[string]struct{}
 	if len(deps) > 0 {
-		blockerIDs := make(map[string]struct{}, len(deps))
+		const (
+			blockerUnknown uint8 = iota
+			blockerResolved
+			blockerUnresolved
+		)
+		blockerStatus := make(map[string]uint8, len(deps))
 		for _, dep := range deps {
-			blockerIDs[dep.DependsOnID] = struct{}{}
+			blockerStatus[dep.DependsOnID] = blockerUnknown
 		}
-		blockerStatus := make(map[string]bool, len(blockerIDs))
 		for _, todo := range todos {
-			if _, ok := blockerIDs[todo.ID]; ok {
-				blockerStatus[todo.ID] = todo.Status.IsResolved()
+			if _, ok := blockerStatus[todo.ID]; ok {
+				if todo.Status.IsResolved() {
+					blockerStatus[todo.ID] = blockerResolved
+				} else {
+					blockerStatus[todo.ID] = blockerUnresolved
+				}
 			}
 		}
 		blocked = make(map[string]struct{}, len(deps))
 		for _, dep := range deps {
-			resolved, ok := blockerStatus[dep.DependsOnID]
-			if ok && !resolved {
+			if blockerStatus[dep.DependsOnID] == blockerUnresolved {
 				blocked[dep.TodoID] = struct{}{}
 			}
 		}

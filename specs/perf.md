@@ -18,19 +18,19 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,724,515 | 477,589 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,434,692 | 4,835,493 | 90,008 |
-| `BenchmarkWriteJSONL1K` | 507,855 | 1,400 | 9 |
-| `BenchmarkWriteJSONL10K` | 3,561,136 | 1,783 | 9 |
-| `BenchmarkStoreList1K` | 1,786,709 | 667,004 | 9,011 |
-| `BenchmarkStoreList10K` | 18,206,682 | 6,679,561 | 90,015 |
-| `BenchmarkStoreReady1K` | 2,125,725 | 795,895 | 10,535 |
-| `BenchmarkStoreReady10K` | 20,738,438 | 7,861,391 | 105,061 |
-| `BenchmarkStoreReadyLimit10K` | 20,092,114 | 5,950,838 | 105,066 |
-| `BenchmarkStoreDepTree1K` | 2,899,375 | 1,396,549 | 18,062 |
-| `BenchmarkStoreDepTree10K` | 30,623,762 | 12,915,210 | 180,273 |
-| `BenchmarkStoreUpdate1K` | 2,283,789 | 576,976 | 9,035 |
-| `BenchmarkStoreUpdate10K` | 20,870,533 | 5,693,163 | 90,071 |
+| `BenchmarkReadJSONLFromReader1K` | 1,689,516 | 477,386 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,133,303 | 4,835,432 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 453,359 | 1,433 | 9 |
+| `BenchmarkWriteJSONL10K` | 2,933,152 | 1,539 | 9 |
+| `BenchmarkStoreList1K` | 1,758,127 | 666,799 | 9,011 |
+| `BenchmarkStoreList10K` | 17,875,307 | 6,692,570 | 90,016 |
+| `BenchmarkStoreReady1K` | 2,010,735 | 781,801 | 10,532 |
+| `BenchmarkStoreReady10K` | 20,258,104 | 7,752,799 | 105,051 |
+| `BenchmarkStoreReadyLimit10K` | 19,972,055 | 5,841,618 | 105,057 |
+| `BenchmarkStoreDepTree1K` | 2,915,522 | 1,395,553 | 18,062 |
+| `BenchmarkStoreDepTree10K` | 30,694,543 | 12,920,111 | 180,273 |
+| `BenchmarkStoreUpdate1K` | 2,251,158 | 577,481 | 9,035 |
+| `BenchmarkStoreUpdate10K` | 21,169,406 | 5,694,677 | 90,071 |
 
 ## Improvements log
 
@@ -63,6 +63,7 @@
 - 2026-01-25: Reused normalized todo IDs for prefix length and prefix matching to avoid lowercasing work when resolving IDs.
 - 2026-01-25: Avoided lowercasing already-normalized IDs in `ids.NormalizeUniqueIDs` to reduce allocations when building ID indexes.
 - 2026-01-25: Compute unique prefix lengths by sorting IDs and comparing neighbors to avoid quadratic scans when rendering todo ID prefixes.
+- 2026-01-25: Track blocker resolution states in a single map for Ready to reduce map allocations while keeping missing blockers non-blocking.
 
 ## Profiling notes
 
