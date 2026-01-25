@@ -29,8 +29,8 @@
 | `BenchmarkStoreReadyLimit10K` | 20,111,254 | 5,841,620 | 105,057 |
 | `BenchmarkStoreDepTree1K` | 2,913,114 | 1,277,720 | 18,066 |
 | `BenchmarkStoreDepTree10K` | 30,887,001 | 12,140,715 | 180,253 |
-| `BenchmarkStoreUpdate1K` | 2,302,117 | 691,901 | 9,052 |
-| `BenchmarkStoreUpdate10K` | 21,675,642 | 6,122,914 | 90,114 |
+| `BenchmarkStoreUpdate1K` | 2,387,997 | 627,045 | 9,050 |
+| `BenchmarkStoreUpdate10K` | 21,965,495 | 6,109,662 | 90,117 |
 
 ## Improvements log
 
@@ -73,6 +73,8 @@
 - 2026-01-25 (BenchmarkWriteJSONL10K): Heap allocations mainly come from the buffered writer setup and benchmark data generation, with no per-item JSON encoding allocations showing up in the profile.
 - 2026-01-25 (BenchmarkStoreDepTree10K): CPU profile still dominated by syscall.syscall and runtime.madvise, with JSON decoding work next, so dependency tree queries remain file I/O bound.
 - 2026-01-25 (BenchmarkStoreDepTree10K): Heap allocations are led by JSONL reads and encoding/json.Unmarshal, with buildDepTree and ID normalization contributing the next largest shares.
+- 2026-01-25 (BenchmarkStoreUpdate10K): CPU profile dominated by syscall.syscall and runtime.madvise, with JSON decoding work next, indicating update costs are still bound by file I/O.
+- 2026-01-25 (BenchmarkStoreUpdate10K): Heap allocations concentrate in JSONL reads, encoding/json.Unmarshal, and ID normalization/index building, with buffered writer setup also contributing.
 
 ## Profiling commands
 
@@ -88,4 +90,6 @@
 - Heap profile (write JSONL): `go test ./todo -bench=WriteJSONL10K -run=^$ -benchmem -memprofile /tmp/ii-todo-write-jsonl.mem.pprof`
 - CPU profile (store dep tree): `go test ./todo -bench=StoreDepTree10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-store-deptree.pprof`
 - Heap profile (store dep tree): `go test ./todo -bench=StoreDepTree10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-deptree.mem.pprof`
+- CPU profile (store update): `go test ./todo -bench=StoreUpdate10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-store-update.pprof`
+- Heap profile (store update): `go test ./todo -bench=StoreUpdate10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-update.mem.pprof`
 - Explore: `go tool pprof -http :0 /tmp/ii-todo-read-jsonl.pprof`
