@@ -42,6 +42,7 @@ type EventLog struct {
 	path    string
 	file    *os.File
 	encoder *json.Encoder
+	stream  chan<- Event
 	mu      sync.Mutex
 }
 
@@ -61,6 +62,16 @@ func OpenEventLog(jobID string, opts EventLogOptions) (*EventLog, error) {
 	return &EventLog{path: path, file: file, encoder: json.NewEncoder(file)}, nil
 }
 
+// SetStream attaches an event channel for streaming events.
+func (log *EventLog) SetStream(stream chan<- Event) {
+	if log == nil {
+		return
+	}
+	log.mu.Lock()
+	defer log.mu.Unlock()
+	log.stream = stream
+}
+
 // Append writes a new event to the log.
 func (log *EventLog) Append(event Event) error {
 	if log == nil {
@@ -71,7 +82,13 @@ func (log *EventLog) Append(event Event) error {
 	if log.encoder == nil {
 		return fmt.Errorf("job event log is closed")
 	}
-	return log.encoder.Encode(event)
+	if err := log.encoder.Encode(event); err != nil {
+		return err
+	}
+	if log.stream != nil {
+		log.stream <- event
+	}
+	return nil
 }
 
 // Close flushes and closes the event log.

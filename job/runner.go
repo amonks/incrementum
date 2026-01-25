@@ -28,6 +28,9 @@ var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.Message[^}]*\}\}`)
 type RunOptions struct {
 	OnStart       func(StartInfo)
 	OnStageChange func(Stage)
+	// EventStream receives job events as they are recorded. The channel is closed
+	// when Run completes.
+	EventStream chan<- Event
 	// WorkspacePath is the path to run the job from.
 	// Defaults to repoPath when empty.
 	WorkspacePath string
@@ -89,6 +92,9 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	}
 
 	opts = normalizeRunOptions(opts)
+	if opts.EventStream != nil {
+		defer close(opts.EventStream)
+	}
 	result := &RunResult{}
 	repoPath = filepath.Clean(repoPath)
 	if abs, absErr := filepath.Abs(repoPath); absErr == nil {
@@ -171,6 +177,9 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		defer func() {
 			_ = opts.EventLog.Close()
 		}()
+	}
+	if opts.EventStream != nil {
+		opts.EventLog.SetStream(opts.EventStream)
 	}
 	if err := appendJobEvent(opts.EventLog, jobEventStage, stageEventData{Stage: created.Stage}); err != nil {
 		status := StatusFailed

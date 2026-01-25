@@ -71,6 +71,39 @@ func TestEventSnapshotReadsEvents(t *testing.T) {
 	}
 }
 
+func TestEventLogStreamsEvents(t *testing.T) {
+	eventsDir := t.TempDir()
+	log, err := OpenEventLog("job-stream", EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("open event log: %v", err)
+	}
+	stream := make(chan Event, 2)
+	log.SetStream(stream)
+
+	first := Event{Name: "job.stage", Data: "{\"stage\":\"implementing\"}"}
+	second := Event{ID: "2", Name: "job.prompt", Data: "prompt"}
+	if err := log.Append(first); err != nil {
+		_ = log.Close()
+		t.Fatalf("append event: %v", err)
+	}
+	if err := log.Append(second); err != nil {
+		_ = log.Close()
+		t.Fatalf("append event: %v", err)
+	}
+	if err := log.Close(); err != nil {
+		t.Fatalf("close event log: %v", err)
+	}
+
+	gotFirst := <-stream
+	gotSecond := <-stream
+	if gotFirst != first {
+		t.Fatalf("unexpected first stream event: %#v", gotFirst)
+	}
+	if gotSecond != second {
+		t.Fatalf("unexpected second stream event: %#v", gotSecond)
+	}
+}
+
 func TestEventSnapshotMissingFileReturnsEmpty(t *testing.T) {
 	eventsDir := t.TempDir()
 	events, err := EventSnapshot("missing-log", EventLogOptions{EventsDir: eventsDir})

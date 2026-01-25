@@ -10,6 +10,10 @@ continues until opencode makes no changes, then the job runs tests and a final
 project review before completing. Jobs retry on test failure or review rejection
 until opencode decides to abandon.
 
+Jobs emit a merged stream of opencode and job events to the JSONL event log and
+optionally to a caller-provided Go channel via `RunOptions.EventStream`, which
+is closed when the run completes.
+
 Jobs can optionally run from a separate workspace path (used by swarm
 orchestration). When unspecified, jobs run from the repo root.
 
