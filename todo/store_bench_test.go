@@ -55,6 +55,14 @@ func BenchmarkStoreDepTree10K(b *testing.B) {
 	benchmarkStoreDepTree(b, 10000)
 }
 
+func BenchmarkStoreUpdate1K(b *testing.B) {
+	benchmarkStoreUpdate(b, 1000)
+}
+
+func BenchmarkStoreUpdate10K(b *testing.B) {
+	benchmarkStoreUpdate(b, 10000)
+}
+
 func benchmarkReadJSONLFromReader(b *testing.B, count int) {
 	todos := benchmarkTodos(count)
 
@@ -165,6 +173,25 @@ func benchmarkStoreDepTree(b *testing.B, count int) {
 	for i := 0; i < b.N; i++ {
 		if _, err := store.DepTree(rootID); err != nil {
 			b.Fatalf("dep tree: %v", err)
+		}
+	}
+}
+
+func benchmarkStoreUpdate(b *testing.B, count int) {
+	store := newTestStore(b)
+	todos := benchmarkTodos(count)
+	if err := store.writeTodos(todos); err != nil {
+		b.Fatalf("write todos: %v", err)
+	}
+	ids := []string{todos[0].ID}
+	updatedDescription := "Updated by benchmark"
+	opts := UpdateOptions{Description: &updatedDescription}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := store.Update(ids, opts); err != nil {
+			b.Fatalf("update todos: %v", err)
 		}
 	}
 }
