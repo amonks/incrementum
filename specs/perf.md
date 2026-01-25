@@ -53,6 +53,7 @@
 - 2026-01-25: Reused the todo list/ready in-memory results to compute ID prefix lengths in `ii todo`, eliminating redundant JSONL reads for list/ready output.
 - 2026-01-25: Added dependency tree benchmarks to track `ii todo dep tree` performance at scale.
 - 2026-01-25: Reused the JSONL line buffer when assembling oversized lines so multi-chunk reads avoid repeated allocations.
+- 2026-01-25: Preallocated dependency maps and per-node children slices when building dep trees to reduce allocation churn during dep tree queries.
 
 ## Profiling notes
 

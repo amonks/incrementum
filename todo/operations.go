@@ -695,7 +695,7 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 	todoMap := todoMapByID(todos)
 
 	// Group dependencies by todo ID
-	depsByTodo := make(map[string][]Dependency)
+	depsByTodo := make(map[string][]Dependency, len(deps))
 	for _, d := range deps {
 		depsByTodo[d.TodoID] = append(depsByTodo[d.TodoID], d)
 	}
@@ -722,7 +722,8 @@ func buildDepTree(todo *Todo, depsByTodo map[string][]Dependency, todoMap map[st
 	defer delete(path, todo.ID)
 
 	node := &DepTreeNode{
-		Todo: todo,
+		Todo:     todo,
+		Children: make([]*DepTreeNode, 0, len(depsByTodo[todo.ID])),
 	}
 
 	for _, dep := range depsByTodo[todo.ID] {
