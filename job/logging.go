@@ -182,22 +182,7 @@ func formatLogBody(body string, indent int, wrap bool) string {
 }
 
 func formatCommitMessageBody(body string, indent int, preformatted bool) string {
-	body = strings.TrimRight(body, "\r\n")
-	if strings.TrimSpace(body) == "" {
-		return IndentBlock("-", indent)
-	}
-	width := lineWidth - indent
-	if width < 1 {
-		width = 1
-	}
-	if preformatted {
-		body = preserveMarkdownLineBreaks(body)
-	}
-	rendered := RenderMarkdown(body, width)
-	if strings.TrimSpace(rendered) == "" {
-		return IndentBlock("-", indent)
-	}
-	return IndentBlock(rendered, indent)
+	return formatMarkdownBlock(body, indent, preformatted)
 }
 
 func preserveMarkdownLineBreaks(value string) string {
@@ -212,6 +197,10 @@ func preserveMarkdownLineBreaks(value string) string {
 }
 
 func formatMarkdownBody(body string, indent int) string {
+	return formatMarkdownBlock(body, indent, false)
+}
+
+func formatMarkdownBlock(body string, indent int, preformatted bool) string {
 	body = strings.TrimRight(body, "\r\n")
 	if strings.TrimSpace(body) == "" {
 		return IndentBlock("-", indent)
@@ -219,6 +208,9 @@ func formatMarkdownBody(body string, indent int) string {
 	width := lineWidth - indent
 	if width < 1 {
 		width = 1
+	}
+	if preformatted {
+		body = preserveMarkdownLineBreaks(body)
 	}
 	rendered := RenderMarkdown(body, width)
 	if strings.TrimSpace(rendered) == "" {
