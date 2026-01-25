@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
+	jobpkg "github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -29,6 +31,23 @@ func printTodoDetail(t todo.Todo, highlight func(string) string) {
 	}
 
 	if t.Description != "" {
-		fmt.Printf("\nDescription:\n%s\n", t.Description)
+		fmt.Printf("\nDescription:\n%s\n", formatTodoDescription(t.Description))
 	}
+}
+
+const todoDetailLineWidth = 80
+
+func formatTodoDescription(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "-"
+	}
+	width := todoDetailLineWidth
+	if width < 1 {
+		width = 1
+	}
+	formatted := jobpkg.RenderMarkdown(value, width)
+	if strings.TrimSpace(formatted) == "" {
+		return "-"
+	}
+	return formatted
 }

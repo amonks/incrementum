@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -255,6 +256,37 @@ func TestPrintTodoDetailIncludesDeleteMetadata(t *testing.T) {
 	}
 	if !strings.Contains(output, "Delete Reason: no longer needed") {
 		t.Fatalf("expected delete reason in output, got: %q", output)
+	}
+}
+
+func TestPrintTodoDetailRendersMarkdownDescription(t *testing.T) {
+	item := todo.Todo{
+		ID:          "abc12345",
+		Title:       "Rendered",
+		Type:        todo.TypeTask,
+		Status:      todo.StatusOpen,
+		Priority:    todo.PriorityLow,
+		CreatedAt:   time.Date(2026, 1, 1, 1, 2, 3, 0, time.UTC),
+		UpdatedAt:   time.Date(2026, 1, 1, 2, 3, 4, 0, time.UTC),
+		Description: "Checklist:\n\n- First item\n- Second item\n\n```bash\necho first\necho second\n```",
+	}
+
+	output := captureStdout(t, func() {
+		printTodoDetail(item, func(id string) string { return id })
+	})
+
+	checks := []*regexp.Regexp{
+		regexp.MustCompile(`(?m)^Description:$`),
+		regexp.MustCompile(`(?m)^Checklist:$`),
+		regexp.MustCompile(`(?m)^\s*- First item$`),
+		regexp.MustCompile(`(?m)^\s*- Second item$`),
+		regexp.MustCompile(`(?m)^\s*echo first$`),
+		regexp.MustCompile(`(?m)^\s*echo second$`),
+	}
+	for _, check := range checks {
+		if !check.MatchString(output) {
+			t.Fatalf("expected markdown output to match %q, got %q", check.String(), output)
+		}
 	}
 }
 

@@ -144,6 +144,7 @@ Fields (JSON keys):
 ### Show
 
 - CLI detail output includes deleted timestamps and delete reasons when present.
+- CLI detail output renders todo descriptions with the markdown renderer and 80-column wrapping.
 - When the todo store is missing, CLI `todo show` does not prompt to create it
   and returns the store missing error.
 - `Store.Show` returns todos in the same order as the requested IDs.
