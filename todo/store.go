@@ -285,31 +285,28 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	itemIndex := 0
 	for {
 		line, err := readJSONLLine(buf)
-		if err != nil && !errors.Is(err, io.EOF) {
+		atEOF := errors.Is(err, io.EOF)
+		if err != nil && !atEOF {
 			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
 		}
-		if len(line) == 0 && errors.Is(err, io.EOF) {
+		if len(line) == 0 && atEOF {
 			break
 		}
 		if len(line) == 0 {
-			if errors.Is(err, io.EOF) {
+			if atEOF {
 				break
 			}
 			continue
 		}
-		if len(line) > maxJSONLineBytes {
-			return nil, fmt.Errorf("decode item %d: exceeds max JSON line size", itemIndex+1)
-		}
 		if items == nil && readerSize > 0 {
 			items = make([]T, 0, estimateJSONLItems(readerSize, len(line)))
 		}
-		var item T
-		if err := json.Unmarshal(line, &item); err != nil {
+		items = append(items, *new(T))
+		if err := json.Unmarshal(line, &items[len(items)-1]); err != nil {
 			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
 		}
-		items = append(items, item)
 		itemIndex++
-		if errors.Is(err, io.EOF) {
+		if atEOF {
 			break
 		}
 	}
