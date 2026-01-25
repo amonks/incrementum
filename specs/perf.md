@@ -18,15 +18,15 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,716,992 | 734,005 | 10,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,362,989 | 6,813,651 | 100,003 |
-| `BenchmarkWriteJSONL1K` | 920,829 | 355,088 | 3,010 |
-| `BenchmarkWriteJSONL10K` | 7,875,987 | 2,952,807 | 30,019 |
-| `BenchmarkStoreList1K` | 1,799,719 | 923,379 | 10,013 |
-| `BenchmarkStoreList10K` | 18,631,573 | 8,657,820 | 100,013 |
-| `BenchmarkStoreReady1K` | 2,079,282 | 1,132,969 | 11,788 |
-| `BenchmarkStoreReady10K` | 20,660,150 | 9,993,690 | 117,556 |
-| `BenchmarkStoreReadyLimit10K` | 20,650,731 | 8,154,458 | 117,566 |
+| `BenchmarkReadJSONLFromReader1K` | 1,724,306 | 734,003 | 10,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,462,085 | 6,813,650 | 100,003 |
+| `BenchmarkWriteJSONL1K` | 888,601 | 355,089 | 3,010 |
+| `BenchmarkWriteJSONL10K` | 7,580,939 | 2,952,781 | 30,019 |
+| `BenchmarkStoreList1K` | 1,805,846 | 923,378 | 10,013 |
+| `BenchmarkStoreList10K` | 18,694,019 | 8,657,851 | 100,013 |
+| `BenchmarkStoreReady1K` | 2,086,309 | 1,132,969 | 11,788 |
+| `BenchmarkStoreReady10K` | 20,781,276 | 9,993,677 | 117,556 |
+| `BenchmarkStoreReadyLimit10K` | 20,610,129 | 8,154,460 | 117,566 |
 
 ## Improvements log
 
@@ -42,6 +42,7 @@
 - 2026-01-25: Track blocked todos with a map instead of per-todo blocker slices in Ready, reducing allocation pressure for ready queries.
 - 2026-01-25: Disabled HTML escaping in JSONL writes to shave overhead from JSON encoding while preserving valid output.
 - 2026-01-25: Resolve dependency blocker statuses by the dependency ID set instead of mapping every todo, cutting Ready bytes/op by avoiding a full todo lookup map.
+- 2026-01-25: Switched JSONL line reads to bufio.ReadLine to avoid extra newline handling work while keeping the max line size guard intact.
 
 ## Profiling notes
 

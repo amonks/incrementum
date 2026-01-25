@@ -365,27 +365,27 @@ func estimateJSONLItems(totalSize int64, lineSize int) int {
 func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
 	var line []byte
 	for {
-		chunk, err := reader.ReadSlice('\n')
-		if errors.Is(err, bufio.ErrBufferFull) {
-			line = append(line, chunk...)
-		} else if len(line) == 0 {
+		chunk, isPrefix, err := reader.ReadLine()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				if len(chunk) == 0 && len(line) == 0 {
+					return nil, io.EOF
+				}
+			} else {
+				return nil, err
+			}
+		}
+		if len(line) == 0 {
 			line = chunk
 		} else {
 			line = append(line, chunk...)
 		}
-		if len(line) > maxJSONLineBytes+2 {
+		if len(line) > maxJSONLineBytes {
 			return nil, fmt.Errorf("exceeds max JSON line size")
 		}
-		if errors.Is(err, bufio.ErrBufferFull) {
-			continue
-		}
-		if err == nil || errors.Is(err, io.EOF) {
-			if len(line) == 0 && errors.Is(err, io.EOF) {
-				return nil, io.EOF
-			}
+		if !isPrefix {
 			return line, err
 		}
-		return nil, err
 	}
 }
 
