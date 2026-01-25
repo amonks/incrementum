@@ -192,15 +192,38 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	}
 
 	// Edit to the specified revision unless we're already at @.
+	actualRev := opts.Rev
 	if opts.Rev != "@" {
 		if err := p.jj.Edit(wsPath, opts.Rev); err != nil {
-			return "", fmt.Errorf("jj edit: %w", err)
+			if !strings.Contains(err.Error(), "immutable") {
+				return "", fmt.Errorf("jj edit: %w", err)
+			}
+			newRev, newErr := p.jj.NewChange(wsPath, opts.Rev)
+			if newErr != nil {
+				return "", fmt.Errorf("jj new: %w", newErr)
+			}
+			actualRev = newRev
 		}
 	}
 
-	if err := p.ensureReleaseChange(wsPath, opts.Rev); err != nil {
+	if err := p.ensureReleaseChange(wsPath, actualRev); err != nil {
 		p.Release(wsPath)
 		return "", err
+	}
+
+	if actualRev != opts.Rev {
+		if err := p.stateStore.Update(func(st *statestore.State) error {
+			wsKey := repoName + "/" + wsName
+			if ws, ok := st.Workspaces[wsKey]; ok {
+				ws.Rev = actualRev
+				ws.UpdatedAt = time.Now()
+				st.Workspaces[wsKey] = ws
+			}
+			return nil
+		}); err != nil {
+			p.Release(wsPath)
+			return "", fmt.Errorf("update workspace rev: %w", err)
+		}
 	}
 
 	// Load config and run hooks

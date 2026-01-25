@@ -24,6 +24,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
   - Otherwise allocate a new `ws-###` name and mark it acquired.
 - If a new workspace is allocated, `jj workspace add` is executed and the workspace directory is created.
 - The workspace is checked out to the requested revision with `jj edit` unless the revision is `@`.
+- If `jj edit` fails because the revision is immutable (for example, a bookmark), the pool creates a new change with the requested revision as the parent and uses that change ID instead.
 - A new change is created and the workspace is edited back to the requested revision to ensure a clean release change.
 - `incrementum.toml` is loaded from the source repo and the workspace `on-create` hook runs for every acquire (including reuse).
 - A workspace is marked `Provisioned` once the hooks run successfully.
