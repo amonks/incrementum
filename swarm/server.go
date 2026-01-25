@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/amonks/incrementum/internal/ids"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/web"
@@ -55,6 +56,8 @@ type Server struct {
 	mu   sync.Mutex
 	jobs map[string]*runningJob
 }
+
+var errAmbiguousTodoIDPrefix = errors.New("ambiguous todo id prefix")
 
 type runningJob struct {
 	interrupts chan os.Signal
@@ -363,20 +366,82 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("job id is required"))
 		return
 	}
-	if _, err := s.manager.Find(jobID); err != nil {
+	resolvedJobID, err := resolveTailJobID(s.manager, jobID)
+	if err != nil {
 		status := http.StatusInternalServerError
-		if errors.Is(err, job.ErrJobNotFound) {
+		switch {
+		case errors.Is(err, job.ErrJobNotFound):
 			status = http.StatusNotFound
+		case errors.Is(err, job.ErrAmbiguousJobIDPrefix), errors.Is(err, errAmbiguousTodoIDPrefix):
+			status = http.StatusBadRequest
 		}
 		s.writeError(w, r, status, err)
 		return
 	}
-	if err := streamEvents(r.Context(), w, jobID, s.eventLogOptions); err != nil {
+	if err := streamEvents(r.Context(), w, resolvedJobID, s.eventLogOptions); err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
 		s.writeError(w, r, http.StatusInternalServerError, err)
 	}
+}
+
+func resolveTailJobID(manager *job.Manager, input string) (string, error) {
+	jobRecord, err := manager.Find(input)
+	if err == nil {
+		return jobRecord.ID, nil
+	}
+	if !errors.Is(err, job.ErrJobNotFound) {
+		return "", err
+	}
+	jobs, err := manager.List(job.ListFilter{IncludeAll: true})
+	if err != nil {
+		return "", err
+	}
+	if len(jobs) == 0 {
+		return "", job.ErrJobNotFound
+	}
+	idsByTodo := make([]string, 0, len(jobs))
+	for _, item := range jobs {
+		if item.TodoID != "" {
+			idsByTodo = append(idsByTodo, item.TodoID)
+		}
+	}
+	matchID, matched, ambiguous := ids.MatchPrefix(idsByTodo, input)
+	if ambiguous {
+		return "", fmt.Errorf("%w: %s", errAmbiguousTodoIDPrefix, input)
+	}
+	if !matched {
+		return "", job.ErrJobNotFound
+	}
+	var candidate job.Job
+	hasCandidate := false
+	for _, item := range jobs {
+		if item.TodoID != matchID {
+			continue
+		}
+		if !hasCandidate {
+			candidate = item
+			hasCandidate = true
+			continue
+		}
+		if item.Status == job.StatusActive {
+			if candidate.Status != job.StatusActive || item.StartedAt.After(candidate.StartedAt) {
+				candidate = item
+			}
+			continue
+		}
+		if candidate.Status == job.StatusActive {
+			continue
+		}
+		if item.StartedAt.After(candidate.StartedAt) {
+			candidate = item
+		}
+	}
+	if !hasCandidate {
+		return "", job.ErrJobNotFound
+	}
+	return candidate.ID, nil
 }
 
 func (s *Server) recoverHandler(next http.Handler) http.Handler {

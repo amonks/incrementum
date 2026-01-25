@@ -617,6 +617,78 @@ func TestTailStreamsExistingAndNewEvents(t *testing.T) {
 	cancel()
 }
 
+func TestTailResolvesTodoID(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+	eventsDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath:        repoDir,
+		StateDir:        stateDir,
+		Pool:            noopPool{},
+		EventLogOptions: job.EventLogOptions{EventsDir: eventsDir},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	manager, err := job.Open(repoDir, job.OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open job manager: %v", err)
+	}
+	todoID := "todo-5"
+	created, err := manager.Create(todoID, time.Now())
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	log, err := job.OpenEventLog(created.ID, job.EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("open event log: %v", err)
+	}
+	firstEvent := job.Event{Name: "job.stage", Data: "{\"stage\":\"implementing\"}"}
+	if err := log.Append(firstEvent); err != nil {
+		_ = log.Close()
+		t.Fatalf("append event: %v", err)
+	}
+	if err := log.Close(); err != nil {
+		t.Fatalf("close event log: %v", err)
+	}
+
+	serverInstance := httptest.NewServer(server.Handler())
+	defer serverInstance.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	payload, err := json.Marshal(tailRequest{JobID: todoID})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, serverInstance.URL+"/tail", bytes.NewReader(payload))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
+
+	decoder := json.NewDecoder(response.Body)
+	var gotFirst job.Event
+	if err := decoder.Decode(&gotFirst); err != nil {
+		t.Fatalf("decode first event: %v", err)
+	}
+	if gotFirst.Name != firstEvent.Name {
+		t.Fatalf("expected first event %q, got %q", firstEvent.Name, gotFirst.Name)
+	}
+}
+
 func TestTailWaitsForEventLog(t *testing.T) {
 	repoDir := t.TempDir()
 	stateDir := t.TempDir()
@@ -648,24 +720,6 @@ func TestTailWaitsForEventLog(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	payload, err := json.Marshal(tailRequest{JobID: jobID})
-	if err != nil {
-		t.Fatalf("marshal request: %v", err)
-	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, serverInstance.URL+"/tail", bytes.NewReader(payload))
-	if err != nil {
-		t.Fatalf("new request: %v", err)
-	}
-	request.Header.Set("Content-Type", "application/json")
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Fatalf("do request: %v", err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", response.StatusCode)
-	}
-
 	firstEvent := job.Event{Name: "job.stage", Data: "{\"stage\":\"planning\"}"}
 	errCh := make(chan error, 1)
 	go func() {
@@ -686,6 +740,24 @@ func TestTailWaitsForEventLog(t *testing.T) {
 		}
 		errCh <- nil
 	}()
+
+	payload, err := json.Marshal(tailRequest{JobID: jobID})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, serverInstance.URL+"/tail", bytes.NewReader(payload))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
 
 	decoder := json.NewDecoder(response.Body)
 	var gotFirst job.Event

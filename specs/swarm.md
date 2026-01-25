@@ -91,9 +91,11 @@ running.
 
 Interrupt a running job in the server.
 
-### `ii swarm tail <job-id>`
+### `ii swarm tail <job-id|todo-id>`
 
-Stream job events from the server, including all existing events.
+Stream job events from the server, including all existing events. When given a
+todo ID, the server selects the most recent active job for that todo (or the
+latest job if none are active).
 
 ### `ii swarm logs <job-id>`
 
