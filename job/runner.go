@@ -44,6 +44,7 @@ type RunOptions struct {
 	RunOpencode         func(opencodeRunOptions) (OpencodeRunResult, error)
 	OpencodeAgent       string
 	CurrentCommitID     func(string) (string, error)
+	DiffStat            func(string, string, string) (string, error)
 	CommitIDAt          func(string, string) (string, error)
 	Commit              func(string, string) error
 	UpdateStale         func(string) error
@@ -422,6 +423,10 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		client := jj.New()
 		opts.CurrentCommitID = client.CurrentCommitID
 	}
+	if opts.DiffStat == nil {
+		client := jj.New()
+		opts.DiffStat = client.DiffStat
+	}
 	if opts.CommitIDAt == nil {
 		client := jj.New()
 		opts.CommitIDAt = client.CommitIDAt
@@ -516,6 +521,15 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	}
 
 	changed := beforeCommitID != afterCommitID
+	if changed {
+		diffStat, err := opts.DiffStat(workspacePath, beforeCommitID, afterCommitID)
+		if err != nil {
+			return ImplementingStageResult{}, err
+		}
+		if strings.TrimSpace(diffStat) == "" {
+			changed = false
+		}
+	}
 	message := ""
 	if changed {
 		messagePath := filepath.Join(workspacePath, commitMessageFilename)

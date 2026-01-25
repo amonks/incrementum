@@ -212,6 +212,17 @@ func (c *Client) CommitIDAt(workspacePath, rev string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// DiffStat returns the diff stat between two revisions.
+func (c *Client) DiffStat(workspacePath, from, to string) (string, error) {
+	cmd := exec.Command("jj", "diff", "--from", from, "--to", to, "--stat")
+	cmd.Dir = workspacePath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("jj diff --stat: %w: %s", err, output)
+	}
+	return string(output), nil
+}
+
 // DescriptionAt returns the description at the given revision.
 func (c *Client) DescriptionAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "description", "--no-graph")

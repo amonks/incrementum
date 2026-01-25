@@ -255,6 +255,9 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
 			if err := os.WriteFile(messagePath, []byte("feat: log message"), 0o644); err != nil {
@@ -336,6 +339,9 @@ func TestRunImplementingStageUsesFeedbackPrompt(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
 			if err := os.WriteFile(messagePath, []byte("feat: respond"), 0o644); err != nil {
@@ -411,6 +417,9 @@ func TestRunImplementingStageRecordsEventLog(t *testing.T) {
 			id := commitIDs[commitIndex]
 			commitIndex++
 			return id, nil
+		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)

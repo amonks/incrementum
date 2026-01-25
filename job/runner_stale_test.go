@@ -50,6 +50,9 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			if !updateCalled {
 				return OpencodeRunResult{}, fmt.Errorf("expected update-stale before opencode")

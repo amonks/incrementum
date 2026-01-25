@@ -119,14 +119,17 @@ any stage -> failed (unrecoverable error)
    event with the purpose and error message, then mark the job `failed`.
 9. If opencode fails (nonzero exit): mark job `failed`.
 10. Record the current working copy commit id again.
-11. If the commit id did not change:
+11. If the commit id changed, run `jj diff --from <before> --to <after> --stat` to
+    confirm the working copy diff is non-empty; treat an empty diff stat as no
+    change.
+12. If the commit id did not change (or the diff stat is empty):
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
     - Flag the next testing/review cycle as the final project review.
-12. If the commit id changed:
+13. If the commit id changed and the diff stat is non-empty:
     - Read `.incrementum-commit-message` from the workspace root, trimming trailing
       newlines, trailing whitespace on each line, and any leading blank lines.
     - Store the message for the committing stage.
-13. Transition to `testing`.
+14. Transition to `testing`.
 
 ### testing
 

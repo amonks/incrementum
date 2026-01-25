@@ -86,6 +86,9 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
 			if err := os.WriteFile(messagePath, []byte("feat: step"), 0o644); err != nil {
