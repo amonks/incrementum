@@ -413,6 +413,7 @@ func writeJSONL[T any](path string, items []T) error {
 
 	buffered := bufio.NewWriterSize(f, jsonlBufferSize)
 	encoder := json.NewEncoder(buffered)
+	encoder.SetEscapeHTML(false)
 	for i, item := range items {
 		if err := encoder.Encode(item); err != nil {
 			closeErr := f.Close()

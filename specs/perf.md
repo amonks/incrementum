@@ -18,15 +18,15 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,731,548 | 734,019 | 10,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,543,669 | 6,813,647 | 100,003 |
-| `BenchmarkWriteJSONL1K` | 940,117 | 355,091 | 3,010 |
-| `BenchmarkWriteJSONL10K` | 7,689,174 | 2,952,758 | 30,019 |
-| `BenchmarkStoreList1K` | 1,815,931 | 923,378 | 10,013 |
-| `BenchmarkStoreList10K` | 18,726,173 | 8,657,741 | 100,013 |
-| `BenchmarkStoreReady1K` | 2,082,612 | 1,160,339 | 11,787 |
-| `BenchmarkStoreReady10K` | 20,704,874 | 10,212,126 | 117,571 |
-| `BenchmarkStoreReadyLimit10K` | 20,546,551 | 8,372,890 | 117,581 |
+| `BenchmarkReadJSONLFromReader1K` | 1,716,592 | 734,003 | 10,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,384,061 | 6,813,647 | 100,003 |
+| `BenchmarkWriteJSONL1K` | 904,333 | 355,084 | 3,010 |
+| `BenchmarkWriteJSONL10K` | 7,769,059 | 2,952,784 | 30,019 |
+| `BenchmarkStoreList1K` | 1,798,517 | 923,378 | 10,013 |
+| `BenchmarkStoreList10K` | 18,716,042 | 8,657,771 | 100,013 |
+| `BenchmarkStoreReady1K` | 2,073,456 | 1,160,362 | 11,787 |
+| `BenchmarkStoreReady10K` | 20,652,689 | 10,212,121 | 117,571 |
+| `BenchmarkStoreReadyLimit10K` | 20,611,423 | 8,372,889 | 117,581 |
 
 ## Improvements log
 
@@ -40,6 +40,7 @@
 - 2026-01-25: Increased JSONL read/write buffer sizes to 64 KiB to reduce syscall overhead during line reads and batched writes.
 - 2026-01-25: When Ready runs with a limit, select into the heap while scanning instead of building the full ready slice, trimming bytes/op for ready-limit benchmarks.
 - 2026-01-25: Track blocked todos with a map instead of per-todo blocker slices in Ready, reducing allocation pressure for ready queries.
+- 2026-01-25: Disabled HTML escaping in JSONL writes to shave overhead from JSON encoding while preserving valid output.
 
 ## Profiling notes
 
