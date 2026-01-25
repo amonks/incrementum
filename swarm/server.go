@@ -436,6 +436,11 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	go func() {
 		defer func() {
 			if recovered := recover(); recovered != nil {
+				label := jobID
+				if label == "" {
+					label = "unknown"
+				}
+				s.logf("job panic for todo %s (job %s): %v\n%s", cleanID, label, recovered, debug.Stack())
 				runErr = fmt.Errorf("job panic: %v", recovered)
 			}
 			close(completed)

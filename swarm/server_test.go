@@ -346,12 +346,13 @@ func TestJobRequestsRejectEmptyJobID(t *testing.T) {
 func TestDoRecoversFromJobPanic(t *testing.T) {
 	repoDir := t.TempDir()
 	stateDir := t.TempDir()
+	var logs bytes.Buffer
 
 	server, err := NewServer(ServerOptions{
 		RepoPath: repoDir,
 		StateDir: stateDir,
 		Pool:     noopPool{},
-		Logger:   log.New(io.Discard, "", 0),
+		Logger:   log.New(&logs, "", 0),
 		RunJob: func(_ string, _ string, opts job.RunOptions) (*job.RunResult, error) {
 			if opts.OnStart != nil {
 				opts.OnStart(job.StartInfo{JobID: "job-panic"})
@@ -395,6 +396,14 @@ func TestDoRecoversFromJobPanic(t *testing.T) {
 			t.Fatalf("expected job %s to be cleared", payload.JobID)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+
+	output := logs.String()
+	if !strings.Contains(output, "job panic for todo todo-panic") {
+		t.Fatalf("expected panic log, got %q", output)
+	}
+	if !strings.Contains(output, "goroutine") {
+		t.Fatalf("expected panic stack trace, got %q", output)
 	}
 }
 

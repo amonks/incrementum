@@ -8,8 +8,9 @@ subcommand is a thin wrapper around the public package APIs.
 
 The swarm server logs request failures and job lifecycle events (start,
 completion, failure, and panic recovery) to stderr with a `swarm:` prefix so
-operators can troubleshoot unexpected job outcomes. If an RPC handler panics,
-the server logs the stack trace and returns a 500 error instead of crashing.
+operators can troubleshoot unexpected job outcomes. Job panics log stack traces
+alongside a failure summary. If an RPC handler panics, the server logs the stack
+trace and returns a 500 error instead of crashing.
 
 ## Job Orchestration
 
