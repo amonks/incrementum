@@ -179,7 +179,8 @@ any stage -> failed (unrecoverable error)
    descriptions are rendered via the markdown renderer to preserve lists and code
    blocks.
 3. Normalize the formatted message by trimming leading blank lines and trailing
-   whitespace on each line so the summary line is the first line.
+   whitespace on each line. Left-trim the first non-blank line so the summary
+   line starts at column 0 even if the markdown renderer indents paragraphs.
 4. Best-effort `jj workspace update-stale` in the repo working directory.
 5. Run `jj commit -m "<formatted message>"` in the repo working directory.
 6. If commit fails: mark job `failed`.
