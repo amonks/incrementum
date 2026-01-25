@@ -71,6 +71,14 @@ func BenchmarkStoreDepTree10K(b *testing.B) {
 	benchmarkStoreDepTree(b, 10000)
 }
 
+func BenchmarkStoreDepAdd1K(b *testing.B) {
+	benchmarkStoreDepAdd(b, 1000)
+}
+
+func BenchmarkStoreDepAdd10K(b *testing.B) {
+	benchmarkStoreDepAdd(b, 10000)
+}
+
 func BenchmarkStoreUpdate1K(b *testing.B) {
 	benchmarkStoreUpdate(b, 1000)
 }
@@ -225,6 +233,33 @@ func benchmarkStoreDepTree(b *testing.B, count int) {
 	for i := 0; i < b.N; i++ {
 		if _, err := store.DepTree(rootID); err != nil {
 			b.Fatalf("dep tree: %v", err)
+		}
+	}
+}
+
+func benchmarkStoreDepAdd(b *testing.B, count int) {
+	store := newTestStore(b)
+	todos := benchmarkTodos(count)
+	deps := benchmarkDependencies(todos)
+	if len(todos) < 3 {
+		b.Fatalf("need at least 3 todos")
+	}
+	todoID := todos[2].ID
+	dependsOnID := todos[0].ID
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		if err := store.writeTodos(todos); err != nil {
+			b.Fatalf("write todos: %v", err)
+		}
+		if err := store.writeDependencies(deps); err != nil {
+			b.Fatalf("write dependencies: %v", err)
+		}
+		b.StartTimer()
+		if _, err := store.DepAdd(todoID, dependsOnID); err != nil {
+			b.Fatalf("dep add: %v", err)
 		}
 	}
 }
