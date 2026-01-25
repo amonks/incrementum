@@ -13,9 +13,9 @@ func formatCommitMessage(item todo.Todo, message string) string {
 
 func formatCommitMessageWithWidth(item todo.Todo, message string, width int) string {
 	summary, body := splitCommitMessage(message)
-	formatted := wrapLines(summary, width)
+	formatted := renderMarkdownText(summary, width)
 
-	bodyText := ReflowParagraphs(body, width-documentIndent)
+	bodyText := renderMarkdownText(body, width-documentIndent)
 	if strings.TrimSpace(bodyText) == "" {
 		bodyText = "-"
 	}
@@ -50,7 +50,7 @@ func formatCommitTodoWithWidth(item todo.Todo, width int) string {
 		fmt.Sprintf("Priority: %d (%s)", item.Priority, todo.PriorityName(item.Priority)),
 		"Description:",
 	}
-	fieldBlock := wrapLines(strings.Join(fields, "\n"), width-documentIndent)
+	fieldBlock := renderMarkdownLines(fields, width-documentIndent)
 	fieldBlock = IndentBlock(fieldBlock, documentIndent)
 
 	description := strings.TrimSpace(item.Description)
@@ -59,10 +59,37 @@ func formatCommitTodoWithWidth(item todo.Todo, width int) string {
 		description = IndentBlock(description, subdocumentIndent)
 		return fieldBlock + "\n" + description
 	}
-	description = RenderMarkdown(description, width-subdocumentIndent)
+	description = renderMarkdownText(description, width-subdocumentIndent)
 	if description == "" {
 		description = "-"
 	}
 	description = IndentBlock(description, subdocumentIndent)
 	return fieldBlock + "\n" + description
+}
+
+func renderMarkdownText(value string, width int) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	rendered := RenderMarkdown(value, width)
+	return strings.TrimRight(rendered, "\n")
+}
+
+func renderMarkdownLines(lines []string, width int) string {
+	renderedLines := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			renderedLines = append(renderedLines, "")
+			continue
+		}
+		rendered := renderMarkdownText(line, width)
+		if strings.TrimSpace(rendered) == "" {
+			renderedLines = append(renderedLines, "-")
+			continue
+		}
+		renderedLines = append(renderedLines, strings.Split(rendered, "\n")...)
+	}
+	return strings.Join(renderedLines, "\n")
 }

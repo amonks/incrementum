@@ -169,9 +169,10 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Format final message with a fixed commit message layout (not templated). The
-   format uses the opencode-generated summary/body plus a todo block, reflowed to
-   80/76/72 columns with 0/4/8-space indentation. Todo descriptions are rendered
-   via the markdown renderer to preserve lists and code blocks.
+   format uses the opencode-generated summary/body plus a todo block, reflowed via
+   the markdown renderer to 80/76/72 columns with 0/4/8-space indentation. Todo
+   descriptions are rendered via the markdown renderer to preserve lists and code
+   blocks.
 3. Best-effort `jj workspace update-stale` in the repo working directory.
 4. Run `jj commit -m "<formatted message>"` in the repo working directory.
 5. If commit fails: mark job `failed`.

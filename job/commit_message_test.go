@@ -112,6 +112,28 @@ func TestFormatCommitMessageWithWidthRespectsLimit(t *testing.T) {
 	}
 }
 
+func TestFormatCommitMessageRendersMarkdownBody(t *testing.T) {
+	item := todo.Todo{
+		ID:          "todo-456",
+		Title:       "Render markdown",
+		Description: "Ensure log formatting honors markdown sections.",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityLow,
+	}
+	message := "feat: render markdown\n\n- First item\n- Second item"
+
+	formatted := formatCommitMessageWithWidth(item, message, 80)
+	checks := []string{
+		"    - First item",
+		"    - Second item",
+	}
+	for _, check := range checks {
+		if !strings.Contains(formatted, check) {
+			t.Fatalf("expected formatted message to include %q, got %q", check, formatted)
+		}
+	}
+}
+
 func maxLineLength(value string) int {
 	max := 0
 	for _, line := range strings.Split(value, "\n") {
