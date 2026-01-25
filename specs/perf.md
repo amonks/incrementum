@@ -24,9 +24,9 @@
 | `BenchmarkWriteJSONL10K` | 7,689,174 | 2,952,758 | 30,019 |
 | `BenchmarkStoreList1K` | 1,815,931 | 923,378 | 10,013 |
 | `BenchmarkStoreList10K` | 18,726,173 | 8,657,741 | 100,013 |
-| `BenchmarkStoreReady1K` | 2,094,703 | 1,172,555 | 12,037 |
-| `BenchmarkStoreReady10K` | 20,785,253 | 10,339,684 | 120,071 |
-| `BenchmarkStoreReadyLimit10K` | 20,682,214 | 8,500,447 | 120,081 |
+| `BenchmarkStoreReady1K` | 2,082,612 | 1,160,339 | 11,787 |
+| `BenchmarkStoreReady10K` | 20,704,874 | 10,212,126 | 117,571 |
+| `BenchmarkStoreReadyLimit10K` | 20,546,551 | 8,372,890 | 117,581 |
 
 ## Improvements log
 
@@ -39,6 +39,7 @@
 - 2026-01-25: Added a ready-limit benchmark and switched ready queries with limits to a heap selection pass before sorting, keeping ranking consistent while avoiding full sorts for small limits.
 - 2026-01-25: Increased JSONL read/write buffer sizes to 64 KiB to reduce syscall overhead during line reads and batched writes.
 - 2026-01-25: When Ready runs with a limit, select into the heap while scanning instead of building the full ready slice, trimming bytes/op for ready-limit benchmarks.
+- 2026-01-25: Track blocked todos with a map instead of per-todo blocker slices in Ready, reducing allocation pressure for ready queries.
 
 ## Profiling notes
 

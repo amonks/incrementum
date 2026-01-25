@@ -539,10 +539,13 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 	// Build map of todo ID -> todo for quick lookup
 	todoMap := todoMapByID(todos)
 
-	// Build map of todo ID -> blocking todo IDs
-	blockers := make(map[string][]string, len(deps))
+	// Build a set of todos that have open blockers.
+	blocked := make(map[string]bool, len(deps))
 	for _, dep := range deps {
-		blockers[dep.TodoID] = append(blockers[dep.TodoID], dep.DependsOnID)
+		blocker, ok := todoMap[dep.DependsOnID]
+		if ok && !blocker.Status.IsResolved() {
+			blocked[dep.TodoID] = true
+		}
 	}
 
 	// Filter to open todos with no open blockers
@@ -558,30 +561,21 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		if todo.Status != StatusOpen {
 			continue
 		}
-
-		hasOpenBlocker := false
-		for _, blockerID := range blockers[todo.ID] {
-			blocker, ok := todoMap[blockerID]
-			if ok && !blocker.Status.IsResolved() {
-				hasOpenBlocker = true
-				break
-			}
+		if blocked[todo.ID] {
+			continue
 		}
-
-		if !hasOpenBlocker {
-			if useLimit {
-				if len(selection.items) < limit {
-					heap.Push(&selection, todo)
-					continue
-				}
-				if readyLess(todo, selection.items[0]) {
-					selection.items[0] = todo
-					heap.Fix(&selection, 0)
-				}
+		if useLimit {
+			if len(selection.items) < limit {
+				heap.Push(&selection, todo)
 				continue
 			}
-			ready = append(ready, todo)
+			if readyLess(todo, selection.items[0]) {
+				selection.items[0] = todo
+				heap.Fix(&selection, 0)
+			}
+			continue
 		}
+		ready = append(ready, todo)
 	}
 
 	if useLimit {
