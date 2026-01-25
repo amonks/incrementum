@@ -700,6 +700,14 @@ func readJSONLStore[T any](store *Store, filename string) ([]T, error) {
 	return items, err
 }
 
+func readJSONLStoreWithContext[T any](store *Store, filename, label string) ([]T, error) {
+	items, err := readJSONLStore[T](store, filename)
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", label, err)
+	}
+	return items, nil
+}
+
 func (s *Store) readTodosByExactIDs(missing map[string]struct{}) (map[string]Todo, error) {
 	if len(missing) == 0 {
 		return nil, nil
@@ -731,11 +739,7 @@ func (s *Store) readTodos() ([]Todo, error) {
 }
 
 func (s *Store) readTodosWithContext() ([]Todo, error) {
-	todos, err := s.readTodos()
-	if err != nil {
-		return nil, fmt.Errorf("read todos: %w", err)
-	}
-	return todos, nil
+	return readJSONLStoreWithContext[Todo](s, TodosFile, "todos")
 }
 
 // IDIndex returns an index of all todo IDs in the store.
@@ -778,11 +782,7 @@ func (s *Store) readDependencies() ([]Dependency, error) {
 }
 
 func (s *Store) readDependenciesWithContext() ([]Dependency, error) {
-	deps, err := s.readDependencies()
-	if err != nil {
-		return nil, fmt.Errorf("read dependencies: %w", err)
-	}
-	return deps, nil
+	return readJSONLStoreWithContext[Dependency](s, DependenciesFile, "dependencies")
 }
 
 // writeDependencies writes all dependencies to the store and runs jj snapshot.
