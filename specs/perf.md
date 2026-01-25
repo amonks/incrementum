@@ -62,6 +62,7 @@
 - 2026-01-25: Removed the redundant seek before reading locked JSONL files so store reads avoid an extra syscall per file.
 - 2026-01-25: Reused normalized todo IDs for prefix length and prefix matching to avoid lowercasing work when resolving IDs.
 - 2026-01-25: Avoided lowercasing already-normalized IDs in `ids.NormalizeUniqueIDs` to reduce allocations when building ID indexes.
+- 2026-01-25: Compute unique prefix lengths by sorting IDs and comparing neighbors to avoid quadratic scans when rendering todo ID prefixes.
 
 ## Profiling notes
 

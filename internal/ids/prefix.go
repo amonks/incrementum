@@ -1,6 +1,7 @@
 package ids
 
 import (
+	"sort"
 	"strings"
 	"unicode/utf8"
 )
@@ -43,8 +44,28 @@ func UniquePrefixLengths(ids []string) map[string]int {
 // It expects ids to already be normalized and de-duplicated.
 func UniquePrefixLengthsNormalized(ids []string) map[string]int {
 	lengths := make(map[string]int, len(ids))
-	for _, id := range ids {
-		lengths[id] = uniquePrefixLength(id, ids)
+	if len(ids) == 0 {
+		return lengths
+	}
+	ordered := make([]string, len(ids))
+	copy(ordered, ids)
+	sort.Strings(ordered)
+	for i, id := range ordered {
+		maxPrefix := 0
+		if i > 0 {
+			maxPrefix = commonPrefixLength(id, ordered[i-1])
+		}
+		if i+1 < len(ordered) {
+			nextPrefix := commonPrefixLength(id, ordered[i+1])
+			if nextPrefix > maxPrefix {
+				maxPrefix = nextPrefix
+			}
+		}
+		prefixLength := maxPrefix + 1
+		if prefixLength > len(id) {
+			prefixLength = len(id)
+		}
+		lengths[id] = prefixLength
 	}
 
 	return lengths
@@ -95,23 +116,15 @@ func MatchPrefixNormalized(ids []string, prefix string) (string, bool, bool) {
 	return match, true, false
 }
 
-func uniquePrefixLength(id string, ids []string) int {
-	for length := 1; length <= len(id); length++ {
-		prefix := id[:length]
-		unique := true
-		for _, other := range ids {
-			if other == id {
-				continue
-			}
-			if strings.HasPrefix(other, prefix) {
-				unique = false
-				break
-			}
-		}
-		if unique {
-			return length
+func commonPrefixLength(left, right string) int {
+	limit := len(left)
+	if len(right) < limit {
+		limit = len(right)
+	}
+	for i := 0; i < limit; i++ {
+		if left[i] != right[i] {
+			return i
 		}
 	}
-
-	return len(id)
+	return limit
 }
