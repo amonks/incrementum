@@ -18,19 +18,19 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,682,933 | 477,383 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,060,271 | 4,835,431 | 90,008 |
-| `BenchmarkWriteJSONL1K` | 442,317 | 1,408 | 9 |
-| `BenchmarkWriteJSONL10K` | 2,954,590 | 1,540 | 9 |
-| `BenchmarkStoreList1K` | 1,750,638 | 666,796 | 9,011 |
-| `BenchmarkStoreList10K` | 17,791,580 | 6,679,530 | 90,015 |
-| `BenchmarkStoreReady1K` | 2,016,737 | 796,516 | 10,535 |
-| `BenchmarkStoreReady10K` | 20,365,006 | 7,845,747 | 105,060 |
-| `BenchmarkStoreReadyLimit10K` | 20,083,932 | 5,950,835 | 105,066 |
-| `BenchmarkStoreDepTree1K` | 2,956,716 | 1,451,197 | 18,077 |
-| `BenchmarkStoreDepTree10K` | 31,392,428 | 13,397,094 | 180,321 |
-| `BenchmarkStoreUpdate1K` | 2,317,862 | 628,731 | 9,050 |
-| `BenchmarkStoreUpdate10K` | 21,706,572 | 6,125,325 | 90,116 |
+| `BenchmarkReadJSONLFromReader1K` | 1,724,515 | 477,589 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,434,692 | 4,835,493 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 507,855 | 1,400 | 9 |
+| `BenchmarkWriteJSONL10K` | 3,561,136 | 1,783 | 9 |
+| `BenchmarkStoreList1K` | 1,786,709 | 667,004 | 9,011 |
+| `BenchmarkStoreList10K` | 18,206,682 | 6,679,561 | 90,015 |
+| `BenchmarkStoreReady1K` | 2,125,725 | 795,895 | 10,535 |
+| `BenchmarkStoreReady10K` | 20,738,438 | 7,861,391 | 105,061 |
+| `BenchmarkStoreReadyLimit10K` | 20,092,114 | 5,950,838 | 105,066 |
+| `BenchmarkStoreDepTree1K` | 2,899,375 | 1,396,549 | 18,062 |
+| `BenchmarkStoreDepTree10K` | 30,623,762 | 12,915,210 | 180,273 |
+| `BenchmarkStoreUpdate1K` | 2,283,789 | 576,976 | 9,035 |
+| `BenchmarkStoreUpdate10K` | 20,870,533 | 5,693,163 | 90,071 |
 
 ## Improvements log
 
@@ -61,6 +61,7 @@
 - 2026-01-25: Pooled JSONL writer buffers so write paths reuse the 64 KiB buffer instead of allocating a fresh bufio.Writer each time.
 - 2026-01-25: Removed the redundant seek before reading locked JSONL files so store reads avoid an extra syscall per file.
 - 2026-01-25: Reused normalized todo IDs for prefix length and prefix matching to avoid lowercasing work when resolving IDs.
+- 2026-01-25: Avoided lowercasing already-normalized IDs in `ids.NormalizeUniqueIDs` to reduce allocations when building ID indexes.
 
 ## Profiling notes
 

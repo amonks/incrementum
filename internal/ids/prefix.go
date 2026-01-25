@@ -1,13 +1,16 @@
 package ids
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 // NormalizeUniqueIDs lowercases IDs and removes duplicates or empty values.
 func NormalizeUniqueIDs(ids []string) []string {
 	uniqueIDs := make([]string, 0, len(ids))
 	seen := make(map[string]bool, len(ids))
 	for _, id := range ids {
-		idLower := strings.ToLower(id)
+		idLower := normalizeID(id)
 		if idLower == "" || seen[idLower] {
 			continue
 		}
@@ -15,6 +18,19 @@ func NormalizeUniqueIDs(ids []string) []string {
 		uniqueIDs = append(uniqueIDs, idLower)
 	}
 	return uniqueIDs
+}
+
+func normalizeID(id string) string {
+	for i := 0; i < len(id); i++ {
+		b := id[i]
+		if b >= utf8.RuneSelf {
+			return strings.ToLower(id)
+		}
+		if b >= 'A' && b <= 'Z' {
+			return strings.ToLower(id)
+		}
+	}
+	return id
 }
 
 // UniquePrefixLengths returns the shortest unique prefix length for each ID.
