@@ -29,8 +29,8 @@
 | `BenchmarkStoreReadyLimit10K` | 19,972,055 | 5,841,618 | 105,057 |
 | `BenchmarkStoreDepTree1K` | 2,915,522 | 1,395,553 | 18,062 |
 | `BenchmarkStoreDepTree10K` | 30,694,543 | 12,920,111 | 180,273 |
-| `BenchmarkStoreUpdate1K` | 2,251,158 | 577,481 | 9,035 |
-| `BenchmarkStoreUpdate10K` | 21,169,406 | 5,694,677 | 90,071 |
+| `BenchmarkStoreUpdate1K` | 2,215,564 | 573,279 | 9,035 |
+| `BenchmarkStoreUpdate10K` | 21,179,311 | 5,688,724 | 90,070 |
 
 ## Improvements log
 
@@ -64,6 +64,7 @@
 - 2026-01-25: Avoided lowercasing already-normalized IDs in `ids.NormalizeUniqueIDs` to reduce allocations when building ID indexes.
 - 2026-01-25: Compute unique prefix lengths by sorting IDs and comparing neighbors to avoid quadratic scans when rendering todo ID prefixes.
 - 2026-01-25: Track blocker resolution states in a single map for Ready to reduce map allocations while keeping missing blockers non-blocking.
+- 2026-01-25: Preallocated Update's ID set and updated slice to avoid repeated growth while applying todo updates.
 
 ## Profiling notes
 

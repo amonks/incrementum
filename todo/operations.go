@@ -185,16 +185,16 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 	}
 
 	// Build a set of IDs to update
-	idSet := make(map[string]bool)
+	idSet := make(map[string]struct{}, len(resolvedIDs))
 	for _, id := range resolvedIDs {
-		idSet[id] = true
+		idSet[id] = struct{}{}
 	}
 
 	now := time.Now()
-	var updated []Todo
+	updated := make([]Todo, 0, len(resolvedIDs))
 
 	for i := range todos {
-		if !idSet[todos[i].ID] {
+		if _, ok := idSet[todos[i].ID]; !ok {
 			continue
 		}
 		delete(idSet, todos[i].ID)
