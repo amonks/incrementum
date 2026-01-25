@@ -9,6 +9,7 @@ import (
 type TestCommandResult struct {
 	Command  string
 	ExitCode int
+	Output   string
 }
 
 // FormatTestFeedback builds a markdown table for failed test commands.

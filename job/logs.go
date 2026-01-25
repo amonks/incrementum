@@ -132,11 +132,15 @@ func (writer *logSnapshotWriter) writeTests(results []testResultEventData) {
 		writer.writeBlock(formatTestLogBody(nil))
 		return
 	}
-	rows := make([][]string, 0, len(results))
+	formatted := make([]testResultLog, 0, len(results))
 	for _, result := range results {
-		rows = append(rows, []string{result.Command, fmt.Sprintf("%d", result.ExitCode)})
+		formatted = append(formatted, testResultLog{
+			Command:  result.Command,
+			ExitCode: result.ExitCode,
+			Output:   result.Output,
+		})
 	}
-	writer.writeBlock(formatTestLogBody(rows))
+	writer.writeBlock(formatTestLogBody(formatted))
 }
 
 func (writer *logSnapshotWriter) String() string {

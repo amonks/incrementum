@@ -1,8 +1,10 @@
 package job
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -19,8 +21,10 @@ func RunTestCommands(dir string, commands []string) ([]TestCommandResult, error)
 
 		cmd := exec.Command("/bin/bash", "-lc", command)
 		cmd.Dir = dir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		var output bytes.Buffer
+		writer := io.MultiWriter(os.Stdout, &output)
+		cmd.Stdout = writer
+		cmd.Stderr = writer
 		cmd.Stdin = os.Stdin
 
 		exitCode := 0
@@ -35,6 +39,7 @@ func RunTestCommands(dir string, commands []string) ([]TestCommandResult, error)
 		results = append(results, TestCommandResult{
 			Command:  command,
 			ExitCode: exitCode,
+			Output:   output.String(),
 		})
 	}
 

@@ -211,6 +211,7 @@ type reviewEventData struct {
 type testResultEventData struct {
 	Command  string `json:"command"`
 	ExitCode int    `json:"exit_code"`
+	Output   string `json:"output,omitempty"`
 }
 
 type testsEventData struct {
@@ -230,7 +231,7 @@ type opencodeEndEventData struct {
 func buildTestsEventData(results []TestCommandResult) testsEventData {
 	data := testsEventData{Results: make([]testResultEventData, 0, len(results))}
 	for _, result := range results {
-		data.Results = append(data.Results, testResultEventData{Command: result.Command, ExitCode: result.ExitCode})
+		data.Results = append(data.Results, testResultEventData{Command: result.Command, ExitCode: result.ExitCode, Output: result.Output})
 	}
 	return data
 }

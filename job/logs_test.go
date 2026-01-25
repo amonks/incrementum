@@ -34,7 +34,7 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 	if err := appendJobEvent(log, jobEventStage, stageEventData{Stage: StageTesting}); err != nil {
 		t.Fatalf("append test stage event: %v", err)
 	}
-	if err := appendJobEvent(log, jobEventTests, buildTestsEventData([]TestCommandResult{{Command: "go test ./...", ExitCode: 1}})); err != nil {
+	if err := appendJobEvent(log, jobEventTests, buildTestsEventData([]TestCommandResult{{Command: "go test ./...", ExitCode: 1, Output: "tests failed"}})); err != nil {
 		t.Fatalf("append tests event: %v", err)
 	}
 	if err := appendJobEvent(log, jobEventStage, stageEventData{Stage: StageReviewing}); err != nil {
@@ -61,9 +61,10 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"    Draft commit message:",
 		"        feat: add logs",
 		"Implementation prompt complete; running tests:",
-		"Command",
-		"Exit Code",
-		"go test ./...",
+		"Command: go test ./...",
+		"Exit Code: 1",
+		"Output:",
+		"tests failed",
 		"Tests passed; doing code review:",
 		"Review transcript line.",
 		"    Code review result:",

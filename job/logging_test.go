@@ -49,7 +49,7 @@ func TestConsoleLoggerFormatsEntries(t *testing.T) {
 		Transcript: "Plan the work.\nThen execute.",
 	})
 	logger.CommitMessage(CommitMessageLog{Label: "Draft", Message: "feat: draft commit"})
-	logger.Tests(TestLog{Results: []TestCommandResult{{Command: "go test ./...", ExitCode: 1}}})
+	logger.Tests(TestLog{Results: []TestCommandResult{{Command: "go test ./...", ExitCode: 1, Output: "go test output"}}})
 	logger.Review(ReviewLog{Purpose: "review", Feedback: ReviewFeedback{Outcome: ReviewOutcomeRequestChanges, Details: "Add tests."}})
 	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: "feat: final commit"})
 
@@ -61,7 +61,10 @@ func TestConsoleLoggerFormatsEntries(t *testing.T) {
 		"Plan the work.",
 		"Draft commit message:",
 		"feat: draft commit",
-		"go test ./...",
+		"Command: go test ./...",
+		"Exit Code: 1",
+		"Output:",
+		"go test output",
 		"Code review result:",
 		"Add tests.",
 		"Final commit message:",

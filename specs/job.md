@@ -123,12 +123,13 @@ any stage -> failed (unrecoverable error)
 ### testing
 
 1. Run each test command from config sequentially.
-2. Capture exit code for each command.
-3. If any command fails (nonzero exit):
+2. Capture combined stdout/stderr output and exit code for each command.
+3. Store the command, exit code, and output in the job test event log.
+4. If any command fails (nonzero exit):
    - Build feedback as markdown table with columns `Command` and `Exit Code`.
    - Transition to `implementing`.
-4. If all pass: transition to `reviewing`.
-5. If the job was in final project review when tests failed, the next implementing
+5. If all pass: transition to `reviewing`.
+6. If the job was in final project review when tests failed, the next implementing
    stage restarts the work loop.
 
 ### reviewing

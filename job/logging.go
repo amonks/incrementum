@@ -3,10 +3,8 @@ package job
 import (
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 
-	"github.com/amonks/incrementum/internal/ui"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -125,15 +123,15 @@ func (logger *ConsoleLogger) Tests(entry TestLog) {
 	if logger == nil {
 		return
 	}
-	if len(entry.Results) == 0 {
-		logger.writeBlock(formatTestLogBody(nil))
-		return
-	}
-	rows := make([][]string, 0, len(entry.Results))
+	results := make([]testResultLog, 0, len(entry.Results))
 	for _, result := range entry.Results {
-		rows = append(rows, []string{result.Command, strconv.Itoa(result.ExitCode)})
+		results = append(results, testResultLog{
+			Command:  result.Command,
+			ExitCode: result.ExitCode,
+			Output:   result.Output,
+		})
 	}
-	logger.writeBlock(formatTestLogBody(rows))
+	logger.writeBlock(formatTestLogBody(results))
 }
 
 func (logger *ConsoleLogger) writeBlock(lines ...string) {
@@ -218,12 +216,26 @@ func formatMarkdownBody(body string, indent int) string {
 	return IndentBlock(rendered, indent)
 }
 
-func formatTestLogBody(rows [][]string) string {
-	if len(rows) == 0 {
+type testResultLog struct {
+	Command  string
+	ExitCode int
+	Output   string
+}
+
+func formatTestLogBody(results []testResultLog) string {
+	if len(results) == 0 {
 		return formatLogBody("-", documentIndent, false)
 	}
-	body := ui.FormatTable([]string{"Command", "Exit Code"}, rows)
-	return formatLogBody(body, documentIndent, false)
+	var builder strings.Builder
+	for i, result := range results {
+		if i > 0 {
+			builder.WriteString("\n\n")
+		}
+		fmt.Fprintf(&builder, "Command: %s\nExit Code: %d\nOutput:\n", result.Command, result.ExitCode)
+		output := normalizeLogBody(result.Output)
+		builder.WriteString(IndentBlock(output, subdocumentIndent-documentIndent))
+	}
+	return formatLogBody(builder.String(), documentIndent, false)
 }
 
 func promptLabel(purpose string) string {
