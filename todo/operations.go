@@ -223,38 +223,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		if opts.Status != nil {
 			newStatus := *opts.Status
 			if newStatus != todos[i].Status {
-				previousStatus := todos[i].Status
-				todos[i].Status = newStatus
-				if newStatus != StatusDone {
-					todos[i].StartedAt = nil
-					todos[i].CompletedAt = nil
-				}
-				switch newStatus {
-				case StatusClosed, StatusDone:
-					todos[i].ClosedAt = &now
-					todos[i].DeletedAt = nil
-					todos[i].DeleteReason = ""
-					if newStatus == StatusDone {
-						if previousStatus == StatusInProgress {
-							todos[i].CompletedAt = &now
-						} else {
-							todos[i].CompletedAt = nil
-						}
-					}
-				case StatusTombstone:
-					todos[i].ClosedAt = nil
-					if opts.DeletedAt == nil && todos[i].DeletedAt == nil {
-						todos[i].DeletedAt = &now
-					}
-				case StatusOpen, StatusInProgress, StatusProposed:
-					todos[i].ClosedAt = nil
-					todos[i].DeletedAt = nil
-					todos[i].DeleteReason = ""
-					if newStatus == StatusInProgress && previousStatus != StatusInProgress {
-						todos[i].StartedAt = &now
-						todos[i].CompletedAt = nil
-					}
-				}
+				applyStatusChange(&todos[i], newStatus, todos[i].Status, opts, now)
 			} else {
 				todos[i].Status = newStatus
 			}
@@ -501,6 +470,41 @@ func missingTodoIDsError(missing []string) error {
 		return nil
 	}
 	return fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
+}
+
+func applyStatusChange(item *Todo, newStatus Status, previousStatus Status, opts UpdateOptions, now time.Time) {
+	item.Status = newStatus
+	if newStatus != StatusDone {
+		item.StartedAt = nil
+		item.CompletedAt = nil
+	}
+
+	switch newStatus {
+	case StatusClosed, StatusDone:
+		item.ClosedAt = &now
+		item.DeletedAt = nil
+		item.DeleteReason = ""
+		if newStatus == StatusDone {
+			if previousStatus == StatusInProgress {
+				item.CompletedAt = &now
+			} else {
+				item.CompletedAt = nil
+			}
+		}
+	case StatusTombstone:
+		item.ClosedAt = nil
+		if opts.DeletedAt == nil && item.DeletedAt == nil {
+			item.DeletedAt = &now
+		}
+	case StatusOpen, StatusInProgress, StatusProposed:
+		item.ClosedAt = nil
+		item.DeletedAt = nil
+		item.DeleteReason = ""
+		if newStatus == StatusInProgress && previousStatus != StatusInProgress {
+			item.StartedAt = &now
+			item.CompletedAt = nil
+		}
+	}
 }
 
 // Ready returns open todos with no unresolved blockers, sorted by priority.
