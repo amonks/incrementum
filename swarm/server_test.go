@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -245,6 +247,61 @@ func TestDoStartsJobWithWorkspace(t *testing.T) {
 		}
 	default:
 		t.Fatal("expected job run call")
+	}
+}
+
+func TestDoRecoversFromJobPanic(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath: repoDir,
+		StateDir: stateDir,
+		Pool:     noopPool{},
+		Logger:   log.New(io.Discard, "", 0),
+		RunJob: func(_ string, _ string, opts job.RunOptions) (*job.RunResult, error) {
+			if opts.OnStart != nil {
+				opts.OnStart(job.StartInfo{JobID: "job-panic"})
+			}
+			panic("boom")
+		},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	body, err := json.Marshal(doRequest{TodoID: "todo-panic"})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/do", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var payload doResponse
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.JobID != "job-panic" {
+		t.Fatalf("expected job id, got %q", payload.JobID)
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		server.mu.Lock()
+		_, ok := server.jobs[payload.JobID]
+		server.mu.Unlock()
+		if !ok {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("expected job %s to be cleared", payload.JobID)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

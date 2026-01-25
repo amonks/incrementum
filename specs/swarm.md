@@ -6,6 +6,10 @@ The swarm package coordinates multiple jobs in parallel by running a single
 server process and interacting with it through JSON-over-HTTP RPCs. The CLI
 subcommand is a thin wrapper around the public package APIs.
 
+The swarm server logs request failures and job lifecycle events (start,
+completion, failure, and panic recovery) to stderr with a `swarm:` prefix so
+operators can troubleshoot unexpected job outcomes.
+
 ## Job Orchestration
 
 - Each job runs in its own workspace.
@@ -64,6 +68,9 @@ Start the swarm server for the current repository.
 
 On startup, the command logs the full address (for example, `Swarm server
 listening on 127.0.0.1:8088`).
+
+The server writes operational logs to stderr for request errors, job start/stop
+events, and workspace cleanup failures.
 
 ### `ii swarm do [todo-id] [job do flags] [--path=] --addr=`
 

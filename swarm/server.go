@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -37,6 +38,7 @@ type ServerOptions struct {
 	RunJob          JobRunner
 	JobRunOptions   job.RunOptions
 	EventLogOptions job.EventLogOptions
+	Logger          *log.Logger
 }
 
 // Server handles swarm RPCs.
@@ -47,6 +49,7 @@ type Server struct {
 	runJob          JobRunner
 	jobRunOptions   job.RunOptions
 	eventLogOptions job.EventLogOptions
+	logger          *log.Logger
 
 	mu   sync.Mutex
 	jobs map[string]*runningJob
@@ -61,6 +64,10 @@ type runningJob struct {
 func NewServer(opts ServerOptions) (*Server, error) {
 	if strings.TrimSpace(opts.RepoPath) == "" {
 		return nil, fmt.Errorf("repo path is required")
+	}
+	logger := opts.Logger
+	if logger == nil {
+		logger = log.New(os.Stderr, "swarm: ", log.LstdFlags)
 	}
 	pool := opts.Pool
 	if pool == nil {
@@ -93,6 +100,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		runJob:          runJob,
 		jobRunOptions:   opts.JobRunOptions,
 		eventLogOptions: eventLogOptions,
+		logger:          logger,
 		jobs:            make(map[string]*runningJob),
 	}, nil
 }
@@ -127,8 +135,16 @@ func (s *Server) handler(baseURL string) http.Handler {
 
 // Serve runs the server on the given address.
 func (s *Server) Serve(addr string) error {
-	server := &http.Server{Addr: addr, Handler: s.handler(resolveWebBaseURL(addr))}
-	return server.ListenAndServe()
+	server := &http.Server{
+		Addr:     addr,
+		Handler:  s.handler(resolveWebBaseURL(addr)),
+		ErrorLog: s.logger,
+	}
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		s.logf("server stopped: %v", err)
+		return err
+	}
+	return nil
 }
 
 func resolveWebBaseURL(addr string) string {
@@ -150,29 +166,29 @@ func resolveWebBaseURL(addr string) string {
 }
 
 func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload doRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	jobID, err := s.startJob(r.Context(), payload.TodoID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, doResponse{JobID: jobID})
 }
 
 func (s *Server) handleKill(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload killRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.killJob(payload.JobID); err != nil {
@@ -180,19 +196,19 @@ func (s *Server) handleKill(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, job.ErrJobNotFound) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		s.writeError(w, r, status, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, emptyResponse{})
 }
 
 func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload logsRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	if _, err := s.manager.Find(payload.JobID); err != nil {
@@ -200,41 +216,41 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, job.ErrJobNotFound) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		s.writeError(w, r, status, err)
 		return
 	}
 	events, err := job.EventSnapshot(payload.JobID, s.eventLogOptions)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, logsResponse{Events: events})
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload listRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	jobs, err := s.manager.List(payload.Filter)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, listResponse{Jobs: jobs})
 }
 
 func (s *Server) handleTodosList(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload todosListRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	store, err := todo.Open(s.repoPath, todo.OpenOptions{
@@ -248,26 +264,26 @@ func (s *Server) handleTodosList(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, todosListResponse{Todos: []todo.Todo{}})
 			return
 		}
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	defer store.Release()
 
 	todos, err := store.List(payload.Filter)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, todosListResponse{Todos: todos})
 }
 
 func (s *Server) handleTodosCreate(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload todosCreateRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	store, err := todo.Open(s.repoPath, todo.OpenOptions{
@@ -276,26 +292,26 @@ func (s *Server) handleTodosCreate(w http.ResponseWriter, r *http.Request) {
 		Purpose:         "swarm todos create",
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	defer store.Release()
 
 	created, err := store.Create(payload.Title, payload.Options)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, todosCreateResponse{Todo: *created})
 }
 
 func (s *Server) handleTodosUpdate(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload todosUpdateRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	store, err := todo.Open(s.repoPath, todo.OpenOptions{
@@ -304,26 +320,26 @@ func (s *Server) handleTodosUpdate(w http.ResponseWriter, r *http.Request) {
 		Purpose:         "swarm todos update",
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	defer store.Release()
 
 	updated, err := store.Update(payload.IDs, payload.Options)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, todosUpdateResponse{Todos: updated})
 }
 
 func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
+	if !s.requireMethod(w, r, http.MethodPost) {
 		return
 	}
 	var payload tailRequest
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	if _, err := s.manager.Find(payload.JobID); err != nil {
@@ -331,11 +347,14 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, job.ErrJobNotFound) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		s.writeError(w, r, status, err)
 		return
 	}
 	if err := streamEvents(r.Context(), w, payload.JobID, s.eventLogOptions); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+		s.writeError(w, r, http.StatusInternalServerError, err)
 	}
 }
 
@@ -359,6 +378,7 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	completed := make(chan struct{})
 	var runResult *job.RunResult
 	var runErr error
+	var jobID string
 
 	runOpts := s.jobRunOptions
 	runOpts.WorkspacePath = wsPath
@@ -366,6 +386,7 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	runOpts.EventLogOptions = s.eventLogOptions
 	baseOnStart := runOpts.OnStart
 	runOpts.OnStart = func(info job.StartInfo) {
+		jobID = info.JobID
 		if baseOnStart != nil {
 			baseOnStart(info)
 		}
@@ -376,14 +397,26 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	}
 
 	go func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				runErr = fmt.Errorf("job panic: %v", recovered)
+			}
+			close(completed)
+			if releaseErr := s.pool.Release(wsPath); releaseErr != nil {
+				s.logf("release workspace for todo %s: %v", cleanID, releaseErr)
+			}
+			finalJobID := jobID
+			if runResult != nil && runResult.Job.ID != "" {
+				finalJobID = runResult.Job.ID
+			}
+			if finalJobID != "" {
+				s.mu.Lock()
+				delete(s.jobs, finalJobID)
+				s.mu.Unlock()
+			}
+			s.logJobCompletion(cleanID, finalJobID, runResult, runErr)
+		}()
 		runResult, runErr = s.runJob(s.repoPath, todoID, runOpts)
-		close(completed)
-		_ = s.pool.Release(wsPath)
-		if runResult != nil && runResult.Job.ID != "" {
-			s.mu.Lock()
-			delete(s.jobs, runResult.Job.ID)
-			s.mu.Unlock()
-		}
 	}()
 
 	select {
@@ -391,6 +424,7 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 		s.mu.Lock()
 		s.jobs[info.JobID] = &runningJob{interrupts: interrupts, complete: completed}
 		s.mu.Unlock()
+		s.logf("job %s started for todo %s", info.JobID, cleanID)
 		return info.JobID, nil
 	case <-completed:
 		if runErr != nil {
@@ -482,12 +516,12 @@ type todosUpdateResponse struct {
 
 type emptyResponse struct{}
 
-func requireMethod(w http.ResponseWriter, r *http.Request, method string) bool {
+func (s *Server) requireMethod(w http.ResponseWriter, r *http.Request, method string) bool {
 	if r.Method == method {
 		return true
 	}
 	w.Header().Set("Allow", method)
-	writeError(w, http.StatusMethodNotAllowed, fmt.Errorf("method %s not allowed", r.Method))
+	s.writeError(w, r, http.StatusMethodNotAllowed, fmt.Errorf("method %s not allowed", r.Method))
 	return false
 }
 
@@ -509,8 +543,46 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	_ = json.NewEncoder(w).Encode(payload)
 }
 
-func writeError(w http.ResponseWriter, status int, err error) {
+func (s *Server) writeError(w http.ResponseWriter, r *http.Request, status int, err error) {
+	s.logRequestError(r, status, err)
 	writeJSON(w, status, map[string]string{"error": err.Error()})
+}
+
+func (s *Server) logRequestError(r *http.Request, status int, err error) {
+	if s == nil || s.logger == nil {
+		return
+	}
+	s.logger.Printf("request %s %s failed (%d): %v", r.Method, r.URL.Path, status, err)
+}
+
+func (s *Server) logJobCompletion(todoID, jobID string, result *job.RunResult, err error) {
+	if s == nil || s.logger == nil {
+		return
+	}
+	label := jobID
+	if label == "" {
+		label = "unknown"
+	}
+	status := ""
+	if result != nil && result.Job.Status != "" {
+		status = string(result.Job.Status)
+	}
+	if err != nil {
+		s.logger.Printf("job %s for todo %s failed: %v", label, todoID, err)
+		return
+	}
+	if status != "" {
+		s.logger.Printf("job %s for todo %s finished with status %s", label, todoID, status)
+		return
+	}
+	s.logger.Printf("job %s for todo %s finished", label, todoID)
+}
+
+func (s *Server) logf(format string, args ...any) {
+	if s == nil || s.logger == nil {
+		return
+	}
+	s.logger.Printf(format, args...)
 }
 
 func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts job.EventLogOptions) error {
