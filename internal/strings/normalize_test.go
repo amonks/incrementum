@@ -44,3 +44,36 @@ func TestNormalizeWhitespace(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeLower(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "already lower",
+			input: "ready",
+			want:  "ready",
+		},
+		{
+			name:  "mixed case",
+			input: "In_Progress",
+			want:  "in_progress",
+		},
+		{
+			name:  "empty",
+			input: "",
+			want:  "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := NormalizeLower(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}

@@ -10,3 +10,8 @@ func NormalizeWhitespace(value string) string {
 	}
 	return strings.Join(fields, " ")
 }
+
+// NormalizeLower returns the input lowercased.
+func NormalizeLower(value string) string {
+	return strings.ToLower(value)
+}

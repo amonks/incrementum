@@ -10,3 +10,7 @@ across subsystems.
 - Collapses all runs of whitespace into single ASCII spaces.
 - Uses Unicode whitespace definition via `strings.Fields`.
 - Returns an empty string when the input contains only whitespace.
+
+## NormalizeLower
+
+- Lowercases the input string using `strings.ToLower`.

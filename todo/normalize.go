@@ -1,11 +1,11 @@
 package todo
 
-import "strings"
+import internalstrings "github.com/amonks/incrementum/internal/strings"
 
 func normalizeStatus(status Status) Status {
-	return Status(strings.ToLower(string(status)))
+	return Status(internalstrings.NormalizeLower(string(status)))
 }
 
 func normalizeTodoType(todoType TodoType) TodoType {
-	return TodoType(strings.ToLower(string(todoType)))
+	return TodoType(internalstrings.NormalizeLower(string(todoType)))
 }

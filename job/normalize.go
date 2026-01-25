@@ -1,11 +1,11 @@
 package job
 
-import "strings"
+import internalstrings "github.com/amonks/incrementum/internal/strings"
 
 func normalizeStage(stage Stage) Stage {
-	return Stage(strings.ToLower(string(stage)))
+	return Stage(internalstrings.NormalizeLower(string(stage)))
 }
 
 func normalizeStatus(status Status) Status {
-	return Status(strings.ToLower(string(status)))
+	return Status(internalstrings.NormalizeLower(string(status)))
 }
