@@ -47,6 +47,14 @@ func BenchmarkStoreReadyLimit10K(b *testing.B) {
 	benchmarkStoreReadyLimit(b, 10000, 10)
 }
 
+func BenchmarkStoreDepTree1K(b *testing.B) {
+	benchmarkStoreDepTree(b, 1000)
+}
+
+func BenchmarkStoreDepTree10K(b *testing.B) {
+	benchmarkStoreDepTree(b, 10000)
+}
+
 func benchmarkReadJSONLFromReader(b *testing.B, count int) {
 	todos := benchmarkTodos(count)
 
@@ -140,6 +148,27 @@ func benchmarkStoreReadyLimit(b *testing.B, count int, limit int) {
 	}
 }
 
+func benchmarkStoreDepTree(b *testing.B, count int) {
+	store := newTestStore(b)
+	todos := benchmarkTodos(count)
+	if err := store.writeTodos(todos); err != nil {
+		b.Fatalf("write todos: %v", err)
+	}
+	deps := benchmarkDependencyChain(todos)
+	if err := store.writeDependencies(deps); err != nil {
+		b.Fatalf("write dependencies: %v", err)
+	}
+	rootID := todos[len(todos)-1].ID
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := store.DepTree(rootID); err != nil {
+			b.Fatalf("dep tree: %v", err)
+		}
+	}
+}
+
 func benchmarkTodos(count int) []Todo {
 	todos := make([]Todo, count)
 	for i := 0; i < count; i++ {
@@ -174,6 +203,21 @@ func applyBenchmarkStatuses(todos []Todo) {
 func benchmarkDependencies(todos []Todo) []Dependency {
 	deps := make([]Dependency, 0, len(todos)/4)
 	for i := 1; i < len(todos); i += 4 {
+		deps = append(deps, Dependency{
+			TodoID:      todos[i].ID,
+			DependsOnID: todos[i-1].ID,
+			CreatedAt:   benchmarkNow,
+		})
+	}
+	return deps
+}
+
+func benchmarkDependencyChain(todos []Todo) []Dependency {
+	if len(todos) < 2 {
+		return nil
+	}
+	deps := make([]Dependency, 0, len(todos)-1)
+	for i := 1; i < len(todos); i++ {
 		deps = append(deps, Dependency{
 			TodoID:      todos[i].ID,
 			DependsOnID: todos[i-1].ID,

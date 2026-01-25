@@ -8,7 +8,7 @@
 ## Benchmark setup
 
 - Command (JSONL read/write): `go test ./todo -bench='(ReadJSONLFromReader|WriteJSONL)' -run=^$ -benchmem`
-- Command (store operations): `go test ./todo -bench='Store(List|Ready)' -run=^$ -benchmem`
+- Command (store operations): `go test ./todo -bench='Store(DepTree|List|Ready)' -run=^$ -benchmem`
 - Environment: darwin/arm64 (Apple M1 Ultra)
 - Benchmark data: JSONL payload synthesized in-memory by `BenchmarkReadJSONLFromReader*`.
 
@@ -27,6 +27,8 @@
 | `BenchmarkStoreReady1K` | 2,040,286 | 924,539 | 10,532 |
 | `BenchmarkStoreReady10K` | 20,424,173 | 7,913,216 | 105,050 |
 | `BenchmarkStoreReadyLimit10K` | 20,023,906 | 6,074,006 | 105,060 |
+| `BenchmarkStoreDepTree1K` | 2,972,097 | 1,497,709 | 18,078 |
+| `BenchmarkStoreDepTree10K` | 31,503,016 | 12,973,543 | 180,283 |
 
 ## Improvements log
 
@@ -49,6 +51,7 @@
 - 2026-01-25: Added custom JSONL encoders for todos and dependencies to avoid per-field time.Time MarshalJSON allocations during writes.
 - 2026-01-25: Reused scratch buffers while encoding JSONL writes so each item avoids fresh allocations, cutting write allocations and improving throughput.
 - 2026-01-25: Reused the todo list/ready in-memory results to compute ID prefix lengths in `ii todo`, eliminating redundant JSONL reads for list/ready output.
+- 2026-01-25: Added dependency tree benchmarks to track `ii todo dep tree` performance at scale.
 
 ## Profiling notes
 
