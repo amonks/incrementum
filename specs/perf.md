@@ -18,17 +18,17 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,702,009 | 542,010 | 9,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,215,309 | 4,893,568 | 90,003 |
-| `BenchmarkWriteJSONL1K` | 445,688 | 66,984 | 11 |
-| `BenchmarkWriteJSONL10K` | 2,625,791 | 66,984 | 11 |
-| `BenchmarkStoreList1K` | 1,777,498 | 731,178 | 9,010 |
-| `BenchmarkStoreList10K` | 17,966,736 | 6,737,552 | 90,010 |
-| `BenchmarkStoreReady1K` | 2,040,286 | 924,539 | 10,532 |
-| `BenchmarkStoreReady10K` | 20,424,173 | 7,913,216 | 105,050 |
-| `BenchmarkStoreReadyLimit10K` | 20,023,906 | 6,074,006 | 105,060 |
-| `BenchmarkStoreDepTree1K` | 2,972,097 | 1,497,709 | 18,078 |
-| `BenchmarkStoreDepTree10K` | 31,503,016 | 12,973,543 | 180,283 |
+| `BenchmarkReadJSONLFromReader1K` | 1,736,588 | 607,547 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,384,530 | 4,959,102 | 90,004 |
+| `BenchmarkWriteJSONL1K` | 470,396 | 66,986 | 11 |
+| `BenchmarkWriteJSONL10K` | 2,996,784 | 66,984 | 11 |
+| `BenchmarkStoreList1K` | 1,800,775 | 796,715 | 9,011 |
+| `BenchmarkStoreList10K` | 18,215,598 | 6,803,096 | 90,011 |
+| `BenchmarkStoreReady1K` | 2,104,054 | 1,055,611 | 10,534 |
+| `BenchmarkStoreReady10K` | 20,497,769 | 8,044,490 | 105,052 |
+| `BenchmarkStoreReadyLimit10K` | 19,952,951 | 6,205,081 | 105,062 |
+| `BenchmarkStoreDepTree1K` | 2,946,702 | 1,628,785 | 18,080 |
+| `BenchmarkStoreDepTree10K` | 31,259,083 | 13,104,463 | 180,285 |
 
 ## Improvements log
 
@@ -52,6 +52,7 @@
 - 2026-01-25: Reused scratch buffers while encoding JSONL writes so each item avoids fresh allocations, cutting write allocations and improving throughput.
 - 2026-01-25: Reused the todo list/ready in-memory results to compute ID prefix lengths in `ii todo`, eliminating redundant JSONL reads for list/ready output.
 - 2026-01-25: Added dependency tree benchmarks to track `ii todo dep tree` performance at scale.
+- 2026-01-25: Reused the JSONL line buffer when assembling oversized lines so multi-chunk reads avoid repeated allocations.
 
 ## Profiling notes
 

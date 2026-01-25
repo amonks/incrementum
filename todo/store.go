@@ -284,9 +284,11 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
 	readerSize := estimateReaderSize(reader)
 	buf := bufio.NewReaderSize(reader, jsonlBufferSize)
+	lineBuf := make([]byte, 0, jsonlBufferSize)
 	itemIndex := 0
 	for {
-		line, err := readJSONLLine(buf)
+		line, nextBuf, err := readJSONLLine(buf, lineBuf)
+		lineBuf = nextBuf
 		atEOF := errors.Is(err, io.EOF)
 		if err != nil && !atEOF {
 			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
@@ -360,31 +362,31 @@ func estimateJSONLItems(totalSize int64, lineSize int) int {
 	return int(estimated)
 }
 
-func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
-	var line []byte
+func readJSONLLine(reader *bufio.Reader, lineBuf []byte) ([]byte, []byte, error) {
+	lineBuf = lineBuf[:0]
 	for {
 		chunk, isPrefix, err := reader.ReadLine()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				if len(chunk) == 0 && len(line) == 0 {
-					return nil, io.EOF
+				if len(chunk) == 0 && len(lineBuf) == 0 {
+					return nil, lineBuf, io.EOF
 				}
 			} else {
-				return nil, err
+				return nil, lineBuf, err
 			}
 		}
-		if len(line) == 0 && !isPrefix {
+		if len(lineBuf) == 0 && !isPrefix {
 			if len(chunk) > maxJSONLineBytes {
-				return nil, fmt.Errorf("exceeds max JSON line size")
+				return nil, lineBuf, fmt.Errorf("exceeds max JSON line size")
 			}
-			return chunk, err
+			return chunk, lineBuf, err
 		}
-		line = append(line, chunk...)
-		if len(line) > maxJSONLineBytes {
-			return nil, fmt.Errorf("exceeds max JSON line size")
+		lineBuf = append(lineBuf, chunk...)
+		if len(lineBuf) > maxJSONLineBytes {
+			return nil, lineBuf, fmt.Errorf("exceeds max JSON line size")
 		}
 		if !isPrefix {
-			return line, err
+			return lineBuf, lineBuf, err
 		}
 	}
 }
