@@ -633,9 +633,6 @@ func readJSONLStore[T any](store *Store, filename string) ([]T, error) {
 	path := storeFilePath(store.wsPath, filename)
 	var items []T
 	err := withFileLock(path, func(file *os.File) error {
-		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			return fmt.Errorf("seek file: %w", err)
-		}
 		var err error
 		items, err = readJSONLFromReader[T](file)
 		return err

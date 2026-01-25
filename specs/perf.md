@@ -18,19 +18,19 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,728,882 | 477,587 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,345,338 | 4,835,432 | 90,008 |
-| `BenchmarkWriteJSONL1K` | 463,805 | 66,984 | 11 |
-| `BenchmarkWriteJSONL10K` | 2,958,370 | 66,984 | 11 |
-| `BenchmarkStoreList1K` | 1,791,515 | 666,805 | 9,011 |
-| `BenchmarkStoreList10K` | 18,271,711 | 6,679,561 | 90,015 |
-| `BenchmarkStoreReady1K` | 2,095,765 | 781,592 | 10,532 |
-| `BenchmarkStoreReady10K` | 20,687,135 | 7,734,472 | 105,051 |
-| `BenchmarkStoreReadyLimit10K` | 20,111,254 | 5,841,620 | 105,057 |
-| `BenchmarkStoreDepTree1K` | 2,913,114 | 1,277,720 | 18,066 |
-| `BenchmarkStoreDepTree10K` | 30,887,001 | 12,140,715 | 180,253 |
-| `BenchmarkStoreUpdate1K` | 2,387,997 | 627,045 | 9,050 |
-| `BenchmarkStoreUpdate10K` | 21,965,495 | 6,109,662 | 90,117 |
+| `BenchmarkReadJSONLFromReader1K` | 1,687,891 | 477,579 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,115,028 | 4,835,511 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 443,881 | 1,413 | 9 |
+| `BenchmarkWriteJSONL10K` | 2,907,247 | 1,558 | 9 |
+| `BenchmarkStoreList1K` | 1,757,822 | 666,998 | 9,011 |
+| `BenchmarkStoreList10K` | 17,671,987 | 6,681,534 | 90,015 |
+| `BenchmarkStoreReady1K` | 2,015,715 | 795,174 | 10,535 |
+| `BenchmarkStoreReady10K` | 20,380,152 | 7,854,357 | 105,060 |
+| `BenchmarkStoreReadyLimit10K` | 20,085,143 | 5,950,877 | 105,066 |
+| `BenchmarkStoreDepTree1K` | 2,895,243 | 1,276,744 | 18,066 |
+| `BenchmarkStoreDepTree10K` | 30,950,278 | 12,122,679 | 180,252 |
+| `BenchmarkStoreUpdate1K` | 2,304,763 | 629,286 | 9,050 |
+| `BenchmarkStoreUpdate10K` | 22,087,086 | 6,125,089 | 90,116 |
 
 ## Improvements log
 
@@ -58,6 +58,7 @@
 - 2026-01-25: Preallocated dependency maps and per-node children slices when building dep trees to reduce allocation churn during dep tree queries.
 - 2026-01-25: Pooled JSONL reader buffers to reuse the 64 KiB read and line scratch buffers across reads, reducing read allocations and downstream store bytes/op.
 - 2026-01-25: Pooled JSONL writer buffers so write paths reuse the 64 KiB buffer instead of allocating a fresh bufio.Writer each time.
+- 2026-01-25: Removed the redundant seek before reading locked JSONL files so store reads avoid an extra syscall per file.
 
 ## Profiling notes
 
