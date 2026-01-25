@@ -316,47 +316,17 @@ func readJSONL[T any](path string) ([]T, error) {
 func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
 	readerSize := estimateReaderSize(reader)
-	buf := jsonlReaderPool.Get().(*bufio.Reader)
-	buf.Reset(reader)
-	defer func() {
-		buf.Reset(bytes.NewReader(nil))
-		jsonlReaderPool.Put(buf)
-	}()
-	lineBuf := jsonlLineBufPool.Get().([]byte)
-	lineBuf = lineBuf[:0]
-	defer func() {
-		if cap(lineBuf) <= jsonlBufferSize {
-			jsonlLineBufPool.Put(lineBuf[:0])
-		}
-	}()
-	itemIndex := 0
-	for {
-		line, nextBuf, err := readJSONLLine(buf, lineBuf)
-		lineBuf = nextBuf
-		atEOF := errors.Is(err, io.EOF)
-		if err != nil && !atEOF {
-			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
-		}
-		if len(line) == 0 && atEOF {
-			break
-		}
-		if len(line) == 0 {
-			if atEOF {
-				break
-			}
-			continue
-		}
+	if err := scanJSONLReader(reader, func(line []byte, itemIndex int) (bool, error) {
 		if items == nil && readerSize > 0 {
 			items = make([]T, 0, estimateJSONLItems(readerSize, len(line)))
 		}
 		items = append(items, *new(T))
 		if err := json.Unmarshal(line, &items[len(items)-1]); err != nil {
-			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+			return false, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
 		}
-		itemIndex++
-		if atEOF {
-			break
-		}
+		return false, nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return items, nil
@@ -366,52 +336,22 @@ func readTodosByExactIDsFromReader(reader io.Reader, missing map[string]struct{}
 	if len(missing) == 0 {
 		return nil, nil
 	}
-	buf := jsonlReaderPool.Get().(*bufio.Reader)
-	buf.Reset(reader)
-	defer func() {
-		buf.Reset(bytes.NewReader(nil))
-		jsonlReaderPool.Put(buf)
-	}()
-	lineBuf := jsonlLineBufPool.Get().([]byte)
-	lineBuf = lineBuf[:0]
-	defer func() {
-		if cap(lineBuf) <= jsonlBufferSize {
-			jsonlLineBufPool.Put(lineBuf[:0])
-		}
-	}()
 	items := make(map[string]Todo, len(missing))
-	itemIndex := 0
-	for {
-		line, nextBuf, err := readJSONLLine(buf, lineBuf)
-		lineBuf = nextBuf
-		atEOF := errors.Is(err, io.EOF)
-		if err != nil && !atEOF {
-			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
-		}
-		if len(line) == 0 && atEOF {
-			break
-		}
-		if len(line) == 0 {
-			if atEOF {
-				break
-			}
-			continue
-		}
+	if err := scanJSONLReader(reader, func(line []byte, itemIndex int) (bool, error) {
 		var item Todo
 		if err := json.Unmarshal(line, &item); err != nil {
-			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+			return false, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
 		}
-		itemIndex++
 		if _, ok := missing[item.ID]; ok {
 			items[item.ID] = item
 			delete(missing, item.ID)
 			if len(missing) == 0 {
-				break
+				return true, nil
 			}
 		}
-		if atEOF {
-			break
-		}
+		return false, nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return items, nil
@@ -459,6 +399,47 @@ func estimateJSONLItems(totalSize int64, lineSize int) int {
 		estimated = 1
 	}
 	return int(estimated)
+}
+
+func scanJSONLReader(reader io.Reader, handle func(line []byte, itemIndex int) (bool, error)) error {
+	buf := jsonlReaderPool.Get().(*bufio.Reader)
+	buf.Reset(reader)
+	defer func() {
+		buf.Reset(bytes.NewReader(nil))
+		jsonlReaderPool.Put(buf)
+	}()
+	lineBuf := jsonlLineBufPool.Get().([]byte)
+	lineBuf = lineBuf[:0]
+	defer func() {
+		if cap(lineBuf) <= jsonlBufferSize {
+			jsonlLineBufPool.Put(lineBuf[:0])
+		}
+	}()
+	itemIndex := 0
+	for {
+		line, nextBuf, err := readJSONLLine(buf, lineBuf)
+		lineBuf = nextBuf
+		atEOF := errors.Is(err, io.EOF)
+		if err != nil && !atEOF {
+			return fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+		}
+		if len(line) == 0 {
+			if atEOF {
+				break
+			}
+			continue
+		}
+		done, err := handle(line, itemIndex)
+		if err != nil {
+			return err
+		}
+		itemIndex++
+		if done || atEOF {
+			break
+		}
+	}
+
+	return nil
 }
 
 func readJSONLLine(reader *bufio.Reader, lineBuf []byte) ([]byte, []byte, error) {
