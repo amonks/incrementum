@@ -903,17 +903,6 @@ func validateTodoIDs(ids []string) error {
 	return nil
 }
 
-func readJSONLAtBookmark[T any](client *jj.Client, repoPath, path string) ([]T, error) {
-	output, err := readBookmarkFile(client, repoPath, path)
-	if err != nil {
-		return nil, err
-	}
-	if output == nil {
-		return nil, nil
-	}
-	return readJSONLFromReader[T](bytes.NewReader(output))
-}
-
 func readBookmarkFile(client *jj.Client, repoPath, path string) ([]byte, error) {
 	if client == nil {
 		return nil, fmt.Errorf("todo store is missing jj client")
