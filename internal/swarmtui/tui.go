@@ -233,7 +233,9 @@ func (m model) handleKey(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		updated, cmd := m.switchTab(1)
 		return updated, cmd, true
 	case "enter":
-		return m.enterDetail(), nil, true
+		if m.focus == focusList {
+			return m.enterDetail(), nil, true
+		}
 	case "esc":
 		return m.exitDetail(), nil, true
 	case "c":

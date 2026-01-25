@@ -142,7 +142,7 @@ func (model jobDetailModel) renderContent() string {
 	}
 	header := fmt.Sprintf("Job %s", model.job.ID)
 	meta := fmt.Sprintf("Status: %s  Stage: %s  Todo: %s", model.job.Status, model.job.Stage, model.job.TodoID)
-	log := strings.TrimSpace(model.content)
+	log := strings.TrimRight(model.content, "\n")
 	if log == "" {
 		log = "-"
 	}
