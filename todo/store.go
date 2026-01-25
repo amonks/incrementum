@@ -394,8 +394,11 @@ func writeJSONL[T any](path string, items []T) error {
 	switch typed := any(items).(type) {
 	case []Todo:
 		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
+			buf := make([]byte, 0, 512)
 			for i := range typed {
-				if err := writeTodoJSONLine(writer, &typed[i]); err != nil {
+				buf = buf[:0]
+				buf = appendTodoJSONLine(buf, &typed[i])
+				if _, err := writer.Write(buf); err != nil {
 					return fmt.Errorf("encode item %d: %w", i, err)
 				}
 			}
@@ -403,8 +406,11 @@ func writeJSONL[T any](path string, items []T) error {
 		})
 	case []Dependency:
 		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
+			buf := make([]byte, 0, 128)
 			for i := range typed {
-				if err := writeDependencyJSONLine(writer, &typed[i]); err != nil {
+				buf = buf[:0]
+				buf = appendDependencyJSONLine(buf, &typed[i])
+				if _, err := writer.Write(buf); err != nil {
 					return fmt.Errorf("encode item %d: %w", i, err)
 				}
 			}
@@ -466,8 +472,7 @@ func writeJSONLWithWriter(path string, write func(*bufio.Writer) error) error {
 
 var jsonHexDigits = []byte("0123456789abcdef")
 
-func writeTodoJSONLine(writer *bufio.Writer, todo *Todo) error {
-	buf := make([]byte, 0, 512)
+func appendTodoJSONLine(buf []byte, todo *Todo) []byte {
 	buf = append(buf, '{')
 	hasField := false
 
@@ -517,12 +522,10 @@ func writeTodoJSONLine(writer *bufio.Writer, todo *Todo) error {
 	}
 
 	buf = append(buf, '}', '\n')
-	_, err := writer.Write(buf)
-	return err
+	return buf
 }
 
-func writeDependencyJSONLine(writer *bufio.Writer, dependency *Dependency) error {
-	buf := make([]byte, 0, 128)
+func appendDependencyJSONLine(buf []byte, dependency *Dependency) []byte {
 	buf = append(buf, '{')
 	hasField := false
 
@@ -536,8 +539,7 @@ func writeDependencyJSONLine(writer *bufio.Writer, dependency *Dependency) error
 	buf = appendJSONTime(buf, dependency.CreatedAt)
 
 	buf = append(buf, '}', '\n')
-	_, err := writer.Write(buf)
-	return err
+	return buf
 }
 
 func appendJSONFieldPrefix(buf []byte, key string, hasField bool) ([]byte, bool) {

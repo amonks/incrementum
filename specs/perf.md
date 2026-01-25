@@ -18,15 +18,15 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,697,374 | 542,002 | 9,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,111,222 | 4,893,643 | 90,003 |
-| `BenchmarkWriteJSONL1K` | 836,561 | 355,088 | 3,010 |
-| `BenchmarkWriteJSONL10K` | 7,072,500 | 2,952,813 | 30,019 |
-| `BenchmarkStoreList1K` | 1,764,095 | 731,377 | 9,013 |
-| `BenchmarkStoreList10K` | 17,697,803 | 6,737,852 | 90,013 |
-| `BenchmarkStoreReady1K` | 2,047,021 | 924,939 | 10,538 |
-| `BenchmarkStoreReady10K` | 20,397,915 | 7,913,663 | 105,056 |
-| `BenchmarkStoreReadyLimit10K` | 20,001,262 | 6,074,441 | 105,066 |
+| `BenchmarkReadJSONLFromReader1K` | 1,692,139 | 542,003 | 9,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,153,662 | 4,893,643 | 90,003 |
+| `BenchmarkWriteJSONL1K` | 452,721 | 66,984 | 11 |
+| `BenchmarkWriteJSONL10K` | 2,752,135 | 66,984 | 11 |
+| `BenchmarkStoreList1K` | 1,777,067 | 731,377 | 9,013 |
+| `BenchmarkStoreList10K` | 17,871,827 | 6,737,768 | 90,013 |
+| `BenchmarkStoreReady1K` | 2,060,811 | 924,971 | 10,538 |
+| `BenchmarkStoreReady10K` | 20,528,776 | 7,913,652 | 105,056 |
+| `BenchmarkStoreReadyLimit10K` | 20,177,921 | 6,074,435 | 105,066 |
 
 ## Improvements log
 
@@ -46,6 +46,7 @@
 - 2026-01-25: Dropped redundant JSONL line-ending trimming now that bufio.ReadLine already strips terminators, reducing per-line work during JSONL reads.
 - 2026-01-25: Unmarshal JSONL data directly into the destination slice slot to avoid copying each decoded item, trimming allocations across read and store benchmarks.
 - 2026-01-25: Added custom JSONL encoders for todos and dependencies to avoid per-field time.Time MarshalJSON allocations during writes.
+- 2026-01-25: Reused scratch buffers while encoding JSONL writes so each item avoids fresh allocations, cutting write allocations and improving throughput.
 
 ## Profiling notes
 
