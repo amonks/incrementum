@@ -18,7 +18,7 @@ var (
 	tabActiveStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("230")).Background(lipgloss.Color("24")).Bold(true).Padding(0, 1)
 	tabInactiveStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("250")).Background(lipgloss.Color("236")).Padding(0, 1)
 
-	paneStyle       = lipgloss.NewStyle().Border(borderASCII).BorderForeground(lipgloss.Color("238")).Padding(0, 1)
+	paneStyle       = lipgloss.NewStyle().Border(borderASCII).BorderForeground(lipgloss.Color("245")).Padding(0, 1)
 	paneActiveStyle = paneStyle.Copy().BorderForeground(lipgloss.Color("33"))
 
 	labelStyle         = lipgloss.NewStyle().Bold(true)
