@@ -11,8 +11,9 @@
 - Never mock: tests must exercise real integrations, especially when shelling out to third-party binaries.
 - When you spot unrelated issues, capture them as new todos instead of piggybacking on the current change.
 
-### Performance
+### Development Practices
 
+- [testing.md](./testing.md) defines test tiers, testscript usage, and determinism rules.
 - [perf.md](./perf.md) tracks benchmarks, profiling commands, and improvements.
 
 ### CLI Architecture
