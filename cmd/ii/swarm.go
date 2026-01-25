@@ -80,7 +80,6 @@ func init() {
 
 	swarmDoCmd.Flags().StringVar(&swarmAddr, "addr", "", "Swarm server address")
 	swarmDoCmd.Flags().StringVar(&swarmPath, "path", "", "Repository path")
-	swarmDoCmd.MarkFlagRequired("path")
 	swarmDoCmd.Flags().StringVar(&jobDoTitle, "title", "", "Todo title")
 	swarmDoCmd.Flags().StringVarP(&jobDoType, "type", "t", "task", "Todo type (task, bug, feature)")
 	swarmDoCmd.Flags().IntVarP(&jobDoPriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
@@ -126,9 +125,6 @@ func runSwarmDo(cmd *cobra.Command, args []string) error {
 	hasCreateFlags := jobDoHasCreateFlags(cmd)
 	if len(args) > 0 && (hasCreateFlags || jobDoEdit || jobDoNoEdit) {
 		return fmt.Errorf("todo id cannot be combined with todo creation flags")
-	}
-	if strings.TrimSpace(swarmPath) == "" {
-		return fmt.Errorf("path is required")
 	}
 	path, err := resolveRepoPath(swarmPath)
 	if err != nil {
@@ -347,7 +343,7 @@ func openTodoStoreForPath(cmd *cobra.Command, repoPath string) (*todo.Store, err
 
 func resolveRepoPath(path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
-		return "", fmt.Errorf("path is required")
+		return getRepoPath()
 	}
 	return resolveRepoRoot(path)
 }

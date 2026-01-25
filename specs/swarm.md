@@ -50,12 +50,12 @@ Port precedence is:
 
 Start the swarm server for the current repository.
 
-### `ii swarm do [todo-id] [job do flags] --path= --addr=`
+### `ii swarm do [todo-id] [job do flags] [--path=] --addr=`
 
-Create a todo in the provided repo path (or use the provided todo id), start a
-job in the server, and stream job events to stdout. Interrupts stop streaming
-but leave the job running. When a todo id is provided, todo creation flags are
-not allowed.
+Create a todo in the provided repo path (or use the current repo), start a job
+in the server, and stream job events to stdout. When a todo id is provided, todo
+creation flags are not allowed. Interrupts stop streaming but leave the job
+running.
 
 ### `ii swarm kill <job-id>`
 

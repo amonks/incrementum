@@ -69,6 +69,25 @@ func TestSwarmDoSkipsTodoCreationWithTodoID(t *testing.T) {
 	}
 }
 
+func TestSwarmDoUsesCwdWhenPathMissing(t *testing.T) {
+	resetSwarmDoState(t)
+	repoPath := setupTestRepo(t)
+	swarmAddr = "invalid"
+
+	withCwd(t, repoPath, func() {
+		err := runSwarmDo(swarmDoCmd, []string{"todo-123"})
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if strings.Contains(err.Error(), "path is required") {
+			t.Fatalf("expected to default path to cwd, got %v", err)
+		}
+		if !strings.Contains(err.Error(), "invalid port") {
+			t.Fatalf("expected addr error, got %v", err)
+		}
+	})
+}
+
 func resetSwarmDoState(t *testing.T) {
 	t.Helper()
 	jobDoTitle = ""
