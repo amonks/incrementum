@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -63,6 +64,8 @@ type runningJob struct {
 	interrupts chan os.Signal
 	complete   chan struct{}
 }
+
+const shutdownJobTimeout = 5 * time.Second
 
 // NewServer creates a swarm server.
 func NewServer(opts ServerOptions) (*Server, error) {
@@ -144,11 +147,102 @@ func (s *Server) Serve(addr string) error {
 		Handler:  s.handler(resolveWebBaseURL(addr)),
 		ErrorLog: s.logger,
 	}
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		s.logf("server stopped: %v", err)
+
+	listenErrs := make(chan error, 1)
+	go func() {
+		listenErrs <- server.ListenAndServe()
+	}()
+
+	interrupts := make(chan os.Signal, 1)
+	signal.Notify(interrupts, os.Interrupt)
+	defer signal.Stop(interrupts)
+
+	select {
+	case err := <-listenErrs:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.logf("server stopped: %v", err)
+			return err
+		}
+		return nil
+	case <-interrupts:
+		s.logf("interrupt received, shutting down")
+		jobErr := s.shutdownJobs(shutdownJobTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownJobTimeout)
+		shutdownErr := server.Shutdown(shutdownCtx)
+		cancel()
+		listenErr := <-listenErrs
+		if errors.Is(listenErr, http.ErrServerClosed) {
+			listenErr = nil
+		}
+		if errors.Is(shutdownErr, http.ErrServerClosed) {
+			shutdownErr = nil
+		}
+		if err := errors.Join(jobErr, shutdownErr, listenErr); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func (s *Server) shutdownJobs(timeout time.Duration) error {
+	s.mu.Lock()
+	jobs := make(map[string]*runningJob, len(s.jobs))
+	for jobID, handle := range s.jobs {
+		jobs[jobID] = handle
+	}
+	s.mu.Unlock()
+
+	for _, handle := range jobs {
+		select {
+		case handle.interrupts <- os.Interrupt:
+		default:
+		}
+	}
+
+	deadline := time.Now().Add(timeout)
+	var jobErr error
+	for jobID, handle := range jobs {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			jobErr = errors.Join(jobErr, s.failActiveJob(jobID))
+			continue
+		}
+		waitTimer := time.NewTimer(remaining)
+		select {
+		case <-handle.complete:
+			if !waitTimer.Stop() {
+				<-waitTimer.C
+			}
+		case <-waitTimer.C:
+			jobErr = errors.Join(jobErr, s.failActiveJob(jobID))
+		}
+	}
+	return jobErr
+}
+
+func (s *Server) failActiveJob(jobID string) error {
+	jobRecord, err := s.manager.Find(jobID)
+	if err != nil {
 		return err
 	}
-	return nil
+	if jobRecord.Status != job.StatusActive {
+		return nil
+	}
+	status := job.StatusFailed
+	updated, err := s.manager.Update(jobRecord.ID, job.UpdateOptions{Status: &status}, time.Now())
+	if err != nil {
+		return err
+	}
+	if updated.TodoID == "" {
+		return nil
+	}
+	store, err := todo.Open(s.repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+	if err != nil {
+		return err
+	}
+	_, reopenErr := store.Reopen([]string{updated.TodoID})
+	releaseErr := store.Release()
+	return errors.Join(reopenErr, releaseErr)
 }
 
 func resolveWebBaseURL(addr string) string {

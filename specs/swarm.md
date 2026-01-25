@@ -21,6 +21,9 @@ trace and returns a 500 error instead of crashing.
 - When a new change is created for a job, its description is set to `staging for todo <id>`.
 - Jobs run within the server process; client commands only stream events or
   send control signals.
+- When the server receives an interrupt (Ctrl+C), it interrupts running jobs,
+  waits briefly for them to exit, and marks any remaining active jobs as failed
+  (reopening their todos).
 
 ## RPCs
 
@@ -79,6 +82,9 @@ listening on 127.0.0.1:8088`).
 
 The server writes operational logs to stderr for request errors, job start/stop
 events, handler panics, and workspace cleanup failures.
+
+On shutdown (Ctrl+C), the server fails any active jobs that did not exit
+cleanly so they do not remain in the active/implementing state.
 
 ### `ii swarm do [todo-id] [job do flags] [--path=] --addr=`
 

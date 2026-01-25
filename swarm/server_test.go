@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/job"
+	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -951,5 +952,85 @@ func TestTailStreamsLargeEventLines(t *testing.T) {
 	}
 	if len(gotEvent.Data) != len(largeEvent.Data) {
 		t.Fatalf("expected data length %d, got %d", len(largeEvent.Data), len(gotEvent.Data))
+	}
+}
+
+func TestShutdownJobsFailsActiveJobs(t *testing.T) {
+	repoDir := setupSwarmRepo(t)
+	stateDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath: repoDir,
+		StateDir: stateDir,
+		Pool:     noopPool{},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	store, err := todo.Open(repoDir, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	created, err := store.Create("Shutdown job", todo.CreateOptions{})
+	if err != nil {
+		store.Release()
+		t.Fatalf("create todo: %v", err)
+	}
+	if _, err := store.Start([]string{created.ID}); err != nil {
+		store.Release()
+		t.Fatalf("start todo: %v", err)
+	}
+	if err := store.Release(); err != nil {
+		t.Fatalf("release todo store: %v", err)
+	}
+
+	manager, err := job.Open(repoDir, job.OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open job manager: %v", err)
+	}
+	createdJob, err := manager.Create(created.ID, time.Now())
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	interrupts := make(chan os.Signal, 1)
+	server.mu.Lock()
+	server.jobs[createdJob.ID] = &runningJob{interrupts: interrupts, complete: make(chan struct{})}
+	server.mu.Unlock()
+
+	if err := server.shutdownJobs(10 * time.Millisecond); err != nil {
+		t.Fatalf("shutdown jobs: %v", err)
+	}
+
+	select {
+	case <-interrupts:
+	default:
+		t.Fatal("expected shutdown interrupt")
+	}
+
+	updated, err := manager.Find(createdJob.ID)
+	if err != nil {
+		t.Fatalf("find job: %v", err)
+	}
+	if updated.Status != job.StatusFailed {
+		t.Fatalf("expected failed status, got %q", updated.Status)
+	}
+
+	store, err = todo.Open(repoDir, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("reopen todo store: %v", err)
+	}
+	items, err := store.Show([]string{created.ID})
+	if err != nil {
+		store.Release()
+		t.Fatalf("show todo: %v", err)
+	}
+	if items[0].Status != todo.StatusOpen {
+		store.Release()
+		t.Fatalf("expected todo status open, got %q", items[0].Status)
+	}
+	if err := store.Release(); err != nil {
+		t.Fatalf("release todo store: %v", err)
 	}
 }
