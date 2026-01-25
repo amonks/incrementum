@@ -51,7 +51,7 @@ def run_job(prompt: str):
     if not os.path.exists(marker) and not prompt.startswith("Review"):
         open(os.path.join(workspace_root, "hello-world.txt"), "a").close()
         with open(os.path.join(workspace_root, ".incrementum-commit-message"), "w") as handle:
-            handle.write("\n\nfeat: commit summary    \n\nBody line\n")
+            handle.write("feat: commit summary\n\nBody line\n")
         with open(marker, "w") as handle:
             handle.write("done")
 
