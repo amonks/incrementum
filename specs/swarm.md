@@ -29,6 +29,15 @@ RPCs use JSON over HTTP with the following endpoints:
   list if the event log does not exist yet).
 - `POST /list` returns `{ "jobs": [...] }`.
 
+Todo RPCs follow the todo store API shapes:
+
+- `POST /todos/list` with `{ "filter": { ... } }` returns `{ "todos": [...] }` and
+  accepts the JSON form of `todo.ListFilter`.
+- `POST /todos/create` with `{ "title": "...", "options": { ... } }` returns
+  `{ "todo": { ... } }` and accepts the JSON form of `todo.CreateOptions`.
+- `POST /todos/update` with `{ "ids": ["..."], "options": { ... } }` returns
+  `{ "todos": [...] }` and accepts the JSON form of `todo.UpdateOptions`.
+
 Events are the same `job.Event` JSON objects stored in job event logs.
 
 ## Configuration
@@ -77,3 +86,62 @@ List swarm jobs. Defaults to active jobs only; use `--all` or `--status` to
 change filters.
 
 Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`, `DURATION`, `TITLE`.
+
+### `ii swarm client`
+
+Launch the swarm TUI client for the current repository.
+
+## TUI Client
+
+The swarm TUI is a Bubble Tea client (`ii swarm client`) that connects to the
+swarm server and operates on todos and jobs. It uses the same configuration and
+`--addr` resolution as other swarm subcommands.
+
+### Layout
+
+- Tab strip across the top with two tabs: `Todo` and `Jobs`.
+- Main content splits into a left list pane and a right detail pane.
+- The list pane scrolls; the detail pane can scroll independently when
+  content exceeds the viewport.
+- The default focus is the list pane.
+
+### Global Keys
+
+- `[` / `]`: move between tabs.
+- `q` or `ctrl+c`: quit the TUI.
+
+### Pane Focus
+
+- `enter`: move focus from the list pane to the detail pane.
+- `esc`: return focus to the list pane.
+
+### Todo Tab
+
+The list pane shows todos from the swarm server (via `POST /todos/list`) using
+the same defaults as `todo.List` (all non-tombstone todos).
+
+List pane actions:
+
+- `c`: create a new todo draft and focus the detail pane for editing.
+- `s`: open a confirmation modal to start a swarm job for the selected todo;
+  confirming calls `POST /do` and opens the job in the Jobs tab.
+
+Detail pane behavior:
+
+- Editable fields: `title`, `description`, `status`, `priority`, `type`.
+- Read-only fields: `id`, `created_at`, `updated_at`, `started_at`,
+  `closed_at`, `completed_at`, `deleted_at`, `delete_reason`.
+- `tab` / `shift+tab`: move between fields when editing.
+- `ctrl+s`: save changes by calling `POST /todos/create` for new todos or
+  `POST /todos/update` for existing ones.
+- `esc` returns to the list pane; if edits are unsaved, prompt to discard or
+  continue editing.
+
+### Jobs Tab
+
+The list pane shows jobs from `POST /list` (active by default). The detail pane
+shows the formatted event log for the selected job using the same formatter as
+`ii swarm logs`.
+
+- On selection, the client loads existing events via `POST /logs` and, when the
+  job is active, streams new events via `POST /tail`.
