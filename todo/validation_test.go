@@ -365,6 +365,22 @@ func TestValidateDependency(t *testing.T) {
 		wantErr error
 	}{
 		{
+			name: "missing todo id",
+			dep: Dependency{
+				DependsOnID: "def67890",
+				CreatedAt:   now,
+			},
+			wantErr: ErrEmptyDependencyTodoID,
+		},
+		{
+			name: "missing depends on id",
+			dep: Dependency{
+				TodoID:    "abc12345",
+				CreatedAt: now,
+			},
+			wantErr: ErrEmptyDependencyDependsOnID,
+		},
+		{
 			name: "valid dependency",
 			dep: Dependency{
 				TodoID:      "abc12345",

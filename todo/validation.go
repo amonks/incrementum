@@ -34,6 +34,12 @@ var (
 	// ErrSelfDependency is returned when trying to create a dependency on itself.
 	ErrSelfDependency = errors.New("todo cannot depend on itself")
 
+	// ErrEmptyDependencyTodoID is returned when a dependency lacks a todo ID.
+	ErrEmptyDependencyTodoID = errors.New("todo_id cannot be empty")
+
+	// ErrEmptyDependencyDependsOnID is returned when a dependency lacks a depends-on ID.
+	ErrEmptyDependencyDependsOnID = errors.New("depends_on_id cannot be empty")
+
 	// ErrDuplicateDependency is returned when the dependency already exists.
 	ErrDuplicateDependency = errors.New("dependency already exists")
 
@@ -185,10 +191,10 @@ func formatInvalidTypeError(todoType TodoType) error {
 // ValidateDependency checks if a dependency is valid.
 func ValidateDependency(d *Dependency) error {
 	if d.TodoID == "" {
-		return fmt.Errorf("todo_id cannot be empty")
+		return ErrEmptyDependencyTodoID
 	}
 	if d.DependsOnID == "" {
-		return fmt.Errorf("depends_on_id cannot be empty")
+		return ErrEmptyDependencyDependsOnID
 	}
 	if d.TodoID == d.DependsOnID {
 		return ErrSelfDependency
