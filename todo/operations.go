@@ -240,40 +240,29 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 	return updated, nil
 }
 
+func (s *Store) updateStatus(ids []string, status Status) ([]Todo, error) {
+	opts := UpdateOptions{Status: &status}
+	return s.Update(ids, opts)
+}
+
 // Close closes one or more todos.
 func (s *Store) Close(ids []string) ([]Todo, error) {
-	status := StatusClosed
-	opts := UpdateOptions{
-		Status: &status,
-	}
-	return s.Update(ids, opts)
+	return s.updateStatus(ids, StatusClosed)
 }
 
 // Finish marks one or more todos as done.
 func (s *Store) Finish(ids []string) ([]Todo, error) {
-	status := StatusDone
-	opts := UpdateOptions{
-		Status: &status,
-	}
-	return s.Update(ids, opts)
+	return s.updateStatus(ids, StatusDone)
 }
 
 // Reopen reopens one or more closed todos.
 func (s *Store) Reopen(ids []string) ([]Todo, error) {
-	status := StatusOpen
-	opts := UpdateOptions{
-		Status: &status,
-	}
-	return s.Update(ids, opts)
+	return s.updateStatus(ids, StatusOpen)
 }
 
 // Start marks one or more todos as in progress.
 func (s *Store) Start(ids []string) ([]Todo, error) {
-	status := StatusInProgress
-	opts := UpdateOptions{
-		Status: &status,
-	}
-	return s.Update(ids, opts)
+	return s.updateStatus(ids, StatusInProgress)
 }
 
 // Delete tombstones one or more todos with an optional reason.
