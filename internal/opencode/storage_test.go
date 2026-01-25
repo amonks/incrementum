@@ -2,237 +2,215 @@ package opencode
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
 
-func TestStorageSessionLogText(t *testing.T) {
+func TestSelectSessionNotFoundError(t *testing.T) {
 	root := t.TempDir()
-	storage := Storage{Root: root}
-	sessionID := "ses_test123"
+	repoPath := filepath.Join(root, "repo")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+	store := Storage{Root: root}
 
-	messageDir := filepath.Join(root, "storage", "message", sessionID)
-	partUserDir := filepath.Join(root, "storage", "part", "msg_user")
-	partAssistantDir := filepath.Join(root, "storage", "part", "msg_assistant")
+	_, err := store.selectSession(nil, repoPath, startedAt, "")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !errors.Is(err, errSessionNotFound) {
+		t.Fatalf("expected errSessionNotFound, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "repo="+repoPath) {
+		t.Fatalf("expected repo path in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "started="+formatTimeLabel(startedAt)) {
+		t.Fatalf("expected started label in error, got %q", err.Error())
+	}
+	cutoff := startedAt.Add(-5 * time.Second)
+	if !strings.Contains(err.Error(), "cutoff="+formatTimeLabel(cutoff)) {
+		t.Fatalf("expected cutoff label in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "total=0") {
+		t.Fatalf("expected total count in error, got %q", err.Error())
+	}
+	storagePath := filepath.Join(root, "storage")
+	if !strings.Contains(err.Error(), "storage="+storagePath) {
+		t.Fatalf("expected storage path in error, got %q", err.Error())
+	}
+}
 
-	if err := os.MkdirAll(messageDir, 0o755); err != nil {
-		t.Fatalf("create message dir: %v", err)
-	}
-	if err := os.MkdirAll(partUserDir, 0o755); err != nil {
-		t.Fatalf("create user part dir: %v", err)
-	}
-	if err := os.MkdirAll(partAssistantDir, 0o755); err != nil {
-		t.Fatalf("create assistant part dir: %v", err)
-	}
+func TestSessionLogTextFormatsToolOutput(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	sessionID := "ses_format"
+	messageID := "msg_tool"
 
-	writeJSON(t, filepath.Join(messageDir, "msg_user.json"), map[string]any{
-		"id":        "msg_user",
-		"sessionID": sessionID,
-		"role":      "user",
+	writeMessageRecord(t, root, sessionID, messageID, "assistant", 1000)
+	writePartRecord(t, root, messageID, "prt_text", map[string]any{
+		"type": "text",
+		"text": "Hello\n",
 		"time": map[string]any{
-			"created": int64(1000),
+			"start": int64(1000),
 		},
 	})
-	writeJSON(t, filepath.Join(messageDir, "msg_assistant.json"), map[string]any{
-		"id":        "msg_assistant",
-		"sessionID": sessionID,
-		"role":      "assistant",
-		"time": map[string]any{
-			"created": int64(2000),
-		},
-	})
-
-	writeJSON(t, filepath.Join(partUserDir, "prt_user.json"), map[string]any{
-		"id":        "prt_user",
-		"sessionID": sessionID,
-		"messageID": "msg_user",
-		"type":      "text",
-		"text":      "Hello\n",
-	})
-	writeJSON(t, filepath.Join(partAssistantDir, "prt_100_tool.json"), map[string]any{
-		"id":        "prt_100_tool",
-		"sessionID": sessionID,
-		"messageID": "msg_assistant",
-		"type":      "tool",
-		"tool":      "read",
+	writePartRecord(t, root, messageID, "prt_tool", map[string]any{
+		"type": "tool",
 		"state": map[string]any{
 			"output": map[string]any{
 				"stdout": "Tool output\n",
 				"stderr": "Tool error\n",
 			},
 		},
-	})
-	writeJSON(t, filepath.Join(partAssistantDir, "prt_200_text.json"), map[string]any{
-		"id":        "prt_200_text",
-		"sessionID": sessionID,
-		"messageID": "msg_assistant",
-		"type":      "text",
-		"text":      "Goodbye\n",
+		"time": map[string]any{
+			"start": int64(2000),
+		},
 	})
 
-	logText, err := storage.SessionLogText(sessionID)
+	snapshot, err := store.SessionLogText(sessionID)
 	if err != nil {
 		t.Fatalf("read session log: %v", err)
 	}
 
-	expected := "Hello\nStdout:\n    Tool output\nStderr:\n    Tool error\nGoodbye\n"
-	if logText != expected {
-		t.Fatalf("expected log %q, got %q", expected, logText)
+	expected := "Hello\nStdout:\n    Tool output\nStderr:\n    Tool error\n"
+	if snapshot != expected {
+		t.Fatalf("expected log %q, got %q", expected, snapshot)
 	}
 }
 
-func TestStorageSessionProseLogTextFiltersTools(t *testing.T) {
+func TestSessionProseLogTextFiltersToolOutput(t *testing.T) {
 	root := t.TempDir()
-	storage := Storage{Root: root}
+	store := Storage{Root: root}
 	sessionID := "ses_prose"
+	userMessageID := "msg_user"
+	assistantMessageID := "msg_assistant"
 
-	messageDir := filepath.Join(root, "storage", "message", sessionID)
-	partUserDir := filepath.Join(root, "storage", "part", "msg_user")
-	partAssistantDir := filepath.Join(root, "storage", "part", "msg_assistant")
-
-	if err := os.MkdirAll(messageDir, 0o755); err != nil {
-		t.Fatalf("create message dir: %v", err)
-	}
-	if err := os.MkdirAll(partUserDir, 0o755); err != nil {
-		t.Fatalf("create user part dir: %v", err)
-	}
-	if err := os.MkdirAll(partAssistantDir, 0o755); err != nil {
-		t.Fatalf("create assistant part dir: %v", err)
-	}
-
-	writeJSON(t, filepath.Join(messageDir, "msg_user.json"), map[string]any{
-		"id":        "msg_user",
-		"sessionID": sessionID,
-		"role":      "user",
+	writeMessageRecord(t, root, sessionID, userMessageID, "user", 1000)
+	writeMessageRecord(t, root, sessionID, assistantMessageID, "assistant", 2000)
+	writePartRecord(t, root, userMessageID, "prt_user_text", map[string]any{
+		"type": "text",
+		"text": "Hello\n",
 		"time": map[string]any{
-			"created": int64(1000),
+			"start": int64(1000),
 		},
 	})
-	writeJSON(t, filepath.Join(messageDir, "msg_assistant.json"), map[string]any{
-		"id":        "msg_assistant",
-		"sessionID": sessionID,
-		"role":      "assistant",
-		"time": map[string]any{
-			"created": int64(2000),
-		},
-	})
-
-	writeJSON(t, filepath.Join(partUserDir, "prt_user.json"), map[string]any{
-		"id":        "prt_user",
-		"sessionID": sessionID,
-		"messageID": "msg_user",
-		"type":      "text",
-		"text":      "Hello\n",
-	})
-	writeJSON(t, filepath.Join(partAssistantDir, "prt_tool.json"), map[string]any{
-		"id":        "prt_tool",
-		"sessionID": sessionID,
-		"messageID": "msg_assistant",
-		"type":      "tool",
-		"tool":      "read",
+	writePartRecord(t, root, assistantMessageID, "prt_tool", map[string]any{
+		"type": "tool",
 		"state": map[string]any{
-			"output": "Tool output\n",
+			"output": map[string]any{
+				"stdout": "Noise\n",
+			},
+		},
+		"time": map[string]any{
+			"start": int64(1500),
 		},
 	})
-	writeJSON(t, filepath.Join(partAssistantDir, "prt_text.json"), map[string]any{
-		"id":        "prt_text",
-		"sessionID": sessionID,
-		"messageID": "msg_assistant",
-		"type":      "text",
-		"text":      "Goodbye\n",
+	writePartRecord(t, root, assistantMessageID, "prt_text", map[string]any{
+		"type": "text",
+		"text": "Goodbye\n",
+		"time": map[string]any{
+			"start": int64(2500),
+		},
 	})
 
-	logText, err := storage.SessionProseLogText(sessionID)
+	prose, err := store.SessionProseLogText(sessionID)
 	if err != nil {
-		t.Fatalf("read session log: %v", err)
+		t.Fatalf("read prose log: %v", err)
 	}
 
 	expected := "Hello\nGoodbye\n"
-	if logText != expected {
-		t.Fatalf("expected log %q, got %q", expected, logText)
+	if prose != expected {
+		t.Fatalf("expected prose log %q, got %q", expected, prose)
 	}
 }
 
-func TestStorageFindSessionForRunMatchesPrompt(t *testing.T) {
+func TestSelectSessionUsesPromptMatch(t *testing.T) {
 	root := t.TempDir()
-	storage := Storage{Root: root}
+	store := Storage{Root: root}
 	repoPath := filepath.Join(root, "repo")
-	projectID := "proj_123"
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
 
-	projectDir := filepath.Join(root, "storage", "project")
-	if err := os.MkdirAll(projectDir, 0o755); err != nil {
-		t.Fatalf("create project dir: %v", err)
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_first",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(1 * time.Second),
+		},
+		{
+			ID:        "ses_second",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(2 * time.Second),
+		},
 	}
-	writeJSON(t, filepath.Join(projectDir, projectID+".json"), map[string]any{
-		"id":       projectID,
-		"worktree": repoPath,
+
+	writeMessageRecord(t, root, "ses_first", "msg_first", "user", 1000)
+	writePartRecord(t, root, "msg_first", "prt_first", map[string]any{
+		"type": "text",
+		"text": "No match here\n",
+		"time": map[string]any{
+			"start": int64(1000),
+		},
+	})
+	writeMessageRecord(t, root, "ses_second", "msg_second", "user", 2000)
+	writePartRecord(t, root, "msg_second", "prt_second", map[string]any{
+		"type": "text",
+		"text": "Please Match me\n",
+		"time": map[string]any{
+			"start": int64(2000),
+		},
 	})
 
-	sessionDir := filepath.Join(root, "storage", "session", projectID)
-	if err := os.MkdirAll(sessionDir, 0o755); err != nil {
-		t.Fatalf("create session dir: %v", err)
-	}
-
-	writeSession := func(sessionID, prompt string, created int64) {
-		writeJSON(t, filepath.Join(sessionDir, sessionID+".json"), map[string]any{
-			"id":        sessionID,
-			"projectID": projectID,
-			"directory": repoPath,
-			"time": map[string]any{
-				"created": created,
-			},
-		})
-
-		messageDir := filepath.Join(root, "storage", "message", sessionID)
-		partDir := filepath.Join(root, "storage", "part", "msg_"+sessionID)
-		if err := os.MkdirAll(messageDir, 0o755); err != nil {
-			t.Fatalf("create message dir: %v", err)
-		}
-		if err := os.MkdirAll(partDir, 0o755); err != nil {
-			t.Fatalf("create part dir: %v", err)
-		}
-
-		messageID := "msg_" + sessionID
-		writeJSON(t, filepath.Join(messageDir, messageID+".json"), map[string]any{
-			"id":        messageID,
-			"sessionID": sessionID,
-			"role":      "user",
-			"time": map[string]any{
-				"created": created,
-			},
-		})
-		writeJSON(t, filepath.Join(partDir, "prt_"+sessionID+".json"), map[string]any{
-			"id":        "prt_" + sessionID,
-			"sessionID": sessionID,
-			"messageID": messageID,
-			"type":      "text",
-			"text":      prompt,
-		})
-	}
-
-	writeSession("ses_good", "Run the prompt", 1000)
-	writeSession("ses_other", "Other prompt", 1200)
-
-	startedAt := time.UnixMilli(900)
-	found, err := storage.FindSessionForRun(repoPath, startedAt, "Run the prompt")
+	selected, err := store.selectSession(entries, repoPath, startedAt, "Match me")
 	if err != nil {
-		t.Fatalf("find session: %v", err)
+		t.Fatalf("select session: %v", err)
 	}
-	if found.ID != "ses_good" {
-		t.Fatalf("expected session ses_good, got %q", found.ID)
+	if selected.ID != "ses_second" {
+		t.Fatalf("expected prompt match session, got %q", selected.ID)
 	}
+}
+
+func writeMessageRecord(t *testing.T, root, sessionID, messageID, role string, createdAt int64) {
+	t.Helper()
+
+	messageDir := filepath.Join(root, "storage", "message", sessionID)
+	if err := os.MkdirAll(messageDir, 0o755); err != nil {
+		t.Fatalf("create message dir: %v", err)
+	}
+	writeJSON(t, filepath.Join(messageDir, messageID+".json"), map[string]any{
+		"id":        messageID,
+		"sessionID": sessionID,
+		"role":      role,
+		"time": map[string]any{
+			"created": createdAt,
+		},
+	})
+}
+
+func writePartRecord(t *testing.T, root, messageID, partID string, record map[string]any) {
+	t.Helper()
+
+	partDir := filepath.Join(root, "storage", "part", messageID)
+	if err := os.MkdirAll(partDir, 0o755); err != nil {
+		t.Fatalf("create part dir: %v", err)
+	}
+	data := map[string]any{
+		"id":        partID,
+		"messageID": messageID,
+	}
+	for key, value := range record {
+		data[key] = value
+	}
+	writeJSON(t, filepath.Join(partDir, partID+".json"), data)
 }
 
 func writeJSON(t *testing.T, path string, value any) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatalf("create dir: %v", err)
-	}
+
 	data, err := json.Marshal(value)
 	if err != nil {
-		t.Fatalf("marshal json: %v", err)
+		t.Fatalf("encode json: %v", err)
 	}
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatalf("write %s: %v", path, err)

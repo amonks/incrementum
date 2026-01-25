@@ -2,6 +2,7 @@ package opencode
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,6 +34,8 @@ type LogEntry struct {
 }
 
 const toolOutputIndent = 4
+
+var errSessionNotFound = errors.New("opencode session not found")
 
 // DefaultRoot returns the default opencode data directory.
 func DefaultRoot() (string, error) {
@@ -268,7 +271,19 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 	}
 
 	if len(candidates) == 0 {
-		return SessionMetadata{}, fmt.Errorf("opencode session not found")
+		repoLabel := repoPath
+		if repoLabel == "" {
+			repoLabel = "unknown"
+		}
+		return SessionMetadata{}, fmt.Errorf(
+			"%w (repo=%s started=%s cutoff=%s total=%d storage=%s)",
+			errSessionNotFound,
+			repoLabel,
+			formatTimeLabel(startedAt),
+			formatTimeLabel(cutoff),
+			len(entries),
+			s.storageDir(),
+		)
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {
@@ -612,4 +627,11 @@ func cleanPath(path string) string {
 		path = abs
 	}
 	return filepath.Clean(path)
+}
+
+func formatTimeLabel(t time.Time) string {
+	if t.IsZero() {
+		return "unknown"
+	}
+	return t.Format(time.RFC3339Nano)
 }
