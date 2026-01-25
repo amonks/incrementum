@@ -18,17 +18,17 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,736,588 | 607,547 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,384,530 | 4,959,102 | 90,004 |
-| `BenchmarkWriteJSONL1K` | 470,396 | 66,986 | 11 |
-| `BenchmarkWriteJSONL10K` | 2,996,784 | 66,984 | 11 |
-| `BenchmarkStoreList1K` | 1,800,775 | 796,715 | 9,011 |
-| `BenchmarkStoreList10K` | 18,215,598 | 6,803,096 | 90,011 |
-| `BenchmarkStoreReady1K` | 2,104,054 | 1,055,611 | 10,534 |
-| `BenchmarkStoreReady10K` | 20,497,769 | 8,044,490 | 105,052 |
-| `BenchmarkStoreReadyLimit10K` | 19,952,951 | 6,205,081 | 105,062 |
-| `BenchmarkStoreDepTree1K` | 2,946,702 | 1,628,785 | 18,080 |
-| `BenchmarkStoreDepTree10K` | 31,259,083 | 13,104,463 | 180,285 |
+| `BenchmarkReadJSONLFromReader1K` | 1,692,881 | 477,583 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,102,894 | 4,835,509 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 472,269 | 66,984 | 11 |
+| `BenchmarkWriteJSONL10K` | 3,413,780 | 66,984 | 11 |
+| `BenchmarkStoreList1K` | 1,750,634 | 666,990 | 9,011 |
+| `BenchmarkStoreList10K` | 17,772,780 | 6,679,556 | 90,015 |
+| `BenchmarkStoreReady1K` | 2,030,323 | 795,406 | 10,535 |
+| `BenchmarkStoreReady10K` | 20,373,542 | 7,854,915 | 105,060 |
+| `BenchmarkStoreReadyLimit10K` | 20,078,083 | 5,950,834 | 105,066 |
+| `BenchmarkStoreDepTree1K` | 2,902,058 | 1,277,074 | 18,066 |
+| `BenchmarkStoreDepTree10K` | 30,874,203 | 12,136,883 | 180,253 |
 
 ## Improvements log
 
@@ -54,6 +54,7 @@
 - 2026-01-25: Added dependency tree benchmarks to track `ii todo dep tree` performance at scale.
 - 2026-01-25: Reused the JSONL line buffer when assembling oversized lines so multi-chunk reads avoid repeated allocations.
 - 2026-01-25: Preallocated dependency maps and per-node children slices when building dep trees to reduce allocation churn during dep tree queries.
+- 2026-01-25: Pooled JSONL reader buffers to reuse the 64 KiB read and line scratch buffers across reads, reducing read allocations and downstream store bytes/op.
 
 ## Profiling notes
 

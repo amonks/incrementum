@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -32,6 +33,18 @@ const (
 	maxJSONLineBytes = 1024 * 1024
 	jsonlBufferSize  = 64 * 1024
 )
+
+var jsonlReaderPool = sync.Pool{
+	New: func() any {
+		return bufio.NewReaderSize(bytes.NewReader(nil), jsonlBufferSize)
+	},
+}
+
+var jsonlLineBufPool = sync.Pool{
+	New: func() any {
+		return make([]byte, 0, jsonlBufferSize)
+	},
+}
 
 // Store provides access to the todo data for a jujutsu repository.
 // It manages workspace acquisition and file locking for concurrent access.
@@ -283,8 +296,19 @@ func readJSONL[T any](path string) ([]T, error) {
 func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
 	readerSize := estimateReaderSize(reader)
-	buf := bufio.NewReaderSize(reader, jsonlBufferSize)
-	lineBuf := make([]byte, 0, jsonlBufferSize)
+	buf := jsonlReaderPool.Get().(*bufio.Reader)
+	buf.Reset(reader)
+	defer func() {
+		buf.Reset(bytes.NewReader(nil))
+		jsonlReaderPool.Put(buf)
+	}()
+	lineBuf := jsonlLineBufPool.Get().([]byte)
+	lineBuf = lineBuf[:0]
+	defer func() {
+		if cap(lineBuf) <= jsonlBufferSize {
+			jsonlLineBufPool.Put(lineBuf[:0])
+		}
+	}()
 	itemIndex := 0
 	for {
 		line, nextBuf, err := readJSONLLine(buf, lineBuf)
