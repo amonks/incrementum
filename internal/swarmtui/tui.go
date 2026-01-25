@@ -164,8 +164,9 @@ func (m model) View() string {
 	if m.width == 0 || m.height == 0 {
 		return "Loading swarm UI..."
 	}
+	helpLine := m.renderHelpLine()
 	statusLine := m.renderStatusLine()
-	contentHeight := m.height - 2
+	contentHeight := m.height - 3
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
@@ -182,7 +183,7 @@ func (m model) View() string {
 	detailPane := m.renderPane(detailContent, rightWidth, contentHeight, m.focus == focusDetail)
 	content := lipgloss.JoinHorizontal(lipgloss.Top, listPane, detailPane)
 
-	view := strings.Join([]string{m.renderTabs(), content, statusLine}, "\n")
+	view := strings.Join([]string{m.renderTabs(), helpLine, content, statusLine}, "\n")
 	if m.modal.kind != modalNone {
 		view = m.renderModalOverlay(view)
 	}
@@ -642,7 +643,7 @@ func (m model) currentJobItem() (jobItem, bool) {
 }
 
 func (m *model) resize() {
-	contentHeight := m.height - 2
+	contentHeight := m.height - 3
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
@@ -731,6 +732,27 @@ func (m model) renderStatusLine() string {
 		style = statusSuccessStyle
 	}
 	return style.Render(text)
+}
+
+func (m model) renderHelpLine() string {
+	text := strings.TrimSpace(m.helpSummary())
+	if text == "" {
+		return ""
+	}
+	return helpBarStyle.Width(m.width).Render(truncateText(text, m.width))
+}
+
+func (m model) helpSummary() string {
+	if m.activeTab == tabTodo {
+		if m.focus == focusDetail {
+			return "Keys: tab next field | shift+tab prev | ctrl+s save | esc back | pgup/pgdown scroll | ? help"
+		}
+		return "Keys: up/down move | enter edit | c new | s submit to swarm | tab switch tabs | ? help | q quit"
+	}
+	if m.focus == focusDetail {
+		return "Keys: up/down/pgup/pgdown scroll | esc back | ? help | q quit"
+	}
+	return "Keys: up/down move | enter detail | tab switch tabs | ? help | q quit"
 }
 
 func (m *model) setStatus(text string, level statusLevel) {
@@ -856,7 +878,7 @@ func (m model) helpContent() string {
 		"",
 		labelStyle.Render("Todo"),
 		"c: create todo",
-		"s: start job",
+		"s: submit todo to swarm",
 		"ctrl+s: save todo",
 		"tab/shift+tab: next/previous field",
 		"",

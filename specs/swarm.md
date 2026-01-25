@@ -121,6 +121,7 @@ swarm server and operates on todos and jobs. It uses the same configuration and
 ### Layout
 
 - Tab strip across the top with two tabs: `[1] Todo` and `[2] Jobs`, with a help hint.
+- A help bar sits below the tab strip and lists the relevant keyboard shortcuts for the focused pane.
 - Main content splits into a left list pane and a right detail pane.
 - The list pane scrolls; the detail pane can scroll independently when
   content exceeds the viewport.

@@ -23,6 +23,7 @@ var (
 
 	labelStyle         = lipgloss.NewStyle().Bold(true)
 	valueMuted         = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	helpBarStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("244")).Background(lipgloss.Color("235"))
 	statusErrorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	statusSuccessStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	selectedBorder     = lipgloss.NewStyle().Foreground(lipgloss.Color("33"))

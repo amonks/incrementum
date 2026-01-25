@@ -1,4 +1,5 @@
  [1] Todo  [2] Jobs                                                                 Press ? for help
+Keys: up/down move | enter edit | c new | s submit to swarm | tab switch tabs | ? help | q quit
 +---------------------------------++-------------------------------------------------------------------+
 |    Todos                        || Editable                                                          |
 |                                 || Title: Fix TUI navigation                                         |
@@ -21,7 +22,6 @@
 |                                 || Closed: -                                                         |
 |                                 || Completed: -                                                      |
 |                                 || Deleted: -                                                        |
-|                                 || Delete reason: -                                                  |
 |                                 ||                                                                   |
 |                                 ||                                                                   |
 +---------------------------------++-------------------------------------------------------------------+
