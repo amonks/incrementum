@@ -145,6 +145,76 @@ func TestTodoCreateRedirectsToNewTodo(t *testing.T) {
 	}
 }
 
+func TestTodoUpdateRedirectsToTodo(t *testing.T) {
+	todoID := "todo-1"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/todos/update", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		var request todosUpdateRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if len(request.IDs) != 1 || request.IDs[0] != todoID {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if request.Options.Title == nil || *request.Options.Title != "Updated title" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if request.Options.Description == nil || *request.Options.Description != "Updated description" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if request.Options.Status == nil || *request.Options.Status != todo.StatusOpen {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if request.Options.Priority == nil || *request.Options.Priority != todo.PriorityHigh {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if request.Options.Type == nil || *request.Options.Type != todo.TypeFeature {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(todosUpdateResponse{Todos: []todo.Todo{{ID: todoID}}})
+	})
+
+	webHandler := NewHandler(Options{})
+	mux.Handle("/web/", webHandler)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	form := url.Values{}
+	form.Set("title", "Updated title")
+	form.Set("status", string(todo.StatusOpen))
+	form.Set("priority", strconv.Itoa(todo.PriorityHigh))
+	form.Set("type", string(todo.TypeFeature))
+	form.Set("description", "Updated description")
+
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	resp, err := client.PostForm(server.URL+"/web/todos/update?id="+todoID, form)
+	if err != nil {
+		t.Fatalf("post update: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected status 303, got %d", resp.StatusCode)
+	}
+	location := resp.Header.Get("Location")
+	if location != "/web/todos?id="+todoID {
+		t.Fatalf("expected redirect to todo, got %q", location)
+	}
+}
+
 func TestJobsViewDefaultsToFirstJob(t *testing.T) {
 	now := time.Now()
 	jobs := []job.Job{
@@ -317,5 +387,48 @@ func TestJobsRefreshShowsErrorAfterFailure(t *testing.T) {
 	output := string(body)
 	if !strings.Contains(output, "swarm error: boom") {
 		t.Fatalf("expected error message, got %s", output)
+	}
+}
+
+func TestJobsKillRedirectsToJob(t *testing.T) {
+	jobID := "job-1"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/kill", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		var request killRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if request.JobID != jobID {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(emptyResponse{})
+	})
+
+	webHandler := NewHandler(Options{})
+	mux.Handle("/web/", webHandler)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	resp, err := client.PostForm(server.URL+"/web/jobs/kill?id="+jobID, url.Values{})
+	if err != nil {
+		t.Fatalf("post kill: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected status 303, got %d", resp.StatusCode)
+	}
+	location := resp.Header.Get("Location")
+	if location != "/web/jobs?id="+jobID {
+		t.Fatalf("expected redirect to job, got %q", location)
 	}
 }
