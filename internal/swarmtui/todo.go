@@ -172,12 +172,19 @@ func newTodoDetailModel() todoDetailModel {
 }
 
 func (model *todoDetailModel) SetTodo(item todo.Todo, isDraft bool) {
+	wasFocused := model.focused
 	model.todo = item
 	model.isDraft = isDraft
 	model.fields = buildTodoFields(item)
 	model.fieldIndex = 0
 	model.focused = false
 	model.dirty = false
+	if wasFocused {
+		model.focused = true
+		if len(model.fields) > 0 {
+			model.fields[model.fieldIndex] = model.fields[model.fieldIndex].Focus()
+		}
+	}
 	model.refreshViewport(true)
 }
 

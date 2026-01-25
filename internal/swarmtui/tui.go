@@ -566,7 +566,9 @@ func (m model) discardTodoEdits() model {
 		}
 		m.todoList.SetItems(items)
 		m.todoDetail.SetTodo(todo.Todo{}, false)
-		m.todoList.Select(0)
+		if len(items) > 0 {
+			m.todoList.Select(0)
+		}
 		m.selectedTodoID = ""
 	} else {
 		if item, ok := m.currentTodoItem(); ok {
