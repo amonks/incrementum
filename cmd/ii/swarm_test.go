@@ -88,6 +88,34 @@ func TestSwarmDoUsesCwdWhenPathMissing(t *testing.T) {
 	})
 }
 
+func TestLogSwarmServeAddr(t *testing.T) {
+	cases := []struct {
+		name string
+		addr string
+		host string
+		port string
+	}{
+		{name: "with host", addr: "127.0.0.1:9090", host: "127.0.0.1", port: "9090"},
+		{name: "all interfaces", addr: ":8088", host: "0.0.0.0", port: "8088"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := captureStdout(t, func() {
+				if err := logSwarmServeAddr(tc.addr); err != nil {
+					t.Fatalf("log swarm addr: %v", err)
+				}
+			})
+			if !strings.Contains(output, "host "+tc.host) {
+				t.Fatalf("expected host %q in output, got %q", tc.host, output)
+			}
+			if !strings.Contains(output, "port "+tc.port) {
+				t.Fatalf("expected port %q in output, got %q", tc.port, output)
+			}
+		})
+	}
+}
+
 func resetSwarmDoState(t *testing.T) {
 	t.Helper()
 	jobDoTitle = ""

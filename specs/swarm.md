@@ -62,6 +62,9 @@ Port precedence is:
 
 Start the swarm server for the current repository.
 
+On startup, the command logs the hostname and port (for example, `Swarm server
+listening on host 127.0.0.1 port 8088`).
+
 ### `ii swarm do [todo-id] [job do flags] [--path=] --addr=`
 
 Create a todo in the provided repo path (or use the current repo), start a job

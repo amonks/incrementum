@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -115,11 +116,26 @@ func runSwarmServe(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+	if err := logSwarmServeAddr(addr); err != nil {
+		return err
+	}
 	server, err := swarm.NewServer(swarm.ServerOptions{RepoPath: repoPath})
 	if err != nil {
 		return err
 	}
 	return server.Serve(addr)
+}
+
+func logSwarmServeAddr(addr string) error {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return err
+	}
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	fmt.Printf("Swarm server listening on host %s port %s\n", host, port)
+	return nil
 }
 
 func runSwarmDo(cmd *cobra.Command, args []string) error {
