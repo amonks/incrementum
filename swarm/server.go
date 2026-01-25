@@ -174,7 +174,12 @@ func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	jobID, err := s.startJob(r.Context(), payload.TodoID)
+	todoID := strings.TrimSpace(payload.TodoID)
+	if todoID == "" {
+		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("todo id is required"))
+		return
+	}
+	jobID, err := s.startJob(r.Context(), todoID)
 	if err != nil {
 		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
@@ -191,7 +196,12 @@ func (s *Server) handleKill(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if err := s.killJob(payload.JobID); err != nil {
+	jobID := strings.TrimSpace(payload.JobID)
+	if jobID == "" {
+		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("job id is required"))
+		return
+	}
+	if err := s.killJob(jobID); err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, job.ErrJobNotFound) {
 			status = http.StatusNotFound
@@ -211,7 +221,12 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := s.manager.Find(payload.JobID); err != nil {
+	jobID := strings.TrimSpace(payload.JobID)
+	if jobID == "" {
+		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("job id is required"))
+		return
+	}
+	if _, err := s.manager.Find(jobID); err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, job.ErrJobNotFound) {
 			status = http.StatusNotFound
@@ -219,7 +234,7 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, status, err)
 		return
 	}
-	events, err := job.EventSnapshot(payload.JobID, s.eventLogOptions)
+	events, err := job.EventSnapshot(jobID, s.eventLogOptions)
 	if err != nil {
 		s.writeError(w, r, http.StatusInternalServerError, err)
 		return
@@ -342,7 +357,12 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := s.manager.Find(payload.JobID); err != nil {
+	jobID := strings.TrimSpace(payload.JobID)
+	if jobID == "" {
+		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("job id is required"))
+		return
+	}
+	if _, err := s.manager.Find(jobID); err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, job.ErrJobNotFound) {
 			status = http.StatusNotFound
@@ -350,7 +370,7 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, status, err)
 		return
 	}
-	if err := streamEvents(r.Context(), w, payload.JobID, s.eventLogOptions); err != nil {
+	if err := streamEvents(r.Context(), w, jobID, s.eventLogOptions); err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return
 		}

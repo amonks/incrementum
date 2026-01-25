@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -247,6 +248,88 @@ func TestDoStartsJobWithWorkspace(t *testing.T) {
 		}
 	default:
 		t.Fatal("expected job run call")
+	}
+}
+
+func TestDoRejectsEmptyTodoID(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath: repoDir,
+		StateDir: stateDir,
+		Pool:     noopPool{},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	body, err := json.Marshal(doRequest{TodoID: "  "})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/do", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", response.Code)
+	}
+
+	var payload map[string]string
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !strings.Contains(payload["error"], "todo id is required") {
+		t.Fatalf("expected todo id error, got %q", payload["error"])
+	}
+}
+
+func TestJobRequestsRejectEmptyJobID(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath: repoDir,
+		StateDir: stateDir,
+		Pool:     noopPool{},
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	cases := []struct {
+		name    string
+		path    string
+		payload any
+	}{
+		{name: "kill", path: "/kill", payload: killRequest{JobID: ""}},
+		{name: "logs", path: "/logs", payload: logsRequest{JobID: "  "}},
+		{name: "tail", path: "/tail", payload: tailRequest{JobID: "\n"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			body, err := json.Marshal(tc.payload)
+			if err != nil {
+				t.Fatalf("marshal request: %v", err)
+			}
+			request := httptest.NewRequest(http.MethodPost, tc.path, bytes.NewReader(body))
+			response := httptest.NewRecorder()
+
+			server.Handler().ServeHTTP(response, request)
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d", response.Code)
+			}
+
+			var payload map[string]string
+			if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+				t.Fatalf("decode response: %v", err)
+			}
+			if !strings.Contains(payload["error"], "job id is required") {
+				t.Fatalf("expected job id error, got %q", payload["error"])
+			}
+		})
 	}
 }
 

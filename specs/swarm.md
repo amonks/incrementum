@@ -33,6 +33,8 @@ RPCs use JSON over HTTP with the following endpoints:
   list if the event log does not exist yet).
 - `POST /list` with `{ "filter": { ... } }` returns `{ "jobs": [...] }` and
   accepts the JSON form of `job.ListFilter`.
+- Requests that omit `todo_id` or `job_id` return a 400 error with a message
+  describing the missing field.
 
 Todo RPCs follow the todo store API shapes:
 
