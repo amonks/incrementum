@@ -18,15 +18,15 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,692,139 | 542,003 | 9,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,153,662 | 4,893,643 | 90,003 |
-| `BenchmarkWriteJSONL1K` | 452,721 | 66,984 | 11 |
-| `BenchmarkWriteJSONL10K` | 2,752,135 | 66,984 | 11 |
-| `BenchmarkStoreList1K` | 1,777,067 | 731,377 | 9,013 |
-| `BenchmarkStoreList10K` | 17,871,827 | 6,737,768 | 90,013 |
-| `BenchmarkStoreReady1K` | 2,060,811 | 924,971 | 10,538 |
-| `BenchmarkStoreReady10K` | 20,528,776 | 7,913,652 | 105,056 |
-| `BenchmarkStoreReadyLimit10K` | 20,177,921 | 6,074,435 | 105,066 |
+| `BenchmarkReadJSONLFromReader1K` | 1,711,229 | 542,002 | 9,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,259,478 | 4,893,643 | 90,003 |
+| `BenchmarkWriteJSONL1K` | 430,689 | 66,984 | 11 |
+| `BenchmarkWriteJSONL10K` | 2,657,208 | 66,984 | 11 |
+| `BenchmarkStoreList1K` | 1,781,271 | 731,377 | 9,013 |
+| `BenchmarkStoreList10K` | 17,954,878 | 6,737,850 | 90,013 |
+| `BenchmarkStoreReady1K` | 2,070,240 | 924,971 | 10,538 |
+| `BenchmarkStoreReady10K` | 20,550,498 | 7,913,660 | 105,056 |
+| `BenchmarkStoreReadyLimit10K` | 20,154,747 | 6,074,435 | 105,066 |
 
 ## Improvements log
 
@@ -58,8 +58,8 @@
 - 2026-01-25 (BenchmarkStoreReady10K): Heap allocations come from readJSONLFromReader for todos/dependencies plus JSON decoding, with dependency blocker maps contributing the next largest share.
 - 2026-01-25 (BenchmarkStoreReadyLimit10K): CPU profile still dominated by syscall/syscall with json decoding work next, so Ready-limit performance remains bound by file I/O.
 - 2026-01-25 (BenchmarkStoreReadyLimit10K): Heap allocations mostly come from readJSONLFromReader and encoding/json.Unmarshal, with dependency blocker maps contributing the next largest share.
-- 2026-01-25 (BenchmarkWriteJSONL10K): CPU profile dominated by syscall.syscall, indicating buffered writes still spend most time in file I/O.
-- 2026-01-25 (BenchmarkWriteJSONL10K): Heap allocations concentrate in writeJSONL and time.Time.MarshalJSON via encoding/json, showing time encoding as the largest allocation source.
+- 2026-01-25 (BenchmarkWriteJSONL10K): CPU profile dominated by syscall.syscall while appendTodoJSONLine and bufio.Writer.Write account for the remaining on-CPU time, confirming file I/O remains the hot path.
+- 2026-01-25 (BenchmarkWriteJSONL10K): Heap allocations mainly come from the buffered writer setup and benchmark data generation, with no per-item JSON encoding allocations showing up in the profile.
 
 ## Profiling commands
 
