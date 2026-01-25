@@ -259,7 +259,7 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 		jobPrefixLengths = nil
 	}
 
-	todoPrefixLengths, err := jobTodoPrefixLengths(repoPath, todoStorePurpose(cmd, args))
+	todoPrefixLengths, todoTitles, err := jobTodoTableInfo(repoPath, todoStorePurpose(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -269,6 +269,7 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 		Highlight:         ui.HighlightID,
 		Now:               time.Now(),
 		TodoPrefixLengths: todoPrefixLengths,
+		TodoTitles:        todoTitles,
 		JobPrefixLengths:  jobPrefixLengths,
 	}))
 	return nil

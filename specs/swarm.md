@@ -75,3 +75,5 @@ Print job event logs formatted with the job log formatter.
 
 List swarm jobs. Defaults to active jobs only; use `--all` or `--status` to
 change filters.
+
+Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`, `DURATION`, `TITLE`.

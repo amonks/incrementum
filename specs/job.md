@@ -288,7 +288,7 @@ List jobs for current repo.
 - `--all`: show all statuses.
 - `--json`: structured output.
 
-Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`, `DURATION`.
+Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`, `DURATION`, `TITLE`.
 
 `AGE` uses `now - created_at`.
 

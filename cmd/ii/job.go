@@ -135,7 +135,7 @@ func runJobList(cmd *cobra.Command, args []string) error {
 		jobPrefixLengths = nil
 	}
 
-	todoPrefixLengths, err := jobTodoPrefixLengths(repoPath, todoStorePurpose(cmd, args))
+	todoPrefixLengths, todoTitles, err := jobTodoTableInfo(repoPath, todoStorePurpose(cmd, args))
 	if err != nil {
 		return err
 	}
@@ -145,6 +145,7 @@ func runJobList(cmd *cobra.Command, args []string) error {
 		Highlight:         ui.HighlightID,
 		Now:               time.Now(),
 		TodoPrefixLengths: todoPrefixLengths,
+		TodoTitles:        todoTitles,
 		JobPrefixLengths:  jobPrefixLengths,
 	}))
 	return nil
@@ -183,21 +184,31 @@ func jobIDPrefixLengths(jobs []jobpkg.Job) map[string]int {
 	return ui.UniqueIDPrefixLengths(ids)
 }
 
-func jobTodoPrefixLengths(repoPath string, purpose string) (map[string]int, error) {
+func jobTodoTableInfo(repoPath string, purpose string) (map[string]int, map[string]string, error) {
 	store, err := openTodoStoreForJob(repoPath, purpose)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if store == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	defer store.Release()
 
-	index, err := store.IDIndex()
+	todos, err := store.List(todo.ListFilter{IncludeTombstones: true})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return index.PrefixLengths(), nil
+	if len(todos) == 0 {
+		return nil, nil, nil
+	}
+
+	index := todo.NewIDIndex(todos)
+	prefixLengths := index.PrefixLengths()
+	titles := make(map[string]string, len(todos))
+	for _, item := range todos {
+		titles[strings.ToLower(item.ID)] = item.Title
+	}
+	return prefixLengths, titles, nil
 }
 
 type TableFormatOptions struct {
@@ -205,6 +216,7 @@ type TableFormatOptions struct {
 	Highlight         func(string, int) string
 	Now               time.Time
 	TodoPrefixLengths map[string]int
+	TodoTitles        map[string]string
 	JobPrefixLengths  map[string]int
 }
 
@@ -214,7 +226,7 @@ func formatJobTable(opts TableFormatOptions) string {
 	now := opts.Now
 	todoPrefixLengths := opts.TodoPrefixLengths
 	jobPrefixLengths := opts.JobPrefixLengths
-	builder := ui.NewTableBuilder([]string{"JOB", "TODO", "STAGE", "STATUS", "AGE", "DURATION"}, len(jobs))
+	builder := ui.NewTableBuilder([]string{"JOB", "TODO", "STAGE", "STATUS", "AGE", "DURATION", "TITLE"}, len(jobs))
 
 	jobIDs := make([]string, 0, len(jobs))
 	todoIDs := make([]string, 0, len(jobs))
@@ -248,6 +260,12 @@ func formatJobTable(opts TableFormatOptions) string {
 		todoID := highlight(item.TodoID, todoPrefixLen)
 		age := formatJobAge(item, now)
 		duration := formatJobDuration(item, now)
+		title := ""
+		if opts.TodoTitles != nil {
+			if value, ok := opts.TodoTitles[strings.ToLower(item.TodoID)]; ok {
+				title = ui.TruncateTableCell(value)
+			}
+		}
 
 		row := []string{
 			jobID,
@@ -256,6 +274,7 @@ func formatJobTable(opts TableFormatOptions) string {
 			string(item.Status),
 			age,
 			duration,
+			title,
 		}
 		builder.AddRow(row)
 	}

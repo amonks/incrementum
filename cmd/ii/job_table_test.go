@@ -35,10 +35,16 @@ func TestFormatJobTablePreservesAlignmentWithANSI(t *testing.T) {
 		},
 	}
 
+	todoTitles := map[string]string{
+		"abc12345": "Alpha",
+		"abd99999": "Beta",
+	}
+
 	plain := formatJobTable(TableFormatOptions{
-		Jobs:      jobs,
-		Highlight: func(id string, prefix int) string { return id },
-		Now:       now,
+		Jobs:       jobs,
+		Highlight:  func(id string, prefix int) string { return id },
+		Now:        now,
+		TodoTitles: todoTitles,
 	})
 	ansi := formatJobTable(TableFormatOptions{
 		Jobs: jobs,
@@ -48,7 +54,8 @@ func TestFormatJobTablePreservesAlignmentWithANSI(t *testing.T) {
 			}
 			return "\x1b[1m\x1b[36m" + id[:prefix] + "\x1b[0m" + id[prefix:]
 		},
-		Now: now,
+		Now:        now,
+		TodoTitles: todoTitles,
 	})
 
 	if stripANSICodes(ansi) != plain {
@@ -86,6 +93,11 @@ func TestFormatJobTableUsesProvidedJobPrefixLengths(t *testing.T) {
 		"job-beta":  3,
 	}
 
+	todoTitles := map[string]string{
+		"abc12345": "Alpha",
+		"abd99999": "Beta",
+	}
+
 	output := formatJobTable(TableFormatOptions{
 		Jobs: jobs,
 		Highlight: func(id string, prefix int) string {
@@ -93,6 +105,7 @@ func TestFormatJobTableUsesProvidedJobPrefixLengths(t *testing.T) {
 		},
 		Now:              now,
 		JobPrefixLengths: jobPrefixes,
+		TodoTitles:       todoTitles,
 	})
 
 	if !strings.Contains(output, "job-alpha:2") {
@@ -119,10 +132,13 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
+	todoTitles := map[string]string{"abc12345": "Title"}
+
 	output := strings.TrimSpace(formatJobTable(TableFormatOptions{
-		Jobs:      jobs,
-		Highlight: func(id string, prefix int) string { return id },
-		Now:       now,
+		Jobs:       jobs,
+		Highlight:  func(id string, prefix int) string { return id },
+		Now:        now,
+		TodoTitles: todoTitles,
 	}))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
@@ -130,8 +146,8 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 6 {
-		t.Fatalf("expected at least 6 columns, got: %q", lines[1])
+	if len(fields) < 7 {
+		t.Fatalf("expected at least 7 columns, got: %q", lines[1])
 	}
 
 	if fields[4] != "2m" {
@@ -159,10 +175,13 @@ func TestFormatJobTableUsesUpdatedDurationForCompleted(t *testing.T) {
 		},
 	}
 
+	todoTitles := map[string]string{"abc12345": "Title"}
+
 	output := strings.TrimSpace(formatJobTable(TableFormatOptions{
-		Jobs:      jobs,
-		Highlight: func(id string, prefix int) string { return id },
-		Now:       now,
+		Jobs:       jobs,
+		Highlight:  func(id string, prefix int) string { return id },
+		Now:        now,
+		TodoTitles: todoTitles,
 	}))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
@@ -170,11 +189,39 @@ func TestFormatJobTableUsesUpdatedDurationForCompleted(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 6 {
-		t.Fatalf("expected at least 6 columns, got: %q", lines[1])
+	if len(fields) < 7 {
+		t.Fatalf("expected at least 7 columns, got: %q", lines[1])
 	}
 
 	if fields[5] != "10m" {
 		t.Fatalf("expected duration 10m, got: %s", fields[5])
+	}
+}
+
+func TestFormatJobTableIncludesTodoTitle(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-2 * time.Minute)
+
+	jobs := []jobpkg.Job{
+		{
+			ID:        "job-title",
+			TodoID:    "abc12345",
+			Stage:     jobpkg.StageImplementing,
+			Status:    jobpkg.StatusActive,
+			CreatedAt: createdAt,
+			StartedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+	}
+
+	output := formatJobTable(TableFormatOptions{
+		Jobs:       jobs,
+		Highlight:  func(id string, prefix int) string { return id },
+		Now:        now,
+		TodoTitles: map[string]string{"abc12345": "MyTitle"},
+	})
+
+	if !strings.Contains(output, "MyTitle") {
+		t.Fatalf("expected todo title in output, got: %q", output)
 	}
 }
