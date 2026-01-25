@@ -8,7 +8,7 @@
 ## Benchmark setup
 
 - Command (JSONL read/write): `go test ./todo -bench='(ReadJSONLFromReader|WriteJSONL)' -run=^$ -benchmem`
-- Command (store operations): `go test ./todo -bench='Store(DepTree|List|Ready|Show|Update)' -run=^$ -benchmem`
+- Command (store operations): `go test ./todo -bench='Store(Create|DepTree|List|Ready|Show|Update)' -run=^$ -benchmem`
 - Environment: darwin/arm64 (Apple M1 Ultra)
 - Benchmark data: JSONL payload synthesized in-memory by `BenchmarkReadJSONLFromReader*`.
 
@@ -29,6 +29,8 @@
 | `BenchmarkStoreReadyLimit10K` | 20,212,256 | 5,841,751 | 105,057 |
 | `BenchmarkStoreShow1K` | 1,776,881 | 535,724 | 9,016 |
 | `BenchmarkStoreShow10K` | 17,799,295 | 5,280,997 | 90,048 |
+| `BenchmarkStoreCreate1K` | 2,250,919 | 484,523 | 9,033 |
+| `BenchmarkStoreCreate10K` | 20,362,681 | 4,868,460 | 90,040 |
 | `BenchmarkStoreDepTree1K` | 2,912,435 | 1,310,353 | 18,054 |
 | `BenchmarkStoreDepTree10K` | 30,744,533 | 12,163,537 | 180,237 |
 | `BenchmarkStoreUpdate1K` | 2,272,563 | 487,887 | 9,027 |
@@ -57,6 +59,7 @@
 - 2026-01-25: Added dependency tree benchmarks to track `ii todo dep tree` performance at scale.
 - 2026-01-25: Added store update benchmarks to track update/write costs alongside read-heavy list/ready operations.
 - 2026-01-25: Added store show benchmarks to track `ii todo show` costs alongside other read-only commands.
+- 2026-01-25: Added store create benchmarks to measure the read-modify-write cost of `ii todo create` for 1K/10K datasets.
 - 2026-01-25: Reused the JSONL line buffer when assembling oversized lines so multi-chunk reads avoid repeated allocations.
 - 2026-01-25: Preallocated dependency maps and per-node children slices when building dep trees to reduce allocation churn during dep tree queries.
 - 2026-01-25: Preallocated dep-tree dependency slices when grouping dependencies by todo, trimming allocation growth during dep tree traversal.
@@ -110,4 +113,6 @@
 - Heap profile (store update): `go test ./todo -bench=StoreUpdate10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-update.mem.pprof`
 - CPU profile (store show): `go test ./todo -bench=StoreShow10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-store-show.pprof`
 - Heap profile (store show): `go test ./todo -bench=StoreShow10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-show.mem.pprof`
+- CPU profile (store create): `go test ./todo -bench=StoreCreate10K -run=^$ -benchmem -cpuprofile /tmp/ii-todo-store-create.pprof`
+- Heap profile (store create): `go test ./todo -bench=StoreCreate10K -run=^$ -benchmem -memprofile /tmp/ii-todo-store-create.mem.pprof`
 - Explore: `go tool pprof -http :0 /tmp/ii-todo-read-jsonl.pprof`

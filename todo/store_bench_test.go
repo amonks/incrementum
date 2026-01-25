@@ -55,6 +55,14 @@ func BenchmarkStoreShow10K(b *testing.B) {
 	benchmarkStoreShow(b, 10000)
 }
 
+func BenchmarkStoreCreate1K(b *testing.B) {
+	benchmarkStoreCreate(b, 1000)
+}
+
+func BenchmarkStoreCreate10K(b *testing.B) {
+	benchmarkStoreCreate(b, 10000)
+}
+
 func BenchmarkStoreDepTree1K(b *testing.B) {
 	benchmarkStoreDepTree(b, 1000)
 }
@@ -177,6 +185,25 @@ func benchmarkStoreShow(b *testing.B, count int) {
 	for i := 0; i < b.N; i++ {
 		if _, err := store.Show(ids); err != nil {
 			b.Fatalf("show todos: %v", err)
+		}
+	}
+}
+
+func benchmarkStoreCreate(b *testing.B, count int) {
+	store := newTestStore(b)
+	seed := benchmarkTodos(count)
+	createTitle := "Benchmark create"
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		if err := store.writeTodos(seed); err != nil {
+			b.Fatalf("write todos: %v", err)
+		}
+		b.StartTimer()
+		if _, err := store.Create(createTitle, CreateOptions{}); err != nil {
+			b.Fatalf("create todo: %v", err)
 		}
 	}
 }
