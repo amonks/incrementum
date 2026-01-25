@@ -5,6 +5,16 @@ import (
 	"strings"
 )
 
+// IsValidValue returns true when a value is in the valid list.
+func IsValidValue[T comparable](value T, valid []T) bool {
+	for _, candidate := range valid {
+		if value == candidate {
+			return true
+		}
+	}
+	return false
+}
+
 // FormatValidValues joins string-like values for error messages.
 func FormatValidValues[T ~string](values []T) string {
 	formatted := make([]string, 0, len(values))

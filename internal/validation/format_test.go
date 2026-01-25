@@ -20,6 +20,23 @@ func TestFormatValidValues(t *testing.T) {
 	}
 }
 
+func TestIsValidValue(t *testing.T) {
+	type sample string
+
+	const (
+		first  sample = "first"
+		second sample = "second"
+	)
+
+	if !IsValidValue(first, []sample{first, second}) {
+		t.Fatalf("expected value to be valid")
+	}
+
+	if IsValidValue(sample("third"), []sample{first, second}) {
+		t.Fatalf("expected value to be invalid")
+	}
+}
+
 func TestFormatInvalidValueError(t *testing.T) {
 	type sample string
 

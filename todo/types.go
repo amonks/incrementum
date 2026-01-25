@@ -10,6 +10,8 @@
 //   - DepAdd, DepTree for dependency management
 package todo
 
+import "github.com/amonks/incrementum/internal/validation"
+
 // Status represents the state of a todo.
 type Status string
 
@@ -40,12 +42,7 @@ func ValidStatuses() []Status {
 
 // IsValid returns true if the status is a known valid value.
 func (s Status) IsValid() bool {
-	for _, valid := range ValidStatuses() {
-		if s == valid {
-			return true
-		}
-	}
-	return false
+	return validation.IsValidValue(s, ValidStatuses())
 }
 
 // IsResolved returns true when a status is considered resolved for dependencies.
@@ -79,12 +76,7 @@ func ValidTodoTypes() []TodoType {
 
 // IsValid returns true if the type is a known valid value.
 func (t TodoType) IsValid() bool {
-	for _, valid := range ValidTodoTypes() {
-		if t == valid {
-			return true
-		}
-	}
-	return false
+	return validation.IsValidValue(t, ValidTodoTypes())
 }
 
 // TodoTypeRank returns the sort rank for a todo type.

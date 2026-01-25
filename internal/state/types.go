@@ -6,7 +6,11 @@
 // multiple processes.
 package state
 
-import "time"
+import (
+	"time"
+
+	"github.com/amonks/incrementum/internal/validation"
+)
 
 // State represents the persisted state file.
 type State struct {
@@ -38,12 +42,7 @@ func ValidWorkspaceStatuses() []WorkspaceStatus {
 
 // IsValid returns true if the status is a known value.
 func (s WorkspaceStatus) IsValid() bool {
-	for _, valid := range ValidWorkspaceStatuses() {
-		if s == valid {
-			return true
-		}
-	}
-	return false
+	return validation.IsValidValue(s, ValidWorkspaceStatuses())
 }
 
 // WorkspaceInfo stores information about a workspace.
@@ -111,12 +110,7 @@ func ValidJobStages() []JobStage {
 
 // IsValid returns true if the stage is a known value.
 func (s JobStage) IsValid() bool {
-	for _, valid := range ValidJobStages() {
-		if s == valid {
-			return true
-		}
-	}
-	return false
+	return validation.IsValidValue(s, ValidJobStages())
 }
 
 // JobStatus represents the lifecycle status for a job.
@@ -140,12 +134,7 @@ func ValidJobStatuses() []JobStatus {
 
 // IsValid returns true if the status is a known value.
 func (s JobStatus) IsValid() bool {
-	for _, valid := range ValidJobStatuses() {
-		if s == valid {
-			return true
-		}
-	}
-	return false
+	return validation.IsValidValue(s, ValidJobStatuses())
 }
 
 // JobOpencodeSession tracks an opencode session started by a job.
