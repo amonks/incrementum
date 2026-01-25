@@ -30,7 +30,7 @@
 | `BenchmarkStoreShow1K` | 1,776,881 | 535,724 | 9,016 |
 | `BenchmarkStoreShow10K` | 17,799,295 | 5,280,997 | 90,048 |
 | `BenchmarkStoreCreate1K` | 2,250,919 | 484,523 | 9,033 |
-| `BenchmarkStoreCreate10K` | 20,362,681 | 4,868,460 | 90,040 |
+| `BenchmarkStoreCreate10K` | 20,221,767 | 4,855,207 | 90,038 |
 | `BenchmarkStoreDepTree1K` | 2,912,435 | 1,310,353 | 18,054 |
 | `BenchmarkStoreDepTree10K` | 30,744,533 | 12,163,537 | 180,237 |
 | `BenchmarkStoreUpdate1K` | 2,272,563 | 487,887 | 9,027 |
@@ -94,6 +94,8 @@
 - 2026-01-25 (BenchmarkStoreUpdate10K): Heap allocations concentrate in JSONL reads, encoding/json.Unmarshal, and ID normalization/index building, with buffered writer setup also contributing.
 - 2026-01-25 (BenchmarkStoreShow10K): CPU profile dominated by syscall.syscall and bufio.Reader.ReadLine, with JSON decoding and time parsing next, confirming show queries remain file I/O bound.
 - 2026-01-25 (BenchmarkStoreShow10K): Heap allocations are led by JSONL reads and encoding/json.Unmarshal, with todo ID map construction the next largest share.
+- 2026-01-25 (BenchmarkStoreCreate10K): CPU profile dominated by syscall.syscall, with bufio.Reader.ReadLine and bufio.Writer.Flush/Write next, showing create remains I/O bound beyond the JSON decode/encode work.
+- 2026-01-25 (BenchmarkStoreCreate10K): Heap allocations center on readJSONLFromReader and encoding/json.Unmarshal, with benchmark data generation and ID creation providing the next largest allocation buckets.
 
 ## Profiling commands
 
