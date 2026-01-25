@@ -572,6 +572,131 @@ func TestWriteJSONL_Atomic(t *testing.T) {
 	}
 }
 
+func TestWriteJSONL_RoundTripTodos(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "todos.jsonl")
+
+	baseTime := time.Date(2026, time.January, 25, 8, 0, 0, 123456000, time.UTC)
+	closedAt := baseTime.Add(2 * time.Hour)
+	startedAt := baseTime.Add(30 * time.Minute)
+	completedAt := baseTime.Add(3 * time.Hour)
+	deletedAt := baseTime.Add(4 * time.Hour)
+
+	todos := []Todo{
+		{
+			ID:          "abc12345",
+			Title:       "Needs \"quotes\"",
+			Description: "Line\nwith break",
+			Status:      StatusOpen,
+			Priority:    PriorityMedium,
+			Type:        TypeTask,
+			CreatedAt:   baseTime,
+			UpdatedAt:   baseTime,
+		},
+		{
+			ID:           "def67890",
+			Title:        "Second",
+			Description:  "",
+			Status:       StatusClosed,
+			Priority:     PriorityHigh,
+			Type:         TypeBug,
+			CreatedAt:    baseTime,
+			UpdatedAt:    baseTime,
+			ClosedAt:     &closedAt,
+			StartedAt:    &startedAt,
+			CompletedAt:  &completedAt,
+			DeletedAt:    &deletedAt,
+			DeleteReason: "all done",
+		},
+	}
+
+	if err := writeJSONL(path, todos); err != nil {
+		t.Fatalf("failed to write: %v", err)
+	}
+
+	loaded, err := readJSONL[Todo](path)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
+	if len(loaded) != len(todos) {
+		t.Fatalf("expected %d todos, got %d", len(todos), len(loaded))
+	}
+	for i := range todos {
+		assertTodoEqual(t, loaded[i], todos[i])
+	}
+}
+
+func TestWriteJSONL_RoundTripDependencies(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "dependencies.jsonl")
+
+	createdAt := time.Date(2026, time.January, 25, 9, 30, 0, 0, time.UTC)
+	deps := []Dependency{
+		{
+			TodoID:      "abc12345",
+			DependsOnID: "def67890",
+			CreatedAt:   createdAt,
+		},
+	}
+
+	if err := writeJSONL(path, deps); err != nil {
+		t.Fatalf("failed to write: %v", err)
+	}
+
+	loaded, err := readJSONL[Dependency](path)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
+	if len(loaded) != len(deps) {
+		t.Fatalf("expected %d deps, got %d", len(deps), len(loaded))
+	}
+	if loaded[0].TodoID != deps[0].TodoID || loaded[0].DependsOnID != deps[0].DependsOnID {
+		t.Fatalf("dependency mismatch: %+v", loaded[0])
+	}
+	if !loaded[0].CreatedAt.Equal(deps[0].CreatedAt) {
+		t.Fatalf("expected created_at %v, got %v", deps[0].CreatedAt, loaded[0].CreatedAt)
+	}
+}
+
+func assertTodoEqual(t *testing.T, got, want Todo) {
+	t.Helper()
+	if got.ID != want.ID ||
+		got.Title != want.Title ||
+		got.Description != want.Description ||
+		got.Status != want.Status ||
+		got.Priority != want.Priority ||
+		got.Type != want.Type ||
+		got.DeleteReason != want.DeleteReason {
+		t.Fatalf("todo mismatch: %+v", got)
+	}
+	assertTimeEqual(t, "created_at", got.CreatedAt, want.CreatedAt)
+	assertTimeEqual(t, "updated_at", got.UpdatedAt, want.UpdatedAt)
+	assertTimePointerEqual(t, "closed_at", got.ClosedAt, want.ClosedAt)
+	assertTimePointerEqual(t, "started_at", got.StartedAt, want.StartedAt)
+	assertTimePointerEqual(t, "completed_at", got.CompletedAt, want.CompletedAt)
+	assertTimePointerEqual(t, "deleted_at", got.DeletedAt, want.DeletedAt)
+}
+
+func assertTimeEqual(t *testing.T, field string, got, want time.Time) {
+	t.Helper()
+	if !got.Equal(want) {
+		t.Fatalf("expected %s %v, got %v", field, want, got)
+	}
+}
+
+func assertTimePointerEqual(t *testing.T, field string, got, want *time.Time) {
+	t.Helper()
+	if got == nil && want == nil {
+		return
+	}
+	if got == nil || want == nil {
+		t.Fatalf("expected %s %v, got %v", field, want, got)
+	}
+	if !got.Equal(*want) {
+		t.Fatalf("expected %s %v, got %v", field, want, got)
+	}
+}
+
 // TestOpen_DoesNotModifyUserWorkingCopy verifies that opening/creating a store
 // does not modify the user's working copy. This is a regression test for a bug
 // where createTaskStore would run jj commands in the user's directory, causing

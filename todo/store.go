@@ -9,7 +9,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/amonks/incrementum/internal/jj"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
@@ -371,11 +373,13 @@ func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
 				return nil, err
 			}
 		}
-		if len(line) == 0 {
-			line = chunk
-		} else {
-			line = append(line, chunk...)
+		if len(line) == 0 && !isPrefix {
+			if len(chunk) > maxJSONLineBytes {
+				return nil, fmt.Errorf("exceeds max JSON line size")
+			}
+			return chunk, err
 		}
+		line = append(line, chunk...)
 		if len(line) > maxJSONLineBytes {
 			return nil, fmt.Errorf("exceeds max JSON line size")
 		}
@@ -387,6 +391,40 @@ func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
 
 // writeJSONL writes a slice of items to a JSONL file, overwriting any existing content.
 func writeJSONL[T any](path string, items []T) error {
+	switch typed := any(items).(type) {
+	case []Todo:
+		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
+			for i := range typed {
+				if err := writeTodoJSONLine(writer, &typed[i]); err != nil {
+					return fmt.Errorf("encode item %d: %w", i, err)
+				}
+			}
+			return nil
+		})
+	case []Dependency:
+		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
+			for i := range typed {
+				if err := writeDependencyJSONLine(writer, &typed[i]); err != nil {
+					return fmt.Errorf("encode item %d: %w", i, err)
+				}
+			}
+			return nil
+		})
+	default:
+		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
+			encoder := json.NewEncoder(writer)
+			encoder.SetEscapeHTML(false)
+			for i, item := range items {
+				if err := encoder.Encode(item); err != nil {
+					return fmt.Errorf("encode item %d: %w", i, err)
+				}
+			}
+			return nil
+		})
+	}
+}
+
+func writeJSONLWithWriter(path string, write func(*bufio.Writer) error) error {
 	// Write to temp file first
 	tmpPath := path + ".tmp"
 	f, err := os.Create(tmpPath)
@@ -395,17 +433,13 @@ func writeJSONL[T any](path string, items []T) error {
 	}
 
 	buffered := bufio.NewWriterSize(f, jsonlBufferSize)
-	encoder := json.NewEncoder(buffered)
-	encoder.SetEscapeHTML(false)
-	for i, item := range items {
-		if err := encoder.Encode(item); err != nil {
-			closeErr := f.Close()
-			os.Remove(tmpPath)
-			if closeErr != nil {
-				return errors.Join(fmt.Errorf("encode item %d: %w", i, err), closeErr)
-			}
-			return fmt.Errorf("encode item %d: %w", i, err)
+	if err := write(buffered); err != nil {
+		closeErr := f.Close()
+		os.Remove(tmpPath)
+		if closeErr != nil {
+			return errors.Join(err, closeErr)
 		}
+		return err
 	}
 	if err := buffered.Flush(); err != nil {
 		closeErr := f.Close()
@@ -428,6 +462,128 @@ func writeJSONL[T any](path string, items []T) error {
 	}
 
 	return nil
+}
+
+var jsonHexDigits = []byte("0123456789abcdef")
+
+func writeTodoJSONLine(writer *bufio.Writer, todo *Todo) error {
+	buf := make([]byte, 0, 512)
+	buf = append(buf, '{')
+	hasField := false
+
+	buf, hasField = appendJSONFieldPrefix(buf, "id", hasField)
+	buf = appendJSONString(buf, todo.ID)
+
+	buf, hasField = appendJSONFieldPrefix(buf, "title", hasField)
+	buf = appendJSONString(buf, todo.Title)
+
+	buf, hasField = appendJSONFieldPrefix(buf, "description", hasField)
+	buf = appendJSONString(buf, todo.Description)
+
+	buf, hasField = appendJSONFieldPrefix(buf, "status", hasField)
+	buf = appendJSONString(buf, string(todo.Status))
+
+	buf, hasField = appendJSONFieldPrefix(buf, "priority", hasField)
+	buf = strconv.AppendInt(buf, int64(todo.Priority), 10)
+
+	buf, hasField = appendJSONFieldPrefix(buf, "type", hasField)
+	buf = appendJSONString(buf, string(todo.Type))
+
+	buf, hasField = appendJSONFieldPrefix(buf, "created_at", hasField)
+	buf = appendJSONTime(buf, todo.CreatedAt)
+
+	buf, hasField = appendJSONFieldPrefix(buf, "updated_at", hasField)
+	buf = appendJSONTime(buf, todo.UpdatedAt)
+
+	if todo.ClosedAt != nil {
+		buf, hasField = appendJSONFieldPrefix(buf, "closed_at", hasField)
+		buf = appendJSONTime(buf, *todo.ClosedAt)
+	}
+	if todo.StartedAt != nil {
+		buf, hasField = appendJSONFieldPrefix(buf, "started_at", hasField)
+		buf = appendJSONTime(buf, *todo.StartedAt)
+	}
+	if todo.CompletedAt != nil {
+		buf, hasField = appendJSONFieldPrefix(buf, "completed_at", hasField)
+		buf = appendJSONTime(buf, *todo.CompletedAt)
+	}
+	if todo.DeletedAt != nil {
+		buf, hasField = appendJSONFieldPrefix(buf, "deleted_at", hasField)
+		buf = appendJSONTime(buf, *todo.DeletedAt)
+	}
+	if todo.DeleteReason != "" {
+		buf, hasField = appendJSONFieldPrefix(buf, "delete_reason", hasField)
+		buf = appendJSONString(buf, todo.DeleteReason)
+	}
+
+	buf = append(buf, '}', '\n')
+	_, err := writer.Write(buf)
+	return err
+}
+
+func writeDependencyJSONLine(writer *bufio.Writer, dependency *Dependency) error {
+	buf := make([]byte, 0, 128)
+	buf = append(buf, '{')
+	hasField := false
+
+	buf, hasField = appendJSONFieldPrefix(buf, "todo_id", hasField)
+	buf = appendJSONString(buf, dependency.TodoID)
+
+	buf, hasField = appendJSONFieldPrefix(buf, "depends_on_id", hasField)
+	buf = appendJSONString(buf, dependency.DependsOnID)
+
+	buf, hasField = appendJSONFieldPrefix(buf, "created_at", hasField)
+	buf = appendJSONTime(buf, dependency.CreatedAt)
+
+	buf = append(buf, '}', '\n')
+	_, err := writer.Write(buf)
+	return err
+}
+
+func appendJSONFieldPrefix(buf []byte, key string, hasField bool) ([]byte, bool) {
+	if hasField {
+		buf = append(buf, ',')
+	}
+	buf = append(buf, '"')
+	buf = append(buf, key...)
+	buf = append(buf, '"', ':')
+	return buf, true
+}
+
+func appendJSONString(buf []byte, value string) []byte {
+	buf = append(buf, '"')
+	for i := 0; i < len(value); i++ {
+		char := value[i]
+		switch char {
+		case '\\', '"':
+			buf = append(buf, '\\', char)
+		case '\n':
+			buf = append(buf, '\\', 'n')
+		case '\r':
+			buf = append(buf, '\\', 'r')
+		case '\t':
+			buf = append(buf, '\\', 't')
+		case '\b':
+			buf = append(buf, '\\', 'b')
+		case '\f':
+			buf = append(buf, '\\', 'f')
+		default:
+			if char < 0x20 {
+				buf = append(buf, '\\', 'u', '0', '0', jsonHexDigits[char>>4], jsonHexDigits[char&0x0f])
+			} else {
+				buf = append(buf, char)
+			}
+		}
+	}
+	buf = append(buf, '"')
+	return buf
+}
+
+func appendJSONTime(buf []byte, value time.Time) []byte {
+	buf = append(buf, '"')
+	buf = value.AppendFormat(buf, time.RFC3339Nano)
+	buf = append(buf, '"')
+	return buf
 }
 
 func readJSONLStore[T any](store *Store, filename string) ([]T, error) {
