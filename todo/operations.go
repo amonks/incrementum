@@ -184,24 +184,6 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		opts.Type = &normalized
 	}
 
-	if len(resolvedIDs) == 1 {
-		id := resolvedIDs[0]
-		now := time.Now()
-		for i := range todos {
-			if todos[i].ID != id {
-				continue
-			}
-			if err := applyTodoUpdates(&todos[i], opts, now); err != nil {
-				return nil, fmt.Errorf("validate todo %s: %w", todos[i].ID, err)
-			}
-			if err := s.writeTodos(todos); err != nil {
-				return nil, fmt.Errorf("write todos: %w", err)
-			}
-			return []Todo{todos[i]}, nil
-		}
-		return nil, missingTodoIDsError([]string{id})
-	}
-
 	// Build a set of IDs to update
 	idSet := make(map[string]struct{}, len(resolvedIDs))
 	for _, id := range resolvedIDs {
