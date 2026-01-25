@@ -120,7 +120,8 @@ any stage -> failed (unrecoverable error)
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
    - Flag the next testing/review cycle as the final project review.
 11. If the commit id changed:
-    - Read `.incrementum-commit-message` from the workspace root.
+    - Read `.incrementum-commit-message` from the workspace root, trimming trailing
+      newlines and any leading blank lines.
     - Store the message for the committing stage.
 12. Transition to `testing`.
 

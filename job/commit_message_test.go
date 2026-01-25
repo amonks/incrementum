@@ -29,6 +29,24 @@ func TestReadCommitMessageDeletesFile(t *testing.T) {
 	}
 }
 
+func TestReadCommitMessageTrimsLeadingBlankLines(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "commit-message")
+	contents := "\n\nfeat: add widgets\n\nExplain the change.\n"
+	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+		t.Fatalf("write commit message: %v", err)
+	}
+
+	message, err := readCommitMessage(path)
+	if err != nil {
+		t.Fatalf("read commit message: %v", err)
+	}
+
+	expected := "feat: add widgets\n\nExplain the change."
+	if message != expected {
+		t.Fatalf("expected message %q, got %q", expected, message)
+	}
+}
+
 func TestReadCommitMessageDeletesEmptyFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "commit-message")
 	if err := os.WriteFile(path, []byte("\n"), 0o644); err != nil {
