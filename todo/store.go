@@ -13,7 +13,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
+	internalids "github.com/amonks/incrementum/internal/ids"
 	"github.com/amonks/incrementum/internal/jj"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/workspace"
@@ -732,6 +734,11 @@ func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
 	if err := validateTodoIDs(ids); err != nil {
 		return nil, err
 	}
+	if resolved, ok, err := resolveExactTodoIDs(ids, todos); err != nil {
+		return nil, err
+	} else if ok {
+		return resolved, nil
+	}
 
 	index := NewIDIndex(todos)
 	resolved := make([]string, 0, len(ids))
@@ -744,6 +751,48 @@ func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
 	}
 
 	return resolved, nil
+}
+
+func resolveExactTodoIDs(ids []string, todos []Todo) ([]string, bool, error) {
+	if len(ids) == 0 {
+		return nil, true, ErrTodoNotFound
+	}
+	requested := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		if len(id) != internalids.DefaultLength || !isNormalizedID(id) {
+			return nil, false, nil
+		}
+		requested[id] = struct{}{}
+	}
+	if len(requested) == 0 {
+		return nil, true, ErrTodoNotFound
+	}
+	missing := make(map[string]struct{}, len(requested))
+	for id := range requested {
+		missing[id] = struct{}{}
+	}
+	for _, todo := range todos {
+		if _, ok := missing[todo.ID]; ok {
+			delete(missing, todo.ID)
+			if len(missing) == 0 {
+				break
+			}
+		}
+	}
+	if len(missing) > 0 {
+		return nil, true, ErrTodoNotFound
+	}
+	return ids, true, nil
+}
+
+func isNormalizedID(id string) bool {
+	for i := 0; i < len(id); i++ {
+		b := id[i]
+		if b >= utf8.RuneSelf || (b >= 'A' && b <= 'Z') {
+			return false
+		}
+	}
+	return true
 }
 
 func validateTodoIDs(ids []string) error {
