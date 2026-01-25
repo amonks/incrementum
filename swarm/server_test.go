@@ -156,6 +156,9 @@ func TestDoStartsJobWithWorkspace(t *testing.T) {
 		if call.options.Purpose == "" {
 			t.Fatal("expected workspace purpose")
 		}
+		if call.options.NewChangeMessage != "staging for todo todo-1" {
+			t.Fatalf("expected new change message, got %q", call.options.NewChangeMessage)
+		}
 	default:
 		t.Fatal("expected workspace acquire call")
 	}

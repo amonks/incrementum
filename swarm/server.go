@@ -209,13 +209,15 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
-	if strings.TrimSpace(todoID) == "" {
+	cleanID := strings.TrimSpace(todoID)
+	if cleanID == "" {
 		return "", fmt.Errorf("todo id is required")
 	}
+	stagingMessage := fmt.Sprintf("staging for todo %s", cleanID)
 	wsPath, err := s.pool.Acquire(s.repoPath, workspace.AcquireOptions{
-		Purpose:          fmt.Sprintf("swarm job %s", todoID),
+		Purpose:          fmt.Sprintf("swarm job %s", cleanID),
 		Rev:              "main",
-		NewChangeMessage: fmt.Sprintf("staging for todo %s", todoID),
+		NewChangeMessage: stagingMessage,
 	})
 	if err != nil {
 		return "", fmt.Errorf("acquire workspace: %w", err)
