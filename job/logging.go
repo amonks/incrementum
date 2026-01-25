@@ -185,6 +185,9 @@ func formatCommitMessageBody(body string, indent int, preformatted bool) string 
 	return formatMarkdownBlock(body, indent, preformatted)
 }
 
+// Markdown hard line breaks use two trailing spaces.
+const markdownHardBreakPadding = 2
+
 func preserveMarkdownLineBreaks(value string) string {
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
@@ -209,10 +212,12 @@ func formatMarkdownBlock(body string, indent int, preformatted bool) string {
 	if width < 1 {
 		width = 1
 	}
+	renderWidth := width
 	if preformatted {
 		body = preserveMarkdownLineBreaks(body)
+		renderWidth = width + markdownHardBreakPadding
 	}
-	rendered := RenderMarkdown(body, width)
+	rendered := RenderMarkdown(body, renderWidth)
 	if strings.TrimSpace(rendered) == "" {
 		return IndentBlock("-", indent)
 	}

@@ -198,6 +198,22 @@ func TestConsoleLoggerPreservesFormattedCommitMessageIndentation(t *testing.T) {
 	}
 }
 
+func TestConsoleLoggerPreservesPreformattedLineWidth(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewConsoleLogger(&buf)
+
+	width := lineWidth - subdocumentIndent
+	line := buildFixedWidthLine(width)
+
+	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: line, Preformatted: true})
+
+	output := stripANSI(buf.String())
+	expected := strings.Repeat(" ", subdocumentIndent) + line
+	if !strings.Contains(output, expected) {
+		t.Fatalf("expected unwrapped line %q, got %q", expected, output)
+	}
+}
+
 func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()
@@ -638,4 +654,20 @@ func TestRunCommittingStageLogsFinalMessage(t *testing.T) {
 func stripANSI(value string) string {
 	ansi := regexp.MustCompile("\\x1b\\[[0-9;]*m")
 	return ansi.ReplaceAllString(value, "")
+}
+
+func buildFixedWidthLine(width int) string {
+	var builder strings.Builder
+	for builder.Len()+5 < width {
+		builder.WriteString("word ")
+	}
+	remaining := width - builder.Len()
+	if remaining > 0 {
+		builder.WriteString(strings.Repeat("x", remaining))
+	}
+	line := builder.String()
+	if len(line) != width {
+		panic(fmt.Sprintf("line length mismatch: got %d want %d", len(line), width))
+	}
+	return line
 }
