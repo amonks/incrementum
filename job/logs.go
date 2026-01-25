@@ -92,6 +92,15 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				return err
 			}
 			writer.writeTests(data.Results)
+		case jobEventOpencodeError:
+			data, err := decodeEventData[opencodeErrorEventData](event.Data)
+			if err != nil {
+				return err
+			}
+			writer.writeBlock(
+				formatLogLabel(opencodeErrorLabel(data.Purpose), documentIndent),
+				formatLogBody(data.Error, subdocumentIndent, false),
+			)
 		case jobEventOpencodeStart, jobEventOpencodeEnd:
 			return nil
 		default:
@@ -117,6 +126,15 @@ func opencodeEventLabel(name string) string {
 		return "Opencode event:"
 	}
 	return fmt.Sprintf("Opencode event (%s):", trimmed)
+}
+
+func opencodeErrorLabel(purpose string) string {
+	trimmed := strings.TrimSpace(purpose)
+	if trimmed == "" {
+		return "Opencode error:"
+	}
+	label := strings.ReplaceAll(trimmed, "-", " ")
+	return fmt.Sprintf("Opencode %s error:", label)
 }
 
 func (writer *logSnapshotWriter) writeStage(value string) {

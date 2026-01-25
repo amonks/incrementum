@@ -483,6 +483,10 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		EventLog:      opts.EventLog,
 	})
 	if err != nil {
+		logErr := appendJobEvent(opts.EventLog, jobEventOpencodeError, opencodeErrorEventData{Purpose: "implement", Error: err.Error()})
+		if logErr != nil {
+			return ImplementingStageResult{}, errors.Join(err, logErr)
+		}
 		return ImplementingStageResult{}, err
 	}
 	if err := appendJobEvent(opts.EventLog, jobEventOpencodeEnd, opencodeEndEventData{Purpose: "implement", SessionID: opencodeResult.SessionID, ExitCode: opencodeResult.ExitCode}); err != nil {
@@ -630,6 +634,10 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		EventLog:      opts.EventLog,
 	})
 	if err != nil {
+		logErr := appendJobEvent(opts.EventLog, jobEventOpencodeError, opencodeErrorEventData{Purpose: purpose, Error: err.Error()})
+		if logErr != nil {
+			return Job{}, errors.Join(err, logErr)
+		}
 		return Job{}, err
 	}
 	if err := appendJobEvent(opts.EventLog, jobEventOpencodeEnd, opencodeEndEventData{Purpose: purpose, SessionID: opencodeResult.SessionID, ExitCode: opencodeResult.ExitCode}); err != nil {

@@ -83,6 +83,36 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 	}
 }
 
+func TestLogSnapshotIncludesOpencodeError(t *testing.T) {
+	eventsDir := t.TempDir()
+	jobID := "job-opencode-error"
+	log, err := OpenEventLog(jobID, EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("open event log: %v", err)
+	}
+	defer func() {
+		if err := log.Close(); err != nil {
+			t.Fatalf("close log: %v", err)
+		}
+	}()
+
+	if err := appendJobEvent(log, jobEventOpencodeError, opencodeErrorEventData{Purpose: "implement", Error: "opencode session not found"}); err != nil {
+		t.Fatalf("append opencode error: %v", err)
+	}
+
+	snapshot, err := LogSnapshot(jobID, EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("snapshot: %v", err)
+	}
+
+	if !strings.Contains(snapshot, "Opencode implement error:") {
+		t.Fatalf("expected opencode error label, got %q", snapshot)
+	}
+	if !strings.Contains(snapshot, "opencode session not found") {
+		t.Fatalf("expected opencode error details, got %q", snapshot)
+	}
+}
+
 func TestLogSnapshotHandlesLargeEvent(t *testing.T) {
 	eventsDir := t.TempDir()
 	jobID := "job-logs-large"
@@ -182,5 +212,16 @@ func TestEventFormatterAppendsOutput(t *testing.T) {
 	}
 	if !strings.Contains(chunk, "Streaming line") {
 		t.Fatalf("expected opencode output, got %q", chunk)
+	}
+
+	chunk, err = formatter.Append(Event{Name: "job.opencode.error", Data: "{\"purpose\":\"implement\",\"error\":\"opencode session not found\"}"})
+	if err != nil {
+		t.Fatalf("append opencode error: %v", err)
+	}
+	if !strings.Contains(chunk, "Opencode implement error:") {
+		t.Fatalf("expected opencode error label, got %q", chunk)
+	}
+	if !strings.Contains(chunk, "opencode session not found") {
+		t.Fatalf("expected opencode error details, got %q", chunk)
 	}
 }

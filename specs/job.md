@@ -41,7 +41,7 @@ Follow our usual testing practice:
 - Job event entries use opencode's event shape (`id`, `name`, `data`) and include
   both opencode events and job-specific events (stage changes, prompts, opencode
   transcripts, test results, review feedback, commit messages, opencode session
-  boundaries).
+  boundaries, opencode errors).
 
 ## Job Model
 
@@ -114,16 +114,18 @@ any stage -> failed (unrecoverable error)
    when responding to feedback).
 6. Record opencode session in `opencode_sessions` with purpose `implement`.
 7. Run opencode to completion.
-8. If opencode fails (nonzero exit): mark job `failed`.
-9. Record the current working copy commit id again.
-10. If the commit id did not change:
+8. If opencode returns an error before completion, record a `job.opencode.error`
+   event with the purpose and error message, then mark the job `failed`.
+9. If opencode fails (nonzero exit): mark job `failed`.
+10. Record the current working copy commit id again.
+11. If the commit id did not change:
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
-   - Flag the next testing/review cycle as the final project review.
-11. If the commit id changed:
+    - Flag the next testing/review cycle as the final project review.
+12. If the commit id changed:
     - Read `.incrementum-commit-message` from the workspace root, trimming trailing
       newlines and any leading blank lines.
     - Store the message for the committing stage.
-12. Transition to `testing`.
+13. Transition to `testing`.
 
 ### testing
 
@@ -155,8 +157,10 @@ any stage -> failed (unrecoverable error)
 6. Record opencode session in `opencode_sessions` with purpose `review` or
    `project-review`.
 7. Run opencode to completion.
-8. If opencode fails (nonzero exit): mark job `failed`.
-9. Read `.incrementum-feedback` from the workspace root:
+8. If opencode returns an error before completion, record a `job.opencode.error`
+   event with the purpose and error message, then mark the job `failed`.
+9. If opencode fails (nonzero exit): mark job `failed`.
+10. Read `.incrementum-feedback` from the workspace root:
    - Delete `.incrementum-feedback` after reading.
    - Missing or first line is `ACCEPT`:
      - During the work loop: transition to `committing`.

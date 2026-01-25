@@ -23,6 +23,7 @@ const (
 	jobEventTests         = "job.tests"
 	jobEventOpencodeStart = "job.opencode.start"
 	jobEventOpencodeEnd   = "job.opencode.end"
+	jobEventOpencodeError = "job.opencode.error"
 )
 
 // Event captures a job log event.
@@ -243,6 +244,11 @@ type opencodeEndEventData struct {
 	Purpose   string `json:"purpose"`
 	SessionID string `json:"session_id"`
 	ExitCode  int    `json:"exit_code"`
+}
+
+type opencodeErrorEventData struct {
+	Purpose string `json:"purpose"`
+	Error   string `json:"error"`
 }
 
 func buildTestsEventData(results []TestCommandResult) testsEventData {
