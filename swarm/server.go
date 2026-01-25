@@ -223,7 +223,7 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	}
 	wsPath, err := s.pool.Acquire(s.repoPath, workspace.AcquireOptions{
 		Purpose: fmt.Sprintf("swarm job %s", todoID),
-		Rev:     "main",
+		Rev:     "@",
 	})
 	if err != nil {
 		return "", fmt.Errorf("acquire workspace: %w", err)
