@@ -18,15 +18,15 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,719,032 | 734,003 | 10,003 |
-| `BenchmarkReadJSONLFromReader10K` | 17,422,132 | 6,813,648 | 100,003 |
-| `BenchmarkWriteJSONL1K` | 932,702 | 355,044 | 3,010 |
-| `BenchmarkWriteJSONL10K` | 8,086,913 | 2,952,787 | 30,019 |
-| `BenchmarkStoreList1K` | 1,799,685 | 923,378 | 10,013 |
-| `BenchmarkStoreList10K` | 18,601,249 | 8,657,735 | 100,013 |
-| `BenchmarkStoreReady1K` | 2,082,861 | 1,172,530 | 12,036 |
-| `BenchmarkStoreReady10K` | 20,747,825 | 10,339,626 | 120,070 |
-| `BenchmarkStoreReadyLimit10K` | 20,741,943 | 10,343,639 | 120,082 |
+| `BenchmarkReadJSONLFromReader1K` | 1,731,548 | 734,019 | 10,003 |
+| `BenchmarkReadJSONLFromReader10K` | 17,543,669 | 6,813,647 | 100,003 |
+| `BenchmarkWriteJSONL1K` | 940,117 | 355,091 | 3,010 |
+| `BenchmarkWriteJSONL10K` | 7,689,174 | 2,952,758 | 30,019 |
+| `BenchmarkStoreList1K` | 1,815,931 | 923,378 | 10,013 |
+| `BenchmarkStoreList10K` | 18,726,173 | 8,657,741 | 100,013 |
+| `BenchmarkStoreReady1K` | 2,094,703 | 1,172,555 | 12,037 |
+| `BenchmarkStoreReady10K` | 20,785,253 | 10,339,684 | 120,071 |
+| `BenchmarkStoreReadyLimit10K` | 20,682,214 | 8,500,447 | 120,081 |
 
 ## Improvements log
 
@@ -38,6 +38,7 @@
 - 2026-01-25: Preallocated list/ready result slices and blocker maps so store queries avoid repeated growth allocations when scanning todos.
 - 2026-01-25: Added a ready-limit benchmark and switched ready queries with limits to a heap selection pass before sorting, keeping ranking consistent while avoiding full sorts for small limits.
 - 2026-01-25: Increased JSONL read/write buffer sizes to 64 KiB to reduce syscall overhead during line reads and batched writes.
+- 2026-01-25: When Ready runs with a limit, select into the heap while scanning instead of building the full ready slice, trimming bytes/op for ready-limit benchmarks.
 
 ## Profiling notes
 

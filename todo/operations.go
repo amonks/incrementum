@@ -546,7 +546,14 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 	}
 
 	// Filter to open todos with no open blockers
-	ready := make([]Todo, 0, len(todos))
+	var ready []Todo
+	var selection readyHeap
+	useLimit := limit > 0
+	if useLimit {
+		selection = readyHeap{items: make([]Todo, 0, limit)}
+	} else {
+		ready = make([]Todo, 0, len(todos))
+	}
 	for _, todo := range todos {
 		if todo.Status != StatusOpen {
 			continue
@@ -562,22 +569,22 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		}
 
 		if !hasOpenBlocker {
+			if useLimit {
+				if len(selection.items) < limit {
+					heap.Push(&selection, todo)
+					continue
+				}
+				if readyLess(todo, selection.items[0]) {
+					selection.items[0] = todo
+					heap.Fix(&selection, 0)
+				}
+				continue
+			}
 			ready = append(ready, todo)
 		}
 	}
 
-	if limit > 0 && len(ready) > limit {
-		selection := readyHeap{items: make([]Todo, 0, limit)}
-		for _, todo := range ready {
-			if len(selection.items) < limit {
-				heap.Push(&selection, todo)
-				continue
-			}
-			if readyLess(todo, selection.items[0]) {
-				selection.items[0] = todo
-				heap.Fix(&selection, 0)
-			}
-		}
+	if useLimit {
 		ready = selection.items
 	}
 
