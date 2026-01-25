@@ -3,6 +3,7 @@ package job
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -915,6 +916,8 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 		WorkDir:   opts.WorkspacePath,
 		Prompt:    opts.Prompt,
 		StartedAt: opts.StartedAt,
+		Stdout:    io.Discard,
+		Stderr:    io.Discard,
 	})
 	if err != nil {
 		return OpencodeRunResult{}, err
