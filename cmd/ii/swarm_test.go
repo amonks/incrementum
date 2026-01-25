@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -92,11 +93,10 @@ func TestLogSwarmServeAddr(t *testing.T) {
 	cases := []struct {
 		name string
 		addr string
-		host string
-		port string
+		want string
 	}{
-		{name: "with host", addr: "127.0.0.1:9090", host: "127.0.0.1", port: "9090"},
-		{name: "all interfaces", addr: ":8088", host: "0.0.0.0", port: "8088"},
+		{name: "with host", addr: "127.0.0.1:9090", want: "127.0.0.1:9090"},
+		{name: "all interfaces", addr: ":8088", want: "0.0.0.0:8088"},
 	}
 
 	for _, tc := range cases {
@@ -106,11 +106,9 @@ func TestLogSwarmServeAddr(t *testing.T) {
 					t.Fatalf("log swarm addr: %v", err)
 				}
 			})
-			if !strings.Contains(output, "host "+tc.host) {
-				t.Fatalf("expected host %q in output, got %q", tc.host, output)
-			}
-			if !strings.Contains(output, "port "+tc.port) {
-				t.Fatalf("expected port %q in output, got %q", tc.port, output)
+			want := fmt.Sprintf("Swarm server listening on %s", tc.want)
+			if strings.TrimSpace(output) != want {
+				t.Fatalf("expected %q, got %q", want, output)
 			}
 		})
 	}

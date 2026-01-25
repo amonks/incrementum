@@ -127,16 +127,23 @@ func runSwarmServe(cmd *cobra.Command, _ []string) error {
 }
 
 func logSwarmServeAddr(addr string) error {
-	host, port, err := net.SplitHostPort(addr)
+	normalized, err := normalizeSwarmServeAddr(addr)
 	if err != nil {
 		return err
+	}
+	fmt.Printf("Swarm server listening on %s\n", normalized)
+	return nil
+}
+
+func normalizeSwarmServeAddr(addr string) (string, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", fmt.Errorf("parse swarm addr: %w", err)
 	}
 	if host == "" {
 		host = "0.0.0.0"
 	}
-	fullAddr := net.JoinHostPort(host, port)
-	fmt.Printf("Swarm server listening on %s\n", fullAddr)
-	return nil
+	return net.JoinHostPort(host, port), nil
 }
 
 func runSwarmDo(cmd *cobra.Command, args []string) error {
