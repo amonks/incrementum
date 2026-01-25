@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"container/heap"
 	"fmt"
 	"sort"
 	"strings"
@@ -487,6 +488,42 @@ func applyStatusChange(item *Todo, newStatus Status, previousStatus Status, opts
 	}
 }
 
+type readyHeap struct {
+	items []Todo
+}
+
+func (h readyHeap) Len() int {
+	return len(h.items)
+}
+
+func (h readyHeap) Less(i, j int) bool {
+	return readyLess(h.items[j], h.items[i])
+}
+
+func (h readyHeap) Swap(i, j int) {
+	h.items[i], h.items[j] = h.items[j], h.items[i]
+}
+
+func (h *readyHeap) Push(x any) {
+	h.items = append(h.items, x.(Todo))
+}
+
+func (h *readyHeap) Pop() any {
+	item := h.items[len(h.items)-1]
+	h.items = h.items[:len(h.items)-1]
+	return item
+}
+
+func readyLess(left, right Todo) bool {
+	if left.Priority != right.Priority {
+		return left.Priority < right.Priority
+	}
+	if TodoTypeRank(left.Type) != TodoTypeRank(right.Type) {
+		return TodoTypeRank(left.Type) < TodoTypeRank(right.Type)
+	}
+	return left.CreatedAt.Before(right.CreatedAt)
+}
+
 // Ready returns open todos with no unresolved blockers, sorted by priority.
 func (s *Store) Ready(limit int) ([]Todo, error) {
 	todos, err := s.readTodosWithContext()
@@ -529,16 +566,24 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		}
 	}
 
+	if limit > 0 && len(ready) > limit {
+		selection := readyHeap{items: make([]Todo, 0, limit)}
+		for _, todo := range ready {
+			if len(selection.items) < limit {
+				heap.Push(&selection, todo)
+				continue
+			}
+			if readyLess(todo, selection.items[0]) {
+				selection.items[0] = todo
+				heap.Fix(&selection, 0)
+			}
+		}
+		ready = selection.items
+	}
+
 	// Sort by priority (0 = highest priority)
 	sort.Slice(ready, func(i, j int) bool {
-		if ready[i].Priority != ready[j].Priority {
-			return ready[i].Priority < ready[j].Priority
-		}
-		if TodoTypeRank(ready[i].Type) != TodoTypeRank(ready[j].Type) {
-			return TodoTypeRank(ready[i].Type) < TodoTypeRank(ready[j].Type)
-		}
-		// Secondary sort by creation time (oldest first)
-		return ready[i].CreatedAt.Before(ready[j].CreatedAt)
+		return readyLess(ready[i], ready[j])
 	})
 
 	// Apply limit

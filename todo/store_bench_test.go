@@ -43,6 +43,10 @@ func BenchmarkStoreReady10K(b *testing.B) {
 	benchmarkStoreReady(b, 10000)
 }
 
+func BenchmarkStoreReadyLimit10K(b *testing.B) {
+	benchmarkStoreReadyLimit(b, 10000, 10)
+}
+
 func benchmarkReadJSONLFromReader(b *testing.B, count int) {
 	todos := benchmarkTodos(count)
 
@@ -110,6 +114,27 @@ func benchmarkStoreReady(b *testing.B, count int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if _, err := store.Ready(0); err != nil {
+			b.Fatalf("ready todos: %v", err)
+		}
+	}
+}
+
+func benchmarkStoreReadyLimit(b *testing.B, count int, limit int) {
+	store := newTestStore(b)
+	todos := benchmarkTodos(count)
+	applyBenchmarkStatuses(todos)
+	if err := store.writeTodos(todos); err != nil {
+		b.Fatalf("write todos: %v", err)
+	}
+	deps := benchmarkDependencies(todos)
+	if err := store.writeDependencies(deps); err != nil {
+		b.Fatalf("write dependencies: %v", err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := store.Ready(limit); err != nil {
 			b.Fatalf("ready todos: %v", err)
 		}
 	}
