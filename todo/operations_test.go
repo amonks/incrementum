@@ -1135,6 +1135,47 @@ func TestStore_Ready_IgnoresTombstonedBlockers(t *testing.T) {
 	}
 }
 
+func TestStore_Ready_IgnoresMissingBlockers(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	blocked, _ := store.Create("Blocked", CreateOptions{})
+	_, _ = store.Create("Unblocked", CreateOptions{})
+
+	deps := []Dependency{
+		{
+			TodoID:      blocked.ID,
+			DependsOnID: "deadbeef",
+			CreatedAt:   time.Now(),
+		},
+	}
+	if err := store.writeDependencies(deps); err != nil {
+		t.Fatalf("failed to write dependencies: %v", err)
+	}
+
+	ready, err := store.Ready(10)
+	if err != nil {
+		t.Fatalf("failed to get ready todos: %v", err)
+	}
+	if len(ready) != 2 {
+		t.Fatalf("expected 2 ready todos with missing blocker, got %d", len(ready))
+	}
+
+	foundBlocked := false
+	for _, item := range ready {
+		if item.ID == blocked.ID {
+			foundBlocked = true
+			break
+		}
+	}
+	if !foundBlocked {
+		t.Fatalf("expected blocked todo to be ready with missing blocker")
+	}
+}
+
 func TestStore_Ready_Limit(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {

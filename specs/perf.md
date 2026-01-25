@@ -18,17 +18,17 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,692,881 | 477,583 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,102,894 | 4,835,509 | 90,008 |
-| `BenchmarkWriteJSONL1K` | 472,269 | 66,984 | 11 |
-| `BenchmarkWriteJSONL10K` | 3,413,780 | 66,984 | 11 |
-| `BenchmarkStoreList1K` | 1,750,634 | 666,990 | 9,011 |
-| `BenchmarkStoreList10K` | 17,772,780 | 6,679,556 | 90,015 |
-| `BenchmarkStoreReady1K` | 2,030,323 | 795,406 | 10,535 |
-| `BenchmarkStoreReady10K` | 20,373,542 | 7,854,915 | 105,060 |
-| `BenchmarkStoreReadyLimit10K` | 20,078,083 | 5,950,834 | 105,066 |
-| `BenchmarkStoreDepTree1K` | 2,902,058 | 1,277,074 | 18,066 |
-| `BenchmarkStoreDepTree10K` | 30,874,203 | 12,136,883 | 180,253 |
+| `BenchmarkReadJSONLFromReader1K` | 1,728,882 | 477,587 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,345,338 | 4,835,432 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 463,805 | 66,984 | 11 |
+| `BenchmarkWriteJSONL10K` | 2,958,370 | 66,984 | 11 |
+| `BenchmarkStoreList1K` | 1,791,515 | 666,805 | 9,011 |
+| `BenchmarkStoreList10K` | 18,271,711 | 6,679,561 | 90,015 |
+| `BenchmarkStoreReady1K` | 2,095,765 | 781,592 | 10,532 |
+| `BenchmarkStoreReady10K` | 20,687,135 | 7,734,472 | 105,051 |
+| `BenchmarkStoreReadyLimit10K` | 20,111,254 | 5,841,620 | 105,057 |
+| `BenchmarkStoreDepTree1K` | 2,913,114 | 1,277,720 | 18,066 |
+| `BenchmarkStoreDepTree10K` | 30,887,001 | 12,140,715 | 180,253 |
 
 ## Improvements log
 
@@ -42,7 +42,6 @@
 - 2026-01-25: Added a ready-limit benchmark and switched ready queries with limits to a heap selection pass before sorting, keeping ranking consistent while avoiding full sorts for small limits.
 - 2026-01-25: Increased JSONL read/write buffer sizes to 64 KiB to reduce syscall overhead during line reads and batched writes.
 - 2026-01-25: When Ready runs with a limit, select into the heap while scanning instead of building the full ready slice, trimming bytes/op for ready-limit benchmarks.
-- 2026-01-25: Track blocked todos with a map instead of per-todo blocker slices in Ready, reducing allocation pressure for ready queries.
 - 2026-01-25: Disabled HTML escaping in JSONL writes to shave overhead from JSON encoding while preserving valid output.
 - 2026-01-25: Resolve dependency blocker statuses by the dependency ID set instead of mapping every todo, cutting Ready bytes/op by avoiding a full todo lookup map.
 - 2026-01-25: Switched JSONL line reads to bufio.ReadLine to avoid extra newline handling work while keeping the max line size guard intact.

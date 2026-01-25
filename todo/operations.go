@@ -565,24 +565,27 @@ func (s *Store) readyWithTodos(limit int) ([]Todo, []Todo, error) {
 	}
 
 	// Build a set of todos that have open blockers.
-	var blocked map[string]bool
+	var blocked map[string]struct{}
 	if len(deps) > 0 {
 		blockerIDs := make(map[string]struct{}, len(deps))
 		for _, dep := range deps {
 			blockerIDs[dep.DependsOnID] = struct{}{}
 		}
-		resolvedBlockers := make(map[string]bool, len(blockerIDs))
+		blockerStatus := make(map[string]bool, len(blockerIDs))
 		for _, todo := range todos {
 			if _, ok := blockerIDs[todo.ID]; ok {
-				resolvedBlockers[todo.ID] = todo.Status.IsResolved()
+				blockerStatus[todo.ID] = todo.Status.IsResolved()
 			}
 		}
-		blocked = make(map[string]bool, len(deps))
+		blocked = make(map[string]struct{}, len(deps))
 		for _, dep := range deps {
-			resolved, ok := resolvedBlockers[dep.DependsOnID]
+			resolved, ok := blockerStatus[dep.DependsOnID]
 			if ok && !resolved {
-				blocked[dep.TodoID] = true
+				blocked[dep.TodoID] = struct{}{}
 			}
+		}
+		if len(blocked) == 0 {
+			blocked = nil
 		}
 	}
 
@@ -599,9 +602,12 @@ func (s *Store) readyWithTodos(limit int) ([]Todo, []Todo, error) {
 		if todo.Status != StatusOpen {
 			continue
 		}
-		if blocked != nil && blocked[todo.ID] {
-			continue
+		if blocked != nil {
+			if _, isBlocked := blocked[todo.ID]; isBlocked {
+				continue
+			}
 		}
+
 		if useLimit {
 			if len(selection.items) < limit {
 				heap.Push(&selection, todo)
