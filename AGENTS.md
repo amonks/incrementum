@@ -1,2 +1,2 @@
 - keep the specifications up to date as you make changes
-- if you see issues unrelated to your current task, don't work on them but do `ii todo create --title` todos for them
+- if you see issues unrelated to your current task, don't work on them but do `ii todo create --title="" --description=""` todos for them, writing a high-quality multiline description
