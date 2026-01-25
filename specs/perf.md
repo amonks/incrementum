@@ -17,12 +17,13 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,784,840 | 1,298,176 | 11,014 |
-| `BenchmarkReadJSONLFromReader10K` | 18,991,273 | 16,229,338 | 110,022 |
+| `BenchmarkReadJSONLFromReader1K` | 1,760,757 | 1,090,164 | 10,014 |
+| `BenchmarkReadJSONLFromReader10K` | 18,511,934 | 14,149,522 | 100,022 |
 
 ## Improvements log
 
 - 2026-01-25: Replaced streaming JSONL decoding with a buffered line reader to preserve one-object-per-line semantics and enforce the max JSON line size guard deterministically.
+- 2026-01-25: Avoided copying when a JSONL line fits in the buffered reader by returning the underlying slice, reducing allocations per line.
 
 ## Profiling notes
 

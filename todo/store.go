@@ -317,7 +317,13 @@ func readJSONLLine(reader *bufio.Reader) ([]byte, error) {
 	var line []byte
 	for {
 		chunk, err := reader.ReadSlice('\n')
-		line = append(line, chunk...)
+		if errors.Is(err, bufio.ErrBufferFull) {
+			line = append(line, chunk...)
+		} else if len(line) == 0 {
+			line = chunk
+		} else {
+			line = append(line, chunk...)
+		}
 		if len(line) > maxJSONLineBytes+2 {
 			return nil, fmt.Errorf("exceeds max JSON line size")
 		}
