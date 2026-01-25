@@ -292,6 +292,35 @@ func (s *Store) Delete(ids []string, reason string) ([]Todo, error) {
 
 // Show returns the full details of one or more todos.
 func (s *Store) Show(ids []string) ([]Todo, error) {
+	if err := validateTodoIDs(ids); err != nil {
+		return nil, err
+	}
+	if exactIDs, ok := exactTodoIDSet(ids); ok {
+		found, err := s.readTodosByExactIDs(exactIDs)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]Todo, 0, len(found))
+		seen := make(map[string]struct{}, len(ids))
+		var missing []string
+		for _, id := range ids {
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			todo, ok := found[id]
+			if !ok {
+				missing = append(missing, id)
+				continue
+			}
+			result = append(result, todo)
+		}
+		if err := missingTodoIDsError(missing); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
 	todos, resolvedIDs, err := s.readTodosAndResolveIDs(ids)
 	if err != nil {
 		return nil, err

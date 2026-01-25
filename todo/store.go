@@ -362,6 +362,61 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	return items, nil
 }
 
+func readTodosByExactIDsFromReader(reader io.Reader, missing map[string]struct{}) (map[string]Todo, error) {
+	if len(missing) == 0 {
+		return nil, nil
+	}
+	buf := jsonlReaderPool.Get().(*bufio.Reader)
+	buf.Reset(reader)
+	defer func() {
+		buf.Reset(bytes.NewReader(nil))
+		jsonlReaderPool.Put(buf)
+	}()
+	lineBuf := jsonlLineBufPool.Get().([]byte)
+	lineBuf = lineBuf[:0]
+	defer func() {
+		if cap(lineBuf) <= jsonlBufferSize {
+			jsonlLineBufPool.Put(lineBuf[:0])
+		}
+	}()
+	items := make(map[string]Todo, len(missing))
+	itemIndex := 0
+	for {
+		line, nextBuf, err := readJSONLLine(buf, lineBuf)
+		lineBuf = nextBuf
+		atEOF := errors.Is(err, io.EOF)
+		if err != nil && !atEOF {
+			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+		}
+		if len(line) == 0 && atEOF {
+			break
+		}
+		if len(line) == 0 {
+			if atEOF {
+				break
+			}
+			continue
+		}
+		var item Todo
+		if err := json.Unmarshal(line, &item); err != nil {
+			return nil, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+		}
+		itemIndex++
+		if _, ok := missing[item.ID]; ok {
+			items[item.ID] = item
+			delete(missing, item.ID)
+			if len(missing) == 0 {
+				break
+			}
+		}
+		if atEOF {
+			break
+		}
+	}
+
+	return items, nil
+}
+
 type readerStat interface {
 	Stat() (os.FileInfo, error)
 }
@@ -664,6 +719,34 @@ func readJSONLStore[T any](store *Store, filename string) ([]T, error) {
 	return items, err
 }
 
+func (s *Store) readTodosByExactIDs(missing map[string]struct{}) (map[string]Todo, error) {
+	if len(missing) == 0 {
+		return nil, nil
+	}
+	if s.readOnly {
+		if s.client == nil {
+			return nil, fmt.Errorf("todo store is missing jj client")
+		}
+		output, err := s.client.FileShow(s.repoPath, BookmarkName, TodosFile)
+		if errors.Is(err, jj.ErrFileNotFound) {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		return readTodosByExactIDsFromReader(bytes.NewReader(output), missing)
+	}
+
+	path := storeFilePath(s.wsPath, TodosFile)
+	var items map[string]Todo
+	err := withFileLock(path, func(file *os.File) error {
+		var err error
+		items, err = readTodosByExactIDsFromReader(file, missing)
+		return err
+	})
+	return items, err
+}
+
 // readTodos reads all todos from the store.
 func (s *Store) readTodos() ([]Todo, error) {
 	return readJSONLStore[Todo](s, TodosFile)
@@ -779,12 +862,9 @@ func resolveExactTodoIDs(ids []string, todos []Todo) ([]string, bool, error) {
 	if len(ids) == 0 {
 		return nil, true, ErrTodoNotFound
 	}
-	missing := make(map[string]struct{}, len(ids))
-	for _, id := range ids {
-		if len(id) != internalids.DefaultLength || !isNormalizedID(id) {
-			return nil, false, nil
-		}
-		missing[id] = struct{}{}
+	missing, ok := exactTodoIDSet(ids)
+	if !ok {
+		return nil, false, nil
 	}
 	if len(missing) == 0 {
 		return nil, true, ErrTodoNotFound
@@ -801,6 +881,17 @@ func resolveExactTodoIDs(ids []string, todos []Todo) ([]string, bool, error) {
 		return nil, true, ErrTodoNotFound
 	}
 	return ids, true, nil
+}
+
+func exactTodoIDSet(ids []string) (map[string]struct{}, bool) {
+	set := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		if len(id) != internalids.DefaultLength || !isNormalizedID(id) {
+			return nil, false
+		}
+		set[id] = struct{}{}
+	}
+	return set, true
 }
 
 func isNormalizedID(id string) bool {

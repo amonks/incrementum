@@ -18,23 +18,23 @@
 
 | Benchmark | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
-| `BenchmarkReadJSONLFromReader1K` | 1,687,174 | 477,377 | 9,004 |
-| `BenchmarkReadJSONLFromReader10K` | 17,140,806 | 4,835,539 | 90,008 |
-| `BenchmarkWriteJSONL1K` | 455,867 | 921 | 9 |
-| `BenchmarkWriteJSONL10K` | 2,618,174 | 1,047 | 9 |
-| `BenchmarkStoreList1K` | 1,755,370 | 666,807 | 9,011 |
-| `BenchmarkStoreList10K` | 17,825,286 | 6,679,512 | 90,015 |
-| `BenchmarkStoreReady1K` | 2,022,397 | 781,690 | 10,532 |
-| `BenchmarkStoreReady10K` | 20,269,441 | 7,751,052 | 105,051 |
-| `BenchmarkStoreReadyLimit10K` | 20,275,313 | 5,841,661 | 105,057 |
-| `BenchmarkStoreShow1K` | 1,784,551 | 478,264 | 9,011 |
-| `BenchmarkStoreShow10K` | 17,958,221 | 4,836,483 | 90,015 |
-| `BenchmarkStoreCreate1K` | 2,233,315 | 488,426 | 9,033 |
-| `BenchmarkStoreCreate10K` | 20,227,631 | 4,904,373 | 90,042 |
-| `BenchmarkStoreDepTree1K` | 2,938,146 | 1,308,639 | 18,054 |
-| `BenchmarkStoreDepTree10K` | 31,433,860 | 12,168,050 | 180,237 |
-| `BenchmarkStoreUpdate1K` | 2,228,565 | 485,937 | 9,027 |
-| `BenchmarkStoreUpdate10K` | 20,235,186 | 4,917,304 | 90,036 |
+| `BenchmarkReadJSONLFromReader1K` | 1,697,588 | 477,385 | 9,004 |
+| `BenchmarkReadJSONLFromReader10K` | 17,137,010 | 4,835,435 | 90,008 |
+| `BenchmarkWriteJSONL1K` | 431,026 | 888 | 9 |
+| `BenchmarkWriteJSONL10K` | 2,582,216 | 1,046 | 9 |
+| `BenchmarkStoreList1K` | 1,754,397 | 666,991 | 9,011 |
+| `BenchmarkStoreList10K` | 17,824,188 | 6,679,559 | 90,015 |
+| `BenchmarkStoreReady1K` | 2,025,794 | 782,023 | 10,532 |
+| `BenchmarkStoreReady10K` | 20,403,612 | 7,746,903 | 105,051 |
+| `BenchmarkStoreReadyLimit10K` | 20,083,293 | 5,841,622 | 105,057 |
+| `BenchmarkStoreShow1K` | 893,007 | 242,671 | 5,022 |
+| `BenchmarkStoreShow10K` | 8,796,334 | 2,438,680 | 50,024 |
+| `BenchmarkStoreCreate1K` | 2,231,664 | 487,506 | 9,033 |
+| `BenchmarkStoreCreate10K` | 20,189,646 | 4,891,559 | 90,041 |
+| `BenchmarkStoreDepTree1K` | 2,892,055 | 1,306,255 | 18,054 |
+| `BenchmarkStoreDepTree10K` | 30,585,996 | 12,181,468 | 180,237 |
+| `BenchmarkStoreUpdate1K` | 2,223,664 | 487,332 | 9,027 |
+| `BenchmarkStoreUpdate10K` | 20,181,942 | 4,907,458 | 90,035 |
 
 ## Improvements log
 
@@ -76,6 +76,7 @@
 - 2026-01-25: Built the Show todo lookup map only for requested IDs to avoid allocating a full todo ID map on every show command.
 - 2026-01-25: Pooled JSONL write line buffers for todos and dependencies so write operations reuse scratch slices and avoid per-call allocations.
 - 2026-01-25: Fast-pathed single-ID Show and Update requests to avoid building maps when only one todo is requested.
+- 2026-01-25: Streamed exact-ID show reads so Show can return matching todos without allocating the full todo slice when full-length IDs are provided.
 
 ## Profiling notes
 
