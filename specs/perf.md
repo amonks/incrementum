@@ -31,8 +31,8 @@
 | `BenchmarkStoreShow10K` | 8,796,334 | 2,438,680 | 50,024 |
 | `BenchmarkStoreCreate1K` | 2,231,664 | 487,506 | 9,033 |
 | `BenchmarkStoreCreate10K` | 20,189,646 | 4,891,559 | 90,041 |
-| `BenchmarkStoreDepAdd1K` | 2,211,833 | 557,713 | 10,537 |
-| `BenchmarkStoreDepAdd10K` | 19,940,577 | 5,615,173 | 105,045 |
+| `BenchmarkStoreDepAdd1K` | 2,383,036 | 559,183 | 10,537 |
+| `BenchmarkStoreDepAdd10K` | 20,686,995 | 5,613,685 | 105,045 |
 | `BenchmarkStoreDepTree1K` | 2,892,055 | 1,306,255 | 18,054 |
 | `BenchmarkStoreDepTree10K` | 30,585,996 | 12,181,468 | 180,237 |
 | `BenchmarkStoreUpdate1K` | 2,223,664 | 487,332 | 9,027 |
@@ -95,6 +95,8 @@
 - 2026-01-25 (BenchmarkWriteJSONL10K): Heap allocations mainly come from the buffered writer setup and benchmark data generation, with no per-item JSON encoding allocations showing up in the profile.
 - 2026-01-25 (BenchmarkStoreDepTree10K): CPU profile still dominated by syscall.syscall and runtime.madvise, with JSON decoding work next, so dependency tree queries remain file I/O bound.
 - 2026-01-25 (BenchmarkStoreDepTree10K): Heap allocations are led by JSONL reads and encoding/json.Unmarshal, with buildDepTree and ID normalization contributing the next largest shares.
+- 2026-01-25 (BenchmarkStoreDepAdd10K): CPU profile dominated by syscall.syscall with bufio.Reader.ReadLine and bufio.Writer.Write/Flush next, indicating dep add costs are still largely file I/O bound.
+- 2026-01-25 (BenchmarkStoreDepAdd10K): Heap allocations concentrate in readJSONLFromReader and encoding/json.Unmarshal while reading todos and dependencies, with buffered writer setup the next largest bucket.
 - 2026-01-25 (BenchmarkStoreUpdate10K): CPU profile dominated by syscall.syscall and runtime.madvise, with JSON decoding work next, indicating update costs are still bound by file I/O.
 - 2026-01-25 (BenchmarkStoreUpdate10K): Heap allocations concentrate in JSONL reads, encoding/json.Unmarshal, and ID normalization/index building, with buffered writer setup also contributing.
 - 2026-01-25 (BenchmarkStoreShow10K): CPU profile dominated by syscall.syscall and bufio.Reader.ReadLine, with JSON decoding and time parsing next, confirming show queries remain file I/O bound.
