@@ -47,6 +47,7 @@ Only a curated subset of opencode activity is shown in the text logs (CLI/TUI). 
   - Label: `Opencode response:`
 - Assistant thinking: emitted when an assistant message completes and a reasoning part has non-empty text.
   - Label: `Opencode thinking:`
+- Prompt, response, and thinking bodies are rendered as markdown via `internal/markdown` (glamour) before indentation.
 
 ## HTML rendering
 

@@ -18,7 +18,7 @@ func formatOpencodeText(event opencodeRenderedEvent) []string {
 	}
 	return []string{
 		formatLogLabel(event.Label, documentIndent),
-		formatPlainBody(event.Body, subdocumentIndent),
+		formatMarkdownBody(event.Body, subdocumentIndent),
 	}
 }
 

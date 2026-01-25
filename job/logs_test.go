@@ -273,6 +273,31 @@ func TestEventFormatterRendersOpencodeMessages(t *testing.T) {
 	}
 }
 
+func TestEventFormatterRendersOpencodePromptMarkdown(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	userMessage := `{"type":"message.updated","properties":{"info":{"id":"msg-user","role":"user"}}}`
+	userPrompt := `{"type":"message.part.updated","properties":{"part":{"id":"prt-user","messageID":"msg-user","type":"text","text":"Checklist:\n\n- First item\n- Second item"}}}`
+	if _, err := formatter.Append(Event{Data: userMessage}); err != nil {
+		t.Fatalf("append user message event: %v", err)
+	}
+	chunk, err := formatter.Append(Event{Data: userPrompt})
+	if err != nil {
+		t.Fatalf("append user prompt event: %v", err)
+	}
+
+	checks := []*regexp.Regexp{
+		regexp.MustCompile(`(?m)^\s+Checklist:$`),
+		regexp.MustCompile(`(?m)^\s+.*First item$`),
+		regexp.MustCompile(`(?m)^\s+.*Second item$`),
+	}
+	for _, check := range checks {
+		if !check.MatchString(chunk) {
+			t.Fatalf("expected opencode markdown output to match %q, got %q", check.String(), chunk)
+		}
+	}
+}
+
 func TestEventFormatterFallsBackOnMalformedOpencodeMessage(t *testing.T) {
 	formatter := NewEventFormatter()
 
