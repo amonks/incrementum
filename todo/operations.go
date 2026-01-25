@@ -393,7 +393,7 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 		if err != nil {
 			return nil, err
 		}
-		idSet = make(map[string]bool)
+		idSet = make(map[string]bool, len(resolvedIDs))
 		for _, id := range resolvedIDs {
 			idSet[id] = true
 		}
@@ -404,7 +404,7 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 		includeTombstones = true
 	}
 
-	var result []Todo
+	result := make([]Todo, 0, len(todos))
 	for _, todo := range todos {
 		// Filter tombstones unless explicitly included
 		if todo.Status == StatusTombstone && !includeTombstones {
@@ -503,13 +503,13 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 	todoMap := todoMapByID(todos)
 
 	// Build map of todo ID -> blocking todo IDs
-	blockers := make(map[string][]string)
+	blockers := make(map[string][]string, len(deps))
 	for _, dep := range deps {
 		blockers[dep.TodoID] = append(blockers[dep.TodoID], dep.DependsOnID)
 	}
 
 	// Filter to open todos with no open blockers
-	var ready []Todo
+	ready := make([]Todo, 0, len(todos))
 	for _, todo := range todos {
 		if todo.Status != StatusOpen {
 			continue
