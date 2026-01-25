@@ -21,7 +21,7 @@ The state file contains:
 - Status: `active`, `completed`, `failed`, or `killed`
 
 ### Job
-- `id`, `repo`, `todo_id`, `stage`, `feedback`, `opencode_sessions`, `status`, `created_at`, `started_at`, `updated_at`, `completed_at`
+- `id`, `repo`, `todo_id`, `stage`, `feedback`, `agent`, `opencode_sessions`, `status`, `created_at`, `started_at`, `updated_at`, `completed_at`
 - Stage: `implementing`, `testing`, `reviewing`, or `committing`
 - Status: `active`, `completed`, `failed`, or `abandoned`
 
