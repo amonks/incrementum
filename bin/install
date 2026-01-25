@@ -11,4 +11,4 @@ pkg="github.com/amonks/incrementum/cmd/ii"
 ldflags="-X ${pkg}.buildChangeID=${change_id} -X ${pkg}.buildCommitID=${commit_id}"
 
 cd "$repo_root"
-go run -ldflags "$ldflags" ./cmd/ii "$@"
+go install -ldflags "$ldflags" ./cmd/ii
