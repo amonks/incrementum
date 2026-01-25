@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/amonks/incrementum/internal/jj"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/workspace"
 )
@@ -35,7 +34,6 @@ type ServerOptions struct {
 	Pool            WorkspacePool
 	RunJob          JobRunner
 	JobRunOptions   job.RunOptions
-	NewChange       func(workspacePath, parent string) (string, error)
 	EventLogOptions job.EventLogOptions
 }
 
@@ -46,7 +44,6 @@ type Server struct {
 	manager         *job.Manager
 	runJob          JobRunner
 	jobRunOptions   job.RunOptions
-	newChange       func(workspacePath, parent string) (string, error)
 	eventLogOptions job.EventLogOptions
 
 	mu   sync.Mutex
@@ -78,11 +75,6 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open job manager: %w", err)
 	}
-	newChange := opts.NewChange
-	if newChange == nil {
-		client := jj.New()
-		newChange = client.NewChange
-	}
 	runJob := opts.RunJob
 	if runJob == nil {
 		runJob = job.Run
@@ -98,7 +90,6 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		manager:         manager,
 		runJob:          runJob,
 		jobRunOptions:   opts.JobRunOptions,
-		newChange:       newChange,
 		eventLogOptions: eventLogOptions,
 		jobs:            make(map[string]*runningJob),
 	}, nil
@@ -223,14 +214,10 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	}
 	wsPath, err := s.pool.Acquire(s.repoPath, workspace.AcquireOptions{
 		Purpose: fmt.Sprintf("swarm job %s", todoID),
-		Rev:     "@",
+		Rev:     "main",
 	})
 	if err != nil {
 		return "", fmt.Errorf("acquire workspace: %w", err)
-	}
-	if _, err := s.newChange(wsPath, "main"); err != nil {
-		releaseErr := s.pool.Release(wsPath)
-		return "", errors.Join(fmt.Errorf("create job change: %w", err), releaseErr)
 	}
 
 	interrupts := make(chan os.Signal, 1)

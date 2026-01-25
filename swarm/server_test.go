@@ -106,9 +106,6 @@ func TestDoStartsJobWithWorkspace(t *testing.T) {
 	poolCalls := make(chan poolCall, 1)
 	pool := &recordingPool{path: workspacePath, calls: poolCalls}
 	jobCalls := make(chan runCall, 1)
-	newChangeCalled := false
-	var newChangeWorkspace string
-	var newChangeParent string
 
 	server, err := NewServer(ServerOptions{
 		RepoPath:        repoDir,
@@ -125,12 +122,6 @@ func TestDoStartsJobWithWorkspace(t *testing.T) {
 				interrupts:    opts.Interrupts,
 			}
 			return &job.RunResult{Job: job.Job{ID: "job-123"}}, nil
-		},
-		NewChange: func(workspacePath, parent string) (string, error) {
-			newChangeCalled = true
-			newChangeWorkspace = workspacePath
-			newChangeParent = parent
-			return "change-1", nil
 		},
 	})
 	if err != nil {
@@ -159,24 +150,14 @@ func TestDoStartsJobWithWorkspace(t *testing.T) {
 
 	select {
 	case call := <-poolCalls:
-		if call.options.Rev != "@" {
-			t.Fatalf("expected workspace rev @, got %q", call.options.Rev)
+		if call.options.Rev != "main" {
+			t.Fatalf("expected workspace rev main, got %q", call.options.Rev)
 		}
 		if call.options.Purpose == "" {
 			t.Fatal("expected workspace purpose")
 		}
 	default:
 		t.Fatal("expected workspace acquire call")
-	}
-
-	if !newChangeCalled {
-		t.Fatal("expected new change to be created")
-	}
-	if newChangeWorkspace != workspacePath {
-		t.Fatalf("expected new change workspace %q, got %q", workspacePath, newChangeWorkspace)
-	}
-	if newChangeParent != "main" {
-		t.Fatalf("expected new change parent main, got %q", newChangeParent)
 	}
 
 	select {
@@ -215,9 +196,6 @@ func TestKillInterruptsJob(t *testing.T) {
 			<-opts.Interrupts
 			close(interruptReceived)
 			return &job.RunResult{Job: job.Job{ID: "job-456"}}, nil
-		},
-		NewChange: func(string, string) (string, error) {
-			return "change-1", nil
 		},
 	})
 	if err != nil {

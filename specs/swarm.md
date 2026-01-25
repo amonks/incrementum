@@ -9,8 +9,9 @@ subcommand is a thin wrapper around the public package APIs.
 ## Job Orchestration
 
 - Each job runs in its own workspace.
-- Before running a job, the server acquires a workspace, creates a new empty
-  change with `main` as the parent, and runs the job from that workspace path.
+- Before running a job, the server acquires a workspace at `main` (creating a
+  new empty change if `main` is immutable) and runs the job from that workspace
+  path.
 - Jobs run within the server process; client commands only stream events or
   send control signals.
 
