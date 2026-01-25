@@ -252,3 +252,70 @@ func TestJobsStartRedirectsToNewJob(t *testing.T) {
 		t.Fatalf("expected redirect to job, got %q", location)
 	}
 }
+
+func TestJobsRefreshShowsErrorAfterFailure(t *testing.T) {
+	jobID := "job-1"
+	logCalls := 0
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/list", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(listResponse{Jobs: []job.Job{{
+			ID:     jobID,
+			TodoID: "todo-1",
+			Stage:  job.StageImplementing,
+			Status: job.StatusActive,
+		}}})
+	})
+	mux.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		logCalls++
+		if logCalls == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "boom"})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(logsResponse{Events: []job.Event{}})
+	})
+
+	webHandler := NewHandler(Options{})
+	mux.Handle("/web/", webHandler)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	resp, err := client.PostForm(server.URL+"/web/jobs/refresh?id="+jobID, url.Values{})
+	if err != nil {
+		t.Fatalf("post refresh: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected status 303, got %d", resp.StatusCode)
+	}
+	location := resp.Header.Get("Location")
+	if location != "/web/jobs?id="+jobID {
+		t.Fatalf("expected redirect to job, got %q", location)
+	}
+
+	resp, err = http.Get(server.URL + "/web/jobs?id=" + jobID)
+	if err != nil {
+		t.Fatalf("get jobs: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	output := string(body)
+	if !strings.Contains(output, "swarm error: boom") {
+		t.Fatalf("expected error message, got %s", output)
+	}
+}

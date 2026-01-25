@@ -350,7 +350,9 @@ func (h *Handler) handleJobsRefresh(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/web/jobs", http.StatusSeeOther)
 		return
 	}
-	_, _ = h.fetchJobEvents(r.Context(), h.requestBaseURL(r), jobID)
+	if _, err := h.fetchJobEvents(r.Context(), h.requestBaseURL(r), jobID); err != nil {
+		h.setJobDraft(jobFormDraft{id: jobID, err: err.Error()})
+	}
 	http.Redirect(w, r, "/web/jobs?id="+jobID, http.StatusSeeOther)
 }
 

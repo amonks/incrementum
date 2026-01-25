@@ -227,3 +227,5 @@ library.
 - Active jobs show a "Refresh" action that re-fetches events via `POST /logs`.
 - A "Kill job" action interrupts the job via `POST /kill`.
 - Job form actions redirect back to `/web/jobs` with the selected job id.
+- Refresh failures surface as an inline error in the detail pane after the
+  redirect, matching other RPC error handling in the web client.
