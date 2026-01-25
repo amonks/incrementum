@@ -870,8 +870,7 @@ func readCommitMessage(path string) (string, error) {
 	if removeErr != nil {
 		removeErr = fmt.Errorf("remove commit message: %w", removeErr)
 	}
-	message := strings.TrimRight(string(data), "\r\n")
-	message = trimLeadingBlankLines(message)
+	message := normalizeCommitMessage(string(data))
 	if strings.TrimSpace(message) == "" {
 		return "", errors.Join(fmt.Errorf("commit message is empty"), removeErr)
 	}
@@ -879,21 +878,6 @@ func readCommitMessage(path string) (string, error) {
 		return "", removeErr
 	}
 	return message, nil
-}
-
-func trimLeadingBlankLines(message string) string {
-	lines := strings.Split(message, "\n")
-	start := 0
-	for start < len(lines) {
-		if strings.TrimSpace(lines[start]) != "" {
-			break
-		}
-		start++
-	}
-	if start >= len(lines) {
-		return ""
-	}
-	return strings.Join(lines[start:], "\n")
 }
 
 func resolveReviewCommitMessage(commitMessage, workspacePath string, requireMessage bool) (string, error) {

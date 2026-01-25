@@ -123,7 +123,7 @@ any stage -> failed (unrecoverable error)
     - Flag the next testing/review cycle as the final project review.
 12. If the commit id changed:
     - Read `.incrementum-commit-message` from the workspace root, trimming trailing
-      newlines and any leading blank lines.
+      newlines, trailing whitespace on each line, and any leading blank lines.
     - Store the message for the committing stage.
 13. Transition to `testing`.
 

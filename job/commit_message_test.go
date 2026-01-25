@@ -31,7 +31,7 @@ func TestReadCommitMessageDeletesFile(t *testing.T) {
 
 func TestReadCommitMessageTrimsLeadingBlankLines(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "commit-message")
-	contents := "\n\nfeat: add widgets\n\nExplain the change.\n"
+	contents := "\n\nfeat: add widgets    \n\nExplain the change.\t\n"
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
 		t.Fatalf("write commit message: %v", err)
 	}
