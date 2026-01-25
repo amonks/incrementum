@@ -184,6 +184,24 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		opts.Type = &normalized
 	}
 
+	if len(resolvedIDs) == 1 {
+		id := resolvedIDs[0]
+		now := time.Now()
+		for i := range todos {
+			if todos[i].ID != id {
+				continue
+			}
+			if err := applyTodoUpdates(&todos[i], opts, now); err != nil {
+				return nil, fmt.Errorf("validate todo %s: %w", todos[i].ID, err)
+			}
+			if err := s.writeTodos(todos); err != nil {
+				return nil, fmt.Errorf("write todos: %w", err)
+			}
+			return []Todo{todos[i]}, nil
+		}
+		return nil, missingTodoIDsError([]string{id})
+	}
+
 	// Build a set of IDs to update
 	idSet := make(map[string]struct{}, len(resolvedIDs))
 	for _, id := range resolvedIDs {
@@ -199,36 +217,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		}
 		delete(idSet, todos[i].ID)
 
-		// Apply updates
-		if opts.Title != nil {
-			todos[i].Title = *opts.Title
-		}
-		if opts.Description != nil {
-			todos[i].Description = *opts.Description
-		}
-		if opts.Status != nil {
-			newStatus := *opts.Status
-			if newStatus != todos[i].Status {
-				applyStatusChange(&todos[i], newStatus, todos[i].Status, opts, now)
-			} else {
-				todos[i].Status = newStatus
-			}
-		}
-		if opts.Priority != nil {
-			todos[i].Priority = *opts.Priority
-		}
-		if opts.Type != nil {
-			todos[i].Type = *opts.Type
-		}
-		if opts.DeletedAt != nil {
-			todos[i].DeletedAt = opts.DeletedAt
-		}
-		if opts.DeleteReason != nil {
-			todos[i].DeleteReason = *opts.DeleteReason
-		}
-		todos[i].UpdatedAt = now
-
-		if err := ValidateTodo(&todos[i]); err != nil {
+		if err := applyTodoUpdates(&todos[i], opts, now); err != nil {
 			return nil, fmt.Errorf("validate todo %s: %w", todos[i].ID, err)
 		}
 
@@ -306,6 +295,15 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 	todos, resolvedIDs, err := s.readTodosAndResolveIDs(ids)
 	if err != nil {
 		return nil, err
+	}
+	if len(resolvedIDs) == 1 {
+		id := resolvedIDs[0]
+		for i := range todos {
+			if todos[i].ID == id {
+				return []Todo{todos[i]}, nil
+			}
+		}
+		return nil, missingTodoIDsError([]string{id})
 	}
 
 	todoByID := make(map[string]*Todo, len(resolvedIDs))
@@ -512,6 +510,38 @@ func applyStatusChange(item *Todo, newStatus Status, previousStatus Status, opts
 			item.CompletedAt = nil
 		}
 	}
+}
+
+func applyTodoUpdates(item *Todo, opts UpdateOptions, now time.Time) error {
+	if opts.Title != nil {
+		item.Title = *opts.Title
+	}
+	if opts.Description != nil {
+		item.Description = *opts.Description
+	}
+	if opts.Status != nil {
+		newStatus := *opts.Status
+		if newStatus != item.Status {
+			applyStatusChange(item, newStatus, item.Status, opts, now)
+		} else {
+			item.Status = newStatus
+		}
+	}
+	if opts.Priority != nil {
+		item.Priority = *opts.Priority
+	}
+	if opts.Type != nil {
+		item.Type = *opts.Type
+	}
+	if opts.DeletedAt != nil {
+		item.DeletedAt = opts.DeletedAt
+	}
+	if opts.DeleteReason != nil {
+		item.DeleteReason = *opts.DeleteReason
+	}
+	item.UpdatedAt = now
+
+	return ValidateTodo(item)
 }
 
 type readyHeap struct {
