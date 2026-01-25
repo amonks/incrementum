@@ -686,7 +686,15 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 	filter.DescriptionSubstring = todoListDesc
 	filter.IncludeTombstones = filter.IncludeTombstones || todoListTombstones
 
-	todos, err := store.List(filter)
+	var (
+		todos []todo.Todo
+		index todo.IDIndex
+	)
+	if todoListJSON {
+		todos, err = store.List(filter)
+	} else {
+		todos, index, err = store.ListWithIndex(filter)
+	}
 	if err != nil {
 		return err
 	}
@@ -747,11 +755,6 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	index, err := store.IDIndex()
-	if err != nil {
-		return err
-	}
-
 	printTodoTable(todos, index.PrefixLengths(), time.Now())
 	return nil
 }
@@ -772,7 +775,15 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	todos, err := store.Ready(todoReadyLimit)
+	var (
+		todos []todo.Todo
+		index todo.IDIndex
+	)
+	if todoReadyJSON {
+		todos, err = store.Ready(todoReadyLimit)
+	} else {
+		todos, index, err = store.ReadyWithIndex(todoReadyLimit)
+	}
 	if err != nil {
 		return err
 	}
@@ -786,11 +797,6 @@ func runTodoReady(cmd *cobra.Command, args []string) error {
 	if len(todos) == 0 {
 		fmt.Println("No ready todos found.")
 		return nil
-	}
-
-	index, err := store.IDIndex()
-	if err != nil {
-		return err
 	}
 
 	printTodoTable(todos, index.PrefixLengths(), time.Now())

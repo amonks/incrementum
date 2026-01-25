@@ -359,23 +359,37 @@ type ListFilter struct {
 
 // List returns todos matching the filter.
 func (s *Store) List(filter ListFilter) ([]Todo, error) {
+	listed, _, err := s.listWithTodos(filter)
+	return listed, err
+}
+
+// ListWithIndex returns todos matching the filter plus a full ID index.
+func (s *Store) ListWithIndex(filter ListFilter) ([]Todo, IDIndex, error) {
+	listed, todos, err := s.listWithTodos(filter)
+	if err != nil {
+		return nil, IDIndex{}, err
+	}
+	return listed, NewIDIndex(todos), nil
+}
+
+func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 	if filter.Status != nil {
 		normalized, err := normalizeStatusInput(*filter.Status)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		filter.Status = &normalized
 	}
 	if filter.Type != nil {
 		normalized, err := normalizeTodoTypeInput(*filter.Type)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		filter.Type = &normalized
 	}
 	if filter.Priority != nil {
 		if err := ValidatePriority(*filter.Priority); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -384,7 +398,7 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 
 	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Build ID set if filtering by IDs
@@ -392,7 +406,7 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 	if len(filter.IDs) > 0 {
 		resolvedIDs, err := resolveTodoIDsWithTodos(filter.IDs, todos)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		idSet = make(map[string]bool, len(resolvedIDs))
 		for _, id := range resolvedIDs {
@@ -435,7 +449,7 @@ func (s *Store) List(filter ListFilter) ([]Todo, error) {
 		result = append(result, todo)
 	}
 
-	return result, nil
+	return result, todos, nil
 }
 
 func todoMapByID(todos []Todo) map[string]*Todo {
@@ -526,14 +540,28 @@ func readyLess(left, right Todo) bool {
 
 // Ready returns open todos with no unresolved blockers, sorted by priority.
 func (s *Store) Ready(limit int) ([]Todo, error) {
+	ready, _, err := s.readyWithTodos(limit)
+	return ready, err
+}
+
+// ReadyWithIndex returns ready todos plus a full ID index.
+func (s *Store) ReadyWithIndex(limit int) ([]Todo, IDIndex, error) {
+	ready, todos, err := s.readyWithTodos(limit)
+	if err != nil {
+		return nil, IDIndex{}, err
+	}
+	return ready, NewIDIndex(todos), nil
+}
+
+func (s *Store) readyWithTodos(limit int) ([]Todo, []Todo, error) {
 	todos, err := s.readTodosWithContext()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	deps, err := s.readDependenciesWithContext()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Build a set of todos that have open blockers.
@@ -602,7 +630,7 @@ func (s *Store) Ready(limit int) ([]Todo, error) {
 		ready = ready[:limit]
 	}
 
-	return ready, nil
+	return ready, todos, nil
 }
 
 // DepAdd adds a dependency between two todos.
