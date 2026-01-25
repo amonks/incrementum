@@ -74,7 +74,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 		writer.skipSpacing = true
 		writer.writeBlock(
 			formatLogLabel("Opencode transcript:", documentIndent),
-			formatLogBody(data.Transcript, subdocumentIndent, true),
+			formatTranscriptBody(data.Transcript, subdocumentIndent),
 		)
 	case jobEventReview:
 		data, err := decodeEventData[reviewEventData](event.Data)

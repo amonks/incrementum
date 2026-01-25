@@ -271,10 +271,11 @@ Behavior:
 6. Create job record with status `active`, stage `implementing`.
 7. Run state machine to completion.
 8. Output progress: stage transitions and formatted logs (prompts and commit
-   messages rendered via the markdown renderer, opencode transcripts, test
-   results, review feedback) with 80-column wrapping and 0/4/8-space
-   indentation for document hierarchy. Opencode stdout/stderr is suppressed; use
-   the formatted event logs instead.
+   messages rendered via the markdown renderer, opencode transcripts printed as
+   preformatted logs with tool output preserved, test results, review feedback)
+   with 80-column wrapping where formatting applies and 0/4/8-space indentation
+   for document hierarchy. Opencode stdout/stderr is suppressed; use the
+   formatted event logs instead.
 9. On success: mark todo done and print final commit info with 80-column
    wrapping and 0/4/8-space indentation (todo descriptions are
    markdown-rendered).

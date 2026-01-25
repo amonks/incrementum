@@ -776,7 +776,7 @@ func opencodeTranscripts(repoPath string, sessions []OpencodeSession) ([]Opencod
 		if err != nil {
 			return nil, err
 		}
-		transcript, err := store.ProseLogSnapshot(opencodeSession.ID)
+		transcript, err := store.TranscriptSnapshot(opencodeSession.ID)
 		if err != nil {
 			return nil, err
 		}

@@ -88,7 +88,7 @@ func (logger *ConsoleLogger) Prompt(entry PromptLog) {
 	if strings.TrimSpace(entry.Transcript) != "" {
 		lines = append(lines,
 			formatLogLabel(logger.headerStyle.Render("Opencode transcript:"), documentIndent),
-			formatLogBody(entry.Transcript, subdocumentIndent, true),
+			formatTranscriptBody(entry.Transcript, subdocumentIndent),
 		)
 	}
 	logger.writeBlock(lines...)
@@ -179,6 +179,10 @@ func formatLogBody(body string, indent int, wrap bool) string {
 		return IndentBlock(rendered, indent)
 	}
 	return IndentBlock(body, indent)
+}
+
+func formatTranscriptBody(body string, indent int) string {
+	return formatLogBody(body, indent, false)
 }
 
 func formatCommitMessageBody(body string, indent int, preformatted bool) string {
