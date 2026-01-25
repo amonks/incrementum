@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var benchmarkNow = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
 func BenchmarkReadJSONLFromReader1K(b *testing.B) {
 	benchmarkReadJSONLFromReader(b, 1000)
 }
@@ -25,22 +27,24 @@ func BenchmarkWriteJSONL10K(b *testing.B) {
 	benchmarkWriteJSONL(b, 10000)
 }
 
+func BenchmarkStoreList1K(b *testing.B) {
+	benchmarkStoreList(b, 1000)
+}
+
+func BenchmarkStoreList10K(b *testing.B) {
+	benchmarkStoreList(b, 10000)
+}
+
+func BenchmarkStoreReady1K(b *testing.B) {
+	benchmarkStoreReady(b, 1000)
+}
+
+func BenchmarkStoreReady10K(b *testing.B) {
+	benchmarkStoreReady(b, 10000)
+}
+
 func benchmarkReadJSONLFromReader(b *testing.B, count int) {
-	todos := make([]Todo, count)
-	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	for i := 0; i < count; i++ {
-		title := fmt.Sprintf("Todo %d", i)
-		todos[i] = Todo{
-			ID:          GenerateID(title, now.Add(time.Duration(i)*time.Second)),
-			Title:       title,
-			Description: "Benchmark payload for todo store.",
-			Status:      StatusOpen,
-			Priority:    PriorityMedium,
-			Type:        TypeTask,
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		}
-	}
+	todos := benchmarkTodos(count)
 
 	var buffer bytes.Buffer
 	encoder := json.NewEncoder(&buffer)
@@ -62,21 +66,7 @@ func benchmarkReadJSONLFromReader(b *testing.B, count int) {
 }
 
 func benchmarkWriteJSONL(b *testing.B, count int) {
-	todos := make([]Todo, count)
-	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	for i := 0; i < count; i++ {
-		title := fmt.Sprintf("Todo %d", i)
-		todos[i] = Todo{
-			ID:          GenerateID(title, now.Add(time.Duration(i)*time.Second)),
-			Title:       title,
-			Description: "Benchmark payload for todo store.",
-			Status:      StatusOpen,
-			Priority:    PriorityMedium,
-			Type:        TypeTask,
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		}
-	}
+	todos := benchmarkTodos(count)
 
 	path := filepath.Join(b.TempDir(), "todos.jsonl")
 	b.ReportAllocs()
@@ -86,4 +76,84 @@ func benchmarkWriteJSONL(b *testing.B, count int) {
 			b.Fatalf("write todos: %v", err)
 		}
 	}
+}
+
+func benchmarkStoreList(b *testing.B, count int) {
+	store := newTestStore(b)
+	todos := benchmarkTodos(count)
+	if err := store.writeTodos(todos); err != nil {
+		b.Fatalf("write todos: %v", err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := store.List(ListFilter{}); err != nil {
+			b.Fatalf("list todos: %v", err)
+		}
+	}
+}
+
+func benchmarkStoreReady(b *testing.B, count int) {
+	store := newTestStore(b)
+	todos := benchmarkTodos(count)
+	applyBenchmarkStatuses(todos)
+	if err := store.writeTodos(todos); err != nil {
+		b.Fatalf("write todos: %v", err)
+	}
+	deps := benchmarkDependencies(todos)
+	if err := store.writeDependencies(deps); err != nil {
+		b.Fatalf("write dependencies: %v", err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := store.Ready(0); err != nil {
+			b.Fatalf("ready todos: %v", err)
+		}
+	}
+}
+
+func benchmarkTodos(count int) []Todo {
+	todos := make([]Todo, count)
+	for i := 0; i < count; i++ {
+		title := fmt.Sprintf("Todo %d", i)
+		todos[i] = Todo{
+			ID:          GenerateID(title, benchmarkNow.Add(time.Duration(i)*time.Second)),
+			Title:       title,
+			Description: "Benchmark payload for todo store.",
+			Status:      StatusOpen,
+			Priority:    PriorityMedium,
+			Type:        TypeTask,
+			CreatedAt:   benchmarkNow,
+			UpdatedAt:   benchmarkNow,
+		}
+	}
+	return todos
+}
+
+func applyBenchmarkStatuses(todos []Todo) {
+	for i := range todos {
+		switch i % 3 {
+		case 0:
+			todos[i].Status = StatusOpen
+		case 1:
+			todos[i].Status = StatusInProgress
+		case 2:
+			todos[i].Status = StatusDone
+		}
+	}
+}
+
+func benchmarkDependencies(todos []Todo) []Dependency {
+	deps := make([]Dependency, 0, len(todos)/4)
+	for i := 1; i < len(todos); i += 4 {
+		deps = append(deps, Dependency{
+			TodoID:      todos[i].ID,
+			DependsOnID: todos[i-1].ID,
+			CreatedAt:   benchmarkNow,
+		})
+	}
+	return deps
 }

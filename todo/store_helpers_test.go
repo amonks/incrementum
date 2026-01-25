@@ -8,7 +8,7 @@ func (noopSnapshotter) Snapshot(workspacePath string) error {
 	return nil
 }
 
-func newTestStore(t *testing.T) *Store {
+func newTestStore(t testing.TB) *Store {
 	t.Helper()
 
 	return &Store{
@@ -21,7 +21,7 @@ func newTestStore(t *testing.T) *Store {
 	}
 }
 
-func openTestStore(t *testing.T) (*Store, error) {
+func openTestStore(t testing.TB) (*Store, error) {
 	t.Helper()
 	return newTestStore(t), nil
 }

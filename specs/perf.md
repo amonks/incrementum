@@ -7,7 +7,8 @@
 
 ## Benchmark setup
 
-- Command: `go test ./todo -bench='(ReadJSONLFromReader|WriteJSONL)' -run=^$ -benchmem`
+- Command (JSONL read/write): `go test ./todo -bench='(ReadJSONLFromReader|WriteJSONL)' -run=^$ -benchmem`
+- Command (store operations): `go test ./todo -bench='Store(List|Ready)' -run=^$ -benchmem`
 - Environment: darwin/arm64 (Apple M1 Ultra)
 - Benchmark data: JSONL payload synthesized in-memory by `BenchmarkReadJSONLFromReader*`.
 
@@ -21,12 +22,17 @@
 | `BenchmarkReadJSONLFromReader10K` | 18,891,164 | 14,149,334 | 100,022 |
 | `BenchmarkWriteJSONL1K` | 1,154,578 | 293,531 | 3,010 |
 | `BenchmarkWriteJSONL10K` | 10,299,641 | 2,891,439 | 30,019 |
+| `BenchmarkStoreList1K` | 1,933,508 | 1,696,935 | 10,034 |
+| `BenchmarkStoreList10K` | 22,328,219 | 23,423,388 | 100,050 |
+| `BenchmarkStoreReady1K` | 2,198,708 | 1,506,115 | 12,072 |
+| `BenchmarkStoreReady10K` | 23,717,254 | 18,352,908 | 120,134 |
 
 ## Improvements log
 
 - 2026-01-25: Replaced streaming JSONL decoding with a buffered line reader to preserve one-object-per-line semantics and enforce the max JSON line size guard deterministically.
 - 2026-01-25: Avoided copying when a JSONL line fits in the buffered reader by returning the underlying slice, reducing allocations per line.
 - 2026-01-25: Buffered JSONL writes before renaming the temp file, trimming syscall overhead and improving write throughput.
+- 2026-01-25: Added benchmarks for store-level list/ready operations to track end-to-end todo command costs beyond JSONL parsing.
 
 ## Profiling notes
 
