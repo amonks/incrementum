@@ -148,3 +148,66 @@ shows the formatted event log for the selected job using the same formatter as
 
 - On selection, the client loads existing events via `POST /logs` and, when the
   job is active, streams new events via `POST /tail`.
+
+## Web Client
+
+`ii swarm serve` also serves a no-JavaScript web client over the same HTTP
+server. The web client mirrors the TUI affordances using HTML forms and server-
+side templates. It is implemented in the `web` package using only the standard
+library.
+
+### Web Runtime Model
+
+- Web routes are mounted under `/web` to avoid conflicts with the swarm RPC
+  endpoints.
+- The web handler talks to the swarm RPCs over HTTP (even when embedded in the
+  same process) using the root RPC paths.
+- On startup, the web server fetches initial todos and jobs to seed in-memory
+  state.
+- Each request refreshes the relevant state by calling the swarm RPCs before
+  rendering a page. The handler may reuse cached data from the last refresh to
+  avoid redundant calls within a request.
+- Job event details are fetched via `POST /logs` on demand. The web client does
+  not use streaming (`POST /tail`); active jobs include a manual refresh action.
+
+### Routes
+
+- `GET /` redirects to `/web/todos`.
+- `GET /web/todos` renders the Todo tab UI.
+- `POST /web/todos/create` creates a new todo via `POST /todos/create`.
+- `POST /web/todos/update` updates a todo via `POST /todos/update`.
+- `POST /web/jobs/start` starts a job for a todo via `POST /do` and redirects to
+  the Jobs view with the new job selected.
+- `GET /web/jobs` renders the Jobs tab UI.
+- `POST /web/jobs/kill` interrupts a job via `POST /kill`.
+- `POST /web/jobs/refresh` reloads job detail events via `POST /logs` and
+  redirects back to the Jobs view.
+
+### Layout
+
+- Page layout matches the TUI: a tab strip (`Todos`, `Jobs`) across the top and
+  two panes below.
+- The left pane lists items; the right pane shows details for the selected item.
+- The list selection is controlled by a query parameter (`/web/todos?id=...`,
+  `/web/jobs?id=...`) and defaults to the first item.
+- The detail pane uses HTML forms for editing or triggering actions.
+- The UI uses minimal CSS included in the HTML template; no external assets or
+  JavaScript are required.
+
+### Todo View
+
+- The list pane shows todos from `POST /todos/list` using the same defaults as
+  `todo.List` (all non-tombstone todos).
+- A "Create" action renders a blank detail form for a new todo.
+- Detail fields and read-only fields match the TUI (including id and timestamps).
+- Saving uses the same behavior as the TUI: new todos call
+  `POST /todos/create`, existing todos call `POST /todos/update`.
+- A "Start job" action confirms intent and calls `POST /do`.
+
+### Jobs View
+
+- The list pane shows jobs from `POST /list` (active by default).
+- The detail pane shows the formatted job event log using the same formatter as
+  `ii swarm logs`.
+- Active jobs show a "Refresh" action that re-fetches events via `POST /logs`.
+- A "Kill job" action interrupts the job via `POST /kill`.
