@@ -8,7 +8,8 @@ subcommand is a thin wrapper around the public package APIs.
 
 The swarm server logs request failures and job lifecycle events (start,
 completion, failure, and panic recovery) to stderr with a `swarm:` prefix so
-operators can troubleshoot unexpected job outcomes.
+operators can troubleshoot unexpected job outcomes. If an RPC handler panics,
+the server logs the stack trace and returns a 500 error instead of crashing.
 
 ## Job Orchestration
 
@@ -35,6 +36,7 @@ RPCs use JSON over HTTP with the following endpoints:
   accepts the JSON form of `job.ListFilter`.
 - Requests that omit `todo_id` or `job_id` return a 400 error with a message
   describing the missing field.
+- Unexpected RPC panics return a 500 response with `{"error": "internal server error"}`.
 
 Todo RPCs follow the todo store API shapes:
 
@@ -72,7 +74,7 @@ On startup, the command logs the full address (for example, `Swarm server
 listening on 127.0.0.1:8088`).
 
 The server writes operational logs to stderr for request errors, job start/stop
-events, and workspace cleanup failures.
+events, handler panics, and workspace cleanup failures.
 
 ### `ii swarm do [todo-id] [job do flags] [--path=] --addr=`
 

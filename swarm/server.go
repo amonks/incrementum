@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -130,7 +131,7 @@ func (s *Server) handler(baseURL string) http.Handler {
 		}
 		http.Redirect(w, r, "/web/todos", http.StatusFound)
 	})
-	return mux
+	return s.recoverHandler(mux)
 }
 
 // Serve runs the server on the given address.
@@ -378,6 +379,22 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) recoverHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writer := &responseTracker{ResponseWriter: w}
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				s.logf("panic handling request %s %s: %v\n%s", r.Method, r.URL.Path, recovered, debug.Stack())
+				if writer.wroteHeader {
+					return
+				}
+				writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+			}
+		}()
+		next.ServeHTTP(writer, r)
+	})
+}
+
 func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	cleanID := strings.TrimSpace(todoID)
 	if cleanID == "" {
@@ -603,6 +620,29 @@ func (s *Server) logf(format string, args ...any) {
 		return
 	}
 	s.logger.Printf(format, args...)
+}
+
+type responseTracker struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+func (w *responseTracker) WriteHeader(status int) {
+	w.wroteHeader = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *responseTracker) Write(data []byte) (int, error) {
+	if !w.wroteHeader {
+		w.wroteHeader = true
+	}
+	return w.ResponseWriter.Write(data)
+}
+
+func (w *responseTracker) Flush() {
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
 }
 
 func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts job.EventLogOptions) error {

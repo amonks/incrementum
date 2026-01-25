@@ -55,6 +55,16 @@ type runCall struct {
 	interrupts    <-chan os.Signal
 }
 
+type panicPool struct{}
+
+func (panicPool) Acquire(string, workspace.AcquireOptions) (string, error) {
+	panic("boom")
+}
+
+func (panicPool) Release(string) error {
+	return nil
+}
+
 func TestLogsReturnsEmptyEventsJSON(t *testing.T) {
 	repoDir := t.TempDir()
 	stateDir := t.TempDir()
@@ -385,6 +395,41 @@ func TestDoRecoversFromJobPanic(t *testing.T) {
 			t.Fatalf("expected job %s to be cleared", payload.JobID)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestRequestPanicReturnsInternalError(t *testing.T) {
+	repoDir := t.TempDir()
+	stateDir := t.TempDir()
+
+	server, err := NewServer(ServerOptions{
+		RepoPath: repoDir,
+		StateDir: stateDir,
+		Pool:     panicPool{},
+		Logger:   log.New(io.Discard, "", 0),
+	})
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
+
+	body, err := json.Marshal(doRequest{TodoID: "todo-1"})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/do", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", response.Code)
+	}
+
+	var payload map[string]string
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload["error"] != "internal server error" {
+		t.Fatalf("expected internal error, got %q", payload["error"])
 	}
 }
 
