@@ -42,30 +42,28 @@ func TestStore_SaveLoad(t *testing.T) {
 	tmpDir := t.TempDir()
 	store := NewStore(tmpDir)
 
-	st := &State{
-		Repos: map[string]RepoInfo{
-			"my-project": {SourcePath: "/Users/test/my-project"},
+	st := newState()
+	st.Repos = map[string]RepoInfo{
+		"my-project": {SourcePath: "/Users/test/my-project"},
+	}
+	st.Workspaces = map[string]WorkspaceInfo{
+		"my-project/ws-001": {
+			Name:        "ws-001",
+			Repo:        "my-project",
+			Path:        "/Users/test/.local/share/incrementum/workspaces/my-project/ws-001",
+			Purpose:     "initial sync",
+			Rev:         "@",
+			Status:      WorkspaceStatusAcquired,
+			Provisioned: true,
 		},
-		Workspaces: map[string]WorkspaceInfo{
-			"my-project/ws-001": {
-				Name:        "ws-001",
-				Repo:        "my-project",
-				Path:        "/Users/test/.local/share/incrementum/workspaces/my-project/ws-001",
-				Purpose:     "initial sync",
-				Rev:         "@",
-				Status:      WorkspaceStatusAcquired,
-				Provisioned: true,
-			},
-		},
-		OpencodeSessions: make(map[string]OpencodeSession),
-		Jobs: map[string]Job{
-			"job-123": {
-				ID:     "job-123",
-				Repo:   "my-project",
-				TodoID: "todo-1",
-				Stage:  JobStageImplementing,
-				Status: JobStatusActive,
-			},
+	}
+	st.Jobs = map[string]Job{
+		"job-123": {
+			ID:     "job-123",
+			Repo:   "my-project",
+			TodoID: "todo-1",
+			Stage:  JobStageImplementing,
+			Status: JobStatusActive,
 		},
 	}
 
@@ -124,12 +122,7 @@ func TestStore_SaveNoChange(t *testing.T) {
 	tmpDir := t.TempDir()
 	store := NewStore(tmpDir)
 
-	st := &State{
-		Repos:            make(map[string]RepoInfo),
-		Workspaces:       make(map[string]WorkspaceInfo),
-		OpencodeSessions: make(map[string]OpencodeSession),
-		Jobs:             make(map[string]Job),
-	}
+	st := newState()
 
 	if err := store.Save(st); err != nil {
 		t.Fatalf("failed to save initial state: %v", err)

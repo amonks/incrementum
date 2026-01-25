@@ -21,6 +21,30 @@ type Store struct {
 	dir string
 }
 
+func newState() *State {
+	return &State{
+		Repos:            make(map[string]RepoInfo),
+		Workspaces:       make(map[string]WorkspaceInfo),
+		OpencodeSessions: make(map[string]OpencodeSession),
+		Jobs:             make(map[string]Job),
+	}
+}
+
+func ensureStateMaps(st *State) {
+	if st.Repos == nil {
+		st.Repos = make(map[string]RepoInfo)
+	}
+	if st.Workspaces == nil {
+		st.Workspaces = make(map[string]WorkspaceInfo)
+	}
+	if st.OpencodeSessions == nil {
+		st.OpencodeSessions = make(map[string]OpencodeSession)
+	}
+	if st.Jobs == nil {
+		st.Jobs = make(map[string]Job)
+	}
+}
+
 // NewStore creates a new state store using the given directory.
 func NewStore(dir string) *Store {
 	return &Store{dir: dir}
@@ -40,12 +64,7 @@ func (s *Store) lockPath() string {
 func (s *Store) Load() (*State, error) {
 	data, err := os.ReadFile(s.statePath())
 	if os.IsNotExist(err) {
-		return &State{
-			Repos:            make(map[string]RepoInfo),
-			Workspaces:       make(map[string]WorkspaceInfo),
-			OpencodeSessions: make(map[string]OpencodeSession),
-			Jobs:             make(map[string]Job),
-		}, nil
+		return newState(), nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("read state file: %w", err)
@@ -56,19 +75,7 @@ func (s *Store) Load() (*State, error) {
 		return nil, fmt.Errorf("unmarshal state: %w", err)
 	}
 
-	// Initialize maps if nil
-	if st.Repos == nil {
-		st.Repos = make(map[string]RepoInfo)
-	}
-	if st.Workspaces == nil {
-		st.Workspaces = make(map[string]WorkspaceInfo)
-	}
-	if st.OpencodeSessions == nil {
-		st.OpencodeSessions = make(map[string]OpencodeSession)
-	}
-	if st.Jobs == nil {
-		st.Jobs = make(map[string]Job)
-	}
+	ensureStateMaps(&st)
 
 	return &st, nil
 }
