@@ -31,6 +31,9 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 	if err := appendJobEvent(log, jobEventCommitMessage, commitMessageEventData{Label: "Draft", Message: "feat: add logs"}); err != nil {
 		t.Fatalf("append commit message event: %v", err)
 	}
+	if err := log.Append(Event{Name: "message", Data: "Opencode line.\nMore output."}); err != nil {
+		t.Fatalf("append opencode event: %v", err)
+	}
 	if err := appendJobEvent(log, jobEventStage, stageEventData{Stage: StageTesting}); err != nil {
 		t.Fatalf("append test stage event: %v", err)
 	}
@@ -60,6 +63,9 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"        Opencode line.",
 		"    Draft commit message:",
 		"        feat: add logs",
+		"    Opencode event (message):",
+		"        Opencode line.",
+		"        More output.",
 		"Implementation prompt complete; running tests:",
 		"Command: go test ./...",
 		"Exit Code: 1",
@@ -165,5 +171,16 @@ func TestEventFormatterAppendsOutput(t *testing.T) {
 	}
 	if !strings.Contains(chunk, "Implementation prompt:") {
 		t.Fatalf("expected prompt output, got %q", chunk)
+	}
+
+	chunk, err = formatter.Append(Event{Name: "message", Data: "Streaming line"})
+	if err != nil {
+		t.Fatalf("append opencode event: %v", err)
+	}
+	if !strings.Contains(chunk, "Opencode event (message):") {
+		t.Fatalf("expected opencode label, got %q", chunk)
+	}
+	if !strings.Contains(chunk, "Streaming line") {
+		t.Fatalf("expected opencode output, got %q", chunk)
 	}
 }

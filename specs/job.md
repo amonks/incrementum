@@ -270,12 +270,12 @@ Behavior:
 5. Output job context: workdir and full todo details.
 6. Create job record with status `active`, stage `implementing`.
 7. Run state machine to completion.
-8. Output progress: stage transitions and formatted logs (prompts and commit
-   messages rendered via the markdown renderer, opencode transcripts printed as
-   preformatted logs with tool output preserved, test results, review feedback)
-   with 80-column wrapping where formatting applies and 0/4/8-space indentation
-   for document hierarchy. Opencode stdout/stderr is suppressed; use the
-   formatted event logs instead.
+8. Output progress: stage transitions and formatted logs (opencode event stream
+   entries labeled and indented, prompts and commit messages rendered via the
+   markdown renderer, opencode transcripts printed as preformatted logs with
+   tool output preserved, test results, review feedback) with 80-column wrapping
+   where formatting applies and 0/4/8-space indentation for document hierarchy.
+   Opencode stdout/stderr is suppressed; use the formatted event logs instead.
 9. On success: mark todo done and print final commit info with 80-column
    wrapping and 0/4/8-space indentation (todo descriptions are
    markdown-rendered).
@@ -328,3 +328,5 @@ Show the combined job event stream.
 Reads the job's JSONL event log and prints entries in the order they were
 recorded, formatting stage transitions and logs with the same 80-column reflow
 and 0/4/8-space indentation used during `ii job do` output.
+Opencode events are rendered as `Opencode event (<name>):` blocks with their
+data indented beneath the label.

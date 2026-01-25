@@ -81,10 +81,41 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	onStart := func(info jobpkg.StartInfo) {
 		printJobStart(info)
 	}
+	eventStream := make(chan jobpkg.Event, 128)
+	eventErrs := make(chan error, 1)
+	go func() {
+		formatter := jobpkg.NewEventFormatter()
+		var streamErr error
+		for event := range eventStream {
+			if strings.HasPrefix(event.Name, "job.") {
+				continue
+			}
+			chunk, err := formatter.Append(event)
+			if err != nil {
+				if streamErr == nil {
+					streamErr = err
+				}
+				continue
+			}
+			if chunk != "" {
+				fmt.Print(chunk)
+			}
+		}
+		eventErrs <- streamErr
+	}()
 
-	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{OnStart: onStart, OnStageChange: onStageChange, Logger: logger})
+	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{
+		OnStart:       onStart,
+		OnStageChange: onStageChange,
+		Logger:        logger,
+		EventStream:   eventStream,
+	})
+	streamErr := <-eventErrs
 	if err != nil {
 		return err
+	}
+	if streamErr != nil {
+		return streamErr
 	}
 
 	if len(result.CommitLog) > 0 {

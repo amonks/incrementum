@@ -40,63 +40,83 @@ type logSnapshotWriter struct {
 }
 
 func (writer *logSnapshotWriter) Append(event Event) error {
-	switch event.Name {
-	case jobEventStage:
-		data, err := decodeEventData[stageEventData](event.Data)
-		if err != nil {
-			return err
+	if strings.HasPrefix(event.Name, "job.") {
+		switch event.Name {
+		case jobEventStage:
+			data, err := decodeEventData[stageEventData](event.Data)
+			if err != nil {
+				return err
+			}
+			writer.writeStage(StageMessage(data.Stage))
+		case jobEventPrompt:
+			data, err := decodeEventData[promptEventData](event.Data)
+			if err != nil {
+				return err
+			}
+			writer.writeBlock(
+				formatLogLabel(promptLabel(data.Purpose), documentIndent),
+				formatMarkdownBody(data.Prompt, subdocumentIndent),
+			)
+		case jobEventCommitMessage:
+			data, err := decodeEventData[commitMessageEventData](event.Data)
+			if err != nil {
+				return err
+			}
+			label := commitMessageLabel(data.Label)
+			writer.writeBlock(
+				formatLogLabel(label, documentIndent),
+				formatCommitMessageBody(data.Message, subdocumentIndent, data.Preformatted),
+			)
+		case jobEventTranscript:
+			data, err := decodeEventData[transcriptEventData](event.Data)
+			if err != nil {
+				return err
+			}
+			writer.skipSpacing = true
+			writer.writeBlock(
+				formatLogLabel("Opencode transcript:", documentIndent),
+				formatTranscriptBody(data.Transcript, subdocumentIndent),
+			)
+		case jobEventReview:
+			data, err := decodeEventData[reviewEventData](event.Data)
+			if err != nil {
+				return err
+			}
+			writer.writeBlock(
+				formatLogLabel(reviewLabel(data.Purpose), documentIndent),
+				formatLogBody(data.Details, subdocumentIndent, true),
+			)
+		case jobEventTests:
+			data, err := decodeEventData[testsEventData](event.Data)
+			if err != nil {
+				return err
+			}
+			writer.writeTests(data.Results)
+		case jobEventOpencodeStart, jobEventOpencodeEnd:
+			return nil
+		default:
+			return nil
 		}
-		writer.writeStage(StageMessage(data.Stage))
-	case jobEventPrompt:
-		data, err := decodeEventData[promptEventData](event.Data)
-		if err != nil {
-			return err
-		}
-		writer.writeBlock(
-			formatLogLabel(promptLabel(data.Purpose), documentIndent),
-			formatMarkdownBody(data.Prompt, subdocumentIndent),
-		)
-	case jobEventCommitMessage:
-		data, err := decodeEventData[commitMessageEventData](event.Data)
-		if err != nil {
-			return err
-		}
-		label := commitMessageLabel(data.Label)
-		writer.writeBlock(
-			formatLogLabel(label, documentIndent),
-			formatCommitMessageBody(data.Message, subdocumentIndent, data.Preformatted),
-		)
-	case jobEventTranscript:
-		data, err := decodeEventData[transcriptEventData](event.Data)
-		if err != nil {
-			return err
-		}
-		writer.skipSpacing = true
-		writer.writeBlock(
-			formatLogLabel("Opencode transcript:", documentIndent),
-			formatTranscriptBody(data.Transcript, subdocumentIndent),
-		)
-	case jobEventReview:
-		data, err := decodeEventData[reviewEventData](event.Data)
-		if err != nil {
-			return err
-		}
-		writer.writeBlock(
-			formatLogLabel(reviewLabel(data.Purpose), documentIndent),
-			formatLogBody(data.Details, subdocumentIndent, true),
-		)
-	case jobEventTests:
-		data, err := decodeEventData[testsEventData](event.Data)
-		if err != nil {
-			return err
-		}
-		writer.writeTests(data.Results)
-	case jobEventOpencodeStart, jobEventOpencodeEnd:
-		return nil
-	default:
 		return nil
 	}
+
+	if strings.TrimSpace(event.Name) == "" && strings.TrimSpace(event.Data) == "" {
+		return nil
+	}
+
+	writer.writeBlock(
+		formatLogLabel(opencodeEventLabel(event.Name), documentIndent),
+		formatLogBody(event.Data, subdocumentIndent, false),
+	)
 	return nil
+}
+
+func opencodeEventLabel(name string) string {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "Opencode event:"
+	}
+	return fmt.Sprintf("Opencode event (%s):", trimmed)
 }
 
 func (writer *logSnapshotWriter) writeStage(value string) {
