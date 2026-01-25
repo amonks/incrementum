@@ -77,6 +77,7 @@ var (
 	swarmListAll    bool
 	swarmListStatus string
 	swarmListJSON   bool
+	swarmAgent      string
 )
 
 func init() {
@@ -85,6 +86,7 @@ func init() {
 	addDescriptionFlagAliases(swarmDoCmd)
 
 	swarmServeCmd.Flags().StringVar(&swarmAddr, "addr", "", "Swarm server address")
+	swarmServeCmd.Flags().StringVar(&swarmAgent, "agent", "", "Opencode agent")
 
 	swarmDoCmd.Flags().StringVar(&swarmAddr, "addr", "", "Swarm server address")
 	swarmDoCmd.Flags().StringVar(&swarmPath, "path", "", "Repository path")
@@ -119,7 +121,11 @@ func runSwarmServe(cmd *cobra.Command, _ []string) error {
 	if err := logSwarmServeAddr(addr); err != nil {
 		return err
 	}
-	server, err := swarm.NewServer(swarm.ServerOptions{RepoPath: repoPath})
+	opencodeAgent := resolveOpencodeAgent(cmd, swarmAgent)
+	server, err := swarm.NewServer(swarm.ServerOptions{
+		RepoPath:      repoPath,
+		JobRunOptions: job.RunOptions{OpencodeAgent: opencodeAgent},
+	})
 	if err != nil {
 		return err
 	}

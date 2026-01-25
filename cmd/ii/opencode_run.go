@@ -18,8 +18,11 @@ var opencodeRunCmd = &cobra.Command{
 	RunE:  runOpencodeRun,
 }
 
+var opencodeRunAgent string
+
 func init() {
 	opencodeCmd.AddCommand(opencodeRunCmd)
+	opencodeRunCmd.Flags().StringVar(&opencodeRunAgent, "agent", "", "Opencode agent")
 }
 
 func runOpencodeRun(cmd *cobra.Command, args []string) error {
@@ -42,6 +45,7 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		RepoPath:  repoPath,
 		WorkDir:   repoPath,
 		Prompt:    prompt,
+		Agent:     resolveOpencodeAgent(cmd, opencodeRunAgent),
 		StartedAt: time.Now(),
 		Stdout:    os.Stdout,
 		Stderr:    os.Stderr,

@@ -42,6 +42,7 @@ type RunOptions struct {
 	LoadConfig          func(string) (*config.Config, error)
 	RunTests            func(string, []string) ([]TestCommandResult, error)
 	RunOpencode         func(opencodeRunOptions) (OpencodeRunResult, error)
+	OpencodeAgent       string
 	CurrentCommitID     func(string) (string, error)
 	CommitIDAt          func(string, string) (string, error)
 	Commit              func(string, string) error
@@ -82,6 +83,7 @@ type opencodeRunOptions struct {
 	RepoPath      string
 	WorkspacePath string
 	Prompt        string
+	Agent         string
 	StartedAt     time.Time
 	EventLog      *EventLog
 }
@@ -476,6 +478,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		RepoPath:      repoPath,
 		WorkspacePath: workspacePath,
 		Prompt:        prompt,
+		Agent:         opts.OpencodeAgent,
 		StartedAt:     opts.Now(),
 		EventLog:      opts.EventLog,
 	})
@@ -622,6 +625,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		RepoPath:      repoPath,
 		WorkspacePath: workspacePath,
 		Prompt:        prompt,
+		Agent:         opts.OpencodeAgent,
 		StartedAt:     opts.Now(),
 		EventLog:      opts.EventLog,
 	})
@@ -915,6 +919,7 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 		RepoPath:  opts.RepoPath,
 		WorkDir:   opts.WorkspacePath,
 		Prompt:    opts.Prompt,
+		Agent:     opts.Agent,
 		StartedAt: opts.StartedAt,
 		Stdout:    io.Discard,
 		Stderr:    io.Discard,

@@ -30,6 +30,7 @@ var (
 	jobDoDeps        []string
 	jobDoEdit        bool
 	jobDoNoEdit      bool
+	jobDoAgent       string
 )
 
 func init() {
@@ -43,6 +44,7 @@ func init() {
 	jobDoCmd.Flags().StringArrayVar(&jobDoDeps, "deps", nil, "Dependencies in format <id> (e.g., abc123)")
 	jobDoCmd.Flags().BoolVarP(&jobDoEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	jobDoCmd.Flags().BoolVar(&jobDoNoEdit, "no-edit", false, "Do not open $EDITOR")
+	jobDoCmd.Flags().StringVar(&jobDoAgent, "agent", "", "Opencode agent")
 }
 
 func runJobDo(cmd *cobra.Command, args []string) error {
@@ -109,6 +111,7 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 		OnStageChange: onStageChange,
 		Logger:        logger,
 		EventStream:   eventStream,
+		OpencodeAgent: resolveOpencodeAgent(cmd, jobDoAgent),
 	})
 	streamErr := <-eventErrs
 	if err != nil {

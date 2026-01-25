@@ -74,6 +74,9 @@ Start the swarm server for the current repository.
 On startup, the command logs the full address (for example, `Swarm server
 listening on 127.0.0.1:8088`).
 
+`--agent` selects the opencode agent for jobs run by the server and overrides
+`INCREMENTUM_OPENCODE_AGENT`.
+
 The server writes operational logs to stderr for request errors, job start/stop
 events, handler panics, and workspace cleanup failures.
 

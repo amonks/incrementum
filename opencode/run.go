@@ -19,6 +19,7 @@ type RunOptions struct {
 	RepoPath  string
 	WorkDir   string
 	Prompt    string
+	Agent     string
 	StartedAt time.Time
 	Stdin     io.Reader
 	Stdout    io.Writer
@@ -117,7 +118,11 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 		sessionCh <- sessionResult{session: session, err: err, recordErr: recordErr}
 	}()
 
-	runCmd := exec.Command("opencode", "run", "--attach="+serverURL)
+	runArgs := []string{"run", "--attach=" + serverURL}
+	if strings.TrimSpace(opts.Agent) != "" {
+		runArgs = append(runArgs, "--agent="+opts.Agent)
+	}
+	runCmd := exec.Command("opencode", runArgs...)
 	runCmd.Dir = workDir
 	runCmd.Env = env
 	runCmd.Stdout = runStdout
