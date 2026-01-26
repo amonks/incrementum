@@ -227,31 +227,32 @@ type testResultLog struct {
 }
 
 func testResultLogsFromEventData(results []testResultEventData) []testResultLog {
-	if len(results) == 0 {
-		return nil
-	}
-	logs := make([]testResultLog, 0, len(results))
-	for _, result := range results {
-		logs = append(logs, testResultLog{
+	return testResultLogsFrom(results, func(result testResultEventData) testResultLog {
+		return testResultLog{
 			Command:  result.Command,
 			ExitCode: result.ExitCode,
 			Output:   result.Output,
-		})
-	}
-	return logs
+		}
+	})
 }
 
 func testResultLogsFromCommandResults(results []TestCommandResult) []testResultLog {
+	return testResultLogsFrom(results, func(result TestCommandResult) testResultLog {
+		return testResultLog{
+			Command:  result.Command,
+			ExitCode: result.ExitCode,
+			Output:   result.Output,
+		}
+	})
+}
+
+func testResultLogsFrom[T any](results []T, build func(T) testResultLog) []testResultLog {
 	if len(results) == 0 {
 		return nil
 	}
 	logs := make([]testResultLog, 0, len(results))
 	for _, result := range results {
-		logs = append(logs, testResultLog{
-			Command:  result.Command,
-			ExitCode: result.ExitCode,
-			Output:   result.Output,
-		})
+		logs = append(logs, build(result))
 	}
 	return logs
 }
