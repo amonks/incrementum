@@ -29,3 +29,8 @@ across subsystems.
 
 - Removes trailing `\r` and `\n` characters from the end of a string.
 - Used when normalizing multi-line input/output before formatting.
+
+## TrimTrailingSlash
+
+- Removes trailing `/` characters from the end of a string.
+- Used to normalize base URLs before building API or web client paths.

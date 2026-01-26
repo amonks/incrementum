@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/todoenv"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
@@ -37,7 +38,7 @@ type Handler struct {
 // NewHandler creates a new web handler.
 func NewHandler(opts Options) *Handler {
 	handler := &Handler{
-		baseURL:   strings.TrimRight(opts.BaseURL, "/"),
+		baseURL:   internalstrings.TrimTrailingSlash(opts.BaseURL),
 		client:    &http.Client{},
 		templates: newTemplateWrapper(),
 	}

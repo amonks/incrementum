@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/ids"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 	"github.com/amonks/incrementum/web"
@@ -256,7 +257,7 @@ func resolveWebBaseURL(addr string) string {
 		return ""
 	}
 	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
-		return strings.TrimRight(trimmed, "/")
+		return internalstrings.TrimTrailingSlash(trimmed)
 	}
 	host := trimmed
 	if strings.HasPrefix(host, ":") {

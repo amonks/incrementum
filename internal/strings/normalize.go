@@ -30,3 +30,8 @@ func TrimTrailingCarriageReturn(value string) string {
 func TrimTrailingNewlines(value string) string {
 	return strings.TrimRight(value, "\r\n")
 }
+
+// TrimTrailingSlash removes trailing '/' characters.
+func TrimTrailingSlash(value string) string {
+	return strings.TrimRight(value, "/")
+}

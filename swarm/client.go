@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 )
@@ -22,7 +23,7 @@ type Client struct {
 
 // NewClient creates a client for the given address or URL.
 func NewClient(addr string) *Client {
-	baseURL := strings.TrimRight(addr, "/")
+	baseURL := internalstrings.TrimTrailingSlash(addr)
 	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
 		baseURL = "http://" + baseURL
 	}
