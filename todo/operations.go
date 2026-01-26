@@ -271,21 +271,10 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 		if err != nil {
 			return nil, err
 		}
-		result := make([]Todo, 0, len(found))
-		seen := make(map[string]struct{}, len(ids))
-		var missing []string
-		for _, id := range ids {
-			if _, ok := seen[id]; ok {
-				continue
-			}
-			seen[id] = struct{}{}
+		result, missing := collectTodosByIDs(ids, func(id string) (Todo, bool) {
 			todo, ok := found[id]
-			if !ok {
-				missing = append(missing, id)
-				continue
-			}
-			result = append(result, todo)
-		}
+			return todo, ok
+		})
 		if err := missingTodoIDsError(missing); err != nil {
 			return nil, err
 		}
@@ -306,35 +295,23 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 		return nil, missingTodoIDsError([]string{id})
 	}
 
-	todoByID := make(map[string]*Todo, len(resolvedIDs))
+	idSet := make(map[string]struct{}, len(resolvedIDs))
 	for _, id := range resolvedIDs {
-		if _, ok := todoByID[id]; !ok {
-			todoByID[id] = nil
-		}
+		idSet[id] = struct{}{}
 	}
-	if len(todoByID) > 0 {
-		for i := range todos {
-			if _, ok := todoByID[todos[i].ID]; ok {
-				todoByID[todos[i].ID] = &todos[i]
+	todoByID := make(map[string]Todo, len(idSet))
+	if len(idSet) > 0 {
+		for _, todo := range todos {
+			if _, ok := idSet[todo.ID]; ok {
+				todoByID[todo.ID] = todo
 			}
 		}
 	}
 
-	result := make([]Todo, 0, len(resolvedIDs))
-	seen := make(map[string]struct{}, len(resolvedIDs))
-	var missing []string
-	for _, id := range resolvedIDs {
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
+	result, missing := collectTodosByIDs(resolvedIDs, func(id string) (Todo, bool) {
 		todo, ok := todoByID[id]
-		if !ok || todo == nil {
-			missing = append(missing, id)
-			continue
-		}
-		result = append(result, *todo)
-	}
+		return todo, ok
+	})
 
 	if err := missingTodoIDsError(missing); err != nil {
 		return nil, err
@@ -475,6 +452,25 @@ func missingTodoIDsError(missing []string) error {
 		return nil
 	}
 	return fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
+}
+
+func collectTodosByIDs(ids []string, lookup func(string) (Todo, bool)) ([]Todo, []string) {
+	result := make([]Todo, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
+	var missing []string
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		todo, ok := lookup(id)
+		if !ok {
+			missing = append(missing, id)
+			continue
+		}
+		result = append(result, todo)
+	}
+	return result, missing
 }
 
 func applyStatusChange(item *Todo, newStatus Status, previousStatus Status, opts UpdateOptions, now time.Time) {
