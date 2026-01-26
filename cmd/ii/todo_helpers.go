@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -33,6 +34,23 @@ func openTodoStoreReadOnly(cmd *cobra.Command, args []string) (*todo.Store, erro
 		PromptToCreate:  false,
 		ReadOnly:        true,
 	})
+}
+
+func openTodoStoreReadOnlyOrEmpty(cmd *cobra.Command, args []string, jsonOutput bool, emptyMessage func() error) (*todo.Store, bool, error) {
+	store, err := openTodoStoreReadOnly(cmd, args)
+	if err != nil {
+		if errors.Is(err, todo.ErrNoTodoStore) {
+			if jsonOutput {
+				return nil, true, encodeJSONToStdout([]todo.Todo{})
+			}
+			if emptyMessage == nil {
+				return nil, true, nil
+			}
+			return nil, true, emptyMessage()
+		}
+		return nil, false, err
+	}
+	return store, false, nil
 }
 
 func todoStorePurpose(cmd *cobra.Command, args []string) string {

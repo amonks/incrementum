@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -479,16 +478,15 @@ func runTodoShow(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoList(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStoreReadOnly(cmd, args)
+	store, handled, err := openTodoStoreReadOnlyOrEmpty(cmd, args, todoListJSON, func() error {
+		printTodoTable(nil, nil, time.Now())
+		return nil
+	})
 	if err != nil {
-		if errors.Is(err, todo.ErrNoTodoStore) {
-			if todoListJSON {
-				return encodeJSONToStdout([]todo.Todo{})
-			}
-			printTodoTable(nil, nil, time.Now())
-			return nil
-		}
 		return err
+	}
+	if handled {
+		return nil
 	}
 	defer store.Release()
 
@@ -589,16 +587,15 @@ func runTodoList(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoReady(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStoreReadOnly(cmd, args)
+	store, handled, err := openTodoStoreReadOnlyOrEmpty(cmd, args, todoReadyJSON, func() error {
+		fmt.Println("No ready todos found.")
+		return nil
+	})
 	if err != nil {
-		if errors.Is(err, todo.ErrNoTodoStore) {
-			if todoReadyJSON {
-				return encodeJSONToStdout([]todo.Todo{})
-			}
-			fmt.Println("No ready todos found.")
-			return nil
-		}
 		return err
+	}
+	if handled {
+		return nil
 	}
 	defer store.Release()
 
