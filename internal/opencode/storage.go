@@ -147,16 +147,13 @@ type projectRecord struct {
 
 func (s Storage) projectIDForRepo(repoPath string) (string, error) {
 	projectsDir := filepath.Join(s.storageDir(), "project")
-	entries, err := os.ReadDir(projectsDir)
+	entries, err := listJSONEntries(projectsDir, "opencode projects")
 	if err != nil {
-		return "", fmt.Errorf("read opencode projects: %w", err)
+		return "", err
 	}
 
 	repoPath = cleanPath(repoPath)
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
 		path := filepath.Join(projectsDir, entry.Name())
 		var record projectRecord
 		if err := decodeJSONFile(path, "opencode project", &record); err != nil {
@@ -185,16 +182,13 @@ type sessionRecord struct {
 
 func (s Storage) listSessions(projectID string) ([]SessionMetadata, error) {
 	sessionsDir := filepath.Join(s.storageDir(), "session", projectID)
-	entries, err := os.ReadDir(sessionsDir)
+	entries, err := listJSONEntries(sessionsDir, "opencode sessions")
 	if err != nil {
-		return nil, fmt.Errorf("read opencode sessions: %w", err)
+		return nil, err
 	}
 
 	items := make([]SessionMetadata, 0, len(entries))
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
 		path := filepath.Join(sessionsDir, entry.Name())
 		var record sessionRecord
 		if err := decodeJSONFile(path, "opencode session", &record); err != nil {
@@ -334,16 +328,13 @@ type messageInfo struct {
 
 func (s Storage) listMessages(sessionID string) ([]messageInfo, error) {
 	messageDir := filepath.Join(s.storageDir(), "message", sessionID)
-	entries, err := os.ReadDir(messageDir)
+	entries, err := listJSONEntries(messageDir, "opencode messages")
 	if err != nil {
-		return nil, fmt.Errorf("read opencode messages: %w", err)
+		return nil, err
 	}
 
 	items := make([]messageInfo, 0, len(entries))
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
 		path := filepath.Join(messageDir, entry.Name())
 		var record messageRecord
 		if err := decodeJSONFile(path, "opencode message", &record); err != nil {
@@ -395,16 +386,13 @@ type partInfo struct {
 
 func (s Storage) listParts(messageID string) ([]partInfo, error) {
 	partDir := filepath.Join(s.storageDir(), "part", messageID)
-	entries, err := os.ReadDir(partDir)
+	entries, err := listJSONEntries(partDir, "opencode parts")
 	if err != nil {
-		return nil, fmt.Errorf("read opencode parts: %w", err)
+		return nil, err
 	}
 
 	items := make([]partInfo, 0, len(entries))
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
 		path := filepath.Join(partDir, entry.Name())
 		var record partRecord
 		if err := decodeJSONFile(path, "opencode part", &record); err != nil {
@@ -609,6 +597,21 @@ func decodeJSONFile(path, label string, dest any) error {
 		return fmt.Errorf("decode %s: %w", label, err)
 	}
 	return nil
+}
+
+func listJSONEntries(dir, label string) ([]os.DirEntry, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", label, err)
+	}
+	filtered := make([]os.DirEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+	return filtered, nil
 }
 
 func storageRecordID(recordID, filename string) string {
