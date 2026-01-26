@@ -584,22 +584,10 @@ func appendTodoJSONLine(buf []byte, todo *Todo) []byte {
 	buf, hasField = appendJSONFieldPrefix(buf, "updated_at", hasField)
 	buf = appendJSONTime(buf, todo.UpdatedAt)
 
-	if todo.ClosedAt != nil {
-		buf, hasField = appendJSONFieldPrefix(buf, "closed_at", hasField)
-		buf = appendJSONTime(buf, *todo.ClosedAt)
-	}
-	if todo.StartedAt != nil {
-		buf, hasField = appendJSONFieldPrefix(buf, "started_at", hasField)
-		buf = appendJSONTime(buf, *todo.StartedAt)
-	}
-	if todo.CompletedAt != nil {
-		buf, hasField = appendJSONFieldPrefix(buf, "completed_at", hasField)
-		buf = appendJSONTime(buf, *todo.CompletedAt)
-	}
-	if todo.DeletedAt != nil {
-		buf, hasField = appendJSONFieldPrefix(buf, "deleted_at", hasField)
-		buf = appendJSONTime(buf, *todo.DeletedAt)
-	}
+	buf, hasField = appendOptionalJSONTime(buf, "closed_at", todo.ClosedAt, hasField)
+	buf, hasField = appendOptionalJSONTime(buf, "started_at", todo.StartedAt, hasField)
+	buf, hasField = appendOptionalJSONTime(buf, "completed_at", todo.CompletedAt, hasField)
+	buf, hasField = appendOptionalJSONTime(buf, "deleted_at", todo.DeletedAt, hasField)
 	if todo.DeleteReason != "" {
 		buf, hasField = appendJSONFieldPrefix(buf, "delete_reason", hasField)
 		buf = appendJSONString(buf, todo.DeleteReason)
@@ -634,6 +622,15 @@ func appendJSONFieldPrefix(buf []byte, key string, hasField bool) ([]byte, bool)
 	buf = append(buf, key...)
 	buf = append(buf, '"', ':')
 	return buf, true
+}
+
+func appendOptionalJSONTime(buf []byte, key string, value *time.Time, hasField bool) ([]byte, bool) {
+	if value == nil {
+		return buf, hasField
+	}
+	buf, hasField = appendJSONFieldPrefix(buf, key, hasField)
+	buf = appendJSONTime(buf, *value)
+	return buf, hasField
 }
 
 func appendJSONString(buf []byte, value string) []byte {
