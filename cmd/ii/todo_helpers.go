@@ -74,7 +74,7 @@ func resolveDescriptionFromStdin(description string, reader io.Reader) (string, 
 		return "", fmt.Errorf("read description from stdin: %w", err)
 	}
 
-	value := strings.TrimRight(string(input), "\r\n")
+	value := internalstrings.TrimTrailingNewlines(string(input))
 	return value, nil
 }
 

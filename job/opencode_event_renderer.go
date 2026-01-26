@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 type opencodeEventPayload struct {
@@ -271,7 +273,7 @@ func combineParts(order []string, parts map[string]string) string {
 	}
 	merged := make([]string, 0, len(order))
 	for _, key := range order {
-		text := strings.TrimRight(parts[key], "\r\n")
+		text := internalstrings.TrimTrailingNewlines(parts[key])
 		if strings.TrimSpace(text) == "" {
 			continue
 		}

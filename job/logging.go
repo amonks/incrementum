@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -140,15 +141,11 @@ func (logger *ConsoleLogger) writeBlock(lines ...string) {
 }
 
 func normalizeLogBody(value string) string {
-	value = trimTrailingNewlines(value)
+	value = internalstrings.TrimTrailingNewlines(value)
 	if strings.TrimSpace(value) == "" {
 		return "-"
 	}
 	return value
-}
-
-func trimTrailingNewlines(value string) string {
-	return strings.TrimRight(value, "\r\n")
 }
 
 func formatLogLabel(label string, indent int) string {
@@ -204,7 +201,7 @@ func formatMarkdownBody(body string, indent int) string {
 }
 
 func formatMarkdownBlock(body string, indent int, preformatted bool) string {
-	body = trimTrailingNewlines(body)
+	body = internalstrings.TrimTrailingNewlines(body)
 	if strings.TrimSpace(body) == "" {
 		return IndentBlock("-", indent)
 	}

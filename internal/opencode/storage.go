@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/paths"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // Storage represents the opencode data directory.
@@ -550,7 +551,7 @@ func formatToolOutput(stdout, stderr string) string {
 }
 
 func formatToolOutputSection(label, text string) string {
-	text = strings.TrimRight(text, "\r\n")
+	text = internalstrings.TrimTrailingNewlines(text)
 	if strings.TrimSpace(text) == "" {
 		return ""
 	}

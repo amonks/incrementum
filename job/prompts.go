@@ -67,7 +67,7 @@ func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitL
 }
 
 func formatTodoBlock(item todo.Todo) string {
-	description := strings.TrimRight(item.Description, "\r\n")
+	description := internalstrings.TrimTrailingNewlines(item.Description)
 	if strings.TrimSpace(description) == "" {
 		description = "-"
 	}
@@ -84,7 +84,7 @@ func formatTodoBlock(item todo.Todo) string {
 }
 
 func formatPromptBlock(label, body string) string {
-	body = strings.TrimRight(body, "\r\n")
+	body = internalstrings.TrimTrailingNewlines(body)
 	if strings.TrimSpace(body) == "" {
 		body = "-"
 	}

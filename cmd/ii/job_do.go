@@ -144,7 +144,7 @@ func formatCommitMessageOutput(message string) string {
 }
 
 func formatCommitMessageBody(message string, indent int) string {
-	message = strings.TrimRight(message, "\r\n")
+	message = internalstrings.TrimTrailingNewlines(message)
 	if strings.TrimSpace(message) == "" {
 		return jobpkg.IndentBlock("-", indent)
 	}

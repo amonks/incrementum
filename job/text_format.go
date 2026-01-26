@@ -68,7 +68,7 @@ func splitParagraphs(value string) []string {
 
 // IndentBlock prefixes each line with spaces.
 func IndentBlock(value string, spaces int) string {
-	value = strings.TrimRight(value, "\r\n")
+	value = internalstrings.TrimTrailingNewlines(value)
 	if spaces <= 0 {
 		return value
 	}

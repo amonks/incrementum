@@ -24,3 +24,8 @@ across subsystems.
 
 - Removes a single trailing `\r` from a line when present.
 - Used to normalize CRLF line endings when working with line-split content.
+
+## TrimTrailingNewlines
+
+- Removes trailing `\r` and `\n` characters from the end of a string.
+- Used when normalizing multi-line input/output before formatting.

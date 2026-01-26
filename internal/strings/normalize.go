@@ -25,3 +25,8 @@ func NormalizeLowerTrimSpace(value string) string {
 func TrimTrailingCarriageReturn(value string) string {
 	return strings.TrimSuffix(value, "\r")
 }
+
+// TrimTrailingNewlines removes trailing CR/LF characters.
+func TrimTrailingNewlines(value string) string {
+	return strings.TrimRight(value, "\r\n")
+}

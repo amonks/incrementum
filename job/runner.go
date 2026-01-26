@@ -14,6 +14,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/jj"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/opencode"
 	"github.com/amonks/incrementum/todo"
 )
@@ -799,7 +800,7 @@ func opencodeTranscripts(repoPath string, sessions []OpencodeSession) ([]Opencod
 
 	transcripts := make([]OpencodeTranscript, 0, len(entries))
 	for _, entry := range entries {
-		text := strings.TrimRight(entry.Transcript, "\r\n")
+		text := internalstrings.TrimTrailingNewlines(entry.Transcript)
 		if text == "" {
 			text = "-"
 		}

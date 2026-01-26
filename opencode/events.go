@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // Event represents a single opencode server-sent event.
@@ -162,7 +164,7 @@ func readEventStream(ctx context.Context, reader io.Reader, recorder *eventRecor
 			return writeErr
 		}
 
-		trimmed := strings.TrimRight(line, "\r\n")
+		trimmed := internalstrings.TrimTrailingNewlines(line)
 		if errors.Is(err, io.EOF) {
 			if trimmed != "" {
 				builder.handleLine(trimmed)
