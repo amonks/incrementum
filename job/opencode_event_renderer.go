@@ -112,16 +112,10 @@ func (i *opencodeEventInterpreter) Handle(event Event) ([]opencodeRenderedEvent,
 	switch payload.Type {
 	case "message.updated":
 		outputs, err := i.handleMessageUpdated(payload.Properties)
-		if err != nil {
-			return rawOpencodeEvent(opencodePayloadLabel(payload.Type), event.Data), nil
-		}
-		return outputs, nil
+		return handleOpencodePayload(payload.Type, event.Data, outputs, err)
 	case "message.part.updated":
 		outputs, err := i.handleMessagePartUpdated(payload.Properties)
-		if err != nil {
-			return rawOpencodeEvent(opencodePayloadLabel(payload.Type), event.Data), nil
-		}
-		return outputs, nil
+		return handleOpencodePayload(payload.Type, event.Data, outputs, err)
 	default:
 		if !i.enabled(payload.Type) {
 			return nil, nil
@@ -132,6 +126,13 @@ func (i *opencodeEventInterpreter) Handle(event Event) ([]opencodeRenderedEvent,
 
 func opencodePayloadLabel(payloadType string) string {
 	return fmt.Sprintf("Opencode event (%s):", payloadType)
+}
+
+func handleOpencodePayload(payloadType, data string, outputs []opencodeRenderedEvent, err error) ([]opencodeRenderedEvent, error) {
+	if err != nil {
+		return rawOpencodeEvent(opencodePayloadLabel(payloadType), data), nil
+	}
+	return outputs, nil
 }
 
 func rawOpencodeEvent(label, body string) []opencodeRenderedEvent {
