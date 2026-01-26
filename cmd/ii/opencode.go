@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/opencode"
 	"github.com/spf13/cobra"
@@ -193,7 +194,7 @@ func opencodePromptLine(prompt string) string {
 		return "-"
 	}
 	line := strings.SplitN(prompt, "\n", 2)[0]
-	line = strings.TrimSuffix(line, "\r")
+	line = internalstrings.TrimTrailingCarriageReturn(line)
 	if strings.TrimSpace(line) == "" {
 		return "-"
 	}

@@ -20,3 +20,8 @@ func NormalizeLower(value string) string {
 func NormalizeLowerTrimSpace(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
+
+// TrimTrailingCarriageReturn removes a trailing carriage return if present.
+func TrimTrailingCarriageReturn(value string) string {
+	return strings.TrimSuffix(value, "\r")
+}

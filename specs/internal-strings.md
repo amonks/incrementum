@@ -19,3 +19,8 @@ across subsystems.
 
 - Trims surrounding whitespace with `strings.TrimSpace` and then lowercases.
 - Does not alter inner whitespace beyond trimming the edges.
+
+## TrimTrailingCarriageReturn
+
+- Removes a single trailing `\r` from a line when present.
+- Used to normalize CRLF line endings when working with line-split content.

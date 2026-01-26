@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // ReviewOutcome captures the outcome of opencode review feedback.
@@ -58,7 +60,7 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 	}
 
 	for i, line := range lines {
-		lines[i] = strings.TrimSuffix(line, "\r")
+		lines[i] = internalstrings.TrimTrailingCarriageReturn(line)
 	}
 
 	firstLine := strings.TrimSpace(lines[0])
