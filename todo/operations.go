@@ -202,8 +202,8 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 	}
 
 	// Check for unfound IDs
-	if len(idSet) > 0 {
-		return nil, missingTodoIDsError(missingTodoIDsInOrder(resolvedIDs, idSet))
+	if err := missingTodoIDsError(missingTodoIDsInOrder(resolvedIDs, idSet)); err != nil {
+		return nil, err
 	}
 
 	if err := s.writeTodos(todos); err != nil {
