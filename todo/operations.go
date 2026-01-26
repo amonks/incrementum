@@ -203,11 +203,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 
 	// Check for unfound IDs
 	if len(idSet) > 0 {
-		var missing []string
-		for id := range idSet {
-			missing = append(missing, id)
-		}
-		return nil, missingTodoIDsError(missing)
+		return nil, missingTodoIDsError(missingTodoIDsInOrder(resolvedIDs, idSet))
 	}
 
 	if err := s.writeTodos(todos); err != nil {
@@ -450,6 +446,25 @@ func missingTodoIDsError(missing []string) error {
 		return nil
 	}
 	return fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
+}
+
+func missingTodoIDsInOrder(ids []string, remaining map[string]struct{}) []string {
+	if len(remaining) == 0 {
+		return nil
+	}
+	missing := make([]string, 0, len(remaining))
+	seen := make(map[string]struct{}, len(remaining))
+	for _, id := range ids {
+		if _, ok := remaining[id]; !ok {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		missing = append(missing, id)
+	}
+	return missing
 }
 
 func normalizeStatusPtr(status *Status) (*Status, error) {
