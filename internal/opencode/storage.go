@@ -105,13 +105,7 @@ func (s Storage) SessionProseLogText(sessionID string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		for _, part := range parts {
-			text, ok := extractProsePartText(part)
-			if !ok {
-				continue
-			}
-			builder.WriteString(text)
-		}
+		appendPartText(&builder, parts, extractProsePartText)
 	}
 	return builder.String(), nil
 }
@@ -454,14 +448,21 @@ func (s Storage) messageText(messageID string) (string, error) {
 		return "", err
 	}
 	var builder strings.Builder
+	appendPartText(&builder, parts, extractPartText)
+	return builder.String(), nil
+}
+
+func appendPartText(builder *strings.Builder, parts []partInfo, extract func(partInfo) (string, bool)) {
+	if builder == nil {
+		return
+	}
 	for _, part := range parts {
-		text, ok := extractPartText(part)
+		text, ok := extract(part)
 		if !ok {
 			continue
 		}
 		builder.WriteString(text)
 	}
-	return builder.String(), nil
 }
 
 func extractPartText(part partInfo) (string, bool) {
