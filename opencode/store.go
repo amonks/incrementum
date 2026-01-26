@@ -75,11 +75,19 @@ func OpenWithOptions(opts Options) (*Store, error) {
 	}, nil
 }
 
-// CreateSession creates a new active opencode session.
-func (s *Store) CreateSession(repoPath, sessionID, prompt string, startedAt time.Time) (OpencodeSession, error) {
+func (s *Store) repoName(repoPath string) (string, error) {
 	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
 	if err != nil {
-		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
+		return "", fmt.Errorf("get repo name: %w", err)
+	}
+	return repoName, nil
+}
+
+// CreateSession creates a new active opencode session.
+func (s *Store) CreateSession(repoPath, sessionID, prompt string, startedAt time.Time) (OpencodeSession, error) {
+	repoName, err := s.repoName(repoPath)
+	if err != nil {
+		return OpencodeSession{}, err
 	}
 	if strings.TrimSpace(sessionID) == "" {
 		return OpencodeSession{}, fmt.Errorf("session id is required")
@@ -108,9 +116,9 @@ func (s *Store) CreateSession(repoPath, sessionID, prompt string, startedAt time
 
 // FindSession returns the session with the given id in the repo.
 func (s *Store) FindSession(repoPath, sessionID string) (OpencodeSession, error) {
-	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
+	repoName, err := s.repoName(repoPath)
 	if err != nil {
-		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
+		return OpencodeSession{}, err
 	}
 
 	st, err := s.stateStore.Load()
@@ -145,9 +153,9 @@ func (s *Store) FindSession(repoPath, sessionID string) (OpencodeSession, error)
 
 // ListSessions returns all sessions for a repo.
 func (s *Store) ListSessions(repoPath string) ([]OpencodeSession, error) {
-	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
+	repoName, err := s.repoName(repoPath)
 	if err != nil {
-		return nil, fmt.Errorf("get repo name: %w", err)
+		return nil, err
 	}
 
 	st, err := s.stateStore.Load()
@@ -178,9 +186,9 @@ func (s *Store) CompleteSession(repoPath, sessionID string, status OpencodeSessi
 		return OpencodeSession{}, fmt.Errorf("invalid opencode session status: %s", status)
 	}
 
-	repoName, err := s.stateStore.GetOrCreateRepoName(repoPath)
+	repoName, err := s.repoName(repoPath)
 	if err != nil {
-		return OpencodeSession{}, fmt.Errorf("get repo name: %w", err)
+		return OpencodeSession{}, err
 	}
 
 	var updated OpencodeSession
