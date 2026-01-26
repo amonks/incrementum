@@ -82,57 +82,62 @@ func (s Storage) FindSessionForRunWithRetry(repoPath string, startedAt time.Time
 
 // SessionLogText returns the session transcript as a single string.
 func (s Storage) SessionLogText(sessionID string) (string, error) {
-	entries, err := s.SessionLogEntries(sessionID)
-	if err != nil {
-		return "", err
-	}
-	var builder strings.Builder
-	for _, entry := range entries {
-		builder.WriteString(entry.Text)
-	}
-	return builder.String(), nil
+	return s.sessionText(sessionID, extractPartText)
 }
 
 // SessionProseLogText returns the session transcript without tool output.
 func (s Storage) SessionProseLogText(sessionID string) (string, error) {
-	messages, err := s.listMessages(sessionID)
-	if err != nil {
-		return "", err
-	}
-
-	var builder strings.Builder
-	for _, message := range messages {
-		parts, err := s.listParts(message.ID)
-		if err != nil {
-			return "", err
-		}
-		appendPartText(&builder, parts, extractProsePartText)
-	}
-	return builder.String(), nil
+	return s.sessionText(sessionID, extractProsePartText)
 }
 
 // SessionLogEntries returns textual log entries for a session.
 func (s Storage) SessionLogEntries(sessionID string) ([]LogEntry, error) {
-	messages, err := s.listMessages(sessionID)
-	if err != nil {
+	entries := make([]LogEntry, 0)
+	if err := s.forEachSessionPart(sessionID, func(part partInfo) error {
+		text, ok := extractPartText(part)
+		if !ok {
+			return nil
+		}
+		entries = append(entries, LogEntry{ID: part.ID, Text: text})
+		return nil
+	}); err != nil {
 		return nil, err
 	}
+	return entries, nil
+}
 
-	entries := make([]LogEntry, 0)
+func (s Storage) sessionText(sessionID string, extract func(partInfo) (string, bool)) (string, error) {
+	var builder strings.Builder
+	if err := s.forEachSessionPart(sessionID, func(part partInfo) error {
+		text, ok := extract(part)
+		if !ok {
+			return nil
+		}
+		builder.WriteString(text)
+		return nil
+	}); err != nil {
+		return "", err
+	}
+	return builder.String(), nil
+}
+
+func (s Storage) forEachSessionPart(sessionID string, fn func(partInfo) error) error {
+	messages, err := s.listMessages(sessionID)
+	if err != nil {
+		return err
+	}
 	for _, message := range messages {
 		parts, err := s.listParts(message.ID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for _, part := range parts {
-			text, ok := extractPartText(part)
-			if !ok {
-				continue
+			if err := fn(part); err != nil {
+				return err
 			}
-			entries = append(entries, LogEntry{ID: part.ID, Text: text})
 		}
 	}
-	return entries, nil
+	return nil
 }
 
 type projectRecord struct {
