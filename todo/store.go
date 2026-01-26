@@ -161,10 +161,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 	}
 
 	if !hasBookmark {
-		if opts.ReadOnly {
-			return nil, ErrNoTodoStore
-		}
-		if !opts.CreateIfMissing {
+		if opts.ReadOnly || !opts.CreateIfMissing {
 			return nil, ErrNoTodoStore
 		}
 
