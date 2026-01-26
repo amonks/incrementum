@@ -120,17 +120,13 @@ func (i *opencodeEventInterpreter) Handle(event Event) ([]opencodeRenderedEvent,
 		if !i.enabled(payload.Type) {
 			return nil, nil
 		}
-		return rawOpencodeEvent(opencodePayloadLabel(payload.Type), event.Data), nil
+		return rawOpencodeEvent(opencodeEventLabel(payload.Type), event.Data), nil
 	}
-}
-
-func opencodePayloadLabel(payloadType string) string {
-	return fmt.Sprintf("Opencode event (%s):", payloadType)
 }
 
 func handleOpencodePayload(payloadType, data string, outputs []opencodeRenderedEvent, err error) ([]opencodeRenderedEvent, error) {
 	if err != nil {
-		return rawOpencodeEvent(opencodePayloadLabel(payloadType), data), nil
+		return rawOpencodeEvent(opencodeEventLabel(payloadType), data), nil
 	}
 	return outputs, nil
 }
