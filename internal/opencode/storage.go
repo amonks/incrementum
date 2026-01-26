@@ -410,7 +410,7 @@ func (s Storage) sessionContainsPrompt(sessionID, prompt string) (bool, error) {
 		return false, err
 	}
 	for _, message := range messages {
-		if strings.ToLower(message.Role) != "user" {
+		if internalstrings.NormalizeLower(message.Role) != "user" {
 			continue
 		}
 		text, err := s.messageText(message.ID)
@@ -490,7 +490,7 @@ func extractProsePartText(part partInfo) (string, bool) {
 }
 
 func normalizePartType(partType string) string {
-	return strings.ToLower(partType)
+	return internalstrings.NormalizeLower(partType)
 }
 
 func stringifyOutput(value any) (string, bool) {
