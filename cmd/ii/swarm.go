@@ -230,12 +230,8 @@ func runSwarmLogs(cmd *cobra.Command, args []string) error {
 	}
 	formatter := job.NewEventFormatter()
 	for _, event := range events {
-		chunk, err := formatter.Append(event)
-		if err != nil {
+		if err := appendAndPrintEvent(formatter, event); err != nil {
 			return err
-		}
-		if chunk != "" {
-			fmt.Print(chunk)
 		}
 	}
 	return nil
@@ -362,12 +358,8 @@ func streamSwarmEvents(parent context.Context, client *swarm.Client, jobID strin
 	formatter := job.NewEventFormatter()
 	events, errs := client.Tail(ctx, jobID)
 	for event := range events {
-		chunk, err := formatter.Append(event)
-		if err != nil {
+		if err := appendAndPrintEvent(formatter, event); err != nil {
 			return err
-		}
-		if chunk != "" {
-			fmt.Print(chunk)
 		}
 	}
 

@@ -88,15 +88,11 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 			if strings.HasPrefix(event.Name, "job.") {
 				continue
 			}
-			chunk, err := formatter.Append(event)
-			if err != nil {
+			if err := appendAndPrintEvent(formatter, event); err != nil {
 				if streamErr == nil {
 					streamErr = err
 				}
 				continue
-			}
-			if chunk != "" {
-				fmt.Print(chunk)
 			}
 		}
 		eventErrs <- streamErr
