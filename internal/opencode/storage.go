@@ -448,7 +448,7 @@ func appendPartText(builder *strings.Builder, parts []partInfo, extract func(par
 }
 
 func extractPartText(part partInfo) (string, bool) {
-	switch strings.ToLower(part.Type) {
+	switch normalizePartType(part.Type) {
 	case "text":
 		if part.Text == "" {
 			return "", false
@@ -479,7 +479,7 @@ func extractPartText(part partInfo) (string, bool) {
 }
 
 func extractProsePartText(part partInfo) (string, bool) {
-	partType := strings.ToLower(part.Type)
+	partType := normalizePartType(part.Type)
 	if partType != "text" && partType != "" {
 		return "", false
 	}
@@ -487,6 +487,10 @@ func extractProsePartText(part partInfo) (string, bool) {
 		return "", false
 	}
 	return part.Text, true
+}
+
+func normalizePartType(partType string) string {
+	return strings.ToLower(partType)
 }
 
 func stringifyOutput(value any) (string, bool) {
