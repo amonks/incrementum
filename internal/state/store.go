@@ -60,6 +60,13 @@ func (s *Store) lockPath() string {
 	return filepath.Join(s.dir, "state.lock")
 }
 
+func (s *Store) ensureStateDir() error {
+	if err := os.MkdirAll(s.dir, 0755); err != nil {
+		return fmt.Errorf("create state dir: %w", err)
+	}
+	return nil
+}
+
 // Load reads the state from disk. Returns an empty state if the file doesn't exist.
 func (s *Store) Load() (*State, error) {
 	data, err := os.ReadFile(s.statePath())
@@ -82,9 +89,8 @@ func (s *Store) Load() (*State, error) {
 
 // Save writes the state to disk.
 func (s *Store) Save(st *State) error {
-	// Ensure directory exists
-	if err := os.MkdirAll(s.dir, 0755); err != nil {
-		return fmt.Errorf("create state dir: %w", err)
+	if err := s.ensureStateDir(); err != nil {
+		return err
 	}
 
 	data, err := json.MarshalIndent(st, "", "  ")
@@ -125,9 +131,8 @@ func (s *Store) Save(st *State) error {
 
 // Update atomically reads, modifies, and writes the state with file locking.
 func (s *Store) Update(fn func(st *State) error) error {
-	// Ensure directory exists
-	if err := os.MkdirAll(s.dir, 0755); err != nil {
-		return fmt.Errorf("create state dir: %w", err)
+	if err := s.ensureStateDir(); err != nil {
+		return err
 	}
 
 	// Open lock file
