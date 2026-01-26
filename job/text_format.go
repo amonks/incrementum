@@ -16,9 +16,6 @@ const (
 
 // RenderMarkdown formats markdown text for terminal display.
 func RenderMarkdown(value string, width int) string {
-	if width < 1 {
-		width = 1
-	}
 	rendered := markdown.Render(width, 0, []byte(value))
 	if len(rendered) == 0 {
 		return ""
