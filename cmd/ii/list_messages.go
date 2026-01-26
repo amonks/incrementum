@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"strings"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 func opencodeEmptyListMessage(total int, includeAll bool) string {
@@ -22,9 +24,9 @@ func jobEmptyListMessage(total int, status string, includeAll bool) string {
 		return "No jobs found."
 	}
 
-	status = strings.TrimSpace(status)
+	status = internalstrings.NormalizeLowerTrimSpace(status)
 	if status != "" {
-		return fmt.Sprintf("No jobs found with status %s.", strings.ToLower(status))
+		return fmt.Sprintf("No jobs found with status %s.", status)
 	}
 
 	if !includeAll {
@@ -39,9 +41,9 @@ func todoEmptyListMessage(total int, status string, includeAll bool, includeTomb
 		return "No todos found."
 	}
 
-	status = strings.TrimSpace(status)
+	status = internalstrings.NormalizeLowerTrimSpace(status)
 	if status != "" {
-		return fmt.Sprintf("No todos found with status %s.", strings.ToLower(status))
+		return fmt.Sprintf("No todos found with status %s.", status)
 	}
 
 	hints := make([]string, 0, 2)
