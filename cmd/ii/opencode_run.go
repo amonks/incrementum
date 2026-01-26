@@ -26,12 +26,7 @@ func init() {
 }
 
 func runOpencodeRun(cmd *cobra.Command, args []string) error {
-	store, err := opencode.Open()
-	if err != nil {
-		return err
-	}
-
-	repoPath, err := opencode.RepoPathForWorkingDir()
+	store, repoPath, err := openOpencodeStoreAndRepoPath()
 	if err != nil {
 		return err
 	}

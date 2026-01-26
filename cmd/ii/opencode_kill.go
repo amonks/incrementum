@@ -1,9 +1,6 @@
 package main
 
-import (
-	"github.com/amonks/incrementum/opencode"
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var opencodeKillCmd = &cobra.Command{
 	Use:   "kill <session-id>",
@@ -17,12 +14,7 @@ func init() {
 }
 
 func runOpencodeKill(cmd *cobra.Command, args []string) error {
-	store, err := opencode.Open()
-	if err != nil {
-		return err
-	}
-
-	repoPath, err := opencode.RepoPathForWorkingDir()
+	store, repoPath, err := openOpencodeStoreAndRepoPath()
 	if err != nil {
 		return err
 	}
