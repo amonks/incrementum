@@ -491,78 +491,33 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runTodoClose(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore(cmd, args)
-	if err != nil {
-		return err
-	}
-	defer store.Release()
-
-	closed, err := store.Close(args)
-	if err != nil {
-		return err
-	}
-
-	return printTodoActionResults(store, "Closed", closed)
+	return runTodoAction(cmd, args, "Closed", func(store *todo.Store) ([]todo.Todo, error) {
+		return store.Close(args)
+	})
 }
 
 func runTodoStart(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore(cmd, args)
-	if err != nil {
-		return err
-	}
-	defer store.Release()
-
-	started, err := store.Start(args)
-	if err != nil {
-		return err
-	}
-
-	return printTodoActionResults(store, "Started", started)
+	return runTodoAction(cmd, args, "Started", func(store *todo.Store) ([]todo.Todo, error) {
+		return store.Start(args)
+	})
 }
 
 func runTodoFinish(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore(cmd, args)
-	if err != nil {
-		return err
-	}
-	defer store.Release()
-
-	finished, err := store.Finish(args)
-	if err != nil {
-		return err
-	}
-
-	return printTodoActionResults(store, "Finished", finished)
+	return runTodoAction(cmd, args, "Finished", func(store *todo.Store) ([]todo.Todo, error) {
+		return store.Finish(args)
+	})
 }
 
 func runTodoReopen(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore(cmd, args)
-	if err != nil {
-		return err
-	}
-	defer store.Release()
-
-	reopened, err := store.Reopen(args)
-	if err != nil {
-		return err
-	}
-
-	return printTodoActionResults(store, "Reopened", reopened)
+	return runTodoAction(cmd, args, "Reopened", func(store *todo.Store) ([]todo.Todo, error) {
+		return store.Reopen(args)
+	})
 }
 
 func runTodoDelete(cmd *cobra.Command, args []string) error {
-	store, err := openTodoStore(cmd, args)
-	if err != nil {
-		return err
-	}
-	defer store.Release()
-
-	deleted, err := store.Delete(args, todoDeleteReason)
-	if err != nil {
-		return err
-	}
-
-	return printTodoActionResults(store, "Deleted", deleted)
+	return runTodoAction(cmd, args, "Deleted", func(store *todo.Store) ([]todo.Todo, error) {
+		return store.Delete(args, todoDeleteReason)
+	})
 }
 
 func runTodoShow(cmd *cobra.Command, args []string) error {
@@ -833,6 +788,21 @@ func encodeJSONToStdout(value any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(value)
+}
+
+func runTodoAction(cmd *cobra.Command, args []string, verb string, action func(*todo.Store) ([]todo.Todo, error)) error {
+	store, err := openTodoStore(cmd, args)
+	if err != nil {
+		return err
+	}
+	defer store.Release()
+
+	items, err := action(store)
+	if err != nil {
+		return err
+	}
+
+	return printTodoActionResults(store, verb, items)
 }
 
 func printTodoActionResults(store *todo.Store, verb string, items []todo.Todo) error {
