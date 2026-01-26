@@ -57,12 +57,6 @@ func DataFromTodo(t *todo.Todo) TodoData {
 }
 
 var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
-	"description": func(s string) string {
-		if s == "" {
-			return ""
-		}
-		return s
-	},
 	"validTypes":    validTodoTypes,
 	"validStatuses": validTodoStatuses,
 }).Parse(`title = {{ printf "%q" .Title }}
@@ -70,7 +64,7 @@ type = {{ printf "%q" .Type }} # {{ validTypes }}
 priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 status = {{ printf "%q" .Status }} # {{ validStatuses }}
 ---
-{{ description .Description }}
+{{ .Description }}
 `))
 
 // RenderTodoTOML renders the todo data as a TOML string for editing.
