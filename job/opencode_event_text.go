@@ -27,7 +27,7 @@ func formatPlainBody(body string, indent int) string {
 	if strings.TrimSpace(body) == "-" {
 		return IndentBlock(body, indent)
 	}
-	rendered := ReflowParagraphs(body, wrapWidth(indent))
+	rendered := ReflowParagraphs(body, wrapWidthFor(lineWidth, indent))
 	if strings.TrimSpace(rendered) == "" {
 		return IndentBlock("-", indent)
 	}

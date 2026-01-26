@@ -176,7 +176,7 @@ func formatLogBody(body string, indent int, wrap bool) string {
 		if strings.TrimSpace(body) == "-" {
 			return IndentBlock(body, indent)
 		}
-		return renderMarkdownBlockOrDash(body, indent, wrapWidth(indent))
+		return renderMarkdownBlockOrDash(body, indent, wrapWidthFor(lineWidth, indent))
 	}
 	return IndentBlock(body, indent)
 }
@@ -212,21 +212,13 @@ func formatMarkdownBlock(body string, indent int, preformatted bool) string {
 	if strings.TrimSpace(body) == "" {
 		return IndentBlock("-", indent)
 	}
-	width := wrapWidth(indent)
+	width := wrapWidthFor(lineWidth, indent)
 	renderWidth := width
 	if preformatted {
 		body = preserveMarkdownLineBreaks(body)
 		renderWidth = width + markdownHardBreakPadding
 	}
 	return renderMarkdownBlockOrDash(body, indent, renderWidth)
-}
-
-func wrapWidth(indent int) int {
-	width := lineWidth - indent
-	if width < 1 {
-		return 1
-	}
-	return width
 }
 
 type testResultLog struct {

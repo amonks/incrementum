@@ -14,6 +14,14 @@ const (
 	subdocumentIndent = 8
 )
 
+func wrapWidthFor(width int, indent int) int {
+	width -= indent
+	if width < 1 {
+		return 1
+	}
+	return width
+}
+
 // RenderMarkdown formats markdown text for terminal display.
 func RenderMarkdown(value string, width int) string {
 	rendered := markdown.Render(width, 0, []byte(value))
@@ -112,11 +120,7 @@ func ReflowIndentedText(value string, width int, baseIndent int) string {
 			out = append(out, strings.Repeat(" ", baseIndent+indent)+"-")
 			continue
 		}
-		wrapWidth := width - baseIndent - indent
-		if wrapWidth < 1 {
-			wrapWidth = 1
-		}
-		wrapped := wordwrap.String(normalized, wrapWidth)
+		wrapped := wordwrap.String(normalized, wrapWidthFor(width, baseIndent+indent))
 		wrapped = IndentBlock(wrapped, baseIndent+indent)
 		out = append(out, strings.Split(wrapped, "\n")...)
 	}
