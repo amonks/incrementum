@@ -996,12 +996,12 @@ func finalizeTodo(repoPath, todoID string, status Status) error {
 	}
 }
 
-func finishTodo(repoPath, todoID string) error {
+func updateTodoStatus(repoPath, todoID string, update func(*todo.Store, string) ([]todo.Todo, error)) error {
 	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
 	if err != nil {
 		return err
 	}
-	_, err = store.Finish([]string{todoID})
+	_, err = update(store, todoID)
 	releaseErr := store.Release()
 	if err != nil {
 		return errors.Join(err, releaseErr)
@@ -1009,15 +1009,14 @@ func finishTodo(repoPath, todoID string) error {
 	return releaseErr
 }
 
+func finishTodo(repoPath, todoID string) error {
+	return updateTodoStatus(repoPath, todoID, func(store *todo.Store, id string) ([]todo.Todo, error) {
+		return store.Finish([]string{id})
+	})
+}
+
 func reopenTodo(repoPath, todoID string) error {
-	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
-	if err != nil {
-		return err
-	}
-	_, err = store.Reopen([]string{todoID})
-	releaseErr := store.Release()
-	if err != nil {
-		return errors.Join(err, releaseErr)
-	}
-	return releaseErr
+	return updateTodoStatus(repoPath, todoID, func(store *todo.Store, id string) ([]todo.Todo, error) {
+		return store.Reopen([]string{id})
+	})
 }
