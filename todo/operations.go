@@ -405,14 +405,6 @@ func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 	return result, todos, nil
 }
 
-func todoMapByID(todos []Todo) map[string]*Todo {
-	todoMap := make(map[string]*Todo, len(todos))
-	for i := range todos {
-		todoMap[todos[i].ID] = &todos[i]
-	}
-	return todoMap
-}
-
 func idSetFromIDs(ids []string) map[string]struct{} {
 	if len(ids) == 0 {
 		return nil
@@ -785,7 +777,10 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 	}
 
 	// Build lookup maps
-	todoMap := todoMapByID(todos)
+	todoMap := make(map[string]*Todo, len(todos))
+	for i := range todos {
+		todoMap[todos[i].ID] = &todos[i]
+	}
 
 	// Group dependencies by todo ID
 	depsByTodo := make(map[string][]Dependency, len(deps))
