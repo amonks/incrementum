@@ -21,6 +21,15 @@ func NormalizeLowerTrimSpace(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
+// NormalizeNewlines replaces CRLF and CR with LF.
+func NormalizeNewlines(value string) string {
+	if value == "" {
+		return value
+	}
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	return strings.ReplaceAll(value, "\r", "\n")
+}
+
 // TrimTrailingCarriageReturn removes a trailing carriage return if present.
 func TrimTrailingCarriageReturn(value string) string {
 	return strings.TrimSuffix(value, "\r")

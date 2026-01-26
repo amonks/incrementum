@@ -19,8 +19,7 @@ func Render(width, indent int, input []byte) []byte {
 	if len(input) == 0 {
 		return nil
 	}
-	value := strings.ReplaceAll(string(input), "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "\n")
+	value := internalstrings.NormalizeNewlines(string(input))
 	value = internalstrings.TrimTrailingNewlines(value)
 	if strings.TrimSpace(value) == "" {
 		return nil

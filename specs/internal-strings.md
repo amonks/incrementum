@@ -20,6 +20,11 @@ across subsystems.
 - Trims surrounding whitespace with `strings.TrimSpace` and then lowercases.
 - Does not alter inner whitespace beyond trimming the edges.
 
+## NormalizeNewlines
+
+- Replaces CRLF and CR sequences with LF.
+- Used to normalize multi-line inputs before trimming or formatting.
+
 ## TrimTrailingCarriageReturn
 
 - Removes a single trailing `\r` from a line when present.

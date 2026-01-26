@@ -111,6 +111,49 @@ func TestNormalizeLowerTrimSpace(t *testing.T) {
 	}
 }
 
+func TestNormalizeNewlines(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "empty",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "no carriage returns",
+			input: "one\ntwo",
+			want:  "one\ntwo",
+		},
+		{
+			name:  "crlf",
+			input: "one\r\ntwo",
+			want:  "one\ntwo",
+		},
+		{
+			name:  "cr only",
+			input: "one\rtwo",
+			want:  "one\ntwo",
+		},
+		{
+			name:  "mixed",
+			input: "one\r\ntwo\rthree",
+			want:  "one\ntwo\nthree",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := NormalizeNewlines(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}
+
 func TestTrimTrailingNewlines(t *testing.T) {
 	cases := []struct {
 		name  string

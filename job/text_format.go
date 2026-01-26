@@ -79,8 +79,7 @@ func IndentBlock(value string, spaces int) string {
 
 // ReflowIndentedText wraps and preserves indentation levels.
 func ReflowIndentedText(value string, width int, baseIndent int) string {
-	value = strings.ReplaceAll(value, "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "\n")
+	value = internalstrings.NormalizeNewlines(value)
 	value = internalstrings.TrimTrailingNewlines(value)
 	if strings.TrimSpace(value) == "" {
 		return IndentBlock("-", baseIndent)

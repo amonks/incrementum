@@ -8,8 +8,7 @@ import (
 )
 
 func normalizeCommitMessage(message string) string {
-	message = strings.ReplaceAll(message, "\r\n", "\n")
-	message = strings.ReplaceAll(message, "\r", "\n")
+	message = internalstrings.NormalizeNewlines(message)
 	message = internalstrings.TrimTrailingNewlines(message)
 	if message == "" {
 		return ""
