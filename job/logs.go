@@ -50,7 +50,6 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				return err
 			}
 			writer.writeStage(StageMessage(data.Stage))
-			writer.lastCategory = "job"
 		case jobEventPrompt:
 			data, err := decodeEventData[promptEventData](event.Data)
 			if err != nil {
@@ -60,7 +59,6 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(promptLabel(data.Purpose), documentIndent),
 				formatMarkdownBody(data.Prompt, subdocumentIndent),
 			)
-			writer.lastCategory = "job"
 		case jobEventCommitMessage:
 			data, err := decodeEventData[commitMessageEventData](event.Data)
 			if err != nil {
@@ -71,7 +69,6 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(label, documentIndent),
 				formatCommitMessageBody(data.Message, subdocumentIndent, data.Preformatted),
 			)
-			writer.lastCategory = "job"
 		case jobEventTranscript:
 			data, err := decodeEventData[transcriptEventData](event.Data)
 			if err != nil {
@@ -82,7 +79,6 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel("Opencode transcript:", documentIndent),
 				formatTranscriptBody(data.Transcript, subdocumentIndent),
 			)
-			writer.lastCategory = "job"
 		case jobEventReview:
 			data, err := decodeEventData[reviewEventData](event.Data)
 			if err != nil {
@@ -92,14 +88,12 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(reviewLabel(data.Purpose), documentIndent),
 				formatLogBody(data.Details, subdocumentIndent, true),
 			)
-			writer.lastCategory = "job"
 		case jobEventTests:
 			data, err := decodeEventData[testsEventData](event.Data)
 			if err != nil {
 				return err
 			}
 			writer.writeTests(data.Results)
-			writer.lastCategory = "job"
 		case jobEventOpencodeError:
 			data, err := decodeEventData[opencodeErrorEventData](event.Data)
 			if err != nil {
@@ -109,12 +103,12 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 				formatLogLabel(opencodeErrorLabel(data.Purpose), documentIndent),
 				formatLogBody(data.Error, subdocumentIndent, false),
 			)
-			writer.lastCategory = "job"
 		case jobEventOpencodeStart, jobEventOpencodeEnd:
 			return nil
 		default:
 			return nil
 		}
+		writer.lastCategory = "job"
 		return nil
 	}
 
