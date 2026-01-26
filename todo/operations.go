@@ -165,23 +165,21 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 		}
 	}
 	if opts.Status != nil {
-		normalized, err := normalizeStatusInput(*opts.Status)
+		normalized, err := normalizeStatusPtr(opts.Status)
 		if err != nil {
 			return nil, err
 		}
-		opts.Status = &normalized
+		opts.Status = normalized
 	}
-	if opts.Priority != nil {
-		if err := ValidatePriority(*opts.Priority); err != nil {
-			return nil, err
-		}
+	if err := validatePriorityPtr(opts.Priority); err != nil {
+		return nil, err
 	}
 	if opts.Type != nil {
-		normalized, err := normalizeTodoTypeInput(*opts.Type)
+		normalized, err := normalizeTodoTypePtr(opts.Type)
 		if err != nil {
 			return nil, err
 		}
-		opts.Type = &normalized
+		opts.Type = normalized
 	}
 
 	// Build a set of IDs to update
@@ -361,23 +359,21 @@ func (s *Store) ListWithIndex(filter ListFilter) ([]Todo, IDIndex, error) {
 
 func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 	if filter.Status != nil {
-		normalized, err := normalizeStatusInput(*filter.Status)
+		normalized, err := normalizeStatusPtr(filter.Status)
 		if err != nil {
 			return nil, nil, err
 		}
-		filter.Status = &normalized
+		filter.Status = normalized
 	}
 	if filter.Type != nil {
-		normalized, err := normalizeTodoTypeInput(*filter.Type)
+		normalized, err := normalizeTodoTypePtr(filter.Type)
 		if err != nil {
 			return nil, nil, err
 		}
-		filter.Type = &normalized
+		filter.Type = normalized
 	}
-	if filter.Priority != nil {
-		if err := ValidatePriority(*filter.Priority); err != nil {
-			return nil, nil, err
-		}
+	if err := validatePriorityPtr(filter.Priority); err != nil {
+		return nil, nil, err
 	}
 
 	titleQuery := strings.ToLower(filter.TitleSubstring)
@@ -452,6 +448,35 @@ func missingTodoIDsError(missing []string) error {
 		return nil
 	}
 	return fmt.Errorf("todos not found: %s", strings.Join(missing, ", "))
+}
+
+func normalizeStatusPtr(status *Status) (*Status, error) {
+	if status == nil {
+		return nil, nil
+	}
+	normalized, err := normalizeStatusInput(*status)
+	if err != nil {
+		return nil, err
+	}
+	return &normalized, nil
+}
+
+func normalizeTodoTypePtr(todoType *TodoType) (*TodoType, error) {
+	if todoType == nil {
+		return nil, nil
+	}
+	normalized, err := normalizeTodoTypeInput(*todoType)
+	if err != nil {
+		return nil, err
+	}
+	return &normalized, nil
+}
+
+func validatePriorityPtr(priority *int) error {
+	if priority == nil {
+		return nil
+	}
+	return ValidatePriority(*priority)
 }
 
 func collectTodosByIDs(ids []string, lookup func(string) (Todo, bool)) ([]Todo, []string) {
