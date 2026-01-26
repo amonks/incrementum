@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/amonks/incrementum/internal/jj"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -89,5 +90,5 @@ func jjLogDescription(repoPath string) (string, error) {
 		}
 		return "", fmt.Errorf("jj log output: %w", err)
 	}
-	return strings.TrimRight(string(output), "\n"), nil
+	return internalstrings.TrimTrailingNewlines(string(output)), nil
 }
