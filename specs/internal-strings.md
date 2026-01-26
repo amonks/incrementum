@@ -35,6 +35,11 @@ across subsystems.
 - Removes trailing `\r` and `\n` characters from the end of a string.
 - Used when normalizing multi-line input/output before formatting.
 
+## TrimTrailingWhitespace
+
+- Removes trailing Unicode whitespace characters from a string.
+- Used to normalize line endings when trimming formatted commit message lines.
+
 ## TrimTrailingSlash
 
 - Removes trailing `/` characters from the end of a string.

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"unicode"
 
 	"github.com/amonks/incrementum/internal/jj"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
@@ -75,7 +74,7 @@ func TestRunCommitMessageShowsSummaryInJjLog(t *testing.T) {
 	if lines[0] != "feat: commit summary" {
 		t.Fatalf("expected summary line, got %q", lines[0])
 	}
-	if strings.TrimRightFunc(lines[0], unicode.IsSpace) != lines[0] {
+	if internalstrings.TrimTrailingWhitespace(lines[0]) != lines[0] {
 		t.Fatalf("expected summary to have no trailing whitespace, got %q", lines[0])
 	}
 }

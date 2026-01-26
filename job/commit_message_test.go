@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"unicode"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -133,7 +133,7 @@ func TestFormatCommitMessageNormalizesOutput(t *testing.T) {
 	if lines[0] != "feat: add widgets" {
 		t.Fatalf("expected normalized summary, got %q", lines[0])
 	}
-	if strings.TrimRightFunc(lines[0], unicode.IsSpace) != lines[0] {
+	if internalstrings.TrimTrailingWhitespace(lines[0]) != lines[0] {
 		t.Fatalf("expected summary to have no trailing whitespace, got %q", lines[0])
 	}
 }

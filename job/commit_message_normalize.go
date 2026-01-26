@@ -15,7 +15,7 @@ func normalizeCommitMessage(message string) string {
 	}
 	lines := strings.Split(message, "\n")
 	for i, line := range lines {
-		lines[i] = strings.TrimRightFunc(line, unicode.IsSpace)
+		lines[i] = internalstrings.TrimTrailingWhitespace(line)
 	}
 	message = strings.Join(lines, "\n")
 	return trimLeadingBlankLines(message)

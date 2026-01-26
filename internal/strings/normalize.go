@@ -1,6 +1,9 @@
 package strings
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 // NormalizeWhitespace collapses runs of whitespace into single spaces.
 func NormalizeWhitespace(value string) string {
@@ -38,6 +41,11 @@ func TrimTrailingCarriageReturn(value string) string {
 // TrimTrailingNewlines removes trailing CR/LF characters.
 func TrimTrailingNewlines(value string) string {
 	return strings.TrimRight(value, "\r\n")
+}
+
+// TrimTrailingWhitespace removes trailing Unicode whitespace characters.
+func TrimTrailingWhitespace(value string) string {
+	return strings.TrimRightFunc(value, unicode.IsSpace)
 }
 
 // TrimTrailingSlash removes trailing '/' characters.
