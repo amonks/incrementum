@@ -117,32 +117,31 @@ func (writer *logHTMLWriter) writeOpencodeEntry(event opencodeRenderedEvent) {
 
 func (writer *logHTMLWriter) writeEntry(kind, label, body string) {
 	writer.startEntry(kind)
-	if strings.TrimSpace(label) != "" {
-		writer.builder.WriteString("<div class=\"log-label\">")
-		writer.builder.WriteString(template.HTMLEscapeString(label))
-		writer.builder.WriteString("</div>")
-	}
-	if strings.TrimSpace(body) != "" {
-		writer.builder.WriteString("<div class=\"log-body\">")
-		writer.builder.WriteString(template.HTMLEscapeString(body))
-		writer.builder.WriteString("</div>")
-	}
+	writer.writeElement("div", "log-label", label)
+	writer.writeElement("div", "log-body", body)
 	writer.endEntry()
 }
 
 func (writer *logHTMLWriter) writeInline(kind, label, value string) {
 	writer.startEntry(kind)
-	if strings.TrimSpace(label) != "" {
-		writer.builder.WriteString("<span class=\"log-label\">")
-		writer.builder.WriteString(template.HTMLEscapeString(label))
-		writer.builder.WriteString("</span>")
-	}
-	if strings.TrimSpace(value) != "" {
-		writer.builder.WriteString("<span class=\"log-inline\">")
-		writer.builder.WriteString(template.HTMLEscapeString(value))
-		writer.builder.WriteString("</span>")
-	}
+	writer.writeElement("span", "log-label", label)
+	writer.writeElement("span", "log-inline", value)
 	writer.endEntry()
+}
+
+func (writer *logHTMLWriter) writeElement(tag, className, value string) {
+	if strings.TrimSpace(value) == "" {
+		return
+	}
+	writer.builder.WriteString("<")
+	writer.builder.WriteString(tag)
+	writer.builder.WriteString(" class=\"")
+	writer.builder.WriteString(className)
+	writer.builder.WriteString("\">")
+	writer.builder.WriteString(template.HTMLEscapeString(value))
+	writer.builder.WriteString("</")
+	writer.builder.WriteString(tag)
+	writer.builder.WriteString(">")
 }
 
 func (writer *logHTMLWriter) startEntry(kind string) {
