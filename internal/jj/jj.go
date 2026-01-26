@@ -31,13 +31,20 @@ func commandOutput(cmd *exec.Cmd, context string) ([]byte, error) {
 	return output, nil
 }
 
+func commandCombinedOutput(cmd *exec.Cmd, context string) ([]byte, error) {
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return output, fmt.Errorf("%s: %w: %s", context, err, output)
+	}
+	return output, nil
+}
+
 // Init initializes a new jj repository at the given path.
 func (c *Client) Init(path string) error {
 	cmd := exec.Command("jj", "git", "init")
 	cmd.Dir = path
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj git init: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj git init"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -57,9 +64,8 @@ func (c *Client) WorkspaceRoot(path string) (string, error) {
 func (c *Client) WorkspaceAdd(repoPath, name, workspacePath string) error {
 	cmd := exec.Command("jj", "workspace", "add", "--name", name, workspacePath)
 	cmd.Dir = repoPath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj workspace add: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj workspace add"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -90,9 +96,8 @@ func (c *Client) WorkspaceList(repoPath string) ([]string, error) {
 func (c *Client) Edit(workspacePath, rev string) error {
 	cmd := exec.Command("jj", "edit", rev)
 	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj edit: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj edit"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -143,9 +148,8 @@ func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
 func (c *Client) BookmarkCreate(workspacePath, name, rev string) error {
 	cmd := exec.Command("jj", "bookmark", "create", name, "-r", rev)
 	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj bookmark create: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj bookmark create"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -156,9 +160,8 @@ func (c *Client) BookmarkCreate(workspacePath, name, rev string) error {
 func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
 	cmd := exec.Command("jj", "new", parentRev)
 	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("jj new: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj new"); err != nil {
+		return "", err
 	}
 
 	// Get the change ID of the newly created change (now at @)
@@ -171,9 +174,8 @@ func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
 func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) (string, error) {
 	cmd := exec.Command("jj", "new", parentRev, "--no-edit", "--message", message)
 	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("jj new: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj new"); err != nil {
+		return "", err
 	}
 
 	// Get the change ID of the newly created change (now at @)
@@ -206,9 +208,9 @@ func (c *Client) CommitIDAt(workspacePath, rev string) (string, error) {
 func (c *Client) DiffStat(workspacePath, from, to string) (string, error) {
 	cmd := exec.Command("jj", "diff", "--from", from, "--to", to, "--stat")
 	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
+	output, err := commandCombinedOutput(cmd, "jj diff --stat")
 	if err != nil {
-		return "", fmt.Errorf("jj diff --stat: %w: %s", err, output)
+		return "", err
 	}
 	return string(output), nil
 }
@@ -228,9 +230,8 @@ func (c *Client) DescriptionAt(workspacePath, rev string) (string, error) {
 func (c *Client) Snapshot(workspacePath string) error {
 	cmd := exec.Command("jj", "debug", "snapshot")
 	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj debug snapshot: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj debug snapshot"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -240,9 +241,8 @@ func (c *Client) Describe(workspacePath, message string) error {
 	cmd := exec.Command("jj", "describe", "--stdin")
 	cmd.Dir = workspacePath
 	cmd.Stdin = strings.NewReader(message)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj describe: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj describe"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -262,9 +262,8 @@ func (c *Client) Commit(workspacePath, message string) error {
 func (c *Client) WorkspaceUpdateStale(workspacePath string) error {
 	cmd := exec.Command("jj", "workspace", "update-stale")
 	cmd.Dir = workspacePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj workspace update-stale: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj workspace update-stale"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -273,9 +272,8 @@ func (c *Client) WorkspaceUpdateStale(workspacePath string) error {
 func (c *Client) WorkspaceForget(repoPath, workspaceName string) error {
 	cmd := exec.Command("jj", "workspace", "forget", workspaceName)
 	cmd.Dir = repoPath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("jj workspace forget: %w: %s", err, output)
+	if _, err := commandCombinedOutput(cmd, "jj workspace forget"); err != nil {
+		return err
 	}
 	return nil
 }
