@@ -149,13 +149,7 @@ func formatCommitMessageBody(message string, indent int) string {
 		return jobpkg.IndentBlock("-", indent)
 	}
 	width := jobLineWidth - indent
-	if width < 1 {
-		width = 1
-	}
-	formatted := jobpkg.RenderMarkdown(message, width)
-	if strings.TrimSpace(formatted) == "" {
-		return jobpkg.IndentBlock("-", indent)
-	}
+	formatted := renderMarkdownOrDash(message, width)
 	return jobpkg.IndentBlock(formatted, indent)
 }
 
@@ -301,9 +295,5 @@ func formatJobField(label, value string) string {
 }
 
 func reflowJobText(value string, width int) string {
-	formatted := jobpkg.RenderMarkdown(value, width)
-	if strings.TrimSpace(formatted) == "" {
-		return "-"
-	}
-	return formatted
+	return renderMarkdownOrDash(value, width)
 }

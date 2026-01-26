@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	jobpkg "github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -42,12 +41,5 @@ func formatTodoDescription(value string) string {
 		return "-"
 	}
 	width := todoDetailLineWidth
-	if width < 1 {
-		width = 1
-	}
-	formatted := jobpkg.RenderMarkdown(value, width)
-	if strings.TrimSpace(formatted) == "" {
-		return "-"
-	}
-	return formatted
+	return renderMarkdownOrDash(value, width)
 }
