@@ -161,8 +161,8 @@ func (i *opencodeEventInterpreter) handleMessageUpdated(payload json.RawMessage)
 
 	state := i.ensureMessageState(info.ID)
 	if role == "user" {
-		if prompt := i.maybeEmitPrompt(state); prompt != nil {
-			return []opencodeRenderedEvent{*prompt}, nil
+		if prompt := i.maybeEmitPromptEvents(state); prompt != nil {
+			return prompt, nil
 		}
 	}
 
@@ -200,8 +200,8 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 		i.storePartText(state, part.ID, part.Text, false)
 		role := i.messageRoles[part.MessageID]
 		if role == "user" {
-			if prompt := i.maybeEmitPrompt(state); prompt != nil {
-				return []opencodeRenderedEvent{*prompt}, nil
+			if prompt := i.maybeEmitPromptEvents(state); prompt != nil {
+				return prompt, nil
 			}
 		}
 	case "reasoning":
@@ -258,6 +258,13 @@ func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) 
 	state.promptEmitted = true
 	event := renderPrompt(prompt)
 	return &event
+}
+
+func (i *opencodeEventInterpreter) maybeEmitPromptEvents(state *opencodeMessageState) []opencodeRenderedEvent {
+	if prompt := i.maybeEmitPrompt(state); prompt != nil {
+		return []opencodeRenderedEvent{*prompt}
+	}
+	return nil
 }
 
 func renderTool(summary string) opencodeRenderedEvent {
