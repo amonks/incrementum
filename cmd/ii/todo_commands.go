@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -703,12 +702,6 @@ func todoListPriorityFilter(priority int, changed bool) (*int, error) {
 		return nil, err
 	}
 	return &priority, nil
-}
-
-func encodeJSONToStdout(value any) error {
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	return enc.Encode(value)
 }
 
 func runTodoAction(cmd *cobra.Command, args []string, verb string, action func(*todo.Store) ([]todo.Todo, error)) error {

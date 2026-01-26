@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -274,9 +273,7 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 	}
 
 	if swarmListJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(jobs)
+		return encodeJSONToStdout(jobs)
 	}
 
 	if len(jobs) == 0 {

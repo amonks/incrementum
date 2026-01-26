@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -63,9 +61,7 @@ func runOpencodeList(cmd *cobra.Command, args []string) error {
 	sessions = opencode.FilterSessionsForList(sessions, opencodeListAll)
 
 	if opencodeListJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sessions)
+		return encodeJSONToStdout(sessions)
 	}
 
 	if len(sessions) == 0 {

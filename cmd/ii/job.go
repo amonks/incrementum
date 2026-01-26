@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
@@ -112,9 +110,7 @@ func runJobList(cmd *cobra.Command, args []string) error {
 	}
 
 	if jobListJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(jobs)
+		return encodeJSONToStdout(jobs)
 	}
 
 	allJobs := jobs

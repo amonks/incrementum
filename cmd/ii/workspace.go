@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -135,9 +133,7 @@ func runWorkspaceList(cmd *cobra.Command, args []string) error {
 	items = filterWorkspaceList(items, workspaceListAll)
 
 	if workspaceListJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(items)
+		return encodeJSONToStdout(items)
 	}
 
 	if len(items) == 0 {
