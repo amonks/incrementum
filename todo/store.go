@@ -458,37 +458,11 @@ func writeJSONL[T any](path string, items []T) error {
 	switch typed := any(items).(type) {
 	case []Todo:
 		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
-			buf := jsonlTodoBufPool.Get().([]byte)
-			defer func() {
-				if cap(buf) <= jsonlBufferSize {
-					jsonlTodoBufPool.Put(buf[:0])
-				}
-			}()
-			for i := range typed {
-				buf = buf[:0]
-				buf = appendTodoJSONLine(buf, &typed[i])
-				if _, err := writer.Write(buf); err != nil {
-					return fmt.Errorf("encode item %d: %w", i, err)
-				}
-			}
-			return nil
+			return writeJSONLWithBufferPool(writer, typed, &jsonlTodoBufPool, appendTodoJSONLine)
 		})
 	case []Dependency:
 		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
-			buf := jsonlDependencyBufPool.Get().([]byte)
-			defer func() {
-				if cap(buf) <= jsonlBufferSize {
-					jsonlDependencyBufPool.Put(buf[:0])
-				}
-			}()
-			for i := range typed {
-				buf = buf[:0]
-				buf = appendDependencyJSONLine(buf, &typed[i])
-				if _, err := writer.Write(buf); err != nil {
-					return fmt.Errorf("encode item %d: %w", i, err)
-				}
-			}
-			return nil
+			return writeJSONLWithBufferPool(writer, typed, &jsonlDependencyBufPool, appendDependencyJSONLine)
 		})
 	default:
 		return writeJSONLWithWriter(path, func(writer *bufio.Writer) error {
@@ -502,6 +476,23 @@ func writeJSONL[T any](path string, items []T) error {
 			return nil
 		})
 	}
+}
+
+func writeJSONLWithBufferPool[T any](writer *bufio.Writer, items []T, pool *sync.Pool, appendLine func([]byte, *T) []byte) error {
+	buf := pool.Get().([]byte)
+	defer func() {
+		if cap(buf) <= jsonlBufferSize {
+			pool.Put(buf[:0])
+		}
+	}()
+	for i := range items {
+		buf = buf[:0]
+		buf = appendLine(buf, &items[i])
+		if _, err := writer.Write(buf); err != nil {
+			return fmt.Errorf("encode item %d: %w", i, err)
+		}
+	}
+	return nil
 }
 
 func writeJSONLWithWriter(path string, write func(*bufio.Writer) error) error {
