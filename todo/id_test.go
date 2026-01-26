@@ -55,14 +55,14 @@ func TestGenerateID_DifferentInputs(t *testing.T) {
 
 func TestGenerateID_Uniqueness(t *testing.T) {
 	// Generate many IDs and check for collisions
-	seen := make(map[string]bool)
+	seen := make(map[string]struct{})
 	base := time.Now()
 
 	for i := 0; i < 1000; i++ {
 		id := GenerateID("Test todo", base.Add(time.Duration(i)*time.Nanosecond))
-		if seen[id] {
+		if _, ok := seen[id]; ok {
 			t.Errorf("collision detected for ID %q at iteration %d", id, i)
 		}
-		seen[id] = true
+		seen[id] = struct{}{}
 	}
 }
