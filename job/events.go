@@ -167,11 +167,10 @@ func ReadEvents(reader io.Reader) ([]Event, error) {
 	return events, nil
 }
 
-// EventSnapshot returns the stored job events.
-func EventSnapshot(jobID string, opts EventLogOptions) ([]Event, error) {
+func readEventLog(jobID string, opts EventLogOptions, allowMissing bool) ([]Event, error) {
 	file, err := openEventLogFile(jobID, opts)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if allowMissing && os.IsNotExist(err) {
 			return []Event{}, nil
 		}
 		return nil, err
@@ -180,6 +179,11 @@ func EventSnapshot(jobID string, opts EventLogOptions) ([]Event, error) {
 		_ = file.Close()
 	}()
 	return ReadEvents(file)
+}
+
+// EventSnapshot returns the stored job events.
+func EventSnapshot(jobID string, opts EventLogOptions) ([]Event, error) {
+	return readEventLog(jobID, opts, true)
 }
 
 func appendJobEvent(log *EventLog, name string, payload any) error {

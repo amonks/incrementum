@@ -8,18 +8,11 @@ import (
 
 // LogSnapshot returns the stored job event log.
 func LogSnapshot(jobID string, opts EventLogOptions) (string, error) {
-	file, err := openEventLogFile(jobID, opts)
+	entries, err := readEventLog(jobID, opts, false)
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		_ = file.Close()
-	}()
 	writer := &logSnapshotWriter{}
-	entries, err := ReadEvents(file)
-	if err != nil {
-		return "", err
-	}
 	for _, event := range entries {
 		if appendErr := writer.Append(event); appendErr != nil {
 			return "", appendErr
