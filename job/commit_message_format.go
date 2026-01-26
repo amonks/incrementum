@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -73,7 +74,7 @@ func renderMarkdownText(value string, width int) string {
 		return ""
 	}
 	rendered := RenderMarkdown(value, width)
-	return strings.TrimRight(rendered, "\n")
+	return internalstrings.TrimTrailingNewlines(rendered)
 }
 
 func renderMarkdownLines(lines []string, width int) string {

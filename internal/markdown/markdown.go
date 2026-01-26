@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/styles"
 )
@@ -20,7 +21,7 @@ func Render(width, indent int, input []byte) []byte {
 	}
 	value := strings.ReplaceAll(string(input), "\r\n", "\n")
 	value = strings.ReplaceAll(value, "\r", "\n")
-	value = strings.TrimRight(value, "\n")
+	value = internalstrings.TrimTrailingNewlines(value)
 	if strings.TrimSpace(value) == "" {
 		return nil
 	}
@@ -43,7 +44,7 @@ func Render(width, indent int, input []byte) []byte {
 			rendered = formatted
 		}
 	}
-	rendered = strings.TrimRight(rendered, "\n")
+	rendered = internalstrings.TrimTrailingNewlines(rendered)
 	if strings.TrimSpace(rendered) == "" {
 		return nil
 	}

@@ -855,7 +855,7 @@ func ensureCommitMessageInPrompt(prompt, message string) string {
 	if promptMessagePattern.MatchString(prompt) {
 		return prompt
 	}
-	trimmed := strings.TrimRight(prompt, "\n")
+	trimmed := internalstrings.TrimTrailingNewlines(prompt)
 	return trimmed + "\n\n{{.CommitMessageBlock}}\n"
 }
 

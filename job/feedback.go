@@ -91,7 +91,7 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 	}
 
 	details := strings.Join(lines[blankIndex+1:], "\n")
-	details = strings.TrimRight(details, "\n")
+	details = internalstrings.TrimTrailingNewlines(details)
 	if details == "" {
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}

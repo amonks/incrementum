@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // LogSnapshot returns the stored job event log.
@@ -18,7 +20,7 @@ func LogSnapshot(jobID string, opts EventLogOptions) (string, error) {
 			return "", appendErr
 		}
 	}
-	return strings.TrimRight(writer.String(), "\n"), nil
+	return internalstrings.TrimTrailingNewlines(writer.String()), nil
 }
 
 type logSnapshotWriter struct {

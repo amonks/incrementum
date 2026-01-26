@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/job"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -142,7 +143,7 @@ func (model jobDetailModel) renderContent() string {
 	}
 	header := fmt.Sprintf("Job %s", model.job.ID)
 	meta := fmt.Sprintf("Status: %s  Stage: %s  Todo: %s", model.job.Status, model.job.Stage, model.job.TodoID)
-	log := strings.TrimRight(model.content, "\n")
+	log := internalstrings.TrimTrailingNewlines(model.content)
 	if log == "" {
 		log = "-"
 	}

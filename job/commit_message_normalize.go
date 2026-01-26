@@ -3,12 +3,14 @@ package job
 import (
 	"strings"
 	"unicode"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 func normalizeCommitMessage(message string) string {
 	message = strings.ReplaceAll(message, "\r\n", "\n")
 	message = strings.ReplaceAll(message, "\r", "\n")
-	message = strings.TrimRight(message, "\n")
+	message = internalstrings.TrimTrailingNewlines(message)
 	if message == "" {
 		return ""
 	}

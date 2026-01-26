@@ -81,7 +81,7 @@ func IndentBlock(value string, spaces int) string {
 func ReflowIndentedText(value string, width int, baseIndent int) string {
 	value = strings.ReplaceAll(value, "\r\n", "\n")
 	value = strings.ReplaceAll(value, "\r", "\n")
-	value = strings.TrimRight(value, "\n")
+	value = internalstrings.TrimTrailingNewlines(value)
 	if strings.TrimSpace(value) == "" {
 		return IndentBlock("-", baseIndent)
 	}

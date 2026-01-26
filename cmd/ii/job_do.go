@@ -135,7 +135,7 @@ func formatCommitMessagesOutput(entries []jobpkg.CommitLogEntry) string {
 		out.WriteString(formatCommitMessageBody(entry.Message, jobSubdocumentIndent))
 		out.WriteString("\n")
 	}
-	return strings.TrimRight(out.String(), "\n")
+	return internalstrings.TrimTrailingNewlines(out.String())
 }
 
 func formatCommitMessageOutput(message string) string {
