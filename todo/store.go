@@ -298,21 +298,6 @@ func withFileLock(path string, fn func(*os.File) error) error {
 	return fn(f)
 }
 
-// readJSONL reads all JSON objects from a JSONL file into a slice.
-
-func readJSONL[T any](path string) ([]T, error) {
-	f, err := os.Open(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("open file: %w", err)
-	}
-	defer f.Close()
-
-	return readJSONLFromReader[T](f)
-}
-
 func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 	var items []T
 	readerSize := estimateReaderSize(reader)
@@ -755,11 +740,6 @@ func withStoreReader(store *Store, filename string, fn func(io.Reader) error) (b
 	return true, err
 }
 
-// readTodos reads all todos from the store.
-func (s *Store) readTodos() ([]Todo, error) {
-	return readJSONLStore[Todo](s, TodosFile)
-}
-
 func (s *Store) readTodosWithContext() ([]Todo, error) {
 	return readJSONLStoreWithContext[Todo](s, TodosFile, "todos")
 }
@@ -796,11 +776,6 @@ func writeJSONLStore[T any](store *Store, filename string, items []T) error {
 // writeTodos writes all todos to the store and runs jj snapshot.
 func (s *Store) writeTodos(todos []Todo) error {
 	return writeJSONLStore(s, TodosFile, todos)
-}
-
-// readDependencies reads all dependencies from the store.
-func (s *Store) readDependencies() ([]Dependency, error) {
-	return readJSONLStore[Dependency](s, DependenciesFile)
 }
 
 func (s *Store) readDependenciesWithContext() ([]Dependency, error) {
