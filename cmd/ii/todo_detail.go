@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/amonks/incrementum/todo"
 )
@@ -37,9 +36,5 @@ func printTodoDetail(t todo.Todo, highlight func(string) string) {
 const todoDetailLineWidth = 80
 
 func formatTodoDescription(value string) string {
-	if strings.TrimSpace(value) == "" {
-		return "-"
-	}
-	width := todoDetailLineWidth
-	return renderMarkdownOrDash(value, width)
+	return renderMarkdownOrDash(value, todoDetailLineWidth)
 }
