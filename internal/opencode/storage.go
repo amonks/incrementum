@@ -194,12 +194,8 @@ func (s Storage) listSessions(projectID string) ([]SessionMetadata, error) {
 			ProjectID: record.ProjectID,
 			Directory: record.Directory,
 		}
-		if record.Time.Created != 0 {
-			item.CreatedAt = time.UnixMilli(record.Time.Created)
-		}
-		if record.Time.Updated != 0 {
-			item.UpdatedAt = time.UnixMilli(record.Time.Updated)
-		}
+		item.CreatedAt = timeFromMillis(record.Time.Created)
+		item.UpdatedAt = timeFromMillis(record.Time.Updated)
 		items = append(items, item)
 	}
 	return items, nil
@@ -329,9 +325,7 @@ func (s Storage) listMessages(sessionID string) ([]messageInfo, error) {
 		}
 		id := storageRecordID(record.ID, entry.Name())
 		item := messageInfo{ID: id, Role: record.Role}
-		if record.Time.Created != 0 {
-			item.CreatedAt = time.UnixMilli(record.Time.Created)
-		}
+		item.CreatedAt = timeFromMillis(record.Time.Created)
 		items = append(items, item)
 	}
 
@@ -627,6 +621,13 @@ func formatTimeLabel(t time.Time) string {
 		return "unknown"
 	}
 	return t.Format(time.RFC3339Nano)
+}
+
+func timeFromMillis(value int64) time.Time {
+	if value == 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(value)
 }
 
 func sortByCreatedAt[T any](items []T, createdAt func(T) time.Time, tiebreak func(T) string) {
