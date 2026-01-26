@@ -475,26 +475,16 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	if err := appendJobEvent(opts.EventLog, jobEventPrompt, promptEventData{Purpose: "implement", Template: promptName, Prompt: prompt}); err != nil {
 		return ImplementingStageResult{}, err
 	}
-	if err := appendJobEvent(opts.EventLog, jobEventOpencodeStart, opencodeStartEventData{Purpose: "implement"}); err != nil {
-		return ImplementingStageResult{}, err
-	}
 
-	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
+	opencodeResult, err := runOpencodeWithEvents(opts, opencodeRunOptions{
 		RepoPath:      repoPath,
 		WorkspacePath: workspacePath,
 		Prompt:        prompt,
 		Agent:         opts.OpencodeAgent,
 		StartedAt:     opts.Now(),
 		EventLog:      opts.EventLog,
-	})
+	}, "implement")
 	if err != nil {
-		logErr := appendJobEvent(opts.EventLog, jobEventOpencodeError, opencodeErrorEventData{Purpose: "implement", Error: err.Error()})
-		if logErr != nil {
-			return ImplementingStageResult{}, errors.Join(err, logErr)
-		}
-		return ImplementingStageResult{}, err
-	}
-	if err := appendJobEvent(opts.EventLog, jobEventOpencodeEnd, opencodeEndEventData{Purpose: "implement", SessionID: opencodeResult.SessionID, ExitCode: opencodeResult.ExitCode}); err != nil {
 		return ImplementingStageResult{}, err
 	}
 
@@ -635,26 +625,16 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	if err := appendJobEvent(opts.EventLog, jobEventPrompt, promptEventData{Purpose: purpose, Template: promptName, Prompt: prompt}); err != nil {
 		return Job{}, err
 	}
-	if err := appendJobEvent(opts.EventLog, jobEventOpencodeStart, opencodeStartEventData{Purpose: purpose}); err != nil {
-		return Job{}, err
-	}
 
-	opencodeResult, err := opts.RunOpencode(opencodeRunOptions{
+	opencodeResult, err := runOpencodeWithEvents(opts, opencodeRunOptions{
 		RepoPath:      repoPath,
 		WorkspacePath: workspacePath,
 		Prompt:        prompt,
 		Agent:         opts.OpencodeAgent,
 		StartedAt:     opts.Now(),
 		EventLog:      opts.EventLog,
-	})
+	}, purpose)
 	if err != nil {
-		logErr := appendJobEvent(opts.EventLog, jobEventOpencodeError, opencodeErrorEventData{Purpose: purpose, Error: err.Error()})
-		if logErr != nil {
-			return Job{}, errors.Join(err, logErr)
-		}
-		return Job{}, err
-	}
-	if err := appendJobEvent(opts.EventLog, jobEventOpencodeEnd, opencodeEndEventData{Purpose: purpose, SessionID: opencodeResult.SessionID, ExitCode: opencodeResult.ExitCode}); err != nil {
 		return Job{}, err
 	}
 
@@ -846,6 +826,24 @@ func renderPromptTemplate(item todo.Todo, feedback, message string, commitLog []
 		return "", err
 	}
 	return RenderPrompt(prompt, newPromptData(item, feedback, message, commitLog, transcripts, workspacePath))
+}
+
+func runOpencodeWithEvents(opts RunOptions, runOpts opencodeRunOptions, purpose string) (OpencodeRunResult, error) {
+	if err := appendJobEvent(opts.EventLog, jobEventOpencodeStart, opencodeStartEventData{Purpose: purpose}); err != nil {
+		return OpencodeRunResult{}, err
+	}
+	result, err := opts.RunOpencode(runOpts)
+	if err != nil {
+		logErr := appendJobEvent(opts.EventLog, jobEventOpencodeError, opencodeErrorEventData{Purpose: purpose, Error: err.Error()})
+		if logErr != nil {
+			return OpencodeRunResult{}, errors.Join(err, logErr)
+		}
+		return OpencodeRunResult{}, err
+	}
+	if err := appendJobEvent(opts.EventLog, jobEventOpencodeEnd, opencodeEndEventData{Purpose: purpose, SessionID: result.SessionID, ExitCode: result.ExitCode}); err != nil {
+		return OpencodeRunResult{}, err
+	}
+	return result, nil
 }
 
 func ensureCommitMessageInPrompt(prompt, message string) string {
