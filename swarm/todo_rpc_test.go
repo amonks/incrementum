@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/amonks/incrementum/internal/jj"
+	"github.com/amonks/incrementum/internal/testsupport"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -19,14 +19,7 @@ func setupSwarmRepo(t *testing.T) string {
 	tmpDir := t.TempDir()
 	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
 
-	homeDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(homeDir, ".local", "state", "incrementum"), 0o755); err != nil {
-		t.Fatalf("create state dir: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(homeDir, ".local", "share", "incrementum", "workspaces"), 0o755); err != nil {
-		t.Fatalf("create workspaces dir: %v", err)
-	}
-	t.Setenv("HOME", homeDir)
+	testsupport.SetupTestHome(t)
 
 	client := jj.New()
 	if err := client.Init(tmpDir); err != nil {
