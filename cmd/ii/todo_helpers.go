@@ -59,3 +59,19 @@ func resolveDescriptionFromStdin(description string, reader io.Reader) (string, 
 	value := strings.TrimRight(string(input), "\r\n")
 	return value, nil
 }
+
+func resolveDescriptionFlag(cmd *cobra.Command, description *string, reader io.Reader) error {
+	if !cmd.Flags().Changed("description") {
+		return nil
+	}
+	resolved, err := resolveDescriptionFromStdin(*description, reader)
+	if err != nil {
+		return err
+	}
+	*description = resolved
+	return nil
+}
+
+func hasTodoCreateFlags(cmd *cobra.Command) bool {
+	return hasChangedFlags(cmd, "title", "type", "priority", "description", "deps")
+}

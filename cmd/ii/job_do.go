@@ -48,15 +48,11 @@ func init() {
 }
 
 func runJobDo(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("description") {
-		desc, err := resolveDescriptionFromStdin(jobDoDescription, os.Stdin)
-		if err != nil {
-			return err
-		}
-		jobDoDescription = desc
+	if err := resolveDescriptionFlag(cmd, &jobDoDescription, os.Stdin); err != nil {
+		return err
 	}
 
-	hasCreateFlags := jobDoHasCreateFlags(cmd)
+	hasCreateFlags := hasTodoCreateFlags(cmd)
 	if len(args) > 0 && (hasCreateFlags || jobDoEdit || jobDoNoEdit) {
 		return fmt.Errorf("todo id cannot be combined with todo creation flags")
 	}
@@ -179,10 +175,6 @@ func printJobStart(info jobpkg.StartInfo) {
 	fmt.Printf("%sDescription:\n", indent)
 	description := reflowJobText(info.Todo.Description, jobLineWidth-jobSubdocumentIndent)
 	fmt.Printf("%s\n\n", jobpkg.IndentBlock(description, jobSubdocumentIndent))
-}
-
-func jobDoHasCreateFlags(cmd *cobra.Command) bool {
-	return hasChangedFlags(cmd, "title", "type", "priority", "description", "deps")
 }
 
 func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {

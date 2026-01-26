@@ -152,15 +152,11 @@ func normalizeSwarmServeAddr(addr string) (string, error) {
 }
 
 func runSwarmDo(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("description") {
-		desc, err := resolveDescriptionFromStdin(jobDoDescription, os.Stdin)
-		if err != nil {
-			return err
-		}
-		jobDoDescription = desc
+	if err := resolveDescriptionFlag(cmd, &jobDoDescription, os.Stdin); err != nil {
+		return err
 	}
 
-	hasCreateFlags := jobDoHasCreateFlags(cmd)
+	hasCreateFlags := hasTodoCreateFlags(cmd)
 	if len(args) > 0 && (hasCreateFlags || jobDoEdit || jobDoNoEdit) {
 		return fmt.Errorf("todo id cannot be combined with todo creation flags")
 	}

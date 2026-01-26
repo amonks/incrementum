@@ -241,24 +241,16 @@ func todoCreatePriorityValue(cmd *cobra.Command) *int {
 	return nil
 }
 
-func todoCreateHasCreateFlags(cmd *cobra.Command) bool {
-	return hasChangedFlags(cmd, "title", "type", "priority", "description", "deps")
-}
-
 func runTodoCreate(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("description") {
-		desc, err := resolveDescriptionFromStdin(todoCreateDescription, os.Stdin)
-		if err != nil {
-			return err
-		}
-		todoCreateDescription = desc
+	if err := resolveDescriptionFlag(cmd, &todoCreateDescription, os.Stdin); err != nil {
+		return err
 	}
 
 	// Determine whether to open editor:
 	// - --edit forces editor
 	// - --no-edit skips editor
 	// - otherwise, open editor only when no create fields and interactive
-	hasCreateFlags := todoCreateHasCreateFlags(cmd)
+	hasCreateFlags := hasTodoCreateFlags(cmd)
 	useEditor := shouldUseEditor(hasCreateFlags, todoCreateEdit, todoCreateNoEdit, editor.IsInteractive())
 
 	if useEditor {
@@ -342,12 +334,8 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Release()
 
-	if cmd.Flags().Changed("description") {
-		desc, err := resolveDescriptionFromStdin(todoUpdateDescription, os.Stdin)
-		if err != nil {
-			return err
-		}
-		todoUpdateDescription = desc
+	if err := resolveDescriptionFlag(cmd, &todoUpdateDescription, os.Stdin); err != nil {
+		return err
 	}
 
 	hasFlags := hasChangedFlags(cmd, "title", "description", "status", "priority", "type")
