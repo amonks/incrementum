@@ -20,15 +20,11 @@ func (formatter *EventHTMLFormatter) Append(event Event) (template.HTML, error) 
 	if formatter == nil {
 		return "", nil
 	}
-	start := formatter.writer.Len()
-	if err := formatter.writer.Append(event); err != nil {
+	output, err := appendEventOutput(&formatter.writer, event)
+	if err != nil {
 		return "", err
 	}
-	output := formatter.writer.String()
-	if len(output) <= start {
-		return "", nil
-	}
-	return template.HTML(output[start:]), nil
+	return template.HTML(output), nil
 }
 
 type logHTMLWriter struct {

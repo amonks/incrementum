@@ -204,15 +204,7 @@ func (formatter *EventFormatter) Append(event Event) (string, error) {
 	if formatter == nil {
 		return "", nil
 	}
-	start := formatter.writer.Len()
-	if err := formatter.writer.Append(event); err != nil {
-		return "", err
-	}
-	output := formatter.writer.String()
-	if len(output) <= start {
-		return "", nil
-	}
-	return output[start:], nil
+	return appendEventOutput(&formatter.writer, event)
 }
 
 func decodeEventData[T any](payload string) (T, error) {
