@@ -9,13 +9,16 @@ import (
 // NormalizeUniqueIDs lowercases IDs and removes duplicates or empty values.
 func NormalizeUniqueIDs(ids []string) []string {
 	uniqueIDs := make([]string, 0, len(ids))
-	seen := make(map[string]bool, len(ids))
+	seen := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
 		idLower := normalizeID(id)
-		if idLower == "" || seen[idLower] {
+		if idLower == "" {
 			continue
 		}
-		seen[idLower] = true
+		if _, ok := seen[idLower]; ok {
+			continue
+		}
+		seen[idLower] = struct{}{}
 		uniqueIDs = append(uniqueIDs, idLower)
 	}
 	return uniqueIDs
