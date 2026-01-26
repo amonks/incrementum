@@ -104,32 +104,36 @@ func (i *opencodeEventInterpreter) Handle(event Event) ([]opencodeRenderedEvent,
 	}
 	payload, err := parseOpencodeEventPayload(event.Data)
 	if err != nil || strings.TrimSpace(payload.Type) == "" {
-		label := opencodeEventLabel(event.Name)
-		return []opencodeRenderedEvent{{Kind: "raw", Label: label, Body: event.Data}}, nil
+		return rawOpencodeEvent(opencodeEventLabel(event.Name), event.Data), nil
 	}
 
 	switch payload.Type {
 	case "message.updated":
 		outputs, err := i.handleMessageUpdated(payload.Properties)
 		if err != nil {
-			label := fmt.Sprintf("Opencode event (%s):", payload.Type)
-			return []opencodeRenderedEvent{{Kind: "raw", Label: label, Body: event.Data}}, nil
+			return rawOpencodeEvent(opencodePayloadLabel(payload.Type), event.Data), nil
 		}
 		return outputs, nil
 	case "message.part.updated":
 		outputs, err := i.handleMessagePartUpdated(payload.Properties)
 		if err != nil {
-			label := fmt.Sprintf("Opencode event (%s):", payload.Type)
-			return []opencodeRenderedEvent{{Kind: "raw", Label: label, Body: event.Data}}, nil
+			return rawOpencodeEvent(opencodePayloadLabel(payload.Type), event.Data), nil
 		}
 		return outputs, nil
 	default:
 		if !i.enabled(payload.Type) {
 			return nil, nil
 		}
-		label := fmt.Sprintf("Opencode event (%s):", payload.Type)
-		return []opencodeRenderedEvent{{Kind: "raw", Label: label, Body: event.Data}}, nil
+		return rawOpencodeEvent(opencodePayloadLabel(payload.Type), event.Data), nil
 	}
+}
+
+func opencodePayloadLabel(payloadType string) string {
+	return fmt.Sprintf("Opencode event (%s):", payloadType)
+}
+
+func rawOpencodeEvent(label, body string) []opencodeRenderedEvent {
+	return []opencodeRenderedEvent{{Kind: "raw", Label: label, Body: body}}
 }
 
 func (i *opencodeEventInterpreter) enabled(eventType string) bool {
