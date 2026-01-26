@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 	"github.com/charmbracelet/lipgloss"
@@ -152,7 +153,7 @@ func assertScreencap(t *testing.T, name, content string) {
 }
 
 func normalizeScreencap(value string) string {
-	value = strings.TrimRight(value, "\n")
+	value = internalstrings.TrimTrailingNewlines(value)
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
 		lines[i] = strings.TrimRight(line, " \t")

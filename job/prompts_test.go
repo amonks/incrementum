@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -146,7 +147,7 @@ func TestFormatTodoBlock_PreservesFieldLines(t *testing.T) {
 		"        Do the thing",
 	}, "\n")
 
-	if strings.TrimRight(formatted, "\n") != expected {
+	if internalstrings.TrimTrailingNewlines(formatted) != expected {
 		t.Fatalf("expected todo block fields to stay on separate lines, got %q", formatted)
 	}
 }
