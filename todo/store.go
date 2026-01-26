@@ -302,10 +302,11 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 		if items == nil && readerSize > 0 {
 			items = make([]T, 0, estimateJSONLItems(readerSize, len(line)))
 		}
-		items = append(items, *new(T))
-		if err := json.Unmarshal(line, &items[len(items)-1]); err != nil {
+		var item T
+		if err := json.Unmarshal(line, &item); err != nil {
 			return false, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
 		}
+		items = append(items, item)
 		return false, nil
 	}); err != nil {
 		return nil, err
