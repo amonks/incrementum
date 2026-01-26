@@ -54,6 +54,12 @@ func runCombinedOutput(cmd *exec.Cmd, context string) error {
 	return nil
 }
 
+func logFieldAt(workspacePath, rev, field string) (string, error) {
+	cmd := exec.Command("jj", "log", "-r", rev, "-T", field, "--no-graph")
+	cmd.Dir = workspacePath
+	return commandOutputString(cmd, "jj log")
+}
+
 // Init initializes a new jj repository at the given path.
 func (c *Client) Init(path string) error {
 	cmd := exec.Command("jj", "git", "init")
@@ -106,16 +112,12 @@ func (c *Client) Edit(workspacePath, rev string) error {
 
 // CurrentChangeID returns the change ID of the current working copy commit.
 func (c *Client) CurrentChangeID(workspacePath string) (string, error) {
-	cmd := exec.Command("jj", "log", "-r", "@", "-T", "change_id", "--no-graph")
-	cmd.Dir = workspacePath
-	return commandOutputString(cmd, "jj log")
+	return logFieldAt(workspacePath, "@", "change_id")
 }
 
 // CurrentCommitID returns the commit ID of the current working copy commit.
 func (c *Client) CurrentCommitID(workspacePath string) (string, error) {
-	cmd := exec.Command("jj", "log", "-r", "@", "-T", "commit_id", "--no-graph")
-	cmd.Dir = workspacePath
-	return commandOutputString(cmd, "jj log")
+	return logFieldAt(workspacePath, "@", "commit_id")
 }
 
 // BookmarkList returns all bookmark names in the repository.
@@ -175,16 +177,12 @@ func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) 
 
 // ChangeIDAt returns the change ID at the given revision.
 func (c *Client) ChangeIDAt(workspacePath, rev string) (string, error) {
-	cmd := exec.Command("jj", "log", "-r", rev, "-T", "change_id", "--no-graph")
-	cmd.Dir = workspacePath
-	return commandOutputString(cmd, "jj log")
+	return logFieldAt(workspacePath, rev, "change_id")
 }
 
 // CommitIDAt returns the commit ID at the given revision.
 func (c *Client) CommitIDAt(workspacePath, rev string) (string, error) {
-	cmd := exec.Command("jj", "log", "-r", rev, "-T", "commit_id", "--no-graph")
-	cmd.Dir = workspacePath
-	return commandOutputString(cmd, "jj log")
+	return logFieldAt(workspacePath, rev, "commit_id")
 }
 
 // DiffStat returns the diff stat between two revisions.
@@ -200,9 +198,7 @@ func (c *Client) DiffStat(workspacePath, from, to string) (string, error) {
 
 // DescriptionAt returns the description at the given revision.
 func (c *Client) DescriptionAt(workspacePath, rev string) (string, error) {
-	cmd := exec.Command("jj", "log", "-r", rev, "-T", "description", "--no-graph")
-	cmd.Dir = workspacePath
-	return commandOutputString(cmd, "jj log")
+	return logFieldAt(workspacePath, rev, "description")
 }
 
 // Snapshot runs jj debug snapshot to record working copy changes to the current change.
