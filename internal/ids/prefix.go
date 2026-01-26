@@ -74,37 +74,34 @@ func UniquePrefixLengthsNormalized(ids []string) map[string]int {
 // MatchPrefix returns the matching ID for a non-empty prefix.
 // The returned match preserves the original ID casing.
 func MatchPrefix(ids []string, prefix string) (string, bool, bool) {
-	needle := strings.ToLower(prefix)
-	var match string
-	for _, id := range ids {
-		idLower := strings.ToLower(id)
-		if idLower != needle && !strings.HasPrefix(idLower, needle) {
-			continue
-		}
-		if match != "" && !strings.EqualFold(match, id) {
-			return "", true, true
-		}
-		match = id
-	}
-
-	if match == "" {
-		return "", false, false
-	}
-
-	return match, true, false
+	return matchPrefix(ids, prefix, true)
 }
 
 // MatchPrefixNormalized returns the matching ID for a non-empty prefix.
 // It expects ids to already be normalized and de-duplicated.
 func MatchPrefixNormalized(ids []string, prefix string) (string, bool, bool) {
+	return matchPrefix(ids, prefix, false)
+}
+
+func matchPrefix(ids []string, prefix string, normalizeIDs bool) (string, bool, bool) {
 	needle := strings.ToLower(prefix)
 	var match string
 	for _, id := range ids {
-		if id != needle && !strings.HasPrefix(id, needle) {
+		idKey := id
+		if normalizeIDs {
+			idKey = strings.ToLower(id)
+		}
+		if idKey != needle && !strings.HasPrefix(idKey, needle) {
 			continue
 		}
-		if match != "" && match != id {
-			return "", true, true
+		if match != "" {
+			if normalizeIDs {
+				if !strings.EqualFold(match, id) {
+					return "", true, true
+				}
+			} else if match != id {
+				return "", true, true
+			}
 		}
 		match = id
 	}
