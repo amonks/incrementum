@@ -674,18 +674,9 @@ func parseIDList(value string) []string {
 		return nil
 	}
 
-	parts := strings.FieldsFunc(value, func(r rune) bool {
+	return strings.FieldsFunc(value, func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	})
-
-	ids := make([]string, 0, len(parts))
-	for _, part := range parts {
-		if part == "" {
-			continue
-		}
-		ids = append(ids, part)
-	}
-	return ids
 }
 
 func todoIDPrefixLengthsForStore(store *todo.Store) (map[string]int, error) {
