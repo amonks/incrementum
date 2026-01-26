@@ -58,17 +58,26 @@ func init() {
 	listflags.AddAllFlag(workspaceListCmd, &workspaceListAll)
 }
 
+func openWorkspacePoolAndRepoPath() (*workspace.Pool, string, error) {
+	pool, err := workspace.Open()
+	if err != nil {
+		return nil, "", err
+	}
+
+	repoPath, err := getRepoPath()
+	if err != nil {
+		return nil, "", err
+	}
+
+	return pool, repoPath, nil
+}
+
 func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
 	if err := validateWorkspaceAcquirePurpose(workspaceAcquirePurpose); err != nil {
 		return err
 	}
 
-	pool, err := workspace.Open()
-	if err != nil {
-		return err
-	}
-
-	repoPath, err := getRepoPath()
+	pool, repoPath, err := openWorkspacePoolAndRepoPath()
 	if err != nil {
 		return err
 	}
@@ -96,12 +105,7 @@ func validateWorkspaceAcquirePurpose(purpose string) error {
 }
 
 func runWorkspaceRelease(cmd *cobra.Command, args []string) error {
-	pool, err := workspace.Open()
-	if err != nil {
-		return err
-	}
-
-	repoPath, err := getRepoPath()
+	pool, repoPath, err := openWorkspacePoolAndRepoPath()
 	if err != nil {
 		return err
 	}
@@ -115,12 +119,7 @@ func runWorkspaceRelease(cmd *cobra.Command, args []string) error {
 }
 
 func runWorkspaceList(cmd *cobra.Command, args []string) error {
-	pool, err := workspace.Open()
-	if err != nil {
-		return err
-	}
-
-	repoPath, err := getRepoPath()
+	pool, repoPath, err := openWorkspacePoolAndRepoPath()
 	if err != nil {
 		return err
 	}
@@ -161,12 +160,7 @@ func filterWorkspaceList(items []workspace.Info, includeAll bool) []workspace.In
 }
 
 func runWorkspaceDestroyAll(cmd *cobra.Command, args []string) error {
-	pool, err := workspace.Open()
-	if err != nil {
-		return err
-	}
-
-	repoPath, err := getRepoPath()
+	pool, repoPath, err := openWorkspacePoolAndRepoPath()
 	if err != nil {
 		return err
 	}
