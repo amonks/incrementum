@@ -156,7 +156,7 @@ func normalizeScreencap(value string) string {
 	value = internalstrings.TrimTrailingNewlines(value)
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
-		lines[i] = strings.TrimRight(line, " \t")
+		lines[i] = internalstrings.TrimTrailingWhitespace(line)
 	}
 	return strings.Join(lines, "\n")
 }
