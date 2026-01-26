@@ -1,0 +1,72 @@
+You are responding to feedback on a change that is intended to move us towards
+completion of a todo.
+
+Previous feedback
+
+    Reviewer notes: - Verify wrapping in long paragraphs and list items. - Ensure
+    blank lines remain where expected.
+    
+    Please double-check that empty lines are preserved between sections.
+
+
+Commit message from the previous version:
+Commit message
+
+    feat: snapshot text formatting
+    
+    Add snapshot tests for prompts and commit messages, ensuring wrapping for
+    long lines and bulleted lists stays consistent.
+
+
+Changes are reviewed according to these questions:
+
+- Does it do what the message says?
+- Does it move us towards the goal in the todo?
+- Is it _necessary_ for moving us towards the goal in the todo?
+- Is it free of defects?
+- Is the domain modeling coherent and sound?
+- Are things in the right place?
+- Does it include proper test coverage?
+- Does it keep the relevant specs up to date?
+- Does it conform to the norms of the code areas it modifies?
+- Does it work?
+
+
+When you make changes, write a multi-line commit message to ./.incrementum-commit-message
+Keep changes focused on the current step.
+
+Commits so far:
+- ID: abc1234
+Message:
+feat: initial formatting
+
+- Added wordwrap for bullet lists.
+- Preserved indentation for subdocuments.
+- ID: def5678
+Message:
+fix: reflow todo blocks
+
+Ensure long lines wrap within the expected width for logs and prompts.
+
+
+
+Todo
+
+    ID: todo-57uzut5r
+    Title: Snapshot-test text formatting
+    Type: task
+    Priority: 1
+    Description:
+        Build snapshot tests for long-form output so regressions are obvious.
+        Cover prompt rendering, commit message formatting, and log snapshots.
+        Make sure wrapping handles long lines, bullets, and mixed indentation.
+        
+        - First bullet item has a long line that should wrap within the todo
+        description block and keep indentation consistent. - Second bullet is
+        shorter but still wraps when it needs to.
+        
+            Indented block line one should wrap and stay indented even when the
+            line is long enough to exceed the width.
+        
+            Indented block line two continues with more words to force another
+            wrap and confirm spacing.

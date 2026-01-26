@@ -8,6 +8,7 @@ Incrementum tests are organized into tiers that exercise real behavior instead o
 ### Unit Tests
 - Pure Go logic stays in package-local tests next to the code.
 - Focus on core domain logic, formatting helpers, and validation rules.
+- Snapshot tests for text formatting live under `job/testdata/snapshots` and compare rendered prompts, commit messages, and log output against curated fixtures. Update these files manually when formatting rules change.
 
 ### Integration Tests
 - Integration tests use real binaries and on-disk state (jj, opencode storage, workspaces).

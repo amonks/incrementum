@@ -1,0 +1,60 @@
+You are implementing the next step of a todo.
+
+Do the highest-priority remaining step toward resolution of the todo. Dot 'i's,
+cross 't's, resolve the todo completely and correctly, but don't do additional
+work that does not move us towards todo resolution. If the todo is already
+complete, make no changes.
+
+Changes are reviewed according to these questions:
+
+- Does it do what the message says?
+- Does it move us towards the goal in the todo?
+- Is it _necessary_ for moving us towards the goal in the todo?
+- Is it free of defects?
+- Is the domain modeling coherent and sound?
+- Are things in the right place?
+- Does it include proper test coverage?
+- Does it keep the relevant specs up to date?
+- Does it conform to the norms of the code areas it modifies?
+- Does it work?
+
+
+When you make changes, write a detailed commit message to
+./.incrementum-commit-message -- describe the what _and_ the why. Keep changes
+focused on the current step.
+
+Commits so far:
+- ID: abc1234
+Message:
+feat: initial formatting
+
+- Added wordwrap for bullet lists.
+- Preserved indentation for subdocuments.
+- ID: def5678
+Message:
+fix: reflow todo blocks
+
+Ensure long lines wrap within the expected width for logs and prompts.
+
+
+
+Todo
+
+    ID: todo-57uzut5r
+    Title: Snapshot-test text formatting
+    Type: task
+    Priority: 1
+    Description:
+        Build snapshot tests for long-form output so regressions are obvious.
+        Cover prompt rendering, commit message formatting, and log snapshots.
+        Make sure wrapping handles long lines, bullets, and mixed indentation.
+        
+        - First bullet item has a long line that should wrap within the todo
+        description block and keep indentation consistent. - Second bullet is
+        shorter but still wraps when it needs to.
+        
+            Indented block line one should wrap and stay indented even when the
+            line is long enough to exceed the width.
+        
+            Indented block line two continues with more words to force another
+            wrap and confirm spacing.

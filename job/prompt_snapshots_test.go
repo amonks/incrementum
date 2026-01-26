@@ -1,0 +1,71 @@
+package job
+
+import (
+	"path/filepath"
+	"testing"
+
+	"github.com/amonks/incrementum/todo"
+)
+
+func TestPromptSnapshots(t *testing.T) {
+	data := promptSnapshotData()
+	promptFiles := []string{
+		"prompt-implementation.tmpl",
+		"prompt-feedback.tmpl",
+		"prompt-commit-review.tmpl",
+		"prompt-project-review.tmpl",
+	}
+
+	for _, name := range promptFiles {
+		t.Run(name, func(t *testing.T) {
+			contents, err := LoadPrompt("", name)
+			if err != nil {
+				t.Fatalf("load prompt: %v", err)
+			}
+			rendered, err := RenderPrompt(contents, data)
+			if err != nil {
+				t.Fatalf("render prompt: %v", err)
+			}
+			snapshotName := name + ".txt"
+			requireSnapshot(t, snapshotName, rendered)
+		})
+	}
+}
+
+func promptSnapshotData() PromptData {
+	item := todo.Todo{
+		ID:       "todo-57uzut5r",
+		Title:    "Snapshot-test text formatting",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityHigh,
+		Description: "Build snapshot tests for long-form output so regressions are obvious. " +
+			"Cover prompt rendering, commit message formatting, and log snapshots. " +
+			"Make sure wrapping handles long lines, bullets, and mixed indentation.\n\n" +
+			"- First bullet item has a long line that should wrap within the todo description block and keep indentation consistent.\n" +
+			"- Second bullet is shorter but still wraps when it needs to.\n\n" +
+			"    Indented block line one should wrap and stay indented even when the line is long enough to exceed the width.\n" +
+			"\n" +
+			"    Indented block line two continues with more words to force another wrap and confirm spacing.",
+	}
+
+	feedback := "Reviewer notes:\n" +
+		"- Verify wrapping in long paragraphs and list items.\n" +
+		"- Ensure blank lines remain where expected.\n\n" +
+		"Please double-check that empty lines are preserved between sections."
+
+	message := "feat: snapshot text formatting\n\n" +
+		"Add snapshot tests for prompts and commit messages, ensuring wrapping for long lines and bulleted lists stays consistent."
+
+	commitLog := []CommitLogEntry{
+		{
+			ID:      "abc1234",
+			Message: "feat: initial formatting\n\n- Added wordwrap for bullet lists.\n- Preserved indentation for subdocuments.",
+		},
+		{
+			ID:      "def5678",
+			Message: "fix: reflow todo blocks\n\nEnsure long lines wrap within the expected width for logs and prompts.",
+		},
+	}
+
+	return newPromptData(item, feedback, message, commitLog, nil, filepath.Join("/tmp", "workspaces", "snapshot-test"))
+}

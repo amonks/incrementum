@@ -1,0 +1,57 @@
+Review the implementation of our todo.
+
+The working tree contains an implementation that is purported to resolve our todo.
+
+Commits for this todo:
+- ID: abc1234
+Message:
+feat: initial formatting
+
+- Added wordwrap for bullet lists.
+- Preserved indentation for subdocuments.
+- ID: def5678
+Message:
+fix: reflow todo blocks
+
+Ensure long lines wrap within the expected width for logs and prompts.
+
+
+
+Review the implementation of our todo:
+- Does it complete the goal in the todo?
+- Is it free of defects?
+- Does it include proper test coverage?
+- Does it keep the relevant specs up to date?
+- Does it conform to the norms of the code areas it modifies?
+- Does it work?
+
+Publish your review to the file ./.incrementum-feedback
+
+Write one of the following allcaps words as the first line:
+- `ACCEPT` -- if the changes pass review and should be merged
+- `ABANDON` -- if the changes are so off-base as to be a lost cause
+- `REQUEST_CHANGES` -- if some modifications could get the changes into shape
+
+If requesting changes, add a blank line and the details after it.
+
+
+Todo
+
+    ID: todo-57uzut5r
+    Title: Snapshot-test text formatting
+    Type: task
+    Priority: 1
+    Description:
+        Build snapshot tests for long-form output so regressions are obvious.
+        Cover prompt rendering, commit message formatting, and log snapshots.
+        Make sure wrapping handles long lines, bullets, and mixed indentation.
+        
+        - First bullet item has a long line that should wrap within the todo
+        description block and keep indentation consistent. - Second bullet is
+        shorter but still wraps when it needs to.
+        
+            Indented block line one should wrap and stay indented even when the
+            line is long enough to exceed the width.
+        
+            Indented block line two continues with more words to force another
+            wrap and confirm spacing.
