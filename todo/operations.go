@@ -795,18 +795,18 @@ func (s *Store) DepTree(id string) (*DepTreeNode, error) {
 	}
 
 	// Build tree recursively
-	path := make(map[string]bool)
+	path := make(map[string]struct{})
 	return buildDepTree(rootTodo, depsByTodo, todoMap, path), nil
 }
 
 // buildDepTree recursively builds a dependency tree node.
 
-func buildDepTree(todo *Todo, depsByTodo map[string][]Dependency, todoMap map[string]*Todo, path map[string]bool) *DepTreeNode {
-	if path[todo.ID] {
+func buildDepTree(todo *Todo, depsByTodo map[string][]Dependency, todoMap map[string]*Todo, path map[string]struct{}) *DepTreeNode {
+	if _, ok := path[todo.ID]; ok {
 		// Avoid cycles
 		return &DepTreeNode{Todo: todo}
 	}
-	path[todo.ID] = true
+	path[todo.ID] = struct{}{}
 	defer delete(path, todo.ID)
 
 	node := &DepTreeNode{
