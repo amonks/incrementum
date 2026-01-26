@@ -140,6 +140,11 @@ func (s *Server) handler(baseURL string) http.Handler {
 	return s.recoverHandler(mux)
 }
 
+func (s *Server) openTodoStore(opts todo.OpenOptions) (*todo.Store, error) {
+	opts.PromptToCreate = false
+	return todo.Open(s.repoPath, opts)
+}
+
 // Serve runs the server on the given address.
 func (s *Server) Serve(addr string) error {
 	server := &http.Server{
@@ -236,7 +241,7 @@ func (s *Server) failActiveJob(jobID string) error {
 	if updated.TodoID == "" {
 		return nil
 	}
-	store, err := todo.Open(s.repoPath, todo.OpenOptions{CreateIfMissing: false, PromptToCreate: false})
+	store, err := s.openTodoStore(todo.OpenOptions{CreateIfMissing: false})
 	if err != nil {
 		return err
 	}
@@ -366,9 +371,8 @@ func (s *Server) handleTodosList(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	store, err := todo.Open(s.repoPath, todo.OpenOptions{
+	store, err := s.openTodoStore(todo.OpenOptions{
 		CreateIfMissing: false,
-		PromptToCreate:  false,
 		ReadOnly:        true,
 		Purpose:         "swarm todos list",
 	})
@@ -399,9 +403,8 @@ func (s *Server) handleTodosCreate(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	store, err := todo.Open(s.repoPath, todo.OpenOptions{
+	store, err := s.openTodoStore(todo.OpenOptions{
 		CreateIfMissing: true,
-		PromptToCreate:  false,
 		Purpose:         "swarm todos create",
 	})
 	if err != nil {
@@ -427,9 +430,8 @@ func (s *Server) handleTodosUpdate(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	store, err := todo.Open(s.repoPath, todo.OpenOptions{
+	store, err := s.openTodoStore(todo.OpenOptions{
 		CreateIfMissing: true,
-		PromptToCreate:  false,
 		Purpose:         "swarm todos update",
 	})
 	if err != nil {
