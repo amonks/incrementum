@@ -65,7 +65,6 @@ var (
 	todoUpdateStatus      string
 	todoUpdatePriority    int
 	todoUpdateType        string
-	todoUpdatePrioritySet bool
 	todoUpdateEdit        bool
 	todoUpdateNoEdit      bool
 )
@@ -133,16 +132,15 @@ var todoListCmd = &cobra.Command{
 }
 
 var (
-	todoListStatus      string
-	todoListPriority    int
-	todoListType        string
-	todoListIDs         string
-	todoListTitle       string
-	todoListDesc        string
-	todoListJSON        bool
-	todoListAll         bool
-	todoListTombstones  bool
-	todoListPrioritySet bool
+	todoListStatus     string
+	todoListPriority   int
+	todoListType       string
+	todoListIDs        string
+	todoListTitle      string
+	todoListDesc       string
+	todoListJSON       bool
+	todoListAll        bool
+	todoListTombstones bool
 )
 
 // todo ready
