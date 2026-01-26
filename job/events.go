@@ -123,6 +123,18 @@ func eventLogPath(jobID string, opts EventLogOptions) (string, error) {
 	return filepath.Join(root, jobID+".jsonl"), nil
 }
 
+func openEventLogFile(jobID string, opts EventLogOptions) (*os.File, error) {
+	path, err := eventLogPath(jobID, opts)
+	if err != nil {
+		return nil, err
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
 // EventLogPath returns the path to the job event log.
 func EventLogPath(jobID string, opts EventLogOptions) (string, error) {
 	return eventLogPath(jobID, opts)
@@ -157,11 +169,7 @@ func ReadEvents(reader io.Reader) ([]Event, error) {
 
 // EventSnapshot returns the stored job events.
 func EventSnapshot(jobID string, opts EventLogOptions) ([]Event, error) {
-	path, err := eventLogPath(jobID, opts)
-	if err != nil {
-		return nil, err
-	}
-	file, err := os.Open(path)
+	file, err := openEventLogFile(jobID, opts)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []Event{}, nil

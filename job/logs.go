@@ -3,17 +3,12 @@ package job
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 )
 
 // LogSnapshot returns the stored job event log.
 func LogSnapshot(jobID string, opts EventLogOptions) (string, error) {
-	path, err := eventLogPath(jobID, opts)
-	if err != nil {
-		return "", err
-	}
-	file, err := os.Open(path)
+	file, err := openEventLogFile(jobID, opts)
 	if err != nil {
 		return "", err
 	}
