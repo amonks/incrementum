@@ -769,7 +769,10 @@ func writeJSONLStore[T any](store *Store, filename string, items []T) error {
 
 // writeTodos writes all todos to the store and runs jj snapshot.
 func (s *Store) writeTodos(todos []Todo) error {
-	return writeJSONLStore(s, TodosFile, todos)
+	if err := writeJSONLStore(s, TodosFile, todos); err != nil {
+		return fmt.Errorf("write todos: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) readDependenciesWithContext() ([]Dependency, error) {
@@ -778,7 +781,10 @@ func (s *Store) readDependenciesWithContext() ([]Dependency, error) {
 
 // writeDependencies writes all dependencies to the store and runs jj snapshot.
 func (s *Store) writeDependencies(deps []Dependency) error {
-	return writeJSONLStore(s, DependenciesFile, deps)
+	if err := writeJSONLStore(s, DependenciesFile, deps); err != nil {
+		return fmt.Errorf("write dependencies: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {

@@ -112,7 +112,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 
 	// Write todos
 	if err := s.writeTodos(todos); err != nil {
-		return nil, fmt.Errorf("write todos: %w", err)
+		return nil, err
 	}
 
 	// Add dependencies
@@ -131,7 +131,7 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 		}
 
 		if err := s.writeDependencies(existingDeps); err != nil {
-			return nil, fmt.Errorf("write dependencies: %w", err)
+			return nil, err
 		}
 	}
 
@@ -207,7 +207,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 	}
 
 	if err := s.writeTodos(todos); err != nil {
-		return nil, fmt.Errorf("write todos: %w", err)
+		return nil, err
 	}
 
 	return updated, nil
@@ -762,7 +762,7 @@ func (s *Store) DepAdd(todoID, dependsOnID string) (*Dependency, error) {
 	deps = append(deps, dep)
 
 	if err := s.writeDependencies(deps); err != nil {
-		return nil, fmt.Errorf("write dependencies: %w", err)
+		return nil, err
 	}
 
 	return &dep, nil
