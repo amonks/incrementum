@@ -160,17 +160,6 @@ func filterWorkspaceList(items []workspace.Info, includeAll bool) []workspace.In
 	return filtered
 }
 
-func filterWorkspaceListByStatus(items []workspace.Info, status workspace.Status) []workspace.Info {
-	filtered := make([]workspace.Info, 0, len(items))
-	for _, item := range items {
-		if item.Status != status {
-			continue
-		}
-		filtered = append(filtered, item)
-	}
-	return filtered
-}
-
 func runWorkspaceDestroyAll(cmd *cobra.Command, args []string) error {
 	pool, err := workspace.Open()
 	if err != nil {
