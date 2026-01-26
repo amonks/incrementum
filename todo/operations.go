@@ -283,29 +283,7 @@ func (s *Store) Show(ids []string) ([]Todo, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(resolvedIDs) == 1 {
-		id := resolvedIDs[0]
-		for i := range todos {
-			if todos[i].ID == id {
-				return []Todo{todos[i]}, nil
-			}
-		}
-		return nil, missingTodoIDsError([]string{id})
-	}
-
-	idSet := make(map[string]struct{}, len(resolvedIDs))
-	for _, id := range resolvedIDs {
-		idSet[id] = struct{}{}
-	}
-	todoByID := make(map[string]Todo, len(idSet))
-	if len(idSet) > 0 {
-		for _, todo := range todos {
-			if _, ok := idSet[todo.ID]; ok {
-				todoByID[todo.ID] = todo
-			}
-		}
-	}
-
+	todoByID := todosByIDSet(todos, resolvedIDs)
 	result, missing := collectTodosByIDs(resolvedIDs, func(id string) (Todo, bool) {
 		todo, ok := todoByID[id]
 		return todo, ok
@@ -441,6 +419,26 @@ func todoMapByID(todos []Todo) map[string]*Todo {
 		todoMap[todos[i].ID] = &todos[i]
 	}
 	return todoMap
+}
+
+func todosByIDSet(todos []Todo, ids []string) map[string]Todo {
+	if len(ids) == 0 {
+		return nil
+	}
+	idSet := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		idSet[id] = struct{}{}
+	}
+	todoByID := make(map[string]Todo, len(idSet))
+	for _, todo := range todos {
+		if _, ok := idSet[todo.ID]; ok {
+			todoByID[todo.ID] = todo
+		}
+	}
+	if len(todoByID) == 0 {
+		return nil
+	}
+	return todoByID
 }
 
 func missingTodoIDsError(missing []string) error {
