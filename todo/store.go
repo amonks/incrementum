@@ -710,7 +710,10 @@ func (s *Store) readTodosByExactIDs(missing map[string]struct{}) (map[string]Tod
 	found, err := withStoreReader(s, TodosFile, func(reader io.Reader) error {
 		var err error
 		items, err = readTodosByExactIDsFromReader(reader, missing)
-		return err
+		if err != nil {
+			return fmt.Errorf("read todos: %w", err)
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
