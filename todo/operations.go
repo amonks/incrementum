@@ -363,15 +363,15 @@ func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 	}
 
 	// Build ID set if filtering by IDs
-	var idSet map[string]bool
+	var idSet map[string]struct{}
 	if len(filter.IDs) > 0 {
 		resolvedIDs, err := resolveTodoIDsWithTodos(filter.IDs, todos)
 		if err != nil {
 			return nil, nil, err
 		}
-		idSet = make(map[string]bool, len(resolvedIDs))
+		idSet = make(map[string]struct{}, len(resolvedIDs))
 		for _, id := range resolvedIDs {
-			idSet[id] = true
+			idSet[id] = struct{}{}
 		}
 	}
 
@@ -397,8 +397,10 @@ func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 		if filter.Type != nil && todo.Type != *filter.Type {
 			continue
 		}
-		if idSet != nil && !idSet[todo.ID] {
-			continue
+		if idSet != nil {
+			if _, ok := idSet[todo.ID]; !ok {
+				continue
+			}
 		}
 		if titleQuery != "" && !strings.Contains(strings.ToLower(todo.Title), titleQuery) {
 			continue
