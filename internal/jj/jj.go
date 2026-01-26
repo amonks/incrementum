@@ -245,12 +245,12 @@ func (c *Client) WorkspaceForget(repoPath, workspaceName string) error {
 func (c *Client) FileShow(repoPath, rev, path string) ([]byte, error) {
 	cmd := exec.Command("jj", "file", "show", "-r", rev, path)
 	cmd.Dir = repoPath
-	output, err := cmd.CombinedOutput()
+	output, err := commandCombinedOutput(cmd, "jj file show")
 	if err != nil {
 		if isFileNotFoundOutput(output) {
 			return nil, ErrFileNotFound
 		}
-		return nil, fmt.Errorf("jj file show: %w: %s", err, output)
+		return nil, err
 	}
 	return output, nil
 }
