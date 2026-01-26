@@ -350,11 +350,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		todoUpdateDescription = desc
 	}
 
-	hasFlags := cmd.Flags().Changed("title") ||
-		cmd.Flags().Changed("description") ||
-		cmd.Flags().Changed("status") ||
-		cmd.Flags().Changed("priority") ||
-		cmd.Flags().Changed("type")
+	hasFlags := hasChangedFlags(cmd, "title", "description", "status", "priority", "type")
 
 	// Determine whether to open editor:
 	// - --edit forces editor
