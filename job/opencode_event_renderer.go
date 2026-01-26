@@ -158,7 +158,7 @@ func (i *opencodeEventInterpreter) handleMessageUpdated(payload json.RawMessage)
 
 	state := i.ensureMessageState(info.ID)
 	if role == "user" {
-		if prompt := i.maybeEmitPromptEvents(state); prompt != nil {
+		if prompt := i.maybeEmitPrompt(state); prompt != nil {
 			return prompt, nil
 		}
 	}
@@ -197,7 +197,7 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 		i.storePartText(state, part.ID, part.Text, false)
 		role := i.messageRoles[part.MessageID]
 		if role == "user" {
-			if prompt := i.maybeEmitPromptEvents(state); prompt != nil {
+			if prompt := i.maybeEmitPrompt(state); prompt != nil {
 				return prompt, nil
 			}
 		}
@@ -244,7 +244,7 @@ func (i *opencodeEventInterpreter) storePartText(state *opencodeMessageState, pa
 	state.textParts[partID] = text
 }
 
-func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) *opencodeRenderedEvent {
+func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) []opencodeRenderedEvent {
 	if state == nil || state.promptEmitted || !i.enabled("message.part.updated") {
 		return nil
 	}
@@ -253,15 +253,7 @@ func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) 
 		return nil
 	}
 	state.promptEmitted = true
-	event := renderPrompt(prompt)
-	return &event
-}
-
-func (i *opencodeEventInterpreter) maybeEmitPromptEvents(state *opencodeMessageState) []opencodeRenderedEvent {
-	if prompt := i.maybeEmitPrompt(state); prompt != nil {
-		return []opencodeRenderedEvent{*prompt}
-	}
-	return nil
+	return []opencodeRenderedEvent{renderPrompt(prompt)}
 }
 
 func renderTool(summary string) opencodeRenderedEvent {
