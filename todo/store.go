@@ -831,9 +831,6 @@ func resolveTodoIDsWithTodos(ids []string, todos []Todo) ([]string, error) {
 }
 
 func resolveExactTodoIDs(ids []string, todos []Todo) ([]string, bool, error) {
-	if len(ids) == 0 {
-		return nil, true, ErrTodoNotFound
-	}
 	missing, ok := exactTodoIDSet(ids)
 	if !ok {
 		return nil, false, nil
