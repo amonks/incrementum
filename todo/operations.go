@@ -521,12 +521,14 @@ func applyStatusChange(item *Todo, newStatus Status, previousStatus Status, opts
 		item.StartedAt = nil
 		item.CompletedAt = nil
 	}
+	if newStatus != StatusTombstone {
+		item.DeletedAt = nil
+		item.DeleteReason = ""
+	}
 
 	switch newStatus {
 	case StatusClosed, StatusDone:
 		item.ClosedAt = &now
-		item.DeletedAt = nil
-		item.DeleteReason = ""
 		if newStatus == StatusDone {
 			if previousStatus == StatusInProgress {
 				item.CompletedAt = &now
@@ -541,8 +543,6 @@ func applyStatusChange(item *Todo, newStatus Status, previousStatus Status, opts
 		}
 	case StatusOpen, StatusInProgress, StatusProposed:
 		item.ClosedAt = nil
-		item.DeletedAt = nil
-		item.DeleteReason = ""
 		if newStatus == StatusInProgress && previousStatus != StatusInProgress {
 			item.StartedAt = &now
 			item.CompletedAt = nil
