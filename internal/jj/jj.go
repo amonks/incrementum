@@ -31,6 +31,14 @@ func commandOutput(cmd *exec.Cmd, context string) ([]byte, error) {
 	return output, nil
 }
 
+func commandOutputString(cmd *exec.Cmd, context string) (string, error) {
+	output, err := commandOutput(cmd, context)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 func commandCombinedOutput(cmd *exec.Cmd, context string) ([]byte, error) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -53,11 +61,7 @@ func (c *Client) Init(path string) error {
 func (c *Client) WorkspaceRoot(path string) (string, error) {
 	cmd := exec.Command("jj", "workspace", "root")
 	cmd.Dir = path
-	output, err := commandOutput(cmd, "jj workspace root")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
+	return commandOutputString(cmd, "jj workspace root")
 }
 
 // WorkspaceAdd adds a new workspace to the repository.
@@ -106,22 +110,14 @@ func (c *Client) Edit(workspacePath, rev string) error {
 func (c *Client) CurrentChangeID(workspacePath string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", "@", "-T", "change_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := commandOutput(cmd, "jj log")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
+	return commandOutputString(cmd, "jj log")
 }
 
 // CurrentCommitID returns the commit ID of the current working copy commit.
 func (c *Client) CurrentCommitID(workspacePath string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", "@", "-T", "commit_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := commandOutput(cmd, "jj log")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
+	return commandOutputString(cmd, "jj log")
 }
 
 // BookmarkList returns all bookmark names in the repository.
@@ -186,22 +182,14 @@ func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) 
 func (c *Client) ChangeIDAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "change_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := commandOutput(cmd, "jj log")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
+	return commandOutputString(cmd, "jj log")
 }
 
 // CommitIDAt returns the commit ID at the given revision.
 func (c *Client) CommitIDAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "commit_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := commandOutput(cmd, "jj log")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
+	return commandOutputString(cmd, "jj log")
 }
 
 // DiffStat returns the diff stat between two revisions.
@@ -219,11 +207,7 @@ func (c *Client) DiffStat(workspacePath, from, to string) (string, error) {
 func (c *Client) DescriptionAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "description", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := commandOutput(cmd, "jj log")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
+	return commandOutputString(cmd, "jj log")
 }
 
 // Snapshot runs jj debug snapshot to record working copy changes to the current change.
