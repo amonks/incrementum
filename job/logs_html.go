@@ -162,12 +162,9 @@ func (writer *logHTMLWriter) writeInline(kind, label, value string) {
 }
 
 func (writer *logHTMLWriter) formatTests(results []testResultEventData) string {
-	if len(results) == 0 {
+	formatted := testResultLogsFromEventData(results)
+	if len(formatted) == 0 {
 		return "-"
-	}
-	formatted := make([]testResultLog, 0, len(results))
-	for _, result := range results {
-		formatted = append(formatted, testResultLog{Command: result.Command, ExitCode: result.ExitCode, Output: result.Output})
 	}
 	return formatTestLogBody(formatted)
 }

@@ -196,19 +196,7 @@ func (writer *logSnapshotWriter) appendOpencodeEvent(event Event) error {
 }
 
 func (writer *logSnapshotWriter) writeTests(results []testResultEventData) {
-	if len(results) == 0 {
-		writer.writeBlock(formatTestLogBody(nil))
-		return
-	}
-	formatted := make([]testResultLog, 0, len(results))
-	for _, result := range results {
-		formatted = append(formatted, testResultLog{
-			Command:  result.Command,
-			ExitCode: result.ExitCode,
-			Output:   result.Output,
-		})
-	}
-	writer.writeBlock(formatTestLogBody(formatted))
+	writer.writeBlock(formatTestLogBody(testResultLogsFromEventData(results)))
 }
 
 func (writer *logSnapshotWriter) String() string {

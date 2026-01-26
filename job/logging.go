@@ -123,15 +123,7 @@ func (logger *ConsoleLogger) Tests(entry TestLog) {
 	if logger == nil {
 		return
 	}
-	results := make([]testResultLog, 0, len(entry.Results))
-	for _, result := range entry.Results {
-		results = append(results, testResultLog{
-			Command:  result.Command,
-			ExitCode: result.ExitCode,
-			Output:   result.Output,
-		})
-	}
-	logger.writeBlock(formatTestLogBody(results))
+	logger.writeBlock(formatTestLogBody(testResultLogsFromCommandResults(entry.Results)))
 }
 
 func (logger *ConsoleLogger) writeBlock(lines ...string) {
@@ -232,6 +224,36 @@ type testResultLog struct {
 	Command  string
 	ExitCode int
 	Output   string
+}
+
+func testResultLogsFromEventData(results []testResultEventData) []testResultLog {
+	if len(results) == 0 {
+		return nil
+	}
+	logs := make([]testResultLog, 0, len(results))
+	for _, result := range results {
+		logs = append(logs, testResultLog{
+			Command:  result.Command,
+			ExitCode: result.ExitCode,
+			Output:   result.Output,
+		})
+	}
+	return logs
+}
+
+func testResultLogsFromCommandResults(results []TestCommandResult) []testResultLog {
+	if len(results) == 0 {
+		return nil
+	}
+	logs := make([]testResultLog, 0, len(results))
+	for _, result := range results {
+		logs = append(logs, testResultLog{
+			Command:  result.Command,
+			ExitCode: result.ExitCode,
+			Output:   result.Output,
+		})
+	}
+	return logs
 }
 
 func formatTestLogBody(results []testResultLog) string {
