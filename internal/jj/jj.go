@@ -20,6 +20,17 @@ func New() *Client {
 	return &Client{}
 }
 
+func commandOutput(cmd *exec.Cmd, context string) ([]byte, error) {
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("%s: %w: %s", context, err, exitErr.Stderr)
+		}
+		return nil, fmt.Errorf("%s: %w", context, err)
+	}
+	return output, nil
+}
+
 // Init initializes a new jj repository at the given path.
 func (c *Client) Init(path string) error {
 	cmd := exec.Command("jj", "git", "init")
@@ -35,12 +46,9 @@ func (c *Client) Init(path string) error {
 func (c *Client) WorkspaceRoot(path string) (string, error) {
 	cmd := exec.Command("jj", "workspace", "root")
 	cmd.Dir = path
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj workspace root")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("jj workspace root: %w: %s", err, exitErr.Stderr)
-		}
-		return "", fmt.Errorf("jj workspace root: %w", err)
+		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
 }
@@ -60,12 +68,9 @@ func (c *Client) WorkspaceAdd(repoPath, name, workspacePath string) error {
 func (c *Client) WorkspaceList(repoPath string) ([]string, error) {
 	cmd := exec.Command("jj", "workspace", "list")
 	cmd.Dir = repoPath
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj workspace list")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("jj workspace list: %w: %s", err, exitErr.Stderr)
-		}
-		return nil, fmt.Errorf("jj workspace list: %w", err)
+		return nil, err
 	}
 
 	lines := bytes.Split(bytes.TrimSpace(output), []byte("\n"))
@@ -96,12 +101,9 @@ func (c *Client) Edit(workspacePath, rev string) error {
 func (c *Client) CurrentChangeID(workspacePath string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", "@", "-T", "change_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj log")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
-		}
-		return "", fmt.Errorf("jj log: %w", err)
+		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
 }
@@ -110,12 +112,9 @@ func (c *Client) CurrentChangeID(workspacePath string) (string, error) {
 func (c *Client) CurrentCommitID(workspacePath string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", "@", "-T", "commit_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj log")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
-		}
-		return "", fmt.Errorf("jj log: %w", err)
+		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
 }
@@ -124,12 +123,9 @@ func (c *Client) CurrentCommitID(workspacePath string) (string, error) {
 func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
 	cmd := exec.Command("jj", "bookmark", "list", "-T", "name ++ \"\\n\"")
 	cmd.Dir = workspacePath
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj bookmark list")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("jj bookmark list: %w: %s", err, exitErr.Stderr)
-		}
-		return nil, fmt.Errorf("jj bookmark list: %w", err)
+		return nil, err
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
@@ -188,12 +184,9 @@ func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) 
 func (c *Client) ChangeIDAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "change_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj log")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
-		}
-		return "", fmt.Errorf("jj log: %w", err)
+		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
 }
@@ -202,12 +195,9 @@ func (c *Client) ChangeIDAt(workspacePath, rev string) (string, error) {
 func (c *Client) CommitIDAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "commit_id", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj log")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
-		}
-		return "", fmt.Errorf("jj log: %w", err)
+		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
 }
@@ -227,12 +217,9 @@ func (c *Client) DiffStat(workspacePath, from, to string) (string, error) {
 func (c *Client) DescriptionAt(workspacePath, rev string) (string, error) {
 	cmd := exec.Command("jj", "log", "-r", rev, "-T", "description", "--no-graph")
 	cmd.Dir = workspacePath
-	output, err := cmd.Output()
+	output, err := commandOutput(cmd, "jj log")
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("jj log: %w: %s", err, exitErr.Stderr)
-		}
-		return "", fmt.Errorf("jj log: %w", err)
+		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
 }
