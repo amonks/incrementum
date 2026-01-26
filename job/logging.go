@@ -140,11 +140,15 @@ func (logger *ConsoleLogger) writeBlock(lines ...string) {
 }
 
 func normalizeLogBody(value string) string {
-	value = strings.TrimRight(value, "\r\n")
+	value = trimTrailingNewlines(value)
 	if strings.TrimSpace(value) == "" {
 		return "-"
 	}
 	return value
+}
+
+func trimTrailingNewlines(value string) string {
+	return strings.TrimRight(value, "\r\n")
 }
 
 func formatLogLabel(label string, indent int) string {
@@ -200,7 +204,7 @@ func formatMarkdownBody(body string, indent int) string {
 }
 
 func formatMarkdownBlock(body string, indent int, preformatted bool) string {
-	body = strings.TrimRight(body, "\r\n")
+	body = trimTrailingNewlines(body)
 	if strings.TrimSpace(body) == "" {
 		return IndentBlock("-", indent)
 	}
