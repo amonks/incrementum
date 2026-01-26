@@ -183,10 +183,7 @@ func (s *Store) Update(ids []string, opts UpdateOptions) ([]Todo, error) {
 	}
 
 	// Build a set of IDs to update
-	idSet := make(map[string]struct{}, len(resolvedIDs))
-	for _, id := range resolvedIDs {
-		idSet[id] = struct{}{}
-	}
+	idSet := idSetFromIDs(resolvedIDs)
 
 	now := time.Now()
 	updated := make([]Todo, 0, len(resolvedIDs))
@@ -369,10 +366,7 @@ func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		idSet = make(map[string]struct{}, len(resolvedIDs))
-		for _, id := range resolvedIDs {
-			idSet[id] = struct{}{}
-		}
+		idSet = idSetFromIDs(resolvedIDs)
 	}
 
 	includeTombstones := filter.IncludeTombstones
@@ -423,14 +417,22 @@ func todoMapByID(todos []Todo) map[string]*Todo {
 	return todoMap
 }
 
+func idSetFromIDs(ids []string) map[string]struct{} {
+	if len(ids) == 0 {
+		return nil
+	}
+	set := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		set[id] = struct{}{}
+	}
+	return set
+}
+
 func todosByIDSet(todos []Todo, ids []string) map[string]Todo {
 	if len(ids) == 0 {
 		return nil
 	}
-	idSet := make(map[string]struct{}, len(ids))
-	for _, id := range ids {
-		idSet[id] = struct{}{}
-	}
+	idSet := idSetFromIDs(ids)
 	todoByID := make(map[string]Todo, len(idSet))
 	for _, todo := range todos {
 		if _, ok := idSet[todo.ID]; ok {
