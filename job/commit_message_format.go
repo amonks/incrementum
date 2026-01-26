@@ -16,10 +16,7 @@ func formatCommitMessageWithWidth(item todo.Todo, message string, width int) str
 	summary, body := splitCommitMessage(message)
 	formatted := renderMarkdownText(summary, width)
 
-	bodyText := renderMarkdownText(body, width-documentIndent)
-	if strings.TrimSpace(bodyText) == "" {
-		bodyText = "-"
-	}
+	bodyText := renderMarkdownTextOrDash(body, width-documentIndent)
 	formatted += "\n\nHere is a generated commit message:\n\n"
 	formatted += IndentBlock(bodyText, documentIndent)
 
@@ -54,16 +51,7 @@ func formatCommitTodoWithWidth(item todo.Todo, width int) string {
 	fieldBlock := renderMarkdownLines(fields, width-documentIndent)
 	fieldBlock = IndentBlock(fieldBlock, documentIndent)
 
-	description := strings.TrimSpace(item.Description)
-	if description == "" {
-		description = "-"
-		description = IndentBlock(description, subdocumentIndent)
-		return fieldBlock + "\n" + description
-	}
-	description = renderMarkdownText(description, width-subdocumentIndent)
-	if description == "" {
-		description = "-"
-	}
+	description := renderMarkdownTextOrDash(item.Description, width-subdocumentIndent)
 	description = IndentBlock(description, subdocumentIndent)
 	return fieldBlock + "\n" + description
 }
@@ -75,6 +63,14 @@ func renderMarkdownText(value string, width int) string {
 	}
 	rendered := RenderMarkdown(value, width)
 	return internalstrings.TrimTrailingNewlines(rendered)
+}
+
+func renderMarkdownTextOrDash(value string, width int) string {
+	rendered := renderMarkdownText(value, width)
+	if strings.TrimSpace(rendered) == "" {
+		return "-"
+	}
+	return rendered
 }
 
 func renderMarkdownLines(lines []string, width int) string {
