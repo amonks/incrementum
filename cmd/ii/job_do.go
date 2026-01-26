@@ -186,6 +186,12 @@ func jobDoHasCreateFlags(cmd *cobra.Command) bool {
 }
 
 func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
+	return createTodoFromJobFlags(cmd, hasCreateFlags, func() (*todo.Store, error) {
+		return openTodoStore(cmd, nil)
+	})
+}
+
+func createTodoFromJobFlags(cmd *cobra.Command, hasCreateFlags bool, openStore func() (*todo.Store, error)) (string, error) {
 	useEditor := shouldUseEditor(hasCreateFlags, jobDoEdit, jobDoNoEdit, editor.IsInteractive())
 	if useEditor {
 		data := editor.DefaultCreateData()
@@ -208,7 +214,7 @@ func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
 			return "", err
 		}
 
-		store, err := openTodoStore(cmd, nil)
+		store, err := openStore()
 		if err != nil {
 			return "", err
 		}
@@ -227,7 +233,7 @@ func createTodoForJob(cmd *cobra.Command, hasCreateFlags bool) (string, error) {
 		return "", fmt.Errorf("title is required (use --edit to open editor)")
 	}
 
-	store, err := openTodoStore(cmd, nil)
+	store, err := openStore()
 	if err != nil {
 		return "", err
 	}

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amonks/incrementum/internal/editor"
 	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/internal/swarmtui"
 	"github.com/amonks/incrementum/internal/ui"
@@ -328,64 +327,9 @@ func runSwarmClient(cmd *cobra.Command, _ []string) error {
 }
 
 func createTodoForSwarm(cmd *cobra.Command, repoPath string, hasCreateFlags bool) (string, error) {
-	useEditor := shouldUseEditor(hasCreateFlags, jobDoEdit, jobDoNoEdit, editor.IsInteractive())
-	if useEditor {
-		data := editor.DefaultCreateData()
-		data.Status = string(defaultTodoStatus())
-		if cmd.Flags().Changed("title") {
-			data.Title = jobDoTitle
-		}
-		if cmd.Flags().Changed("type") {
-			data.Type = jobDoType
-		}
-		if cmd.Flags().Changed("priority") {
-			data.Priority = jobDoPriority
-		}
-		if cmd.Flags().Changed("description") {
-			data.Description = jobDoDescription
-		}
-
-		parsed, err := editor.EditTodoWithData(data)
-		if err != nil {
-			return "", err
-		}
-
-		store, err := openTodoStoreForPath(cmd, repoPath)
-		if err != nil {
-			return "", err
-		}
-		defer store.Release()
-
-		opts := parsed.ToCreateOptions()
-		opts.Dependencies = jobDoDeps
-		created, err := store.Create(parsed.Title, opts)
-		if err != nil {
-			return "", err
-		}
-		return created.ID, nil
-	}
-
-	if jobDoTitle == "" {
-		return "", fmt.Errorf("title is required (use --edit to open editor)")
-	}
-
-	store, err := openTodoStoreForPath(cmd, repoPath)
-	if err != nil {
-		return "", err
-	}
-	defer store.Release()
-
-	created, err := store.Create(jobDoTitle, todo.CreateOptions{
-		Status:       defaultTodoStatus(),
-		Type:         todo.TodoType(jobDoType),
-		Priority:     jobDoPriorityValue(cmd),
-		Description:  jobDoDescription,
-		Dependencies: jobDoDeps,
+	return createTodoFromJobFlags(cmd, hasCreateFlags, func() (*todo.Store, error) {
+		return openTodoStoreForPath(cmd, repoPath)
 	})
-	if err != nil {
-		return "", err
-	}
-	return created.ID, nil
 }
 
 func openTodoStoreForPath(cmd *cobra.Command, repoPath string) (*todo.Store, error) {
