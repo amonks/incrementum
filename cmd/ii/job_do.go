@@ -145,9 +145,6 @@ func formatCommitMessageOutput(message string) string {
 
 func formatCommitMessageBody(message string, indent int) string {
 	message = internalstrings.TrimTrailingNewlines(message)
-	if strings.TrimSpace(message) == "" {
-		return jobpkg.IndentBlock("-", indent)
-	}
 	width := jobLineWidth - indent
 	formatted := renderMarkdownOrDash(message, width)
 	return jobpkg.IndentBlock(formatted, indent)
