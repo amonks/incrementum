@@ -154,7 +154,7 @@ func (i *opencodeEventInterpreter) handleMessageUpdated(payload json.RawMessage)
 	if strings.TrimSpace(info.ID) == "" {
 		return nil, nil
 	}
-	role := strings.ToLower(strings.TrimSpace(info.Role))
+	role := internalstrings.NormalizeLowerTrimSpace(info.Role)
 	if role != "" {
 		i.messageRoles[info.ID] = role
 	}
@@ -194,7 +194,7 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 		return nil, nil
 	}
 	state := i.ensureMessageState(part.MessageID)
-	partType := strings.ToLower(strings.TrimSpace(part.Type))
+	partType := internalstrings.NormalizeLowerTrimSpace(part.Type)
 	switch partType {
 	case "text":
 		i.storePartText(state, part.ID, part.Text, false)
@@ -307,7 +307,7 @@ func messageCompleted(info opencodeMessageInfo) bool {
 }
 
 func summarizeToolCall(tool string, input map[string]any) string {
-	name := strings.ToLower(strings.TrimSpace(tool))
+	name := internalstrings.NormalizeLowerTrimSpace(tool)
 	switch name {
 	case "read":
 		if path := stringFromMap(input, "filePath"); path != "" {
