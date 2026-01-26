@@ -339,7 +339,8 @@ func (ctx *runContext) handleStageOutcome(current, next Job, stageErr error) (Jo
 			ctx.result.Job = next
 			return next, stageErr
 		}
-		updated, updateErr := ctx.manager.Update(current.ID, UpdateOptions{Status: statusPtr(StatusFailed)}, ctx.opts.Now())
+		status := StatusFailed
+		updated, updateErr := ctx.manager.Update(current.ID, UpdateOptions{Status: &status}, ctx.opts.Now())
 		ctx.result.Job = updated
 		return updated, errors.Join(stageErr, updateErr)
 	}
@@ -977,10 +978,6 @@ func recordOpencodeEvents(log *EventLog, events <-chan opencode.Event) <-chan er
 		done <- recordErr
 	}()
 	return done
-}
-
-func statusPtr(status Status) *Status {
-	return &status
 }
 
 func finalizeTodo(repoPath, todoID string, status Status) error {
