@@ -161,10 +161,7 @@ func (s Storage) projectIDForRepo(repoPath string) (string, error) {
 		if cleanPath(record.Worktree) != repoPath {
 			continue
 		}
-		if record.ID != "" {
-			return record.ID, nil
-		}
-		return strings.TrimSuffix(entry.Name(), ".json"), nil
+		return storageRecordID(record.ID, entry.Name()), nil
 	}
 	return "", fmt.Errorf("opencode project not found")
 }
