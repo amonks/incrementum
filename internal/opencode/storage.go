@@ -149,9 +149,8 @@ func (s Storage) projectIDForRepo(repoPath string) (string, error) {
 
 	repoPath = cleanPath(repoPath)
 	for _, entry := range entries {
-		path := filepath.Join(projectsDir, entry.Name())
 		var record projectRecord
-		if err := decodeJSONFile(path, "opencode project", &record); err != nil {
+		if err := decodeJSONEntry(projectsDir, "opencode project", entry, &record); err != nil {
 			return "", err
 		}
 		if cleanPath(record.Worktree) != repoPath {
@@ -184,9 +183,8 @@ func (s Storage) listSessions(projectID string) ([]SessionMetadata, error) {
 
 	items := make([]SessionMetadata, 0, len(entries))
 	for _, entry := range entries {
-		path := filepath.Join(sessionsDir, entry.Name())
 		var record sessionRecord
-		if err := decodeJSONFile(path, "opencode session", &record); err != nil {
+		if err := decodeJSONEntry(sessionsDir, "opencode session", entry, &record); err != nil {
 			return nil, err
 		}
 		id := storageRecordID(record.ID, entry.Name())
@@ -319,9 +317,8 @@ func (s Storage) listMessages(sessionID string) ([]messageInfo, error) {
 
 	items := make([]messageInfo, 0, len(entries))
 	for _, entry := range entries {
-		path := filepath.Join(messageDir, entry.Name())
 		var record messageRecord
-		if err := decodeJSONFile(path, "opencode message", &record); err != nil {
+		if err := decodeJSONEntry(messageDir, "opencode message", entry, &record); err != nil {
 			return nil, err
 		}
 		id := storageRecordID(record.ID, entry.Name())
@@ -368,9 +365,8 @@ func (s Storage) listParts(messageID string) ([]partInfo, error) {
 
 	items := make([]partInfo, 0, len(entries))
 	for _, entry := range entries {
-		path := filepath.Join(partDir, entry.Name())
 		var record partRecord
-		if err := decodeJSONFile(path, "opencode part", &record); err != nil {
+		if err := decodeJSONEntry(partDir, "opencode part", entry, &record); err != nil {
 			return nil, err
 		}
 		id := storageRecordID(record.ID, entry.Name())
@@ -579,6 +575,11 @@ func decodeJSONFile(path, label string, dest any) error {
 		return fmt.Errorf("decode %s: %w", label, err)
 	}
 	return nil
+}
+
+func decodeJSONEntry(dir, label string, entry os.DirEntry, dest any) error {
+	path := filepath.Join(dir, entry.Name())
+	return decodeJSONFile(path, label, dest)
 }
 
 func listJSONEntries(dir, label string) ([]os.DirEntry, error) {
