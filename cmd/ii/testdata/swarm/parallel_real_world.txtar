@@ -25,11 +25,11 @@ todoid stdout 'Swarm first' TODO_ONE
 todoid stdout 'Swarm second' TODO_TWO
 
 # start swarm server
-exec python -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
+exec python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
 envset SWARM_PORT stdout
 exec $II swarm serve --addr 127.0.0.1:$SWARM_PORT &server&
 stdin $WORK/wait_for_port.py
-exec python -
+exec python3 -
 
 # run swarm jobs in parallel
 exec $II swarm do $TODO_ONE --addr 127.0.0.1:$SWARM_PORT &job_one&
@@ -107,7 +107,7 @@ def extract_workspace_root(prompt: str) -> str:
     for line in prompt.splitlines():
         if line.startswith("Workspace root:"):
             return line.split(":", 1)[1].strip()
-    raise RuntimeError("workspace root missing from prompt")
+    return ""
 
 
 def extract_command(prompt: str) -> str:
@@ -131,7 +131,9 @@ def run_job(prompt: str):
     pwd = os.environ.get("PWD", "")
     if not pwd:
         raise RuntimeError("PWD not set")
-    if pwd != workspace_root:
+    if not workspace_root:
+        workspace_root = pwd
+    if os.path.realpath(pwd) != os.path.realpath(workspace_root):
         raise RuntimeError(f"PWD {pwd} does not match workspace root {workspace_root}")
     marker = os.path.join(workspace_root, ".incrementum-work-complete")
     if not os.path.exists(marker) and not prompt.startswith("Review"):

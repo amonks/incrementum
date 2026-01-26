@@ -165,14 +165,17 @@ func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
 // Returns the change ID of the newly created change.
 // Note: This moves the working copy to the new change.
 func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) (string, error) {
-	cmd := exec.Command("jj", "new", parentRev, "--no-edit", "--message", message)
-	cmd.Dir = workspacePath
-	if err := runCombinedOutput(cmd, "jj new"); err != nil {
+	changeID, err := c.NewChange(workspacePath, parentRev)
+	if err != nil {
 		return "", err
 	}
-
-	// Get the change ID of the newly created change (now at @)
-	return c.CurrentChangeID(workspacePath)
+	if strings.TrimSpace(message) == "" {
+		return changeID, nil
+	}
+	if err := c.Describe(workspacePath, message); err != nil {
+		return "", err
+	}
+	return changeID, nil
 }
 
 // ChangeIDAt returns the change ID at the given revision.

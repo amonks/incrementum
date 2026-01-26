@@ -167,7 +167,7 @@ func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *tes
 		t.Fatalf("run implementing stage: %v", err)
 	}
 
-	if !strings.Contains(seenPrompt, "write a multi-line commit message") {
+	if !strings.Contains(seenPrompt, ".incrementum-commit-message") {
 		t.Fatalf("expected prompt to request commit message, got %q", seenPrompt)
 	}
 	if !strings.Contains(seenPrompt, previousMessage) {
@@ -636,7 +636,7 @@ func TestRunCommittingStageLogsFormattedCommitMessage(t *testing.T) {
 	}
 
 	path := filepath.Join(eventsDir, current.ID+".jsonl")
-	events := readEventLog(t, path)
+	events := readEventLogFile(t, path)
 	if len(events) == 0 {
 		t.Fatal("expected event log entries")
 	}

@@ -233,8 +233,8 @@ func TestDoStartsJobWithWorkspace(t *testing.T) {
 
 	select {
 	case call := <-poolCalls:
-		if call.options.Rev != "main" {
-			t.Fatalf("expected workspace rev main, got %q", call.options.Rev)
+		if call.options.Rev != "@" {
+			t.Fatalf("expected workspace rev @, got %q", call.options.Rev)
 		}
 		if call.options.Purpose == "" {
 			t.Fatal("expected workspace purpose")

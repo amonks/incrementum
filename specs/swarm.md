@@ -15,11 +15,13 @@ trace and returns a 500 error instead of crashing.
 ## Job Orchestration
 
 - Each job runs in its own workspace.
-- Before running a job, the server acquires a workspace at `main`, creates a
+- Before running a job, the server acquires a workspace at `@`, creates a
   fresh change based on that revision, and runs the job from the workspace path.
 - When a new change is created for a job, its description is set to `staging for todo <id>`.
 - Jobs run within the server process; client commands only stream events or
   send control signals.
+- After a job completes successfully, the server syncs workspace file outputs to
+  the source repo working copy (excluding `.jj`, `.git`, and `.incrementum*` entries).
 - When the server receives an interrupt (Ctrl+C), it interrupts running jobs,
   waits briefly for them to exit, and marks any remaining active jobs as failed
   (reopening their todos).
@@ -110,6 +112,10 @@ Print job event logs formatted with the job log formatter.
 
 List swarm jobs. Defaults to active jobs only; use `--all` or `--status` to
 change filters.
+
+When `--json` is set, the command returns all jobs unless a status filter is
+provided. Completed jobs are serialized with status `done` for parity with todo
+status naming.
 
 Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`, `DURATION`, `TITLE`.
 

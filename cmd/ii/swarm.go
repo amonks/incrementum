@@ -262,7 +262,7 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 			}
 		}
 		jobs = filtered
-	} else if !swarmListAll {
+	} else if !swarmListAll && !swarmListJSON {
 		filtered := make([]job.Job, 0, len(jobs))
 		for _, item := range jobs {
 			if item.Status == job.StatusActive {
@@ -273,7 +273,15 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 	}
 
 	if swarmListJSON {
-		return encodeJSONToStdout(jobs)
+		output := make([]job.Job, 0, len(jobs))
+		for _, item := range jobs {
+			mapped := item
+			if mapped.Status == job.StatusCompleted {
+				mapped.Status = job.Status("done")
+			}
+			output = append(output, mapped)
+		}
+		return encodeJSONToStdout(output)
 	}
 
 	if len(jobs) == 0 {

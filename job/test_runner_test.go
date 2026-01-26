@@ -6,7 +6,7 @@ import (
 )
 
 func TestRunTestCommandsCapturesExitCodes(t *testing.T) {
-	results, err := RunTestCommands(t.TempDir(), []string{"printf 'ok\n'", "false"})
+	results, err := RunTestCommands(t.TempDir(), []string{"printf 'ok\\n'", "false"})
 	if err != nil {
 		t.Fatalf("run test commands: %v", err)
 	}

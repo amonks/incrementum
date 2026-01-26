@@ -21,8 +21,8 @@ func requireSnapshot(t *testing.T, name string, got string) {
 		t.Fatalf("read snapshot %s: %v", path, err)
 	}
 
-	expected := internalstrings.NormalizeNewlines(string(data))
-	normalized := internalstrings.NormalizeNewlines(got)
+	expected := internalstrings.TrimTrailingNewlines(internalstrings.NormalizeNewlines(string(data)))
+	normalized := internalstrings.TrimTrailingNewlines(internalstrings.NormalizeNewlines(got))
 	if expected != normalized {
 		t.Fatalf("snapshot mismatch at %s\n--- expected ---\n%s\n--- got ---\n%s", path, expected, normalized)
 	}

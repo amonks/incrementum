@@ -13,3 +13,48 @@ func renderMarkdownOrDash(value string, width int) string {
 	}
 	return formatted
 }
+
+func renderMarkdownWithoutMargin(value string, width int) string {
+	formatted := renderMarkdownOrDash(value, width)
+	return trimCommonIndent(formatted)
+}
+
+func trimCommonIndent(value string) string {
+	lines := strings.Split(value, "\n")
+	minIndent := -1
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		indent := leadingSpaces(line)
+		if minIndent == -1 || indent < minIndent {
+			minIndent = indent
+		}
+		if minIndent == 0 {
+			break
+		}
+	}
+	if minIndent <= 0 {
+		return value
+	}
+	indentStr := strings.Repeat(" ", minIndent)
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			lines[i] = ""
+			continue
+		}
+		lines[i] = strings.TrimPrefix(line, indentStr)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func leadingSpaces(value string) int {
+	count := 0
+	for _, char := range value {
+		if char != ' ' {
+			break
+		}
+		count++
+	}
+	return count
+}

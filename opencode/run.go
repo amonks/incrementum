@@ -168,7 +168,9 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 					status = OpencodeSessionFailed
 				}
 				if _, err := s.CompleteSession(repoPath, sessionResult.session.ID, status, completedAt, &exitCode, duration); err != nil {
-					runErr = errors.Join(runErr, err)
+					if !errors.Is(err, ErrOpencodeSessionNotActive) {
+						runErr = errors.Join(runErr, err)
+					}
 				}
 			}
 

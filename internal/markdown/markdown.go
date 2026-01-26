@@ -44,6 +44,7 @@ func Render(width, indent int, input []byte) []byte {
 		}
 	}
 	rendered = internalstrings.TrimTrailingNewlines(rendered)
+	rendered = cleanRenderedMarkdown(rendered)
 	if strings.TrimSpace(rendered) == "" {
 		return nil
 	}
@@ -51,6 +52,18 @@ func Render(width, indent int, input []byte) []byte {
 		return []byte(rendered)
 	}
 	return []byte(indentBlock(rendered, indent))
+}
+
+func cleanRenderedMarkdown(value string) string {
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		lines[i] = internalstrings.TrimTrailingWhitespace(line)
+	}
+	cleaned := strings.Join(lines, "\n")
+	if strings.TrimSpace(cleaned) == "" {
+		return ""
+	}
+	return cleaned
 }
 
 func markdownRenderer(width int) *glamour.TermRenderer {

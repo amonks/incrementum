@@ -36,5 +36,5 @@ func printTodoDetail(t todo.Todo, highlight func(string) string) {
 const todoDetailLineWidth = 80
 
 func formatTodoDescription(value string) string {
-	return renderMarkdownOrDash(value, todoDetailLineWidth)
+	return renderMarkdownWithoutMargin(value, todoDetailLineWidth)
 }

@@ -282,7 +282,7 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 	if logger.prompts[0].Template != "prompt-implementation.tmpl" {
 		t.Fatalf("expected prompt template, got %q", logger.prompts[0].Template)
 	}
-	if !strings.Contains(logger.prompts[0].Prompt, "write a multi-line commit message") {
+	if !strings.Contains(logger.prompts[0].Prompt, ".incrementum-commit-message") {
 		t.Fatalf("expected prompt to include commit message instructions")
 	}
 
@@ -437,7 +437,7 @@ func TestRunImplementingStageRecordsEventLog(t *testing.T) {
 	}
 
 	path := filepath.Join(eventsDir, current.ID+".jsonl")
-	events := readEventLog(t, path)
+	events := readEventLogFile(t, path)
 	if len(events) != 4 {
 		t.Fatalf("expected 4 events, got %d", len(events))
 	}

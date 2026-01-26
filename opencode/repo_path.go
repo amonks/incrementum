@@ -2,8 +2,9 @@ package opencode
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 
-	"github.com/amonks/incrementum/internal/paths"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -12,10 +13,11 @@ import (
 // If the working directory is a workspace root, this resolves to the source repo.
 // If no repo is found, it falls back to the working directory.
 func RepoPathForWorkingDir() (string, error) {
-	cwd, err := paths.WorkingDir()
+	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
+	cwd = filepath.Clean(cwd)
 
 	repoPath, err := workspace.RepoRootFromPath(cwd)
 	if err == nil {

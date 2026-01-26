@@ -219,6 +219,9 @@ func (s Storage) listAllSessions() ([]SessionMetadata, error) {
 	baseDir := filepath.Join(s.storageDir(), "session")
 	projects, err := os.ReadDir(baseDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("read opencode sessions: %w", err)
 	}
 	var entries []SessionMetadata
@@ -383,6 +386,11 @@ func (s Storage) listParts(messageID string) ([]partInfo, error) {
 		if record.Time.Start != 0 {
 			info.SortKey = record.Time.Start
 		}
+		if info.SortKey == 0 {
+			if entryInfo, err := entry.Info(); err == nil {
+				info.SortKey = entryInfo.ModTime().UnixNano()
+			}
+		}
 		items = append(items, info)
 	}
 
@@ -395,6 +403,11 @@ func (s Storage) listParts(messageID string) ([]partInfo, error) {
 				return true
 			}
 			return items[i].SortKey < items[j].SortKey
+		}
+		leftRank := partTypeRank(items[i].Type)
+		rightRank := partTypeRank(items[j].Type)
+		if leftRank != rightRank {
+			return leftRank < rightRank
 		}
 		return items[i].Name < items[j].Name
 	})
@@ -488,6 +501,17 @@ func extractProsePartText(part partInfo) (string, bool) {
 
 func normalizePartType(partType string) string {
 	return internalstrings.NormalizeLower(partType)
+}
+
+func partTypeRank(partType string) int {
+	switch normalizePartType(partType) {
+	case "tool":
+		return 0
+	case "text":
+		return 1
+	default:
+		return 2
+	}
 }
 
 func stringifyOutput(value any) (string, bool) {
@@ -591,6 +615,9 @@ func decodeJSONEntry(dir, label string, entry os.DirEntry, dest any) error {
 func listJSONEntries(dir, label string) ([]os.DirEntry, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("read %s: %w", label, err)
 	}
 	filtered := make([]os.DirEntry, 0, len(entries))

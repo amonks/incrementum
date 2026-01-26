@@ -2,6 +2,8 @@ Review the implementation of our todo.
 
 The working tree contains an implementation that is purported to resolve our todo.
 
+Workspace root: /tmp/workspaces/snapshot-test
+
 Commits for this todo:
 - ID: abc1234
 Message:

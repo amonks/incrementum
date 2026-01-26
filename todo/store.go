@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -17,6 +18,8 @@ import (
 
 	internalids "github.com/amonks/incrementum/internal/ids"
 	"github.com/amonks/incrementum/internal/jj"
+	"github.com/amonks/incrementum/internal/paths"
+	statestore "github.com/amonks/incrementum/internal/state"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/workspace"
 	"golang.org/x/term"
@@ -77,6 +80,7 @@ type Store struct {
 	client    *jj.Client
 	readOnly  bool
 	wsRelease func() error
+	lockFile  *os.File
 }
 
 // Snapshotter records workspace changes.
@@ -188,8 +192,14 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 		}, nil
 	}
 
+	lockFile, err := acquireTodoLock(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
 	pool, err := workspace.Open()
 	if err != nil {
+		releaseTodoLock(lockFile)
 		return nil, fmt.Errorf("open workspace pool: %w", err)
 	}
 
@@ -197,6 +207,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 	// the store in this workspace, then edit to it.
 	wsPath, err := pool.Acquire(repoPath, workspace.AcquireOptions{Purpose: purpose})
 	if err != nil {
+		releaseTodoLock(lockFile)
 		return nil, fmt.Errorf("acquire workspace: %w", err)
 	}
 
@@ -204,6 +215,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 	if !hasBookmark {
 		if err := createTodoStore(client, wsPath); err != nil {
 			pool.Release(wsPath)
+			releaseTodoLock(lockFile)
 			return nil, fmt.Errorf("create todo store: %w", err)
 		}
 	}
@@ -211,6 +223,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 	// Edit to the bookmark
 	if err := client.Edit(wsPath, BookmarkName); err != nil {
 		pool.Release(wsPath)
+		releaseTodoLock(lockFile)
 		return nil, fmt.Errorf("edit to todo store: %w", err)
 	}
 
@@ -231,6 +244,7 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 		wsRelease: func() error {
 			return pool.Release(wsPath)
 		},
+		lockFile: lockFile,
 	}, nil
 }
 
@@ -238,9 +252,11 @@ func Open(repoPath string, opts OpenOptions) (*Store, error) {
 // This should be called when done using the store.
 func (s *Store) Release() error {
 	if s.wsRelease != nil {
-		return s.wsRelease()
+		releaseErr := s.wsRelease()
+		lockErr := releaseTodoLock(s.lockFile)
+		return errors.Join(releaseErr, lockErr)
 	}
-	return nil
+	return releaseTodoLock(s.lockFile)
 }
 
 // createTodoStore creates the orphan change and bookmark for the todo store.
@@ -764,7 +780,63 @@ func writeJSONLStore[T any](store *Store, filename string, items []T) error {
 		return fmt.Errorf("snapshotter is not configured")
 	}
 
+	return snapshotStore(store)
+}
+
+func snapshotStore(store *Store) error {
+	if store.snapshot == nil {
+		return fmt.Errorf("snapshotter is not configured")
+	}
+	if err := store.snapshot.Snapshot(store.wsPath); err == nil {
+		return nil
+	} else if !isStaleWorkspaceError(err) {
+		return err
+	}
+	if store.client == nil {
+		return fmt.Errorf("update stale workspace: client not configured")
+	}
+	if err := store.client.WorkspaceUpdateStale(store.wsPath); err != nil {
+		return err
+	}
 	return store.snapshot.Snapshot(store.wsPath)
+}
+
+func acquireTodoLock(repoPath string) (*os.File, error) {
+	stateDir, err := paths.DefaultStateDir()
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create todo lock dir: %w", err)
+	}
+	lockName := fmt.Sprintf("todo-%s.lock", statestore.SanitizeRepoName(repoPath))
+	lockPath := filepath.Join(stateDir, lockName)
+	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return nil, fmt.Errorf("open todo lock file: %w", err)
+	}
+	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
+		_ = file.Close()
+		return nil, fmt.Errorf("lock todo store: %w", err)
+	}
+	return file, nil
+}
+
+func releaseTodoLock(file *os.File) error {
+	if file == nil {
+		return nil
+	}
+	unlockErr := syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	closeErr := file.Close()
+	return errors.Join(unlockErr, closeErr)
+}
+
+func isStaleWorkspaceError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "working copy is stale") || strings.Contains(message, "workspace is stale")
 }
 
 func writeJSONLStoreWithContext[T any](store *Store, filename, label string, items []T) error {

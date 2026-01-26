@@ -51,7 +51,7 @@ func init() {
 	rootCmd.AddCommand(workspaceCmd)
 	workspaceCmd.AddCommand(workspaceAcquireCmd, workspaceReleaseCmd, workspaceListCmd, workspaceDestroyAllCmd)
 
-	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquireRev, "rev", "main", "Revision to base the new change on")
+	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquireRev, "rev", "@", "Revision to base the new change on")
 	workspaceAcquireCmd.Flags().StringVar(&workspaceAcquirePurpose, "purpose", "", "Purpose for acquiring the workspace")
 	workspaceListCmd.Flags().BoolVar(&workspaceListJSON, "json", false, "Output as JSON")
 	listflags.AddAllFlag(workspaceListCmd, &workspaceListAll)

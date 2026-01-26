@@ -81,7 +81,7 @@ func (p *Pool) RepoSlug(repoPath string) (string, error) {
 
 // AcquireOptions configures a workspace acquire operation.
 type AcquireOptions struct {
-	// Rev is the jj revision to base a new change on. Defaults to "main" if empty.
+	// Rev is the jj revision to base a new change on. Defaults to "@" if empty.
 	Rev string
 
 	// Purpose describes why the workspace is being acquired.
@@ -108,7 +108,7 @@ func ValidateAcquirePurpose(purpose string) error {
 //
 // If an available workspace exists, it will be reused. Otherwise, a new
 // workspace is created. The workspace is checked out to a new change based on
-// the specified revision (or main by default).
+// the specified revision (or @ by default).
 //
 // The returned path is the root directory of the acquired workspace.
 // Call Release when done to return the workspace to the pool.
@@ -119,7 +119,7 @@ func ValidateAcquirePurpose(purpose string) error {
 func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	// Apply defaults
 	if opts.Rev == "" {
-		opts.Rev = "main"
+		opts.Rev = "@"
 	}
 	if err := ValidateAcquirePurpose(opts.Purpose); err != nil {
 		return "", err
@@ -213,7 +213,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	actualRev, err := newChange(opts.Rev)
 	if err != nil {
 		if isMissingRevisionError(err) && looksLikeChangeID(opts.Rev) {
-			actualRev, err = newChange("main")
+			actualRev, err = newChange("@")
 		}
 		if err != nil {
 			return "", fmt.Errorf("jj new: %w", err)

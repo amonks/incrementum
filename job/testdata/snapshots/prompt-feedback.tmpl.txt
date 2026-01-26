@@ -35,6 +35,8 @@ Changes are reviewed according to these questions:
 When you make changes, write a multi-line commit message to ./.incrementum-commit-message
 Keep changes focused on the current step.
 
+Workspace root: /tmp/workspaces/snapshot-test
+
 Commits so far:
 - ID: abc1234
 Message:

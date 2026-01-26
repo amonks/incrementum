@@ -15,4 +15,4 @@ The paths package centralizes default filesystem locations for incrementum state
 - `DefaultWorkspacesDir() (string, error)`: returns the default workspaces directory using `os.UserHomeDir`.
 - `DefaultOpencodeEventsDir() (string, error)`: returns the default opencode events directory using `os.UserHomeDir`.
 - `DefaultJobEventsDir() (string, error)`: returns the default job events directory using `os.UserHomeDir`.
-- `WorkingDir() (string, error)`: returns the current working directory using `os.Getwd`.
+- `WorkingDir() (string, error)`: returns the current working directory using `os.Getwd`, preferring a non-`/private` path when it resolves to the same location.

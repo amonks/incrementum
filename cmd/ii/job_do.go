@@ -145,9 +145,7 @@ func formatCommitMessageOutput(message string) string {
 
 func formatCommitMessageBody(message string, indent int) string {
 	message = internalstrings.TrimTrailingNewlines(message)
-	width := jobLineWidth - indent
-	formatted := renderMarkdownOrDash(message, width)
-	return jobpkg.IndentBlock(formatted, indent)
+	return jobpkg.ReflowIndentedText(message, jobLineWidth, indent)
 }
 
 func printJobStart(info jobpkg.StartInfo) {

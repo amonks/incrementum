@@ -91,7 +91,7 @@ func (logger *ConsoleLogger) Prompt(entry PromptLog) {
 	label := promptLabel(entry.Purpose)
 	lines := []string{
 		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
-		formatMarkdownBody(entry.Prompt, subdocumentIndent),
+		formatPromptBody(entry.Prompt, subdocumentIndent),
 	}
 	if strings.TrimSpace(entry.Transcript) != "" {
 		lines = append(lines,
@@ -186,7 +186,14 @@ func formatTranscriptBody(body string, indent int) string {
 }
 
 func formatCommitMessageBody(body string, indent int, preformatted bool) string {
-	return formatMarkdownBlock(body, indent, preformatted)
+	if preformatted {
+		body = internalstrings.TrimTrailingNewlines(body)
+		if strings.TrimSpace(body) == "" {
+			return IndentBlock("-", indent)
+		}
+		return IndentBlock(body, indent)
+	}
+	return formatMarkdownBlock(body, indent, false)
 }
 
 // Markdown hard line breaks use two trailing spaces.
@@ -205,6 +212,47 @@ func preserveMarkdownLineBreaks(value string) string {
 
 func formatMarkdownBody(body string, indent int) string {
 	return formatMarkdownBlock(body, indent, false)
+}
+
+func formatPromptBody(body string, indent int) string {
+	body = internalstrings.TrimTrailingNewlines(body)
+	if strings.TrimSpace(body) == "" {
+		return IndentBlock("-", indent)
+	}
+	if looksLikeMarkdown(body) {
+		return formatMarkdownBlock(body, indent, true)
+	}
+	if hasIndentedLines(body) {
+		return IndentBlock(body, indent)
+	}
+	reflowed := ReflowParagraphs(body, wrapWidthFor(lineWidth, indent))
+	if strings.TrimSpace(reflowed) == "" {
+		return IndentBlock("-", indent)
+	}
+	return IndentBlock(reflowed, indent)
+}
+
+func looksLikeMarkdown(body string) bool {
+	markers := []string{"```", "\n- ", "\n* ", "\n1. ", "\n# "}
+	for _, marker := range markers {
+		if strings.Contains(body, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasIndentedLines(body string) bool {
+	lines := strings.Split(body, "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		if line[0] == ' ' || line[0] == '\t' {
+			return true
+		}
+	}
+	return false
 }
 
 func formatMarkdownBlock(body string, indent int, preformatted bool) string {

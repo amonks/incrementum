@@ -47,7 +47,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 			}
 			writer.writeBlock(
 				formatLogLabel(promptLabel(data.Purpose), documentIndent),
-				formatMarkdownBody(data.Prompt, subdocumentIndent),
+				formatPromptBody(data.Prompt, subdocumentIndent),
 			)
 		case jobEventCommitMessage:
 			data, err := decodeEventData[commitMessageEventData](event.Data)

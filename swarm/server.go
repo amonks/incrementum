@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -73,6 +75,11 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	if strings.TrimSpace(opts.RepoPath) == "" {
 		return nil, fmt.Errorf("repo path is required")
 	}
+	repoPath := filepath.Clean(opts.RepoPath)
+	if abs, err := filepath.Abs(repoPath); err == nil {
+		repoPath = abs
+	}
+
 	logger := opts.Logger
 	if logger == nil {
 		logger = log.New(os.Stderr, "swarm: ", log.LstdFlags)
@@ -88,7 +95,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		}
 		pool = created
 	}
-	manager, err := job.Open(opts.RepoPath, job.OpenOptions{StateDir: opts.StateDir})
+	manager, err := job.Open(repoPath, job.OpenOptions{StateDir: opts.StateDir})
 	if err != nil {
 		return nil, fmt.Errorf("open job manager: %w", err)
 	}
@@ -102,7 +109,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	}
 
 	return &Server{
-		repoPath:        opts.RepoPath,
+		repoPath:        repoPath,
 		pool:            pool,
 		manager:         manager,
 		runJob:          runJob,
@@ -475,12 +482,22 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, status, err)
 		return
 	}
-	if err := streamEvents(r.Context(), w, resolvedJobID, s.eventLogOptions); err != nil {
+	if err := streamEvents(r.Context(), w, resolvedJobID, s.eventLogOptions, s.manager, s.isJobRunning); err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
 		s.writeError(w, r, http.StatusInternalServerError, err)
 	}
+}
+
+func (s *Server) isJobRunning(jobID string) bool {
+	if strings.TrimSpace(jobID) == "" {
+		return false
+	}
+	s.mu.Lock()
+	_, ok := s.jobs[jobID]
+	s.mu.Unlock()
+	return ok
 }
 
 func resolveTailJobID(manager *job.Manager, input string) (string, error) {
@@ -565,7 +582,7 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 	stagingMessage := fmt.Sprintf("staging for todo %s", cleanID)
 	wsPath, err := s.pool.Acquire(s.repoPath, workspace.AcquireOptions{
 		Purpose:          fmt.Sprintf("swarm job %s", cleanID),
-		Rev:              "main",
+		Rev:              "@",
 		NewChangeMessage: stagingMessage,
 	})
 	if err != nil {
@@ -621,6 +638,11 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 			s.logJobCompletion(cleanID, finalJobID, runResult, runErr)
 		}()
 		runResult, runErr = s.runJob(s.repoPath, todoID, runOpts)
+		if runErr == nil && runResult != nil && runResult.Job.Status == job.StatusCompleted {
+			if err := syncWorkspaceOutputs(wsPath, s.repoPath); err != nil {
+				s.logf("sync workspace outputs for todo %s: %v", cleanID, err)
+			}
+		}
 	}()
 
 	select {
@@ -812,7 +834,7 @@ func (w *responseTracker) Flush() {
 	}
 }
 
-func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts job.EventLogOptions) error {
+func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts job.EventLogOptions, manager *job.Manager, isRunning func(string) bool) error {
 	path, err := job.EventLogPath(jobID, opts)
 	if err != nil {
 		return err
@@ -858,6 +880,23 @@ func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts
 			}
 		}
 		if errors.Is(err, io.EOF) {
+			if manager != nil && len(pending) == 0 {
+				terminal, checkErr := isJobTerminal(manager, jobID)
+				if checkErr != nil {
+					return checkErr
+				}
+				if terminal {
+					if isRunning != nil && isRunning(jobID) {
+						select {
+						case <-ctx.Done():
+							return nil
+						case <-time.After(200 * time.Millisecond):
+							continue
+						}
+					}
+					return nil
+				}
+			}
 			select {
 			case <-ctx.Done():
 				return nil
@@ -869,6 +908,20 @@ func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts
 			continue
 		}
 	}
+}
+
+func isJobTerminal(manager *job.Manager, jobID string) (bool, error) {
+	if manager == nil {
+		return false, nil
+	}
+	record, err := manager.Find(jobID)
+	if err != nil {
+		if errors.Is(err, job.ErrJobNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return record.Status != job.StatusActive, nil
 }
 
 func waitForFile(ctx context.Context, path string) error {
@@ -884,4 +937,74 @@ func waitForFile(ctx context.Context, path string) error {
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
+}
+
+func syncWorkspaceOutputs(workspacePath, repoPath string) error {
+	workspacePath = filepath.Clean(workspacePath)
+	repoPath = filepath.Clean(repoPath)
+	return filepath.WalkDir(workspacePath, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(workspacePath, path)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+		if shouldSkipWorkspaceEntry(rel, entry) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		return copyWorkspaceFile(path, filepath.Join(repoPath, rel))
+	})
+}
+
+func shouldSkipWorkspaceEntry(rel string, entry fs.DirEntry) bool {
+	parts := strings.Split(rel, string(os.PathSeparator))
+	if len(parts) == 0 {
+		return false
+	}
+	top := parts[0]
+	if top == ".jj" || top == ".git" || top == ".incrementum" {
+		return true
+	}
+	if strings.HasPrefix(top, ".incrementum-") {
+		return true
+	}
+	if entry.IsDir() {
+		return false
+	}
+	return top == ".incrementum-commit-message" || top == ".incrementum-feedback" || top == ".incrementum-work-complete"
+}
+
+func copyWorkspaceFile(srcPath, destPath string) error {
+	info, err := os.Stat(srcPath)
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+		return err
+	}
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	dest, err := os.OpenFile(destPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(dest, src)
+	closeErr := dest.Close()
+	return errors.Join(copyErr, closeErr)
 }

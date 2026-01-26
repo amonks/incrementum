@@ -29,7 +29,7 @@ func TestEventLogAppendsEvents(t *testing.T) {
 	}
 
 	path := filepath.Join(eventsDir, "job-events.jsonl")
-	events := readEventLog(t, path)
+	events := readEventLogFile(t, path)
 	if len(events) != 2 {
 		t.Fatalf("expected 2 events, got %d", len(events))
 	}
@@ -118,7 +118,7 @@ func TestEventSnapshotMissingFileReturnsEmpty(t *testing.T) {
 	}
 }
 
-func readEventLog(t *testing.T, path string) []Event {
+func readEventLogFile(t *testing.T, path string) []Event {
 	t.Helper()
 	file, err := os.Open(path)
 	if err != nil {
