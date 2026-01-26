@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/opencode"
 	"github.com/spf13/cobra"
 )
@@ -72,6 +73,6 @@ func resolveOpencodePrompt(args []string, reader io.Reader) (string, error) {
 	}
 
 	prompt := strings.TrimSuffix(string(data), "\n")
-	prompt = strings.TrimSuffix(prompt, "\r")
+	prompt = internalstrings.TrimTrailingCarriageReturn(prompt)
 	return prompt, nil
 }
