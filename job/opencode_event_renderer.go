@@ -300,10 +300,7 @@ func parseOpencodeEventPayload(data string) (opencodeEventPayload, error) {
 }
 
 func messageCompleted(info opencodeMessageInfo) bool {
-	if info.Time.Completed != 0 {
-		return true
-	}
-	return strings.TrimSpace(info.Finish) != ""
+	return info.Time.Completed != 0 || strings.TrimSpace(info.Finish) != ""
 }
 
 func summarizeToolCall(tool string, input map[string]any) string {
