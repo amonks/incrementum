@@ -316,9 +316,6 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 }
 
 func readTodosByExactIDsFromReader(reader io.Reader, missing map[string]struct{}) (map[string]Todo, error) {
-	if len(missing) == 0 {
-		return nil, nil
-	}
 	items := make(map[string]Todo, len(missing))
 	if err := scanJSONLReader(reader, func(line []byte, itemIndex int) (bool, error) {
 		item, err := decodeJSONLItem[Todo](line, itemIndex)
