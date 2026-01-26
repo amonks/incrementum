@@ -47,14 +47,18 @@ func commandCombinedOutput(cmd *exec.Cmd, context string) ([]byte, error) {
 	return output, nil
 }
 
+func runCombinedOutput(cmd *exec.Cmd, context string) error {
+	if _, err := commandCombinedOutput(cmd, context); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Init initializes a new jj repository at the given path.
 func (c *Client) Init(path string) error {
 	cmd := exec.Command("jj", "git", "init")
 	cmd.Dir = path
-	if _, err := commandCombinedOutput(cmd, "jj git init"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj git init")
 }
 
 // WorkspaceRoot returns the root directory of the workspace containing the given path.
@@ -68,10 +72,7 @@ func (c *Client) WorkspaceRoot(path string) (string, error) {
 func (c *Client) WorkspaceAdd(repoPath, name, workspacePath string) error {
 	cmd := exec.Command("jj", "workspace", "add", "--name", name, workspacePath)
 	cmd.Dir = repoPath
-	if _, err := commandCombinedOutput(cmd, "jj workspace add"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj workspace add")
 }
 
 // WorkspaceList returns the list of workspace names in the repository.
@@ -100,10 +101,7 @@ func (c *Client) WorkspaceList(repoPath string) ([]string, error) {
 func (c *Client) Edit(workspacePath, rev string) error {
 	cmd := exec.Command("jj", "edit", rev)
 	cmd.Dir = workspacePath
-	if _, err := commandCombinedOutput(cmd, "jj edit"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj edit")
 }
 
 // CurrentChangeID returns the change ID of the current working copy commit.
@@ -144,10 +142,7 @@ func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
 func (c *Client) BookmarkCreate(workspacePath, name, rev string) error {
 	cmd := exec.Command("jj", "bookmark", "create", name, "-r", rev)
 	cmd.Dir = workspacePath
-	if _, err := commandCombinedOutput(cmd, "jj bookmark create"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj bookmark create")
 }
 
 // NewChange creates a new change with the given parent revision.
@@ -156,7 +151,7 @@ func (c *Client) BookmarkCreate(workspacePath, name, rev string) error {
 func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
 	cmd := exec.Command("jj", "new", parentRev)
 	cmd.Dir = workspacePath
-	if _, err := commandCombinedOutput(cmd, "jj new"); err != nil {
+	if err := runCombinedOutput(cmd, "jj new"); err != nil {
 		return "", err
 	}
 
@@ -170,7 +165,7 @@ func (c *Client) NewChange(workspacePath, parentRev string) (string, error) {
 func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) (string, error) {
 	cmd := exec.Command("jj", "new", parentRev, "--no-edit", "--message", message)
 	cmd.Dir = workspacePath
-	if _, err := commandCombinedOutput(cmd, "jj new"); err != nil {
+	if err := runCombinedOutput(cmd, "jj new"); err != nil {
 		return "", err
 	}
 
@@ -214,10 +209,7 @@ func (c *Client) DescriptionAt(workspacePath, rev string) (string, error) {
 func (c *Client) Snapshot(workspacePath string) error {
 	cmd := exec.Command("jj", "debug", "snapshot")
 	cmd.Dir = workspacePath
-	if _, err := commandCombinedOutput(cmd, "jj debug snapshot"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj debug snapshot")
 }
 
 // Describe sets the description for the current change.
@@ -225,10 +217,7 @@ func (c *Client) Describe(workspacePath, message string) error {
 	cmd := exec.Command("jj", "describe", "--stdin")
 	cmd.Dir = workspacePath
 	cmd.Stdin = strings.NewReader(message)
-	if _, err := commandCombinedOutput(cmd, "jj describe"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj describe")
 }
 
 // Commit commits the current change and leaves a new empty change.
@@ -246,20 +235,14 @@ func (c *Client) Commit(workspacePath, message string) error {
 func (c *Client) WorkspaceUpdateStale(workspacePath string) error {
 	cmd := exec.Command("jj", "workspace", "update-stale")
 	cmd.Dir = workspacePath
-	if _, err := commandCombinedOutput(cmd, "jj workspace update-stale"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj workspace update-stale")
 }
 
 // WorkspaceForget removes a workspace from the repository without deleting it from disk.
 func (c *Client) WorkspaceForget(repoPath, workspaceName string) error {
 	cmd := exec.Command("jj", "workspace", "forget", workspaceName)
 	cmd.Dir = repoPath
-	if _, err := commandCombinedOutput(cmd, "jj workspace forget"); err != nil {
-		return err
-	}
-	return nil
+	return runCombinedOutput(cmd, "jj workspace forget")
 }
 
 // FileShow returns the contents of a file at the given revision.
