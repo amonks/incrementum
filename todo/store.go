@@ -835,9 +835,6 @@ func resolveExactTodoIDs(ids []string, todos []Todo) ([]string, bool, error) {
 	if !ok {
 		return nil, false, nil
 	}
-	if len(missing) == 0 {
-		return nil, true, ErrTodoNotFound
-	}
 	for _, todo := range todos {
 		if _, ok := missing[todo.ID]; ok {
 			delete(missing, todo.ID)
