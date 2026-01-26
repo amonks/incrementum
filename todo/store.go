@@ -302,9 +302,9 @@ func readJSONLFromReader[T any](reader io.Reader) ([]T, error) {
 		if items == nil && readerSize > 0 {
 			items = make([]T, 0, estimateJSONLItems(readerSize, len(line)))
 		}
-		var item T
-		if err := json.Unmarshal(line, &item); err != nil {
-			return false, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+		item, err := decodeJSONLItem[T](line, itemIndex)
+		if err != nil {
+			return false, err
 		}
 		items = append(items, item)
 		return false, nil
@@ -321,9 +321,9 @@ func readTodosByExactIDsFromReader(reader io.Reader, missing map[string]struct{}
 	}
 	items := make(map[string]Todo, len(missing))
 	if err := scanJSONLReader(reader, func(line []byte, itemIndex int) (bool, error) {
-		var item Todo
-		if err := json.Unmarshal(line, &item); err != nil {
-			return false, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+		item, err := decodeJSONLItem[Todo](line, itemIndex)
+		if err != nil {
+			return false, err
 		}
 		if _, ok := missing[item.ID]; ok {
 			items[item.ID] = item
@@ -338,6 +338,14 @@ func readTodosByExactIDsFromReader(reader io.Reader, missing map[string]struct{}
 	}
 
 	return items, nil
+}
+
+func decodeJSONLItem[T any](line []byte, itemIndex int) (T, error) {
+	var item T
+	if err := json.Unmarshal(line, &item); err != nil {
+		return item, fmt.Errorf("decode item %d: %w", itemIndex+1, err)
+	}
+	return item, nil
 }
 
 type readerStat interface {
