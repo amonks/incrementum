@@ -160,11 +160,9 @@ func (i *opencodeEventInterpreter) handleMessageUpdated(payload json.RawMessage)
 	}
 
 	state := i.ensureMessageState(info.ID)
-	if role == "user" && !state.promptEmitted {
-		prompt := combineParts(state.textOrder, state.textParts)
-		if strings.TrimSpace(prompt) != "" && i.enabled("message.part.updated") {
-			state.promptEmitted = true
-			return []opencodeRenderedEvent{renderPrompt(prompt)}, nil
+	if role == "user" {
+		if prompt := i.maybeEmitPrompt(state); prompt != nil {
+			return []opencodeRenderedEvent{*prompt}, nil
 		}
 	}
 
@@ -201,11 +199,9 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 	case "text":
 		i.storePartText(state, part.ID, part.Text, false)
 		role := i.messageRoles[part.MessageID]
-		if role == "user" && !state.promptEmitted {
-			prompt := combineParts(state.textOrder, state.textParts)
-			if strings.TrimSpace(prompt) != "" && i.enabled("message.part.updated") {
-				state.promptEmitted = true
-				return []opencodeRenderedEvent{renderPrompt(prompt)}, nil
+		if role == "user" {
+			if prompt := i.maybeEmitPrompt(state); prompt != nil {
+				return []opencodeRenderedEvent{*prompt}, nil
 			}
 		}
 	case "reasoning":
@@ -249,6 +245,19 @@ func (i *opencodeEventInterpreter) storePartText(state *opencodeMessageState, pa
 		state.textOrder = append(state.textOrder, partID)
 	}
 	state.textParts[partID] = text
+}
+
+func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) *opencodeRenderedEvent {
+	if state == nil || state.promptEmitted || !i.enabled("message.part.updated") {
+		return nil
+	}
+	prompt := combineParts(state.textOrder, state.textParts)
+	if strings.TrimSpace(prompt) == "" {
+		return nil
+	}
+	state.promptEmitted = true
+	event := renderPrompt(prompt)
+	return &event
 }
 
 func renderTool(summary string) opencodeRenderedEvent {
