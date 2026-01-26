@@ -93,6 +93,17 @@ type AcquireOptions struct {
 	NewChangeMessage string
 }
 
+// ValidateAcquirePurpose ensures the purpose is present and single-line.
+func ValidateAcquirePurpose(purpose string) error {
+	if strings.TrimSpace(purpose) == "" {
+		return fmt.Errorf("purpose is required")
+	}
+	if strings.ContainsAny(purpose, "\r\n") {
+		return fmt.Errorf("purpose must be a single line")
+	}
+	return nil
+}
+
 // Acquire obtains a workspace from the pool for the given repository.
 //
 // If an available workspace exists, it will be reused. Otherwise, a new
@@ -110,11 +121,8 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	if opts.Rev == "" {
 		opts.Rev = "main"
 	}
-	if strings.TrimSpace(opts.Purpose) == "" {
-		return "", fmt.Errorf("purpose is required")
-	}
-	if strings.ContainsAny(opts.Purpose, "\r\n") {
-		return "", fmt.Errorf("purpose must be a single line")
+	if err := ValidateAcquirePurpose(opts.Purpose); err != nil {
+		return "", err
 	}
 
 	// Get the repo name (creates entry if needed)

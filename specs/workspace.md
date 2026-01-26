@@ -19,6 +19,7 @@ The workspace pool manages a shared set of jujutsu workspaces for a repository. 
 ## Workspace Lifecycle
 ### Acquire
 - Defaults: `Rev` defaults to `main`.
+- `Purpose` must be non-empty and single-line; `ValidateAcquirePurpose` enforces this validation.
 - On acquire, the state store does the following under a lock:
   - Reuse the first available workspace for the repo when possible.
   - Otherwise allocate a new `ws-###` name and mark it acquired.

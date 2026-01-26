@@ -73,7 +73,7 @@ func TestValidateWorkspaceAcquirePurpose(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateWorkspaceAcquirePurpose(tc.purpose)
+			err := workspace.ValidateAcquirePurpose(tc.purpose)
 			if tc.wantErr == "" {
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)

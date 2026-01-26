@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
@@ -73,7 +72,7 @@ func openWorkspacePoolAndRepoPath() (*workspace.Pool, string, error) {
 }
 
 func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
-	if err := validateWorkspaceAcquirePurpose(workspaceAcquirePurpose); err != nil {
+	if err := workspace.ValidateAcquirePurpose(workspaceAcquirePurpose); err != nil {
 		return err
 	}
 
@@ -91,16 +90,6 @@ func runWorkspaceAcquire(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(wsPath)
-	return nil
-}
-
-func validateWorkspaceAcquirePurpose(purpose string) error {
-	if strings.TrimSpace(purpose) == "" {
-		return fmt.Errorf("purpose is required")
-	}
-	if strings.ContainsAny(purpose, "\r\n") {
-		return fmt.Errorf("purpose must be a single line")
-	}
 	return nil
 }
 
