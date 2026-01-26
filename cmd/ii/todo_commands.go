@@ -229,7 +229,6 @@ func init() {
 
 }
 
-// openTodoStore opens the todo store, prompting to create if it doesn't exist.
 func todoCreatePriorityValue(cmd *cobra.Command) *int {
 	if cmd.Flags().Changed("priority") {
 		return todo.PriorityPtr(todoCreatePriority)
