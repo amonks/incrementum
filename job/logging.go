@@ -154,17 +154,21 @@ func formatLogLabel(label string, indent int) string {
 	return IndentBlock(label, indent)
 }
 
+func renderMarkdownBlockOrDash(body string, indent int, renderWidth int) string {
+	rendered := RenderMarkdown(body, renderWidth)
+	if strings.TrimSpace(rendered) == "" {
+		return IndentBlock("-", indent)
+	}
+	return IndentBlock(rendered, indent)
+}
+
 func formatLogBody(body string, indent int, wrap bool) string {
 	body = normalizeLogBody(body)
 	if wrap {
 		if strings.TrimSpace(body) == "-" {
 			return IndentBlock(body, indent)
 		}
-		rendered := RenderMarkdown(body, wrapWidth(indent))
-		if strings.TrimSpace(rendered) == "" {
-			return IndentBlock("-", indent)
-		}
-		return IndentBlock(rendered, indent)
+		return renderMarkdownBlockOrDash(body, indent, wrapWidth(indent))
 	}
 	return IndentBlock(body, indent)
 }
@@ -206,11 +210,7 @@ func formatMarkdownBlock(body string, indent int, preformatted bool) string {
 		body = preserveMarkdownLineBreaks(body)
 		renderWidth = width + markdownHardBreakPadding
 	}
-	rendered := RenderMarkdown(body, renderWidth)
-	if strings.TrimSpace(rendered) == "" {
-		return IndentBlock("-", indent)
-	}
-	return IndentBlock(rendered, indent)
+	return renderMarkdownBlockOrDash(body, indent, renderWidth)
 }
 
 func wrapWidth(indent int) int {
