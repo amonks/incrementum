@@ -791,12 +791,8 @@ func (s *Store) writeDependencies(deps []Dependency) error {
 }
 
 func (s *Store) resolveTodoIDs(ids []string) ([]string, error) {
-	todos, err := s.readTodosWithContext()
-	if err != nil {
-		return nil, err
-	}
-
-	return resolveTodoIDsWithTodos(ids, todos)
+	_, resolved, err := s.readTodosAndResolveIDs(ids)
+	return resolved, err
 }
 
 func (s *Store) readTodosAndResolveIDs(ids []string) ([]Todo, []string, error) {
