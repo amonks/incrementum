@@ -277,17 +277,10 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 		)
 	}
 
-	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].CreatedAt.Equal(candidates[j].CreatedAt) {
-			return candidates[i].ID < candidates[j].ID
-		}
-		if candidates[i].CreatedAt.IsZero() {
-			return false
-		}
-		if candidates[j].CreatedAt.IsZero() {
-			return true
-		}
-		return candidates[i].CreatedAt.Before(candidates[j].CreatedAt)
+	sortByCreatedAt(candidates, func(item SessionMetadata) time.Time {
+		return item.CreatedAt
+	}, func(item SessionMetadata) string {
+		return item.ID
 	})
 
 	trimmedPrompt := strings.TrimSpace(prompt)
@@ -342,17 +335,10 @@ func (s Storage) listMessages(sessionID string) ([]messageInfo, error) {
 		items = append(items, item)
 	}
 
-	sort.Slice(items, func(i, j int) bool {
-		if items[i].CreatedAt.Equal(items[j].CreatedAt) {
-			return items[i].ID < items[j].ID
-		}
-		if items[i].CreatedAt.IsZero() {
-			return false
-		}
-		if items[j].CreatedAt.IsZero() {
-			return true
-		}
-		return items[i].CreatedAt.Before(items[j].CreatedAt)
+	sortByCreatedAt(items, func(item messageInfo) time.Time {
+		return item.CreatedAt
+	}, func(item messageInfo) string {
+		return item.ID
 	})
 	return items, nil
 }
@@ -641,4 +627,21 @@ func formatTimeLabel(t time.Time) string {
 		return "unknown"
 	}
 	return t.Format(time.RFC3339Nano)
+}
+
+func sortByCreatedAt[T any](items []T, createdAt func(T) time.Time, tiebreak func(T) string) {
+	sort.Slice(items, func(i, j int) bool {
+		left := createdAt(items[i])
+		right := createdAt(items[j])
+		if left.Equal(right) {
+			return tiebreak(items[i]) < tiebreak(items[j])
+		}
+		if left.IsZero() {
+			return false
+		}
+		if right.IsZero() {
+			return true
+		}
+		return left.Before(right)
+	})
 }
