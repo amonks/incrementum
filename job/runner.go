@@ -444,17 +444,12 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	if opts.OpencodeTranscripts == nil {
 		opts.OpencodeTranscripts = opencodeTranscripts
 	}
-	if opts.Logger == nil {
-		opts.Logger = noopLogger{}
-	}
+	opts.Logger = resolveLogger(opts.Logger)
 	return opts
 }
 
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitLog []CommitLogEntry, previousMessage string) (ImplementingStageResult, error) {
-	logger := opts.Logger
-	if logger == nil {
-		logger = noopLogger{}
-	}
+	logger := resolveLogger(opts.Logger)
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
@@ -559,10 +554,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 }
 
 func runTestingStage(manager *Manager, current Job, repoPath, workspacePath string, opts RunOptions) (Job, error) {
-	logger := opts.Logger
-	if logger == nil {
-		logger = noopLogger{}
-	}
+	logger := resolveLogger(opts.Logger)
 	cfg, err := opts.LoadConfig(repoPath)
 	if err != nil {
 		return Job{}, fmt.Errorf("load config: %w", err)
@@ -593,10 +585,7 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 }
 
 func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitMessage string, commitLog []CommitLogEntry, scope reviewScope) (Job, error) {
-	logger := opts.Logger
-	if logger == nil {
-		logger = noopLogger{}
-	}
+	logger := resolveLogger(opts.Logger)
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
@@ -714,10 +703,7 @@ type CommittingStageOptions struct {
 }
 
 func runCommittingStage(opts CommittingStageOptions) (Job, error) {
-	logger := opts.RunOptions.Logger
-	if logger == nil {
-		logger = noopLogger{}
-	}
+	logger := resolveLogger(opts.RunOptions.Logger)
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
 	message := strings.TrimSpace(opts.CommitMessage)
 	if message == "" {

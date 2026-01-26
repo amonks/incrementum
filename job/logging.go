@@ -50,6 +50,13 @@ func (noopLogger) CommitMessage(CommitMessageLog) {}
 func (noopLogger) Review(ReviewLog)               {}
 func (noopLogger) Tests(TestLog)                  {}
 
+func resolveLogger(logger Logger) Logger {
+	if logger == nil {
+		return noopLogger{}
+	}
+	return logger
+}
+
 // ConsoleLogger writes formatted log output.
 type ConsoleLogger struct {
 	writer      io.Writer
