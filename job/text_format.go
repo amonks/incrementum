@@ -14,12 +14,6 @@ const (
 	subdocumentIndent = 8
 )
 
-func wrapLines(value string, width int) string {
-	value = strings.ReplaceAll(value, "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "\n")
-	return wordwrap.String(value, width)
-}
-
 // RenderMarkdown formats markdown text for terminal display.
 func RenderMarkdown(value string, width int) string {
 	if width < 1 {
