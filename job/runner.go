@@ -710,6 +710,21 @@ type CommittingStageOptions struct {
 func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 	logger := resolveLogger(opts.RunOptions.Logger)
 	updateStaleWorkspace(opts.RunOptions.UpdateStale, opts.WorkspacePath)
+	if opts.RunOptions.DiffStat == nil {
+		return Job{}, fmt.Errorf("diff stat is required")
+	}
+	diffStat, err := opts.RunOptions.DiffStat(opts.WorkspacePath, "@-", "@")
+	if err != nil {
+		return Job{}, err
+	}
+	if !diffStatHasChanges(diffStat) {
+		nextStage := StageImplementing
+		updated, err := opts.Manager.Update(opts.Current.ID, UpdateOptions{Stage: &nextStage}, opts.RunOptions.Now())
+		if err != nil {
+			return Job{}, err
+		}
+		return updated, nil
+	}
 	message := strings.TrimSpace(opts.CommitMessage)
 	if message == "" {
 		return Job{}, fmt.Errorf("commit message is required")

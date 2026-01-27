@@ -595,6 +595,9 @@ func TestRunCommittingStageFormatsCommitMessage(t *testing.T) {
 		UpdateStale: func(string) error {
 			return nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		OpencodeTranscripts: func(repoPath string, sessions []OpencodeSession) ([]OpencodeTranscript, error) {
 			return []OpencodeTranscript{{Purpose: "implement", ID: "ses-333", Transcript: "Planning\n"}}, nil
 		},
@@ -685,6 +688,9 @@ func TestRunCommittingStageLogsFormattedCommitMessage(t *testing.T) {
 		UpdateStale: func(string) error {
 			return nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		CommitIDAt: func(string, string) (string, error) {
 			return "commit-log", nil
 		},
@@ -735,6 +741,67 @@ func TestRunCommittingStageLogsFormattedCommitMessage(t *testing.T) {
 	}
 }
 
+func TestRunCommittingStageSkipsEmptyChange(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 13, 7, 0, 0, time.UTC)
+	current, err := manager.Create("todo-empty-change", startedAt, "")
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-empty-change",
+		Title:    "Skip empty change",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	commitCalls := 0
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "0 files changed, 0 insertions(+), 0 deletions(-)\n", nil
+		},
+		Commit: func(string, string) error {
+			commitCalls++
+			return nil
+		},
+	}
+
+	updated, err := runCommittingStage(CommittingStageOptions{
+		Manager:       manager,
+		Current:       current,
+		Item:          item,
+		RepoPath:      repoPath,
+		WorkspacePath: workspacePath,
+		RunOptions:    opts,
+		Result:        &RunResult{},
+		CommitMessage: "feat: nothing to commit",
+	})
+	if err != nil {
+		t.Fatalf("run committing stage: %v", err)
+	}
+	if commitCalls != 0 {
+		t.Fatalf("expected no commit attempt, got %d", commitCalls)
+	}
+	if updated.Stage != StageImplementing {
+		t.Fatalf("expected stage %q, got %q", StageImplementing, updated.Stage)
+	}
+}
+
 func TestRunCommittingStageOmitsCommitLog(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()
@@ -766,6 +833,9 @@ func TestRunCommittingStageOmitsCommitLog(t *testing.T) {
 		},
 		UpdateStale: func(string) error {
 			return nil
+		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
 		},
 		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
 			return nil, nil
@@ -833,6 +903,9 @@ func TestRunCommittingStageOmitsEmptyCommitLog(t *testing.T) {
 		UpdateStale: func(string) error {
 			return nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
 			return nil, nil
 		},
@@ -897,6 +970,9 @@ func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
 		},
 		UpdateStale: func(string) error {
 			return nil
+		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
 		},
 		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
 			return nil, nil

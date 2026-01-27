@@ -623,6 +623,9 @@ func TestRunCommittingStageLogsFinalMessage(t *testing.T) {
 		UpdateStale: func(string) error {
 			return nil
 		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
 		OpencodeTranscripts: func(string, []OpencodeSession) ([]OpencodeTranscript, error) {
 			return nil, nil
 		},

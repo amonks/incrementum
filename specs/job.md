@@ -181,18 +181,21 @@ any stage -> failed (unrecoverable error)
 ### committing
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
-2. Format final message with a fixed commit message layout (not templated). The
+2. If the working copy diff (`jj diff --stat --from @- --to @`) is empty, skip
+   committing and transition back to `implementing` (the next loop will detect
+   no changes and move to project review).
+3. Format final message with a fixed commit message layout (not templated). The
    format uses the opencode-generated summary/body plus a todo block, reflowed via
    the markdown renderer to 80/76/72 columns with 0/4/8-space indentation. Todo
    descriptions are rendered via the markdown renderer to preserve lists and code
    blocks.
-3. Normalize the formatted message by trimming leading blank lines and trailing
+4. Normalize the formatted message by trimming leading blank lines and trailing
    whitespace on each line. Left-trim the first non-blank line so the summary
    line starts at column 0 even if the markdown renderer indents paragraphs.
-4. Best-effort `jj workspace update-stale` in the repo working directory.
-5. Run `jj commit -m "<formatted message>"` in the repo working directory.
-6. If commit fails: mark job `failed`.
-7. Transition back to `implementing` to continue the work loop.
+5. Best-effort `jj workspace update-stale` in the repo working directory.
+6. Run `jj commit -m "<formatted message>"` in the repo working directory.
+7. If commit fails: mark job `failed`.
+8. Transition back to `implementing` to continue the work loop.
 
 Commit message format:
 
