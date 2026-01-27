@@ -1,0 +1,2 @@
+[job]
+test-commands = ["go test ./..."]
