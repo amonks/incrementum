@@ -81,21 +81,30 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	}
 	eventStream := make(chan jobpkg.Event, 128)
 	eventErrs := make(chan error, 1)
+	eventDone := make(chan struct{})
 	go func() {
 		formatter := jobpkg.NewEventFormatter()
 		var streamErr error
-		for event := range eventStream {
-			if strings.HasPrefix(event.Name, "job.") {
-				continue
-			}
-			if err := appendAndPrintEvent(formatter, event); err != nil {
-				if streamErr == nil {
-					streamErr = err
+		for {
+			select {
+			case event, ok := <-eventStream:
+				if !ok {
+					eventErrs <- streamErr
+					return
 				}
-				continue
+				if strings.HasPrefix(event.Name, "job.") {
+					continue
+				}
+				if err := appendAndPrintEvent(formatter, event); err != nil {
+					if streamErr == nil {
+						streamErr = err
+					}
+				}
+			case <-eventDone:
+				eventErrs <- streamErr
+				return
 			}
 		}
-		eventErrs <- streamErr
 	}()
 
 	result, err := jobRun(repoPath, todoID, jobpkg.RunOptions{
@@ -105,6 +114,7 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 		EventStream:   eventStream,
 		OpencodeAgent: resolveOpencodeAgent(cmd, jobDoAgent),
 	})
+	close(eventDone)
 	streamErr := <-eventErrs
 	if err != nil {
 		return err

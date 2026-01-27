@@ -261,6 +261,7 @@ func (c *Client) FileShow(repoPath, rev, path string) ([]byte, error) {
 func isFileNotFoundOutput(output []byte) bool {
 	message := strings.ToLower(string(output))
 	return strings.Contains(message, "no such file") ||
+		strings.Contains(message, "no such path") ||
 		strings.Contains(message, "path does not exist") ||
 		strings.Contains(message, "path doesn't exist")
 }

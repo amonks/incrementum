@@ -13,3 +13,4 @@ The jj package wraps the `jj` CLI to provide Go-friendly helpers.
 
 ## Error Handling
 - CLI output is included in errors to help diagnose failures.
+- `FileShow` treats "no such file/path" output as `ErrFileNotFound` so callers can treat missing files as empty state.
