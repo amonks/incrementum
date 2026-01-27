@@ -30,7 +30,8 @@ Running implementation prompt:
         go test ./job -run Snapshot
         ```
 
-    Opencode tool: run 'rg "snapshot" -g "*.go" /tmp/workspaces/snapshot-test'
+    Opencode tool start: run 'rg "snapshot" -g "*.go" /tmp/workspaces/snapshot-test'
+    Opencode tool end: run 'rg "snapshot" -g "*.go" /tmp/workspaces/snapshot-test'
 
 Implementation prompt complete; running tests:
     Command: go test ./job/...

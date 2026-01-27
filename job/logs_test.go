@@ -31,9 +31,13 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 	if err := appendJobEvent(log, jobEventCommitMessage, commitMessageEventData{Label: "Draft", Message: "feat: add logs"}); err != nil {
 		t.Fatalf("append commit message event: %v", err)
 	}
-	opencodeToolEvent := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"read","state":{"status":"completed","input":{"filePath":"/tmp/example.txt"}}}}}`
-	if err := log.Append(Event{Data: opencodeToolEvent}); err != nil {
-		t.Fatalf("append opencode event: %v", err)
+	opencodeToolStart := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"read","state":{"status":"running","input":{"filePath":"/tmp/example.txt"}}}}}`
+	if err := log.Append(Event{Data: opencodeToolStart}); err != nil {
+		t.Fatalf("append opencode tool start event: %v", err)
+	}
+	opencodeToolEnd := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"read","state":{"status":"completed","input":{"filePath":"/tmp/example.txt"}}}}}`
+	if err := log.Append(Event{Data: opencodeToolEnd}); err != nil {
+		t.Fatalf("append opencode tool end event: %v", err)
 	}
 	if err := appendJobEvent(log, jobEventStage, stageEventData{Stage: StageTesting}); err != nil {
 		t.Fatalf("append test stage event: %v", err)
@@ -64,7 +68,8 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"        Opencode line.",
 		"    Draft commit message:",
 		"        feat: add logs",
-		"    Opencode tool: read file '/tmp/example.txt'",
+		"    Opencode tool start: read file '/tmp/example.txt'",
+		"    Opencode tool end: read file '/tmp/example.txt'",
 		"Implementation prompt complete; running tests:",
 		"Command: go test ./...",
 		"Exit Code: 1",
@@ -202,13 +207,21 @@ func TestEventFormatterAppendsOutput(t *testing.T) {
 		t.Fatalf("expected prompt output, got %q", chunk)
 	}
 
-	opencodeToolEvent := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"glob","state":{"status":"completed","input":{"pattern":"**/*.go","path":"/tmp"}}}}}`
-	chunk, err = formatter.Append(Event{Data: opencodeToolEvent})
+	opencodeToolStart := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"glob","state":{"status":"running","input":{"pattern":"**/*.go","path":"/tmp"}}}}}`
+	chunk, err = formatter.Append(Event{Data: opencodeToolStart})
 	if err != nil {
-		t.Fatalf("append opencode event: %v", err)
+		t.Fatalf("append opencode tool start event: %v", err)
 	}
-	if !strings.Contains(chunk, "Opencode tool: glob '") {
-		t.Fatalf("expected opencode tool output, got %q", chunk)
+	if !strings.Contains(chunk, "Opencode tool start: glob '") {
+		t.Fatalf("expected opencode tool start output, got %q", chunk)
+	}
+	opencodeToolEnd := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"glob","state":{"status":"completed","input":{"pattern":"**/*.go","path":"/tmp"}}}}}`
+	chunk, err = formatter.Append(Event{Data: opencodeToolEnd})
+	if err != nil {
+		t.Fatalf("append opencode tool end event: %v", err)
+	}
+	if !strings.Contains(chunk, "Opencode tool end: glob '") {
+		t.Fatalf("expected opencode tool end output, got %q", chunk)
 	}
 
 	chunk, err = formatter.Append(Event{Name: "job.opencode.error", Data: "{\"purpose\":\"implement\",\"error\":\"opencode session not found\"}"})

@@ -56,6 +56,7 @@ type opencodeMessageState struct {
 	textOrder       []string
 	reasoningParts  map[string]string
 	reasoningOrder  []string
+	toolStatus      map[string]string
 	promptEmitted   bool
 	responseEmitted bool
 	thinkingEmitted bool
@@ -207,12 +208,25 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 		if !i.enabled("message.part.updated") {
 			return nil, nil
 		}
-		if strings.EqualFold(part.State.Status, "completed") {
-			summary := summarizeToolCall(part.Tool, part.State.Input)
-			if strings.TrimSpace(summary) != "" {
-				return []opencodeRenderedEvent{renderTool(summary)}, nil
-			}
+		summary := summarizeToolCall(part.Tool, part.State.Input)
+		if strings.TrimSpace(summary) == "" {
+			return nil, nil
 		}
+		status := internalstrings.NormalizeLowerTrimSpace(part.State.Status)
+		if status == "" {
+			return nil, nil
+		}
+		if state.toolStatus == nil {
+			state.toolStatus = make(map[string]string)
+		}
+		if previous, ok := state.toolStatus[part.ID]; ok && previous == status {
+			return nil, nil
+		}
+		state.toolStatus[part.ID] = status
+		if isToolTerminalStatus(status) {
+			return []opencodeRenderedEvent{renderToolEnd(summary, status)}, nil
+		}
+		return []opencodeRenderedEvent{renderToolStart(summary)}, nil
 	}
 	return nil, nil
 }
@@ -222,6 +236,7 @@ func (i *opencodeEventInterpreter) ensureMessageState(messageID string) *opencod
 		i.messages[messageID] = &opencodeMessageState{
 			textParts:      make(map[string]string),
 			reasoningParts: make(map[string]string),
+			toolStatus:     make(map[string]string),
 		}
 	}
 	return i.messages[messageID]
@@ -256,8 +271,12 @@ func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) 
 	return []opencodeRenderedEvent{renderPrompt(prompt)}
 }
 
-func renderTool(summary string) opencodeRenderedEvent {
-	return opencodeRenderedEvent{Kind: "tool", Label: "Opencode tool:", Inline: summary}
+func renderToolStart(summary string) opencodeRenderedEvent {
+	return opencodeRenderedEvent{Kind: "tool", Label: "Opencode tool start:", Inline: summary}
+}
+
+func renderToolEnd(summary, status string) opencodeRenderedEvent {
+	return opencodeRenderedEvent{Kind: "tool", Label: "Opencode tool end:", Inline: toolSummaryWithStatus(summary, status)}
 }
 
 func renderPrompt(text string) opencodeRenderedEvent {
@@ -270,6 +289,25 @@ func renderResponse(text string) opencodeRenderedEvent {
 
 func renderThinking(text string) opencodeRenderedEvent {
 	return opencodeRenderedEvent{Kind: "thinking", Label: "Opencode thinking:", Body: text}
+}
+
+func isToolTerminalStatus(status string) bool {
+	switch status {
+	case "completed", "complete", "succeeded", "success", "failed", "error", "cancelled", "canceled":
+		return true
+	default:
+		return false
+	}
+}
+
+func toolSummaryWithStatus(summary, status string) string {
+	if summary == "" || status == "" {
+		return summary
+	}
+	if status == "completed" || status == "complete" {
+		return summary
+	}
+	return fmt.Sprintf("%s (%s)", summary, status)
 }
 
 func combineParts(order []string, parts map[string]string) string {

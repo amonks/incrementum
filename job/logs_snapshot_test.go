@@ -45,8 +45,11 @@ func TestLogSnapshotSnapshot(t *testing.T) {
 	if err := appendJobEvent(log, jobEventCommitMessage, commitMessageEventData{Label: "Final", Message: message, Preformatted: true}); err != nil {
 		t.Fatalf("append commit message event: %v", err)
 	}
+	if err := log.Append(Event{Data: `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"bash","state":{"status":"running","input":{"command":"rg \"snapshot\" -g \"*.go\" /tmp/workspaces/snapshot-test"}}}}}`}); err != nil {
+		t.Fatalf("append opencode tool start event: %v", err)
+	}
 	if err := log.Append(Event{Data: `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"bash","state":{"status":"completed","input":{"command":"rg \"snapshot\" -g \"*.go\" /tmp/workspaces/snapshot-test"}}}}}`}); err != nil {
-		t.Fatalf("append opencode tool event: %v", err)
+		t.Fatalf("append opencode tool end event: %v", err)
 	}
 	if err := appendJobEvent(log, jobEventStage, stageEventData{Stage: StageTesting}); err != nil {
 		t.Fatalf("append stage event: %v", err)
