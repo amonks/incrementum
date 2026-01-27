@@ -515,7 +515,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		if err != nil {
 			return ImplementingStageResult{}, err
 		}
-		if strings.TrimSpace(diffStat) == "" {
+		if !diffStatHasChanges(diffStat) {
 			changed = false
 		}
 	}
@@ -811,6 +811,20 @@ func testingStageOutcome(results []TestCommandResult) (Stage, string) {
 		return StageReviewing, ""
 	}
 	return StageImplementing, FormatTestFeedback(failed)
+}
+
+func diffStatHasChanges(diffStat string) bool {
+	trimmed := strings.TrimSpace(diffStat)
+	if trimmed == "" {
+		return false
+	}
+	if strings.HasPrefix(trimmed, "0 files changed") {
+		return false
+	}
+	if strings.HasPrefix(trimmed, "No changes") {
+		return false
+	}
+	return true
 }
 
 func renderPromptTemplate(item todo.Todo, feedback, message string, commitLog []CommitLogEntry, transcripts []OpencodeTranscript, name, workspacePath string) (string, error) {

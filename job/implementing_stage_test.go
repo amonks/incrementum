@@ -131,3 +131,60 @@ func TestRunImplementingStageTreatsEmptyDiffAsNoChange(t *testing.T) {
 		t.Fatalf("expected commit message to be deleted")
 	}
 }
+
+func TestRunImplementingStageTreatsZeroDiffStatAsNoChange(t *testing.T) {
+	repoPath := t.TempDir()
+	stateDir := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, time.January, 2, 3, 4, 6, 0, time.UTC)
+	current, err := manager.Create("todo-3", now, "")
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-3",
+		Title:    "Example",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	messagePath := filepath.Join(repoPath, commitMessageFilename)
+	if err := os.WriteFile(messagePath, []byte("feat: example\n"), 0o644); err != nil {
+		t.Fatalf("write commit message: %v", err)
+	}
+
+	commitCalls := 0
+	opts := RunOptions{
+		Now: func() time.Time { return now },
+		CurrentCommitID: func(string) (string, error) {
+			commitCalls++
+			if commitCalls == 1 {
+				return "before", nil
+			}
+			return "after", nil
+		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "0 files changed, 0 insertions(+), 0 deletions(-)\n", nil
+		},
+		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
+			return OpencodeRunResult{SessionID: "ses-789", ExitCode: 0}, nil
+		},
+	}
+
+	result, err := runImplementingStage(manager, current, item, repoPath, repoPath, opts, nil, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result.Changed {
+		t.Fatalf("expected no change, got changed")
+	}
+	if _, err := os.Stat(messagePath); !os.IsNotExist(err) {
+		t.Fatalf("expected commit message to be deleted")
+	}
+}

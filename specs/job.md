@@ -120,8 +120,9 @@ any stage -> failed (unrecoverable error)
 9. If opencode fails (nonzero exit): mark job `failed`.
 10. Record the current working copy commit id again.
 11. If the commit id changed, run `jj diff --from <before> --to <after> --stat` to
-    confirm the working copy diff is non-empty; treat an empty diff stat as no
-    change.
+    confirm the working copy diff is non-empty; treat an empty diff stat or a
+    zero-files summary (for example, "0 files changed, 0 insertions(+), 0
+    deletions(-)") as no change.
 12. If the commit id did not change (or the diff stat is empty):
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
     - Flag the next review cycle as the final project review.
