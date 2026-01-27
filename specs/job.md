@@ -308,6 +308,22 @@ Exit codes:
 - 0: completed.
 - 1: failed or abandoned.
 
+### `ii job do-all [--priority <n>] [--type <type>]`
+
+Run jobs for all ready todos that match the provided filters.
+
+- `--priority` filters by maximum priority; `--priority=1` includes priority 0
+  and 1 todos (priority 0 first).
+- `--type` filters by exact todo type (`task`, `bug`, `feature`).
+
+Behavior:
+
+1. Read the ready todo list (open, unblocked), sorted by priority.
+2. Select the first todo matching the filters.
+3. Run `ii job do` for that todo.
+4. Repeat from step 1 until no matching todos remain.
+5. Print `nothing left to do` when the run finishes without a match.
+
 ### `ii job list [--status <s>] [--all] [--json]`
 
 List jobs for current repo.
