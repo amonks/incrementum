@@ -1,5 +1,0 @@
-[workspace]
-on-acquire = """
-  direnv allow
-"""
-
