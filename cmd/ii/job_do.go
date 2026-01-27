@@ -14,9 +14,9 @@ import (
 )
 
 var jobDoCmd = &cobra.Command{
-	Use:   "do [todo-id]",
-	Short: "Run a job for a todo",
-	Args:  cobra.MaximumNArgs(1),
+	Use:   "do [todo-id...]",
+	Short: "Run a job for one or more todos",
+	Args:  cobra.ArbitraryArgs,
 	RunE:  runJobDo,
 }
 
@@ -57,17 +57,25 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("todo id cannot be combined with todo creation flags")
 	}
 
-	todoID := ""
-	if len(args) > 0 {
-		todoID = args[0]
-	} else {
+	todoIDs := args
+	if len(todoIDs) == 0 {
 		createdID, err := createTodoForJob(cmd, hasCreateFlags)
 		if err != nil {
 			return err
 		}
-		todoID = createdID
+		todoIDs = []string{createdID}
 	}
 
+	for _, todoID := range todoIDs {
+		if err := runJobDoTodo(cmd, todoID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func runJobDoTodo(cmd *cobra.Command, todoID string) error {
 	repoPath, err := getRepoPath()
 	if err != nil {
 		return err

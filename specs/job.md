@@ -270,11 +270,11 @@ default review question list.
 
 ## Commands
 
-### `ii job do [todo-id | creation-flags]`
+### `ii job do [todo-id... | creation-flags]`
 
 Create and run a job to completion (blocking).
 
-- If todo-id provided: use existing todo.
+- If one or more todo-ids provided: run each existing todo in sequence.
 - If creation flags provided: create todo first (same flags as `ii todo create`:
   `--title`, `--type`, `--priority`, `--description/--desc`, `--deps`,
   `--edit/--no-edit`).
@@ -284,7 +284,7 @@ Create and run a job to completion (blocking).
 
 Behavior:
 
-1. Resolve or create todo.
+1. Resolve or create todo(s).
 2. Release the todo store workspace once the todo is loaded.
 3. Mark the todo `in_progress`.
 4. Run the job from the workspace root (no session/workspace or new change is created).
