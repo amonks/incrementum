@@ -40,7 +40,7 @@ Implementation prompt complete; running tests:
         --- FAIL: TestSnapshot (0.01s)
             snapshot mismatch
 
-Tests passed; doing code review:
+Starting review:
     Code review result:
         
           Review notes:

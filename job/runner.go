@@ -259,20 +259,22 @@ func runJobStages(ctx *runContext, current Job, interrupts <-chan os.Signal) (Jo
 			ctx.reviewScope = reviewScopeProject
 		}
 
-		next, stageErr = ctx.runStageWithInterrupt(current, ctx.runTestingStage(current), interrupts)
-		if stageErr != nil && errors.Is(stageErr, ErrJobInterrupted) {
-			return next, stageErr
-		}
-		current, stageErr = ctx.handleStageOutcome(current, next, stageErr)
-		if stageErr != nil {
-			return current, stageErr
-		}
-		if current.Status != StatusActive {
-			break
-		}
-		if current.Stage == StageImplementing {
-			ctx.reviewScope = reviewScopeStep
-			continue
+		if current.Stage == StageTesting {
+			next, stageErr = ctx.runStageWithInterrupt(current, ctx.runTestingStage(current), interrupts)
+			if stageErr != nil && errors.Is(stageErr, ErrJobInterrupted) {
+				return next, stageErr
+			}
+			current, stageErr = ctx.handleStageOutcome(current, next, stageErr)
+			if stageErr != nil {
+				return current, stageErr
+			}
+			if current.Status != StatusActive {
+				break
+			}
+			if current.Stage == StageImplementing {
+				ctx.reviewScope = reviewScopeStep
+				continue
+			}
 		}
 
 		next, stageErr = ctx.runStageWithInterrupt(current, ctx.runReviewingStage(current), interrupts)
@@ -546,6 +548,9 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	}
 
 	nextStage := StageTesting
+	if !changed {
+		nextStage = StageReviewing
+	}
 	updated, err = manager.Update(updated.ID, UpdateOptions{Stage: &nextStage}, opts.Now())
 	if err != nil {
 		return ImplementingStageResult{}, err

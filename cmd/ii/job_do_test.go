@@ -81,9 +81,9 @@ func TestFormatCommitMessageOutputIndentsMessage(t *testing.T) {
 	}
 }
 
-func TestStageMessageUsesCodeReviewLabel(t *testing.T) {
+func TestStageMessageUsesReviewLabel(t *testing.T) {
 	message := jobpkg.StageMessage(jobpkg.StageReviewing)
-	if message != "Tests passed; doing code review:" {
-		t.Fatalf("expected code review stage message, got %q", message)
+	if message != "Starting review:" {
+		t.Fatalf("expected review stage message, got %q", message)
 	}
 }

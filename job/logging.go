@@ -361,7 +361,7 @@ func StageMessage(stage Stage) string {
 	case StageTesting:
 		return "Implementation prompt complete; running tests:"
 	case StageReviewing:
-		return "Tests passed; doing code review:"
+		return "Starting review:"
 	case StageCommitting:
 		return "Review complete; committing changes:"
 	default:

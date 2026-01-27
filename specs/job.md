@@ -6,9 +6,9 @@ The job package and subcommand automate todo completion via opencode. A job
 runs from the current working directory and executes a work loop: opencode is
 asked to complete the next highest-priority step and write a commit message,
 tests run, opencode reviews the change, and the result is committed. The loop
-continues until opencode makes no changes, then the job runs tests and a final
-project review before completing. Jobs retry on test failure or review rejection
-until opencode decides to abandon.
+continues until opencode makes no changes, then the job skips tests and moves
+directly to the final project review before completing. Jobs retry on test
+failure or review rejection until opencode decides to abandon.
 
 Jobs emit a merged stream of opencode and job events to the JSONL event log and
 optionally to a caller-provided Go channel via `RunOptions.EventStream`, which
@@ -97,7 +97,7 @@ implementing -> testing -> reviewing -> committing -> implementing
      |             |            +--------------> implementing (REQUEST_CHANGES)
      |             +--------------------------> implementing (test failure)
      |
-     +-> (no changes) -> testing -> reviewing -> completed
+     +-> (no changes) -> reviewing -> completed
 
 reviewing -> abandoned (ABANDON)
 any stage -> failed (unrecoverable error)
@@ -124,16 +124,18 @@ any stage -> failed (unrecoverable error)
     change.
 12. If the commit id did not change (or the diff stat is empty):
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
-    - Flag the next testing/review cycle as the final project review.
+    - Flag the next review cycle as the final project review.
 13. If the commit id changed and the diff stat is non-empty:
     - Read `.incrementum-commit-message` from the workspace root, trimming trailing
       newlines, trailing whitespace on each line, and any leading blank lines.
     - Store the message for the committing stage.
-14. Transition to `testing`.
+14. Transition to `testing` when changes were detected, otherwise transition to
+    `reviewing`.
 
 ### testing
 
-1. Run each test command from config sequentially.
+1. Run each test command from config sequentially (only when changes were
+   detected in the implementing stage).
 2. Capture combined stdout/stderr output and exit code for each command.
 3. Store the command, exit code, and output in the job test event log.
 4. If any command fails (nonzero exit):

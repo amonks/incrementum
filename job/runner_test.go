@@ -113,6 +113,79 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 	}
 }
 
+func TestRunImplementingStageNoChangesSkipsTesting(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := "/Users/test/repo"
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 11, 5, 0, 0, time.UTC)
+	created, err := manager.Create("todo-790", startedAt, "")
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-790",
+		Title:       "No changes",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	messagePath := filepath.Join(workspacePath, commitMessageFilename)
+	if err := os.WriteFile(messagePath, []byte("old message"), 0o644); err != nil {
+		t.Fatalf("seed commit message: %v", err)
+	}
+
+	commitIDs := []string{"same", "same"}
+	commitIndex := 0
+
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "", fmt.Errorf("diff stat should not be called")
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			return OpencodeRunResult{SessionID: "oc-790", ExitCode: 0}, nil
+		},
+	}
+
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil, "")
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+	if result.Changed {
+		t.Fatalf("expected no change detected")
+	}
+	if result.CommitMessage != "" {
+		t.Fatalf("expected empty commit message, got %q", result.CommitMessage)
+	}
+	if result.Job.Stage != StageReviewing {
+		t.Fatalf("expected stage %q, got %q", StageReviewing, result.Job.Stage)
+	}
+	if _, err := os.Stat(messagePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected commit message removed, got %v", err)
+	}
+}
+
 func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()

@@ -75,7 +75,7 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"Exit Code: 1",
 		"Output:",
 		"tests failed",
-		"Tests passed; doing code review:",
+		"Starting review:",
 		"Review transcript line.",
 		"    Code review result:",
 		"        Add tests.",
