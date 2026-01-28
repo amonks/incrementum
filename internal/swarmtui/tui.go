@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/swarm"
 	"github.com/amonks/incrementum/todo"
@@ -723,7 +724,7 @@ func (m model) renderPane(content string, width, height int, focused bool) strin
 
 func (m model) renderStatusLine() string {
 	text := m.status
-	if strings.TrimSpace(text) == "" {
+	if internalstrings.IsBlank(text) {
 		return ""
 	}
 	style := valueMuted
@@ -736,10 +737,11 @@ func (m model) renderStatusLine() string {
 }
 
 func (m model) renderHelpLine() string {
-	text := strings.TrimSpace(m.helpSummary())
-	if text == "" {
+	text := m.helpSummary()
+	if internalstrings.IsBlank(text) {
 		return ""
 	}
+	text = strings.TrimSpace(text)
 	return helpBarStyle.Width(m.width).Render(truncateText(text, m.width))
 }
 
@@ -940,7 +942,7 @@ func (m model) startJobCmd() tea.Cmd {
 }
 
 func (m model) loadJobLogsCmd(jobID string) tea.Cmd {
-	if strings.TrimSpace(jobID) == "" {
+	if internalstrings.IsBlank(jobID) {
 		return nil
 	}
 	return func() tea.Msg {

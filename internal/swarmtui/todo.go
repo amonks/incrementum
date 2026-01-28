@@ -576,7 +576,7 @@ func formatTimePtr(value *time.Time) string {
 }
 
 func valueOrDash(value string) string {
-	if strings.TrimSpace(value) == "" {
+	if internalstrings.IsBlank(value) {
 		return "-"
 	}
 	return value
