@@ -58,9 +58,9 @@ func ResolveAddr(repoPath, addr string) (string, error) {
 }
 
 func normalizeAddr(addr string) (string, error) {
-	trimmed := strings.TrimSpace(addr)
-	if trimmed == "" {
-		return "", fmt.Errorf("address is required")
+	trimmed, err := requiredTrimmed(addr, "address")
+	if err != nil {
+		return "", err
 	}
 	if strings.Contains(trimmed, ":") {
 		return trimmed, nil

@@ -276,14 +276,6 @@ func resolveWebBaseURL(addr string) string {
 	return "http://" + host
 }
 
-func requiredTrimmed(value, field string) (string, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return "", fmt.Errorf("%s is required", field)
-	}
-	return trimmed, nil
-}
-
 func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 	if !s.requireMethod(w, r, http.MethodPost) {
 		return
