@@ -694,17 +694,9 @@ func extractToolOutput(value any) (string, string, bool) {
 	case map[string]any:
 		stdout, _ := stringifyOutput(typed["stdout"])
 		stderr, _ := stringifyOutput(typed["stderr"])
-		if stdout == "" && stderr == "" {
-			return "", "", false
-		}
-		return stdout, stderr, true
+		return toolOutputValues(stdout, stderr)
 	case map[string]string:
-		stdout := typed["stdout"]
-		stderr := typed["stderr"]
-		if stdout == "" && stderr == "" {
-			return "", "", false
-		}
-		return stdout, stderr, true
+		return toolOutputValues(typed["stdout"], typed["stderr"])
 	default:
 		text, ok := stringifyOutput(value)
 		if !ok {
@@ -712,6 +704,13 @@ func extractToolOutput(value any) (string, string, bool) {
 		}
 		return text, "", true
 	}
+}
+
+func toolOutputValues(stdout, stderr string) (string, string, bool) {
+	if stdout == "" && stderr == "" {
+		return "", "", false
+	}
+	return stdout, stderr, true
 }
 
 func formatToolOutput(stdout, stderr string) string {
