@@ -48,9 +48,6 @@ func ContainsAnyLower(value string, substrings ...string) bool {
 
 // NormalizeNewlines replaces CRLF and CR with LF.
 func NormalizeNewlines(value string) string {
-	if value == "" {
-		return value
-	}
 	value = strings.ReplaceAll(value, "\r\n", "\n")
 	return strings.ReplaceAll(value, "\r", "\n")
 }
