@@ -161,7 +161,7 @@ func trimLogBody(value string) (string, bool) {
 }
 
 func isDashBody(body string) bool {
-	return strings.TrimSpace(body) == "-"
+	return internalstrings.TrimSpace(body) == "-"
 }
 
 func formatLogLabel(label string, indent int) string {
