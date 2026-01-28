@@ -102,7 +102,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 		return nil
 	}
 
-	if strings.TrimSpace(event.Name) == "" && strings.TrimSpace(event.Data) == "" {
+	if internalstrings.IsBlank(event.Name) && internalstrings.IsBlank(event.Data) {
 		return nil
 	}
 
@@ -127,7 +127,7 @@ func opencodeErrorLabel(purpose string) string {
 }
 
 func (writer *logSnapshotWriter) writeStage(value string) {
-	if strings.TrimSpace(value) == "" {
+	if internalstrings.IsBlank(value) {
 		return
 	}
 	if writer.started {
@@ -211,7 +211,7 @@ func (formatter *EventFormatter) Append(event Event) (string, error) {
 
 func decodeEventData[T any](payload string) (T, error) {
 	var data T
-	if strings.TrimSpace(payload) == "" {
+	if internalstrings.IsBlank(payload) {
 		return data, nil
 	}
 	if err := json.Unmarshal([]byte(payload), &data); err != nil {
