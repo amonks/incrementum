@@ -21,7 +21,7 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 	}
 
 	now := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
-	current, err := manager.Create("todo-1", now, "")
+	current, err := manager.Create("todo-1", now, CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestRunImplementingStageFailedOpencodeRestoresRetriesAndReportsContext(t *t
 	}
 
 	now := time.Date(2026, time.January, 2, 3, 4, 6, 0, time.UTC)
-	current, err := manager.Create("todo-restore", now, "")
+	current, err := manager.Create("todo-restore", now, CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestRunImplementingStageRetriesOpencodeAfterRestore(t *testing.T) {
 	}
 
 	now := time.Date(2026, time.January, 2, 3, 4, 6, 30, time.UTC)
-	current, err := manager.Create("todo-retry", now, "")
+	current, err := manager.Create("todo-retry", now, CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -258,7 +258,7 @@ func TestRunImplementingStageTreatsEmptyDiffAsNoChange(t *testing.T) {
 	}
 
 	now := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
-	current, err := manager.Create("todo-2", now, "")
+	current, err := manager.Create("todo-2", now, CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -315,7 +315,7 @@ func TestRunImplementingStageTreatsZeroDiffStatAsNoChange(t *testing.T) {
 	}
 
 	now := time.Date(2026, time.January, 2, 3, 4, 6, 0, time.UTC)
-	current, err := manager.Create("todo-3", now, "")
+	current, err := manager.Create("todo-3", now, CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}

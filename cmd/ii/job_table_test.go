@@ -151,15 +151,15 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 7 {
-		t.Fatalf("expected at least 7 columns, got: %q", lines[1])
+	if len(fields) < 10 {
+		t.Fatalf("expected at least 10 columns, got: %q", lines[1])
 	}
 
-	if fields[4] != "2m" {
-		t.Fatalf("expected compact age 2m, got: %s", fields[4])
+	if fields[7] != "2m" {
+		t.Fatalf("expected compact age 2m, got: %s", fields[7])
 	}
-	if fields[5] != "2m" {
-		t.Fatalf("expected compact duration 2m, got: %s", fields[5])
+	if fields[8] != "2m" {
+		t.Fatalf("expected compact duration 2m, got: %s", fields[8])
 	}
 }
 
@@ -194,12 +194,12 @@ func TestFormatJobTableUsesUpdatedDurationForCompleted(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 7 {
-		t.Fatalf("expected at least 7 columns, got: %q", lines[1])
+	if len(fields) < 10 {
+		t.Fatalf("expected at least 10 columns, got: %q", lines[1])
 	}
 
-	if fields[5] != "10m" {
-		t.Fatalf("expected duration 10m, got: %s", fields[5])
+	if fields[8] != "10m" {
+		t.Fatalf("expected duration 10m, got: %s", fields[8])
 	}
 }
 
@@ -228,5 +228,50 @@ func TestFormatJobTableIncludesTodoTitle(t *testing.T) {
 
 	if !strings.Contains(output, "MyTitle") {
 		t.Fatalf("expected todo title in output, got: %q", output)
+	}
+}
+
+func TestFormatJobTableIncludesModelColumns(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-2 * time.Minute)
+
+	jobs := []jobpkg.Job{
+		{
+			ID:                  "job-models",
+			TodoID:              "abc12345",
+			Stage:               jobpkg.StageImplementing,
+			Status:              jobpkg.StatusActive,
+			ImplementationModel: "impl-model",
+			CodeReviewModel:     "review-model",
+			ProjectReviewModel:  "project-model",
+			CreatedAt:           createdAt,
+			StartedAt:           createdAt,
+			UpdatedAt:           createdAt,
+		},
+	}
+
+	output := trimmedJobTable(TableFormatOptions{
+		Jobs:       jobs,
+		Highlight:  func(id string, prefix int) string { return id },
+		Now:        now,
+		TodoTitles: map[string]string{"abc12345": "Models"},
+	})
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	fields := strings.Fields(lines[1])
+	if len(fields) < 10 {
+		t.Fatalf("expected at least 10 columns, got: %q", lines[1])
+	}
+	if fields[4] != "impl-model" {
+		t.Fatalf("expected implementation model, got: %s", fields[4])
+	}
+	if fields[5] != "review-model" {
+		t.Fatalf("expected code review model, got: %s", fields[5])
+	}
+	if fields[6] != "project-model" {
+		t.Fatalf("expected project review model, got: %s", fields[6])
 	}
 }

@@ -222,7 +222,7 @@ func formatJobTable(opts TableFormatOptions) string {
 	now := opts.Now
 	todoPrefixLengths := opts.TodoPrefixLengths
 	jobPrefixLengths := opts.JobPrefixLengths
-	builder := ui.NewTableBuilder([]string{"JOB", "TODO", "STAGE", "STATUS", "AGE", "DURATION", "TITLE"}, len(jobs))
+	builder := ui.NewTableBuilder([]string{"JOB", "TODO", "STAGE", "STATUS", "IMPL", "REVIEW", "PROJECT", "AGE", "DURATION", "TITLE"}, len(jobs))
 
 	jobIDs := make([]string, 0, len(jobs))
 	todoIDs := make([]string, 0, len(jobs))
@@ -252,6 +252,9 @@ func formatJobTable(opts TableFormatOptions) string {
 		todoPrefixLen := 0
 		todoPrefixLen = ui.PrefixLength(todoPrefixLengths, item.TodoID)
 		todoID := highlight(item.TodoID, todoPrefixLen)
+		implementationModel := formatJobModelCell(item.ImplementationModel)
+		codeReviewModel := formatJobModelCell(item.CodeReviewModel)
+		projectReviewModel := formatJobModelCell(item.ProjectReviewModel)
 		age := formatJobAge(item, now)
 		duration := formatJobDuration(item, now)
 		title := ""
@@ -266,6 +269,9 @@ func formatJobTable(opts TableFormatOptions) string {
 			todoID,
 			string(item.Stage),
 			string(item.Status),
+			implementationModel,
+			codeReviewModel,
+			projectReviewModel,
 			age,
 			duration,
 			title,
@@ -282,6 +288,14 @@ func formatJobAge(item jobpkg.Job, now time.Time) string {
 
 func formatJobDuration(item jobpkg.Job, now time.Time) string {
 	return formatOptionalDuration(jobpkg.DurationData(item, now))
+}
+
+func formatJobModelCell(value string) string {
+	value = internalstrings.TrimSpace(value)
+	if value == "" {
+		return "-"
+	}
+	return ui.TruncateTableCell(value)
 }
 
 func printJobDetail(item jobpkg.Job, todoTitle string, highlightJob func(string) string, highlightTodo func(string) string) {

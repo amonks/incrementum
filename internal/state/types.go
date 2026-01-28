@@ -145,16 +145,19 @@ type JobOpencodeSession struct {
 
 // Job stores job state for a repo.
 type Job struct {
-	ID               string               `json:"id"`
-	Repo             string               `json:"repo"`
-	TodoID           string               `json:"todo_id"`
-	Agent            string               `json:"agent"`
-	Stage            JobStage             `json:"stage"`
-	Feedback         string               `json:"feedback,omitempty"`
-	OpencodeSessions []JobOpencodeSession `json:"opencode_sessions,omitempty"`
-	Status           JobStatus            `json:"status"`
-	CreatedAt        time.Time            `json:"created_at,omitempty"`
-	StartedAt        time.Time            `json:"started_at"`
-	UpdatedAt        time.Time            `json:"updated_at"`
-	CompletedAt      time.Time            `json:"completed_at,omitempty"`
+	ID                  string               `json:"id"`
+	Repo                string               `json:"repo"`
+	TodoID              string               `json:"todo_id"`
+	Agent               string               `json:"agent"`
+	ImplementationModel string               `json:"implementation_model,omitempty"`
+	CodeReviewModel     string               `json:"code_review_model,omitempty"`
+	ProjectReviewModel  string               `json:"project_review_model,omitempty"`
+	Stage               JobStage             `json:"stage"`
+	Feedback            string               `json:"feedback,omitempty"`
+	OpencodeSessions    []JobOpencodeSession `json:"opencode_sessions,omitempty"`
+	Status              JobStatus            `json:"status"`
+	CreatedAt           time.Time            `json:"created_at,omitempty"`
+	StartedAt           time.Time            `json:"started_at"`
+	UpdatedAt           time.Time            `json:"updated_at"`
+	CompletedAt         time.Time            `json:"completed_at,omitempty"`
 }

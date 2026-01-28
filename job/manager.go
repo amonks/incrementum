@@ -36,8 +36,16 @@ func Open(repoPath string, opts OpenOptions) (*Manager, error) {
 	}, nil
 }
 
+// CreateOptions configures new job creation.
+type CreateOptions struct {
+	Agent               string
+	ImplementationModel string
+	CodeReviewModel     string
+	ProjectReviewModel  string
+}
+
 // Create stores a new job with active status and implementing stage.
-func (m *Manager) Create(todoID string, startedAt time.Time, agent string) (Job, error) {
+func (m *Manager) Create(todoID string, startedAt time.Time, opts CreateOptions) (Job, error) {
 	if internalstrings.IsBlank(todoID) {
 		return Job{}, fmt.Errorf("todo id is required")
 	}
@@ -49,15 +57,18 @@ func (m *Manager) Create(todoID string, startedAt time.Time, agent string) (Job,
 
 	jobID := GenerateID(todoID, startedAt)
 	created := Job{
-		ID:        jobID,
-		Repo:      repoName,
-		TodoID:    todoID,
-		Agent:     internalstrings.TrimSpace(agent),
-		Stage:     StageImplementing,
-		Status:    StatusActive,
-		CreatedAt: startedAt,
-		StartedAt: startedAt,
-		UpdatedAt: startedAt,
+		ID:                  jobID,
+		Repo:                repoName,
+		TodoID:              todoID,
+		Agent:               internalstrings.TrimSpace(opts.Agent),
+		ImplementationModel: internalstrings.TrimSpace(opts.ImplementationModel),
+		CodeReviewModel:     internalstrings.TrimSpace(opts.CodeReviewModel),
+		ProjectReviewModel:  internalstrings.TrimSpace(opts.ProjectReviewModel),
+		Stage:               StageImplementing,
+		Status:              StatusActive,
+		CreatedAt:           startedAt,
+		StartedAt:           startedAt,
+		UpdatedAt:           startedAt,
 	}
 
 	err = m.stateStore.Update(func(st *statestore.State) error {

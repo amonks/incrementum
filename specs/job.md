@@ -380,7 +380,10 @@ List jobs for current repo.
 - `--all`: show all statuses.
 - `--json`: structured output.
 
-Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `AGE`, `DURATION`, `TITLE`.
+Columns: `JOB`, `TODO`, `STAGE`, `STATUS`, `IMPL`, `REVIEW`, `PROJECT`, `AGE`, `DURATION`, `TITLE`.
+
+`IMPL`, `REVIEW`, and `PROJECT` show the opencode models used for
+implementation, commit review, and project review.
 
 `AGE` uses `now - created_at`.
 

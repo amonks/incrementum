@@ -85,7 +85,7 @@ func TestLogsReturnsEmptyEventsJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open job manager: %v", err)
 	}
-	created, err := manager.Create("todo-1", time.Now(), "")
+	created, err := manager.Create("todo-1", time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -129,11 +129,11 @@ func TestListFiltersActiveJobsByDefault(t *testing.T) {
 		t.Fatalf("open job manager: %v", err)
 	}
 
-	activeJob, err := manager.Create("todo-active", time.Now(), "")
+	activeJob, err := manager.Create("todo-active", time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create active job: %v", err)
 	}
-	completedJob, err := manager.Create("todo-complete", time.Now().Add(time.Second), "")
+	completedJob, err := manager.Create("todo-complete", time.Now().Add(time.Second), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create completed job: %v", err)
 	}
@@ -538,7 +538,7 @@ func TestTailStreamsExistingAndNewEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open job manager: %v", err)
 	}
-	created, err := manager.Create("todo-3", time.Now(), "")
+	created, err := manager.Create("todo-3", time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -638,7 +638,7 @@ func TestTailResolvesTodoID(t *testing.T) {
 		t.Fatalf("open job manager: %v", err)
 	}
 	todoID := "todo-5"
-	created, err := manager.Create(todoID, time.Now(), "")
+	created, err := manager.Create(todoID, time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -709,7 +709,7 @@ func TestTailWaitsForEventLog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open job manager: %v", err)
 	}
-	created, err := manager.Create("todo-4", time.Now(), "")
+	created, err := manager.Create("todo-4", time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -792,7 +792,7 @@ func TestTailWaitsForCompleteEventLine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open job manager: %v", err)
 	}
-	created, err := manager.Create("todo-6", time.Now(), "")
+	created, err := manager.Create("todo-6", time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -886,7 +886,7 @@ func TestTailStreamsLargeEventLines(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open job manager: %v", err)
 	}
-	created, err := manager.Create("todo-large", time.Now(), "")
+	created, err := manager.Create("todo-large", time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}
@@ -989,7 +989,7 @@ func TestShutdownJobsFailsActiveJobs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open job manager: %v", err)
 	}
-	createdJob, err := manager.Create(created.ID, time.Now(), "")
+	createdJob, err := manager.Create(created.ID, time.Now(), job.CreateOptions{})
 	if err != nil {
 		t.Fatalf("create job: %v", err)
 	}

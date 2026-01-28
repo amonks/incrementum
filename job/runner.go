@@ -168,8 +168,15 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, errors.Join(err, reopenErr)
 	}
 
-	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement", item)
-	created, err := manager.Create(item.ID, startedAt, agent)
+	implementModel := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement", item)
+	codeReviewModel := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "review", item)
+	projectReviewModel := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "project-review", item)
+	created, err := manager.Create(item.ID, startedAt, CreateOptions{
+		Agent:               implementModel,
+		ImplementationModel: implementModel,
+		CodeReviewModel:     codeReviewModel,
+		ProjectReviewModel:  projectReviewModel,
+	})
 	if err != nil {
 		reopenErr := reopenTodo(repoPath, item.ID)
 		return result, errors.Join(err, reopenErr)
