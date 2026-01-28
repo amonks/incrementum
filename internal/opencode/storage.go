@@ -256,6 +256,7 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 	repoPath = cleanPath(repoPath)
 	cutoff := startedAt.Add(-5 * time.Second)
 	trimmedPrompt := strings.TrimSpace(prompt)
+	hasPrompt := trimmedPrompt != ""
 
 	repoEntries := entries
 	if repoPath != "" {
@@ -277,7 +278,7 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 	}
 
 	if len(candidates) == 0 && len(repoEntries) > 0 {
-		if trimmedPrompt != "" {
+		if hasPrompt {
 			match, err := s.findPromptMatch(repoEntries, repoPath, trimmedPrompt)
 			if err != nil {
 				return SessionMetadata{}, err
@@ -314,7 +315,7 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 		return item.ID
 	})
 
-	if trimmedPrompt != "" {
+	if hasPrompt {
 		for _, session := range candidates {
 			matches, err := s.sessionContainsPrompt(session.ID, trimmedPrompt)
 			if err != nil {
