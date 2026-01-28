@@ -71,7 +71,6 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 	case strings.EqualFold(firstLine, string(ReviewOutcomeAbandon)):
 		return ReviewFeedback{Outcome: ReviewOutcomeAbandon}, nil
 	case strings.EqualFold(firstLine, string(ReviewOutcomeRequestChanges)):
-		break
 	default:
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
