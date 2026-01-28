@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -865,11 +866,11 @@ func streamEvents(ctx context.Context, w http.ResponseWriter, jobID string, opts
 		if len(chunk) > 0 {
 			pending = append(pending, chunk...)
 			if chunk[len(chunk)-1] == '\n' {
-				line := strings.TrimSpace(string(pending))
+				line := bytes.TrimSpace(pending)
 				pending = pending[:0]
-				if line != "" {
+				if len(line) != 0 {
 					var event job.Event
-					if unmarshalErr := json.Unmarshal([]byte(line), &event); unmarshalErr != nil {
+					if unmarshalErr := json.Unmarshal(line, &event); unmarshalErr != nil {
 						return fmt.Errorf("decode job event: %w", unmarshalErr)
 					}
 					if err := encoder.Encode(event); err != nil {
