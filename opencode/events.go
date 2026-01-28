@@ -145,6 +145,14 @@ func readEventStream(ctx context.Context, reader io.Reader, recorder *eventRecor
 
 	buf := bufio.NewReader(reader)
 	builder := eventBuilder{}
+	flushEvent := func() error {
+		if builder.hasContent() {
+			if sendErr := sendEvent(ctx, events, builder.event()); sendErr != nil {
+				return sendErr
+			}
+		}
+		return nil
+	}
 	for {
 		select {
 		case <-ctx.Done():
@@ -169,21 +177,17 @@ func readEventStream(ctx context.Context, reader io.Reader, recorder *eventRecor
 			if trimmed != "" {
 				builder.handleLine(trimmed)
 			}
-			if builder.hasContent() {
-				if sendErr := sendEvent(ctx, events, builder.event()); sendErr != nil {
-					return sendErr
-				}
+			if flushErr := flushEvent(); flushErr != nil {
+				return flushErr
 			}
 			return nil
 		}
 
 		if trimmed == "" {
-			if builder.hasContent() {
-				if sendErr := sendEvent(ctx, events, builder.event()); sendErr != nil {
-					return sendErr
-				}
-				builder.reset()
+			if flushErr := flushEvent(); flushErr != nil {
+				return flushErr
 			}
+			builder.reset()
 			continue
 		}
 
