@@ -6,11 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 
 	"github.com/amonks/incrementum/internal/paths"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 	"github.com/rogpeppe/go-internal/testscript"
 )
@@ -43,7 +43,7 @@ func BuildII(t testing.TB) string {
 		cmd.Dir = moduleRoot
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			buildErr = fmt.Errorf("build ii: %w: %s", err, strings.TrimSpace(string(output)))
+			buildErr = fmt.Errorf("build ii: %w: %s", err, internalstrings.TrimSpace(string(output)))
 		}
 	})
 
@@ -77,7 +77,7 @@ func CmdEnvSet(ts *testscript.TestScript, neg bool, args []string) {
 		ts.Fatalf("usage: envset VAR FILE")
 	}
 
-	value := strings.TrimSpace(ts.ReadFile(args[1]))
+	value := internalstrings.TrimSpace(ts.ReadFile(args[1]))
 	ts.Setenv(args[0], value)
 }
 
