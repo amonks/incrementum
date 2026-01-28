@@ -11,6 +11,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/listflags"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/swarmtui"
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/job"
@@ -260,7 +261,7 @@ func runSwarmList(cmd *cobra.Command, args []string) error {
 	allJobs := jobs
 
 	if swarmListStatus != "" {
-		status := job.Status(strings.ToLower(swarmListStatus))
+		status := job.Status(internalstrings.NormalizeLower(swarmListStatus))
 		filtered := make([]job.Job, 0, len(jobs))
 		for _, item := range jobs {
 			if item.Status == status {
