@@ -737,11 +737,10 @@ func (m model) renderStatusLine() string {
 }
 
 func (m model) renderHelpLine() string {
-	text := m.helpSummary()
-	if internalstrings.IsBlank(text) {
+	text := strings.TrimSpace(m.helpSummary())
+	if text == "" {
 		return ""
 	}
-	text = strings.TrimSpace(text)
 	return helpBarStyle.Width(m.width).Render(truncateText(text, m.width))
 }
 
