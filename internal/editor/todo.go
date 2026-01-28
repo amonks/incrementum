@@ -126,7 +126,7 @@ func splitFrontmatter(content string) (string, string) {
 	lines := strings.Split(content, "\n")
 	separatorIndex := -1
 	for i, line := range lines {
-		if strings.TrimSpace(line) == "---" {
+		if isFrontmatterSeparator(line) {
 			separatorIndex = i
 			break
 		}
@@ -138,6 +138,10 @@ func splitFrontmatter(content string) (string, string) {
 	frontmatter := strings.Join(lines[:separatorIndex], "\n")
 	body := strings.Join(lines[separatorIndex+1:], "\n")
 	return frontmatter, body
+}
+
+func isFrontmatterSeparator(line string) bool {
+	return strings.TrimSpace(line) == "---"
 }
 
 func validTodoTypes() string {

@@ -272,7 +272,7 @@ func assertUnindentedFrontmatter(t *testing.T, content string) {
 		if internalstrings.IsBlank(line) {
 			continue
 		}
-		if strings.TrimSpace(line) == "---" {
+		if isFrontmatterSeparator(line) {
 			break
 		}
 		if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
