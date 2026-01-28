@@ -3,7 +3,6 @@ package job
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/ids"
@@ -53,7 +52,7 @@ func (m *Manager) Create(todoID string, startedAt time.Time, agent string) (Job,
 		ID:        jobID,
 		Repo:      repoName,
 		TodoID:    todoID,
-		Agent:     strings.TrimSpace(agent),
+		Agent:     internalstrings.TrimSpace(agent),
 		Stage:     StageImplementing,
 		Status:    StatusActive,
 		CreatedAt: startedAt,

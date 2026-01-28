@@ -7,14 +7,15 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // RunTestCommands executes test commands sequentially in a directory.
 func RunTestCommands(dir string, commands []string) ([]TestCommandResult, error) {
 	results := make([]TestCommandResult, 0, len(commands))
 	for _, command := range commands {
-		command = strings.TrimSpace(command)
+		command = internalstrings.TrimSpace(command)
 		if command == "" {
 			return results, fmt.Errorf("test command is required")
 		}

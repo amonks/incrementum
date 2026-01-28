@@ -260,7 +260,7 @@ func (s *Server) failActiveJob(jobID string) error {
 }
 
 func resolveWebBaseURL(addr string) string {
-	trimmed := strings.TrimSpace(addr)
+	trimmed := internalstrings.TrimSpace(addr)
 	if trimmed == "" {
 		return ""
 	}

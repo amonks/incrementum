@@ -397,7 +397,7 @@ func stringFromMap(input map[string]any, key string) string {
 	}
 	if value, ok := input[key]; ok {
 		if text, ok := value.(string); ok {
-			return strings.TrimSpace(text)
+			return internalstrings.TrimSpace(text)
 		}
 	}
 	return ""

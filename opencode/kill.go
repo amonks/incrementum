@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // Kill terminates an opencode session and updates state.
@@ -61,7 +62,7 @@ func sessionKill(sessionID string) (sessionMetadata, error) {
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			stderr := strings.TrimSpace(string(exitErr.Stderr))
+			stderr := internalstrings.TrimSpace(string(exitErr.Stderr))
 			if stderr != "" {
 				return sessionMetadata{}, fmt.Errorf("opencode session kill failed: %s", stderr)
 			}

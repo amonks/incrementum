@@ -141,7 +141,7 @@ func splitFrontmatter(content string) (string, string) {
 }
 
 func isFrontmatterSeparator(line string) bool {
-	return strings.TrimSpace(line) == "---"
+	return internalstrings.TrimSpace(line) == "---"
 }
 
 func validTodoTypes() string {

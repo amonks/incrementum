@@ -2,8 +2,8 @@ package main
 
 import (
 	"os"
-	"strings"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/opencode"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ func resolveOpencodeAgent(cmd *cobra.Command, flagValue, configAgent string) str
 
 func firstTrimmed(values ...string) string {
 	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
+		trimmed := internalstrings.TrimSpace(value)
 		if trimmed != "" {
 			return trimmed
 		}
