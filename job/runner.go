@@ -936,7 +936,7 @@ func testingStageOutcome(results []TestCommandResult) (Stage, string) {
 	if len(failed) == 0 {
 		return StageReviewing, ""
 	}
-	return StageImplementing, FormatTestFeedback(failed)
+	return StageImplementing, FormatTestFeedback(results)
 }
 
 func diffStatHasChanges(diffStat string) bool {

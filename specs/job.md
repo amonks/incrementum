@@ -52,7 +52,7 @@ Fields (JSON keys):
 - `todo_id`: full resolved todo id.
 - `agent`: opencode agent name (empty string when unset).
 - `stage`: `implementing`, `testing`, `reviewing`, `committing`.
-- `feedback`: feedback from last failed stage (test results table or review
+- `feedback`: feedback from last failed stage (test results list or review
   feedback).
 - `opencode_sessions`: list of `{"purpose": string, "id": string}` tracking
   opencode sessions created during this job.
@@ -154,7 +154,8 @@ any stage -> failed (unrecoverable error)
 2. Capture combined stdout/stderr output and exit code for each command.
 3. Store the command, exit code, and output in the job test event log.
 4. If any command fails (nonzero exit):
-   - Build feedback as markdown table with columns `Command` and `Exit Code`.
+   - Build feedback as a markdown list with one entry per test command, using
+     `- <command> is passing` or `- <command> is failing`.
    - Transition to `implementing`.
 5. If all pass: transition to `reviewing`.
 6. If the job was in final project review when tests failed, the next implementing

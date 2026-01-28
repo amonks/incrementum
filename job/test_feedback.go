@@ -12,21 +12,23 @@ type TestCommandResult struct {
 	Output   string
 }
 
-// FormatTestFeedback builds a markdown table for failed test commands.
+// FormatTestFeedback builds a markdown list describing test outcomes.
 func FormatTestFeedback(results []TestCommandResult) string {
 	if len(results) == 0 {
 		return ""
 	}
 
 	var builder strings.Builder
-	builder.WriteString("| Command | Exit Code |\n| --- | --- |")
 	for _, result := range results {
-		fmt.Fprintf(&builder, "\n| %s | %d |", escapeMarkdownCell(result.Command), result.ExitCode)
+		status := "passing"
+		if result.ExitCode != 0 {
+			status = "failing"
+		}
+		if builder.Len() > 0 {
+			builder.WriteString("\n")
+		}
+		fmt.Fprintf(&builder, "- %s is %s", result.Command, status)
 	}
 
 	return builder.String()
-}
-
-func escapeMarkdownCell(value string) string {
-	return strings.ReplaceAll(value, "|", "\\|")
 }

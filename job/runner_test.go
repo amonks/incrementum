@@ -26,7 +26,7 @@ func TestTestingStageOutcomeFailure(t *testing.T) {
 		t.Fatalf("expected stage %q, got %q", StageImplementing, stage)
 	}
 
-	expected := FormatTestFeedback([]TestCommandResult{{Command: "go test ./...", ExitCode: 1}})
+	expected := FormatTestFeedback(results)
 	if feedback != expected {
 		t.Fatalf("expected feedback %q, got %q", expected, feedback)
 	}
