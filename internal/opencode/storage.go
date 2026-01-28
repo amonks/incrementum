@@ -208,7 +208,7 @@ func (s Storage) listSessions(projectID string) ([]SessionMetadata, error) {
 
 func (s Storage) sessionsForRepo(repoPath string) ([]SessionMetadata, error) {
 	projectIDs, err := s.projectIDsForRepo(repoPath)
-	if err == nil && len(projectIDs) > 0 {
+	if err == nil {
 		entries := make([]SessionMetadata, 0)
 		for _, projectID := range projectIDs {
 			projectSessions, err := s.listSessions(projectID)
