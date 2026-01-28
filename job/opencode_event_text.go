@@ -28,7 +28,7 @@ func formatOpencodeText(event opencodeRenderedEvent) []string {
 
 func formatPlainBody(body string, indent int) string {
 	body = normalizeLogBody(body)
-	if strings.TrimSpace(body) == "-" {
+	if isDashBody(body) {
 		return IndentBlock(body, indent)
 	}
 	rendered := ReflowParagraphs(body, wrapWidthFor(lineWidth, indent))

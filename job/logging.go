@@ -160,6 +160,10 @@ func trimLogBody(value string) (string, bool) {
 	return value, internalstrings.IsBlank(value)
 }
 
+func isDashBody(body string) bool {
+	return strings.TrimSpace(body) == "-"
+}
+
 func formatLogLabel(label string, indent int) string {
 	if internalstrings.IsBlank(label) {
 		return ""
@@ -178,7 +182,7 @@ func renderMarkdownBlockOrDash(body string, indent int, renderWidth int) string 
 func formatLogBody(body string, indent int, wrap bool) string {
 	body = normalizeLogBody(body)
 	if wrap {
-		if strings.TrimSpace(body) == "-" {
+		if isDashBody(body) {
 			return IndentBlock(body, indent)
 		}
 		return renderMarkdownBlockOrDash(body, indent, wrapWidthFor(lineWidth, indent))
