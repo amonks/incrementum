@@ -681,7 +681,7 @@ func stringifyOutput(value any) (string, bool) {
 		if text == "" || text == "null" {
 			return "", false
 		}
-		return string(data), true
+		return text, true
 	}
 }
 
