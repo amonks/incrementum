@@ -391,22 +391,16 @@ func fileToolSummary(action string, input map[string]any) string {
 }
 
 func stringFromMap(input map[string]any, key string) string {
-	value, ok := input[key].(string)
-	if !ok {
-		return ""
-	}
+	value, _ := input[key].(string)
 	return internalstrings.TrimSpace(value)
 }
 
 func firstQuestionText(input map[string]any) string {
-	items, ok := input["questions"].([]any)
-	if !ok || len(items) == 0 {
+	items, _ := input["questions"].([]any)
+	if len(items) == 0 {
 		return ""
 	}
-	first, ok := items[0].(map[string]any)
-	if !ok {
-		return ""
-	}
+	first, _ := items[0].(map[string]any)
 	return stringFromMap(first, "question")
 }
 
