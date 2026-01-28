@@ -340,16 +340,8 @@ func messageCompleted(info opencodeMessageInfo) bool {
 func summarizeToolCall(tool string, input map[string]any) string {
 	name := internalstrings.NormalizeLowerTrimSpace(tool)
 	switch name {
-	case "read":
-		if summary := fileToolSummary("read", input); summary != "" {
-			return summary
-		}
-	case "write":
-		if summary := fileToolSummary("write", input); summary != "" {
-			return summary
-		}
-	case "edit":
-		if summary := fileToolSummary("edit", input); summary != "" {
+	case "read", "write", "edit":
+		if summary := fileToolSummary(name, input); summary != "" {
 			return summary
 		}
 	case "apply_patch":
