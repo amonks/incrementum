@@ -36,25 +36,80 @@ type Job struct {
 	Agent string `toml:"agent"`
 }
 
-// Load loads the incrementum.toml configuration from the given directory.
-// Returns an empty config if the file doesn't exist.
+// Load loads configuration from the repo root and the global config file.
+// Returns an empty config if no config files exist.
 func Load(repoPath string) (*Config, error) {
-	configPath := filepath.Join(repoPath, "incrementum.toml")
+	globalPath, err := globalConfigPath()
+	if err != nil {
+		return nil, err
+	}
 
-	data, err := os.ReadFile(configPath)
+	globalCfg, globalMeta, err := loadConfigFile(globalPath)
+	if err != nil {
+		return nil, err
+	}
+
+	projectCfg, projectMeta, err := loadConfigFile(filepath.Join(repoPath, "incrementum.toml"))
+	if err != nil {
+		return nil, err
+	}
+
+	merged := mergeConfigs(globalCfg, projectCfg, globalMeta, projectMeta)
+	return merged, nil
+}
+
+func globalConfigPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("get home directory: %w", err)
+	}
+	return filepath.Join(homeDir, ".config", "incrementum", "config.toml"), nil
+}
+
+func loadConfigFile(path string) (*Config, toml.MetaData, error) {
+	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		return &Config{}, nil
+		return &Config{}, toml.MetaData{}, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("read config file: %w", err)
+		return nil, toml.MetaData{}, fmt.Errorf("read config file %s: %w", path, err)
 	}
 
 	var cfg Config
-	if err := toml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
+	meta, err := toml.Decode(string(data), &cfg)
+	if err != nil {
+		return nil, toml.MetaData{}, fmt.Errorf("parse config file %s: %w", path, err)
 	}
 
-	return &cfg, nil
+	return &cfg, meta, nil
+}
+
+func mergeConfigs(globalCfg, projectCfg *Config, globalMeta, projectMeta toml.MetaData) *Config {
+	if globalCfg == nil {
+		globalCfg = &Config{}
+	}
+	if projectCfg == nil {
+		projectCfg = &Config{}
+	}
+
+	merged := Config{}
+	merged.Workspace.OnCreate = mergeString(projectMeta.IsDefined("workspace", "on-create"), projectCfg.Workspace.OnCreate, globalCfg.Workspace.OnCreate)
+	merged.Workspace.OnAcquire = mergeString(projectMeta.IsDefined("workspace", "on-acquire"), projectCfg.Workspace.OnAcquire, globalCfg.Workspace.OnAcquire)
+	merged.Job.Agent = mergeString(projectMeta.IsDefined("job", "agent"), projectCfg.Job.Agent, globalCfg.Job.Agent)
+	if projectMeta.IsDefined("job", "test-commands") {
+		merged.Job.TestCommands = append([]string(nil), projectCfg.Job.TestCommands...)
+	} else if globalMeta.IsDefined("job", "test-commands") {
+		merged.Job.TestCommands = append([]string(nil), globalCfg.Job.TestCommands...)
+	}
+
+	return &merged
+}
+
+func mergeString(projectDefined bool, projectValue, globalValue string) string {
+	if projectDefined {
+		return strings.TrimSpace(projectValue)
+	}
+	return strings.TrimSpace(globalValue)
 }
 
 // RunScript executes a script in the given directory.

@@ -253,6 +253,9 @@ test-commands = [
 `test-commands` must be configured with at least one entry; jobs fail in the
 testing stage if it is missing or empty.
 
+Config is loaded from `incrementum.toml` and `~/.config/incrementum/config.toml`;
+project values override global values.
+
 `agent` is an optional default for opencode runs; it is overridden by the
 `--agent` flag and `INCREMENTUM_OPENCODE_AGENT`.
 

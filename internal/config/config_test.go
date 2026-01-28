@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/amonks/incrementum/internal/config"
+	"github.com/amonks/incrementum/internal/testsupport"
 )
 
 func TestLoad_NotFound(t *testing.T) {
+	testsupport.SetupTestHome(t)
 	tmpDir := t.TempDir()
 
 	cfg, err := config.Load(tmpDir)
@@ -30,6 +32,7 @@ func TestLoad_NotFound(t *testing.T) {
 }
 
 func TestLoad_Full(t *testing.T) {
+	testsupport.SetupTestHome(t)
 	tmpDir := t.TempDir()
 
 	configContent := `
@@ -60,6 +63,7 @@ on-acquire = "npm install"
 }
 
 func TestLoad_WithShebang(t *testing.T) {
+	testsupport.SetupTestHome(t)
 	tmpDir := t.TempDir()
 
 	configContent := `
@@ -85,6 +89,7 @@ print("hello from python")
 }
 
 func TestLoad_InvalidTOML(t *testing.T) {
+	testsupport.SetupTestHome(t)
 	tmpDir := t.TempDir()
 
 	configContent := `this is not valid toml [`
@@ -100,6 +105,7 @@ func TestLoad_InvalidTOML(t *testing.T) {
 }
 
 func TestLoad_JobConfig(t *testing.T) {
+	testsupport.SetupTestHome(t)
 	tmpDir := t.TempDir()
 
 	configContent := `
@@ -218,5 +224,151 @@ func TestRunScript_FailingScript(t *testing.T) {
 
 	if err := config.RunScript(tmpDir, script); err == nil {
 		t.Error("expected error for failing script")
+	}
+}
+
+func TestLoad_UsesGlobalWhenProjectMissing(t *testing.T) {
+	homeDir := testsupport.SetupTestHome(t)
+	configDir := filepath.Join(homeDir, ".config", "incrementum")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("failed to create config dir: %v", err)
+	}
+
+	configContent := `
+[workspace]
+on-create = "global create"
+
+[job]
+agent = "global-agent"
+test-commands = ["go test ./..."]
+`
+
+	globalPath := filepath.Join(configDir, "config.toml")
+	if err := os.WriteFile(globalPath, []byte(configContent), 0o644); err != nil {
+		t.Fatalf("failed to write global config: %v", err)
+	}
+
+	repoDir := t.TempDir()
+	cfg, err := config.Load(repoDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if cfg.Workspace.OnCreate != "global create" {
+		t.Errorf("OnCreate = %q, expected %q", cfg.Workspace.OnCreate, "global create")
+	}
+	if cfg.Job.Agent != "global-agent" {
+		t.Errorf("Agent = %q, expected %q", cfg.Job.Agent, "global-agent")
+	}
+	if len(cfg.Job.TestCommands) != 1 || cfg.Job.TestCommands[0] != "go test ./..." {
+		t.Fatalf("expected global test commands to load")
+	}
+}
+
+func TestLoad_ProjectOverridesGlobal(t *testing.T) {
+	homeDir := testsupport.SetupTestHome(t)
+	configDir := filepath.Join(homeDir, ".config", "incrementum")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("failed to create config dir: %v", err)
+	}
+
+	globalContent := `
+[workspace]
+on-create = "global create"
+
+[job]
+agent = "global-agent"
+test-commands = ["global command"]
+`
+	globalPath := filepath.Join(configDir, "config.toml")
+	if err := os.WriteFile(globalPath, []byte(globalContent), 0o644); err != nil {
+		t.Fatalf("failed to write global config: %v", err)
+	}
+
+	projectContent := `
+[workspace]
+on-acquire = "project acquire"
+
+[job]
+agent = "project-agent"
+test-commands = ["project command"]
+`
+
+	repoDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repoDir, "incrementum.toml"), []byte(projectContent), 0o644); err != nil {
+		t.Fatalf("failed to write project config: %v", err)
+	}
+
+	cfg, err := config.Load(repoDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if cfg.Workspace.OnCreate != "global create" {
+		t.Errorf("OnCreate = %q, expected %q", cfg.Workspace.OnCreate, "global create")
+	}
+	if cfg.Workspace.OnAcquire != "project acquire" {
+		t.Errorf("OnAcquire = %q, expected %q", cfg.Workspace.OnAcquire, "project acquire")
+	}
+	if cfg.Job.Agent != "project-agent" {
+		t.Errorf("Agent = %q, expected %q", cfg.Job.Agent, "project-agent")
+	}
+	if len(cfg.Job.TestCommands) != 1 || cfg.Job.TestCommands[0] != "project command" {
+		t.Fatalf("expected project test commands to override global")
+	}
+}
+
+func TestLoad_ProjectEmptyOverridesGlobal(t *testing.T) {
+	homeDir := testsupport.SetupTestHome(t)
+	configDir := filepath.Join(homeDir, ".config", "incrementum")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("failed to create config dir: %v", err)
+	}
+
+	globalContent := `
+[workspace]
+on-create = "global create"
+on-acquire = "global acquire"
+
+[job]
+agent = "global-agent"
+test-commands = ["global command"]
+`
+	globalPath := filepath.Join(configDir, "config.toml")
+	if err := os.WriteFile(globalPath, []byte(globalContent), 0o644); err != nil {
+		t.Fatalf("failed to write global config: %v", err)
+	}
+
+	projectContent := `
+[workspace]
+on-create = ""
+on-acquire = ""
+
+[job]
+agent = ""
+test-commands = []
+`
+
+	repoDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repoDir, "incrementum.toml"), []byte(projectContent), 0o644); err != nil {
+		t.Fatalf("failed to write project config: %v", err)
+	}
+
+	cfg, err := config.Load(repoDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if cfg.Workspace.OnCreate != "" {
+		t.Errorf("OnCreate = %q, expected empty string", cfg.Workspace.OnCreate)
+	}
+	if cfg.Workspace.OnAcquire != "" {
+		t.Errorf("OnAcquire = %q, expected empty string", cfg.Workspace.OnAcquire)
+	}
+	if cfg.Job.Agent != "" {
+		t.Errorf("Agent = %q, expected empty string", cfg.Job.Agent)
+	}
+	if len(cfg.Job.TestCommands) != 0 {
+		t.Fatalf("expected empty test commands, got %d", len(cfg.Job.TestCommands))
 	}
 }
