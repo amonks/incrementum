@@ -22,6 +22,7 @@ workflows.
 - Session metadata is read from `storage/session/<project-id>/<session-id>.json`.
 - Prose-only transcripts are reconstructed from `storage/message/<session-id>/`
   and `storage/part/<message-id>/`.
+- Opencode timestamps in storage may be seconds, milliseconds, microseconds, or nanoseconds; incrementum normalizes them to `time.Time`.
 - Opencode session metadata uses the same repo slug naming rules as the
   workspace pool.
 - All state updates are serialized using the existing state file lock.

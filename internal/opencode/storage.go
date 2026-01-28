@@ -662,7 +662,20 @@ func timeFromMillis(value int64) time.Time {
 	if value == 0 {
 		return time.Time{}
 	}
-	return time.UnixMilli(value)
+	absValue := value
+	if absValue < 0 {
+		absValue = -absValue
+	}
+	if absValue < 1e11 {
+		return time.Unix(value, 0)
+	}
+	if absValue < 1e14 {
+		return time.UnixMilli(value)
+	}
+	if absValue < 1e17 {
+		return time.UnixMicro(value)
+	}
+	return time.Unix(0, value)
 }
 
 func sortByCreatedAt[T any](items []T, createdAt func(T) time.Time, tiebreak func(T) string) {

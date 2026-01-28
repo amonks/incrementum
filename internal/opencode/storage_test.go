@@ -156,6 +156,38 @@ func TestSessionProseLogTextFiltersToolOutput(t *testing.T) {
 	}
 }
 
+func TestListSessionsSupportsSecondTimestamps(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	projectID := "proj_seconds"
+	created := int64(1700000000)
+	createdAt := time.Unix(created, 0)
+
+	sessionDir := filepath.Join(root, "storage", "session", projectID)
+	if err := os.MkdirAll(sessionDir, 0o755); err != nil {
+		t.Fatalf("create session dir: %v", err)
+	}
+	writeJSON(t, filepath.Join(sessionDir, "ses_seconds.json"), map[string]any{
+		"id":        "ses_seconds",
+		"projectID": projectID,
+		"directory": filepath.Join(root, "repo"),
+		"time": map[string]any{
+			"created": created,
+		},
+	})
+
+	sessions, err := store.listSessions(projectID)
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(sessions))
+	}
+	if !sessions[0].CreatedAt.Equal(createdAt) {
+		t.Fatalf("expected created time %s, got %s", createdAt, sessions[0].CreatedAt)
+	}
+}
+
 func TestSelectSessionUsesPromptMatch(t *testing.T) {
 	root := t.TempDir()
 	store := Storage{Root: root}
