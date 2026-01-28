@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/amonks/incrementum/internal/paths"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // ErrRepoPathNotFound indicates a workspace is tracked but missing repo info.
@@ -237,7 +238,7 @@ func SanitizeRepoName(path string) string {
 	path = strings.TrimPrefix(path, "/")
 
 	// Convert to lowercase
-	path = strings.ToLower(path)
+	path = internalstrings.NormalizeLower(path)
 
 	// Replace path separators and spaces with hyphens
 	path = strings.ReplaceAll(path, "/", "-")

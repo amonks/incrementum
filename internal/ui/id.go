@@ -2,9 +2,9 @@ package ui
 
 import (
 	"os"
-	"strings"
 
 	"github.com/amonks/incrementum/internal/ids"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"golang.org/x/term"
 )
 
@@ -53,5 +53,5 @@ func PrefixLength(prefixLengths map[string]int, id string) int {
 	if id == "" || prefixLengths == nil {
 		return 0
 	}
-	return prefixLengths[strings.ToLower(id)]
+	return prefixLengths[internalstrings.NormalizeLower(id)]
 }
