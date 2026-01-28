@@ -27,10 +27,7 @@ func NormalizeUniqueIDs(ids []string) []string {
 func normalizeID(id string) string {
 	for i := 0; i < len(id); i++ {
 		b := id[i]
-		if b >= utf8.RuneSelf {
-			return strings.ToLower(id)
-		}
-		if b >= 'A' && b <= 'Z' {
+		if b >= utf8.RuneSelf || (b >= 'A' && b <= 'Z') {
 			return strings.ToLower(id)
 		}
 	}
