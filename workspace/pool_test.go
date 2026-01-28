@@ -302,8 +302,9 @@ func TestPool_Acquire_ImmutableRevisionCreatesNewChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get change description: %v", err)
 	}
-	if internalstrings.TrimSpace(description) != message {
-		t.Fatalf("expected change description %q, got %q", message, internalstrings.TrimSpace(description))
+	trimmedDescription := internalstrings.TrimSpace(description)
+	if trimmedDescription != message {
+		t.Fatalf("expected change description %q, got %q", message, trimmedDescription)
 	}
 
 	list, err := pool.List(repoPath)
