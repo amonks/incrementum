@@ -55,6 +55,8 @@ Fields (JSON keys):
 - Opencode commands resolve the jj repo root from the current working directory
   when possible (workspace roots map to their source repo). When no repo is
   found, they fall back to the current working directory.
+- Repo path comparisons resolve symlinks so opencode sessions stored under real
+  paths still match when invoked from a symlinked worktree.
 - Session discovery for opencode runs uses the working directory to locate
   session metadata, falling back to the repo path when they differ so workspace
   runs still resolve their session entries.

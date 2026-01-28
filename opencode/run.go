@@ -238,6 +238,9 @@ func normalizePath(path string) string {
 	if abs, err := filepath.Abs(path); err == nil {
 		path = abs
 	}
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		path = resolved
+	}
 	return filepath.Clean(path)
 }
 

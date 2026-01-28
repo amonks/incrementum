@@ -388,6 +388,36 @@ func TestSelectSessionLatestFallbackStaysWithinRepo(t *testing.T) {
 	}
 }
 
+func TestSelectSessionMatchesSymlinkedRepoPath(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	actualRepo := filepath.Join(root, "repo")
+	if err := os.MkdirAll(actualRepo, 0o755); err != nil {
+		t.Fatalf("create repo: %v", err)
+	}
+	linkRepo := filepath.Join(root, "repo-link")
+	if err := os.Symlink(actualRepo, linkRepo); err != nil {
+		t.Skipf("symlink not supported: %v", err)
+	}
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_link",
+			Directory: actualRepo,
+			CreatedAt: startedAt.Add(1 * time.Second),
+		},
+	}
+
+	selected, err := store.selectSession(entries, linkRepo, startedAt, "")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_link" {
+		t.Fatalf("expected symlink session, got %q", selected.ID)
+	}
+}
+
 func writeMessageRecord(t *testing.T, root, sessionID, messageID, role string, createdAt int64) {
 	t.Helper()
 
