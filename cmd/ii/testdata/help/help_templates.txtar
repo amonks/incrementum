@@ -1,0 +1,12 @@
+exec $II help templates
+stdout '^prompt-implementation.tmpl$'
+stdout '^  Override: .incrementum/templates/prompt-implementation.tmpl$'
+stdout '^prompt-feedback.tmpl$'
+stdout '^  Override: .incrementum/templates/prompt-feedback.tmpl$'
+stdout '^prompt-commit-review.tmpl$'
+stdout '^  Override: .incrementum/templates/prompt-commit-review.tmpl$'
+stdout '^prompt-project-review.tmpl$'
+stdout '^  Override: .incrementum/templates/prompt-project-review.tmpl$'
+stdout '^    - Todo \(todo.Todo\)$'
+stdout '^    - CommitLog \(\[\]CommitLogEntry\)$'
+stdout '^    - OpencodeTranscripts \(\[\]OpencodeTranscript\)$'

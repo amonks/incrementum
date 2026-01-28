@@ -262,29 +262,35 @@ project values override global values.
 ## Templates
 
 Bundled defaults via `//go:embed`, overridable by placing files in
-`.incrementum/templates/`.
+`.incrementum/templates/`. Use `ii help templates` to list the default
+templates, override paths, and variable types.
 
-| File                   | Stage        | Variables                             |
-| ---------------------- | ------------ | ------------------------------------- |
-| `prompt-implementation.tmpl` | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`, `FeedbackBlock`, `CommitMessageBlock`   |
-| `prompt-feedback.tmpl`       | implementing | `Todo`, `Feedback`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`, `FeedbackBlock`, `CommitMessageBlock`   |
-| `prompt-commit-review.tmpl`  | reviewing    | `Todo`, `Message`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`, `CommitMessageBlock`    |
-| `prompt-project-review.tmpl` | reviewing    | `Todo`, `CommitLog`, `WorkspacePath`, `ReviewInstructions`, `TodoBlock`               |
+| File                        | Stage        |
+| --------------------------- | ------------ |
+| `prompt-implementation.tmpl` | implementing |
+| `prompt-feedback.tmpl`       | implementing |
+| `prompt-commit-review.tmpl`  | reviewing    |
+| `prompt-project-review.tmpl` | reviewing    |
 
 Templates use Go `text/template` syntax (commit messages are generated in code).
 
-`Todo` exposes: `ID`, `Title`, `Description`, `Type`, `Priority`, `Status`,
-`CreatedAt`, `UpdatedAt`, `ClosedAt`, `DeletedAt`, `DeleteReason`.
-`CommitLog` is the list of commits recorded so far with fields `ID` and
-`Message`.
-`WorkspacePath` is the absolute path to the job's workspace root.
-`ReviewInstructions` is the standard review output instructions block.
-`TodoBlock` is a formatted heading-and-indent block that includes ID, title,
-type, priority, and description; each field is on its own indented line and the
-description text is reflowed and indented one level deeper.
-`FeedbackBlock` is a formatted heading-and-indent block for the feedback text.
-`CommitMessageBlock` is a formatted heading-and-indent block for the commit
-message text.
+All prompt templates receive the same data:
+
+- `Todo` (`todo.Todo`): `ID`, `Title`, `Description`, `Type`, `Priority`, `Status`,
+  `CreatedAt`, `UpdatedAt`, `ClosedAt`, `DeletedAt`, `DeleteReason`.
+- `Feedback` (`string`)
+- `Message` (`string`)
+- `CommitLog` (`[]CommitLogEntry`): list of commits recorded so far with fields `ID`
+  and `Message`.
+- `OpencodeTranscripts` (`[]OpencodeTranscript`)
+- `WorkspacePath` (`string`): absolute path to the job's workspace root.
+- `ReviewInstructions` (`string`): standard review output instructions block.
+- `TodoBlock` (`string`): formatted heading-and-indent block that includes ID, title,
+  type, priority, and description; each field is on its own indented line and the
+  description text is reflowed and indented one level deeper.
+- `FeedbackBlock` (`string`): formatted heading-and-indent block for the feedback text.
+- `CommitMessageBlock` (`string`): formatted heading-and-indent block for the commit
+  message text.
 
 The prompt renderer provides a `review_questions` template definition with the
 default review question list.
