@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/validation"
@@ -78,7 +77,7 @@ func jobDoAllFilters(cmd *cobra.Command) (jobDoAllFilter, error) {
 	}
 
 	if cmd.Flags().Changed("type") {
-		normalized := todo.TodoType(internalstrings.NormalizeLower(strings.TrimSpace(jobDoAllType)))
+		normalized := todo.TodoType(internalstrings.NormalizeLowerTrimSpace(jobDoAllType))
 		if !normalized.IsValid() {
 			return filter, validation.FormatInvalidValueError(todo.ErrInvalidType, normalized, todo.ValidTodoTypes())
 		}
