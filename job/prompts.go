@@ -93,10 +93,6 @@ func formatPromptBlock(label, body string) string {
 }
 
 func formatTodoField(label, value string) string {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		value = "-"
-	}
 	value = internalstrings.NormalizeWhitespace(value)
 	if value == "" {
 		value = "-"

@@ -289,10 +289,6 @@ const (
 
 func formatJobField(label, value string) string {
 	prefix := fmt.Sprintf("%s: ", label)
-	value = strings.TrimSpace(value)
-	if value == "" {
-		value = "-"
-	}
 	value = internalstrings.NormalizeWhitespace(value)
 	if value == "" {
 		value = "-"
