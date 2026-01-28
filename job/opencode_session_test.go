@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/opencode"
 )
 
@@ -166,7 +167,7 @@ func TestRunOpencodeSessionRecordsSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read logs: %v", err)
 	}
-	if strings.TrimSpace(logs) == "" {
+	if internalstrings.IsBlank(logs) {
 		t.Fatalf("expected opencode event log content")
 	}
 	if !strings.Contains(logs, "data:") {

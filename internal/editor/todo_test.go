@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -268,7 +269,7 @@ func assertUnindentedFrontmatter(t *testing.T, content string) {
 	t.Helper()
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
+		if internalstrings.IsBlank(line) {
 			continue
 		}
 		if strings.TrimSpace(line) == "---" {
