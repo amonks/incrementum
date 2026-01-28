@@ -231,9 +231,6 @@ func formatPromptBody(body string, indent int) string {
 		return IndentBlock(body, indent)
 	}
 	reflowed := ReflowParagraphs(body, wrapWidthFor(lineWidth, indent))
-	if internalstrings.IsBlank(reflowed) {
-		return IndentBlock("-", indent)
-	}
 	return IndentBlock(reflowed, indent)
 }
 
