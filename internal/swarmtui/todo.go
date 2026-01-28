@@ -69,7 +69,7 @@ func formatTodoItem(item todoItem, width int) string {
 	if item.isDraft {
 		id = "draft"
 	}
-	title := strings.TrimSpace(item.todo.Title)
+	title := trimmedValue(item.todo.Title)
 	if title == "" {
 		title = "(untitled)"
 	}
