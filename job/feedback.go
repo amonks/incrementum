@@ -55,9 +55,6 @@ func ReadReviewFeedback(path string) (ReviewFeedback, error) {
 // ParseReviewFeedback parses the feedback file contents.
 func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 	lines := strings.Split(contents, "\n")
-	if len(lines) == 0 {
-		return ReviewFeedback{}, ErrInvalidFeedbackFormat
-	}
 
 	for i, line := range lines {
 		lines[i] = internalstrings.TrimTrailingCarriageReturn(line)

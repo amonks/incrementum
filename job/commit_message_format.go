@@ -28,9 +28,6 @@ func formatCommitMessageWithWidth(item todo.Todo, message string, width int) str
 func splitCommitMessage(message string) (string, string) {
 	message = normalizeCommitMessage(message)
 	lines := strings.Split(message, "\n")
-	if len(lines) == 0 {
-		return "", ""
-	}
 	summary := strings.TrimSpace(lines[0])
 	body := strings.TrimSpace(strings.Join(lines[1:], "\n"))
 	return summary, body
