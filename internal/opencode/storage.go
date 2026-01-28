@@ -579,7 +579,7 @@ func (s Storage) sessionContainsPrompt(sessionID, prompt string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if strings.Contains(strings.TrimSpace(text), prompt) {
+		if strings.Contains(text, prompt) {
 			return true, nil
 		}
 	}
