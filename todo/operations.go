@@ -651,10 +651,8 @@ func (s *Store) readyWithTodos(limit int) ([]Todo, []Todo, error) {
 		if todo.Status != StatusOpen {
 			continue
 		}
-		if blocked != nil {
-			if _, isBlocked := blocked[todo.ID]; isBlocked {
-				continue
-			}
+		if _, isBlocked := blocked[todo.ID]; isBlocked {
+			continue
 		}
 
 		if useLimit {
@@ -693,27 +691,22 @@ func blockedTodoIDs(todos []Todo, deps []Dependency) map[string]struct{} {
 		return nil
 	}
 
-	const (
-		blockerUnknown uint8 = iota
-		blockerResolved
-		blockerUnresolved
-	)
-	blockerStatus := make(map[string]uint8, len(deps))
+	dependsOn := make(map[string]struct{}, len(deps))
 	for _, dep := range deps {
-		blockerStatus[dep.DependsOnID] = blockerUnknown
+		dependsOn[dep.DependsOnID] = struct{}{}
 	}
+	unresolved := make(map[string]struct{})
 	for _, todo := range todos {
-		if _, ok := blockerStatus[todo.ID]; ok {
-			if todo.Status.IsResolved() {
-				blockerStatus[todo.ID] = blockerResolved
-			} else {
-				blockerStatus[todo.ID] = blockerUnresolved
-			}
+		if _, ok := dependsOn[todo.ID]; !ok {
+			continue
+		}
+		if !todo.Status.IsResolved() {
+			unresolved[todo.ID] = struct{}{}
 		}
 	}
 	blocked := make(map[string]struct{}, len(deps))
 	for _, dep := range deps {
-		if blockerStatus[dep.DependsOnID] == blockerUnresolved {
+		if _, ok := unresolved[dep.DependsOnID]; ok {
 			blocked[dep.TodoID] = struct{}{}
 		}
 	}
