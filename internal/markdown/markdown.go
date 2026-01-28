@@ -51,7 +51,7 @@ func Render(width, indent int, input []byte) []byte {
 	if indent <= 0 {
 		return []byte(rendered)
 	}
-	return []byte(indentBlock(rendered, indent))
+	return []byte(internalstrings.IndentBlock(rendered, indent))
 }
 
 func cleanRenderedMarkdown(value string) string {
@@ -84,16 +84,4 @@ func markdownRenderer(width int) *glamour.TermRenderer {
 	}
 	renderers[width] = created
 	return created
-}
-
-func indentBlock(value string, spaces int) string {
-	if spaces <= 0 {
-		return value
-	}
-	prefix := strings.Repeat(" ", spaces)
-	lines := strings.Split(value, "\n")
-	for i, line := range lines {
-		lines[i] = prefix + line
-	}
-	return strings.Join(lines, "\n")
 }

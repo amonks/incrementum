@@ -196,3 +196,46 @@ func TestTrimTrailingNewlines(t *testing.T) {
 		})
 	}
 }
+
+func TestIndentBlock(t *testing.T) {
+	cases := []struct {
+		name   string
+		input  string
+		spaces int
+		want   string
+	}{
+		{
+			name:   "no indent",
+			input:  "line",
+			spaces: 0,
+			want:   "line",
+		},
+		{
+			name:   "single line",
+			input:  "line",
+			spaces: 2,
+			want:   "  line",
+		},
+		{
+			name:   "multiline",
+			input:  "one\n\ntwo",
+			spaces: 1,
+			want:   " one\n \n two",
+		},
+		{
+			name:   "empty",
+			input:  "",
+			spaces: 3,
+			want:   "   ",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := IndentBlock(tc.input, tc.spaces)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}

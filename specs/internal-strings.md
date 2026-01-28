@@ -54,3 +54,8 @@ across subsystems.
 
 - Counts leading ASCII space characters in a string.
 - Used when formatting or reflowing indented text blocks.
+
+## IndentBlock
+
+- Prefixes each line in a block with a fixed number of ASCII spaces.
+- Used to apply consistent indentation when rendering multi-line output.

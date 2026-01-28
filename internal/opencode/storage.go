@@ -736,15 +736,7 @@ func formatToolOutputSection(label, text string) string {
 }
 
 func indentToolOutput(text string) string {
-	if toolOutputIndent <= 0 {
-		return text
-	}
-	prefix := strings.Repeat(" ", toolOutputIndent)
-	lines := strings.Split(text, "\n")
-	for i, line := range lines {
-		lines[i] = prefix + line
-	}
-	return strings.Join(lines, "\n")
+	return internalstrings.IndentBlock(text, toolOutputIndent)
 }
 
 func decodeJSONFile(path, label string, dest any) error {

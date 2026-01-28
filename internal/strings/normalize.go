@@ -79,3 +79,16 @@ func LeadingSpaces(value string) int {
 	}
 	return count
 }
+
+// IndentBlock prefixes each line with spaces.
+func IndentBlock(value string, spaces int) string {
+	if spaces <= 0 {
+		return value
+	}
+	prefix := strings.Repeat(" ", spaces)
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		lines[i] = prefix + line
+	}
+	return strings.Join(lines, "\n")
+}
