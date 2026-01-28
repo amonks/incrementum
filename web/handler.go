@@ -133,7 +133,7 @@ func (h *Handler) handleTodos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	createMode := r.URL.Query().Get("create") == "1"
-	selectedID := strings.TrimSpace(r.URL.Query().Get("id"))
+	selectedID := trimmedQueryValue(r, "id")
 	selectedTodo := (*todo.Todo)(nil)
 	if !createMode {
 		selectedTodo = selectTodo(todos, selectedID)
@@ -213,7 +213,7 @@ func (h *Handler) handleTodosUpdate(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, http.MethodPost)
 		return
 	}
-	todoID := strings.TrimSpace(r.URL.Query().Get("id"))
+	todoID := trimmedQueryValue(r, "id")
 	if err := r.ParseForm(); err != nil {
 		h.setTodoDraft(todoFormDraft{mode: "update", id: todoID, err: "invalid form input"})
 		http.Redirect(w, r, todoRedirectPath(todoID), http.StatusSeeOther)
@@ -253,7 +253,7 @@ func (h *Handler) handleJobs(w http.ResponseWriter, r *http.Request) {
 		fetchError = err.Error()
 	}
 
-	selectedID := strings.TrimSpace(r.URL.Query().Get("id"))
+	selectedID := trimmedQueryValue(r, "id")
 	selectedJob := selectJob(jobs, selectedID)
 	if selectedJob == nil && len(jobs) > 0 {
 		selectedJob = &jobs[0]
@@ -296,7 +296,7 @@ func (h *Handler) handleJobsStart(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, http.MethodPost)
 		return
 	}
-	todoID := strings.TrimSpace(r.URL.Query().Get("id"))
+	todoID := trimmedQueryValue(r, "id")
 	if err := r.ParseForm(); err != nil {
 		h.setTodoDraft(todoFormDraft{mode: "update", id: todoID, err: "invalid form input"})
 		http.Redirect(w, r, todoRedirectPath(todoID), http.StatusSeeOther)
@@ -327,7 +327,7 @@ func (h *Handler) handleJobsKill(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, http.MethodPost)
 		return
 	}
-	jobID := strings.TrimSpace(r.URL.Query().Get("id"))
+	jobID := trimmedQueryValue(r, "id")
 	if jobID == "" {
 		h.setJobDraft(jobFormDraft{err: "job id is required"})
 		http.Redirect(w, r, "/web/jobs", http.StatusSeeOther)
@@ -345,7 +345,7 @@ func (h *Handler) handleJobsRefresh(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, http.MethodPost)
 		return
 	}
-	jobID := strings.TrimSpace(r.URL.Query().Get("id"))
+	jobID := trimmedQueryValue(r, "id")
 	if jobID == "" {
 		h.setJobDraft(jobFormDraft{err: "job id is required"})
 		http.Redirect(w, r, "/web/jobs", http.StatusSeeOther)
@@ -492,11 +492,11 @@ func todoFormValuesFromTodo(item todo.Todo) todoFormValues {
 
 func todoFormValuesFromRequest(r *http.Request) todoFormValues {
 	return todoFormValues{
-		Title:       strings.TrimSpace(r.FormValue("title")),
+		Title:       trimmedFormValue(r, "title"),
 		Description: r.FormValue("description"),
-		Status:      strings.TrimSpace(r.FormValue("status")),
-		Priority:    strings.TrimSpace(r.FormValue("priority")),
-		Type:        strings.TrimSpace(r.FormValue("type")),
+		Status:      trimmedFormValue(r, "status"),
+		Priority:    trimmedFormValue(r, "priority"),
+		Type:        trimmedFormValue(r, "type"),
 	}
 }
 
@@ -597,6 +597,14 @@ func parsePriority(value string, allowEmpty bool, fallback int) (int, error) {
 		return 0, err
 	}
 	return parsed, nil
+}
+
+func trimmedQueryValue(r *http.Request, key string) string {
+	return strings.TrimSpace(r.URL.Query().Get(key))
+}
+
+func trimmedFormValue(r *http.Request, key string) string {
+	return strings.TrimSpace(r.FormValue(key))
 }
 
 func selectTodo(todos []todo.Todo, id string) *todo.Todo {
