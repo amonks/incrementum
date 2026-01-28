@@ -298,9 +298,6 @@ func testResultLogsFromCommandResults(results []TestCommandResult) []testResultL
 }
 
 func testResultLogsFrom[T any](results []T, build func(T) testResultLog) []testResultLog {
-	if len(results) == 0 {
-		return nil
-	}
 	logs := make([]testResultLog, 0, len(results))
 	for _, result := range results {
 		logs = append(logs, build(result))
