@@ -68,7 +68,7 @@ func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitL
 
 func formatTodoBlock(item todo.Todo) string {
 	description := internalstrings.TrimTrailingNewlines(item.Description)
-	if strings.TrimSpace(description) == "" {
+	if internalstrings.IsBlank(description) {
 		description = "-"
 	}
 	description = ReflowIndentedText(description, lineWidth, subdocumentIndent)
@@ -85,7 +85,7 @@ func formatTodoBlock(item todo.Todo) string {
 
 func formatPromptBlock(label, body string) string {
 	body = internalstrings.TrimTrailingNewlines(body)
-	if strings.TrimSpace(body) == "" {
+	if internalstrings.IsBlank(body) {
 		body = "-"
 	}
 	formatted := ReflowIndentedText(body, lineWidth, documentIndent)
@@ -106,7 +106,7 @@ func formatTodoField(label, value string) string {
 
 // LoadPrompt loads a prompt template for the repo.
 func LoadPrompt(repoPath, name string) (string, error) {
-	if strings.TrimSpace(name) == "" {
+	if internalstrings.IsBlank(name) {
 		return "", fmt.Errorf("prompt name is required")
 	}
 
