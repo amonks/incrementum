@@ -1,5 +1,6 @@
-You are responding to feedback on a change that is intended to move us towards
-completion of a todo.
+You are responding to feedback on a change (in the jujutsu working tree) that is
+intended to move us towards completion of a todo. The todo may take several
+changes to resolve.
 
 {{.FeedbackBlock}}
 {{if .Message}}
@@ -12,12 +13,12 @@ Changes are reviewed according to these questions:
 
 {{template "review_questions"}}
 
-When you make changes, write a multi-line commit message for the entire working
-tree diff to ./.incrementum-commit-message. Keep changes focused on the current step.
+When you make changes, write a multi-line commit message for this diff to
+./.incrementum-commit-message
 
 Workspace root: {{.WorkspacePath}}
 
-{{if .CommitLog}}Commits so far:
+{{if .CommitLog}}Here are the previous changes we've made as part of this todo:
 {{range .CommitLog}}- ID: {{.ID}}
 Message:
 {{.Message}}

@@ -1,17 +1,10 @@
-Review the implementation of our todo.
-
-The jujutsu working tree contains an implementation that is purported to resolve our todo.
-
-Workspace root: {{.WorkspacePath}}
-
-{{if .CommitLog}}Commits for this todo:
+These jujutsu changes, taken together, are meant to resolve a todo:
 {{range .CommitLog}}- ID: {{.ID}}
 Message:
 {{.Message}}
 {{end}}
-{{end}}
 
-Review the implementation of our todo:
+Review the implementation:
 - Does it complete the goal in the todo?
 - Is it free of defects?
 - Does it include proper test coverage?
