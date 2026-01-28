@@ -255,7 +255,7 @@ func (s Storage) listAllSessions() ([]SessionMetadata, error) {
 func (s Storage) selectSession(entries []SessionMetadata, repoPath string, startedAt time.Time, prompt string) (SessionMetadata, error) {
 	repoPath = cleanPath(repoPath)
 	cutoff := startedAt.Add(-5 * time.Second)
-	trimmedPrompt := strings.TrimSpace(prompt)
+	trimmedPrompt := internalstrings.TrimSpace(prompt)
 	hasPrompt := trimmedPrompt != ""
 
 	repoEntries := entries
