@@ -551,13 +551,24 @@ func (values todoFormValues) updateOptions() (todo.UpdateOptions, error) {
 	}, nil
 }
 
-func parseStatus(value string, allowEmpty bool, fallback todo.Status) (todo.Status, error) {
+func trimmedRequired(value, field string, allowEmpty bool) (string, bool, error) {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		if allowEmpty {
-			return fallback, nil
+			return "", true, nil
 		}
-		return "", fmt.Errorf("status is required")
+		return "", false, fmt.Errorf("%s is required", field)
+	}
+	return trimmed, false, nil
+}
+
+func parseStatus(value string, allowEmpty bool, fallback todo.Status) (todo.Status, error) {
+	trimmed, empty, err := trimmedRequired(value, "status", allowEmpty)
+	if err != nil {
+		return "", err
+	}
+	if empty {
+		return fallback, nil
 	}
 	status := todo.Status(trimmed)
 	if !status.IsValid() {
@@ -567,12 +578,12 @@ func parseStatus(value string, allowEmpty bool, fallback todo.Status) (todo.Stat
 }
 
 func parseType(value string, allowEmpty bool, fallback todo.TodoType) (todo.TodoType, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		if allowEmpty {
-			return fallback, nil
-		}
-		return "", fmt.Errorf("type is required")
+	trimmed, empty, err := trimmedRequired(value, "type", allowEmpty)
+	if err != nil {
+		return "", err
+	}
+	if empty {
+		return fallback, nil
 	}
 	typ := todo.TodoType(trimmed)
 	if !typ.IsValid() {
@@ -582,12 +593,12 @@ func parseType(value string, allowEmpty bool, fallback todo.TodoType) (todo.Todo
 }
 
 func parsePriority(value string, allowEmpty bool, fallback int) (int, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		if allowEmpty {
-			return fallback, nil
-		}
-		return 0, fmt.Errorf("priority is required")
+	trimmed, empty, err := trimmedRequired(value, "priority", allowEmpty)
+	if err != nil {
+		return 0, err
+	}
+	if empty {
+		return fallback, nil
 	}
 	parsed, err := strconv.Atoi(trimmed)
 	if err != nil {
