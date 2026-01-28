@@ -552,7 +552,7 @@ func (values todoFormValues) updateOptions() (todo.UpdateOptions, error) {
 }
 
 func trimmedRequired(value, field string, allowEmpty bool) (string, bool, error) {
-	trimmed := strings.TrimSpace(value)
+	trimmed := trimmedValue(value)
 	if trimmed == "" {
 		if allowEmpty {
 			return "", true, nil
