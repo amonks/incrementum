@@ -611,11 +611,6 @@ func appendPartText(builder *strings.Builder, parts []partInfo, extract func(par
 
 func extractPartText(part partInfo) (string, bool) {
 	switch normalizePartType(part.Type) {
-	case "text":
-		if part.Text == "" {
-			return "", false
-		}
-		return part.Text, true
 	case "tool":
 		output, ok := part.State["output"]
 		if !ok {
