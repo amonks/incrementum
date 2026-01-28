@@ -402,27 +402,19 @@ func stringFromMap(input map[string]any, key string) string {
 	if input == nil {
 		return ""
 	}
-	if value, ok := input[key]; ok {
-		if text, ok := value.(string); ok {
-			return internalstrings.TrimSpace(text)
-		}
+	value, ok := input[key].(string)
+	if !ok {
+		return ""
 	}
-	return ""
+	return internalstrings.TrimSpace(value)
 }
 
 func firstQuestionText(input map[string]any) string {
 	if input == nil {
 		return ""
 	}
-	raw, ok := input["questions"]
-	if !ok {
-		return ""
-	}
-	items, ok := raw.([]any)
-	if !ok {
-		return ""
-	}
-	if len(items) == 0 {
+	items, ok := input["questions"].([]any)
+	if !ok || len(items) == 0 {
 		return ""
 	}
 	first, ok := items[0].(map[string]any)
