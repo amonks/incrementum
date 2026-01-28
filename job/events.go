@@ -8,10 +8,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/amonks/incrementum/internal/paths"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 const (
@@ -152,8 +152,8 @@ func ReadEvents(reader io.Reader) ([]Event, error) {
 		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, err
 		}
-		line = strings.TrimSpace(line)
-		if line != "" {
+		line = internalstrings.TrimTrailingNewlines(line)
+		if !internalstrings.IsBlank(line) {
 			var event Event
 			if unmarshalErr := json.Unmarshal([]byte(line), &event); unmarshalErr != nil {
 				return nil, fmt.Errorf("decode job event: %w", unmarshalErr)
