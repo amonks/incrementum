@@ -611,11 +611,15 @@ func parsePriority(value string, allowEmpty bool, fallback int) (int, error) {
 }
 
 func trimmedQueryValue(r *http.Request, key string) string {
-	return strings.TrimSpace(r.URL.Query().Get(key))
+	return trimmedValue(r.URL.Query().Get(key))
 }
 
 func trimmedFormValue(r *http.Request, key string) string {
-	return strings.TrimSpace(r.FormValue(key))
+	return trimmedValue(r.FormValue(key))
+}
+
+func trimmedValue(value string) string {
+	return strings.TrimSpace(value)
 }
 
 func selectTodo(todos []todo.Todo, id string) *todo.Todo {
