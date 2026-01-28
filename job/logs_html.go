@@ -165,11 +165,10 @@ func (writer *logHTMLWriter) endEntry() {
 }
 
 func (writer *logHTMLWriter) formatTests(results []testResultEventData) string {
-	formatted := testResultLogsFromEventData(results)
-	if len(formatted) == 0 {
+	if len(results) == 0 {
 		return "-"
 	}
-	return formatTestLogBody(formatted)
+	return formatTestLogBody(testResultLogsFromEventData(results))
 }
 
 func (writer *logHTMLWriter) String() string {
