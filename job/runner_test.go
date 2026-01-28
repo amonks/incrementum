@@ -962,6 +962,16 @@ func TestDiffStatHasChangesDetectsEmptySummaries(t *testing.T) {
 			changed:  false,
 		},
 		{
+			name:     "header without file stats",
+			diffStat: "Working copy changes:\n\n",
+			changed:  false,
+		},
+		{
+			name:     "summary with changes",
+			diffStat: "2 files changed, 3 insertions(+), 1 deletion(-)\n",
+			changed:  true,
+		},
+		{
 			name:     "file changes",
 			diffStat: "file.txt | 2 +-\n1 file changed, 1 insertion(+), 1 deletion(-)\n",
 			changed:  true,

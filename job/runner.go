@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -834,19 +835,36 @@ func diffStatHasChanges(diffStat string) bool {
 		return false
 	}
 	lines := strings.Split(trimmed, "\n")
+	seenChangeLine := false
+	seenSummary := false
+	changedSummary := false
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		if strings.HasPrefix(line, "0 files changed") {
-			return false
-		}
 		if strings.HasPrefix(line, "No changes") {
 			return false
 		}
+		if strings.Contains(line, " file changed") || strings.Contains(line, " files changed") {
+			fields := strings.Fields(line)
+			if len(fields) > 0 {
+				count, err := strconv.Atoi(fields[0])
+				if err == nil {
+					seenSummary = true
+					changedSummary = count != 0
+				}
+			}
+			continue
+		}
+		if strings.Contains(line, " | ") {
+			seenChangeLine = true
+		}
 	}
-	return true
+	if seenSummary {
+		return changedSummary || seenChangeLine
+	}
+	return seenChangeLine
 }
 
 func renderPromptTemplate(item todo.Todo, feedback, message string, commitLog []CommitLogEntry, transcripts []OpencodeTranscript, name, workspacePath string) (string, error) {

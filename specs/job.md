@@ -122,7 +122,8 @@ any stage -> failed (unrecoverable error)
 11. If the commit id changed, run `jj diff --from <before> --to <after> --stat` to
     confirm the working copy diff is non-empty; treat an empty diff stat or a
     zero-files summary (for example, "0 files changed, 0 insertions(+), 0
-    deletions(-)") as no change.
+    deletions(-)") as no change. If the output contains no file stat lines or
+    non-zero summary, treat it as empty.
 12. If the commit id did not change (or the diff stat is empty):
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
     - Flag the next review cycle as the final project review.
@@ -183,7 +184,8 @@ any stage -> failed (unrecoverable error)
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. If the working copy diff (`jj diff --stat --from @- --to @`) is empty, skip
    committing and transition back to `implementing` (the next loop will detect
-   no changes and move to project review).
+   no changes and move to project review). An output with no file stat lines or
+   non-zero summary counts as empty.
 3. Format final message with a fixed commit message layout (not templated). The
    format uses the opencode-generated summary/body plus a todo block, reflowed via
    the markdown renderer to 80/76/72 columns with 0/4/8-space indentation. Todo
