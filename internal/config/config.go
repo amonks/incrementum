@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // Config represents the incrementum.toml configuration file.
@@ -110,14 +112,14 @@ func mergeString(projectDefined bool, projectValue, globalValue string) string {
 	if projectDefined {
 		value = projectValue
 	}
-	return strings.TrimSpace(value)
+	return internalstrings.TrimSpace(value)
 }
 
 // RunScript executes a script in the given directory.
 // If the script starts with a shebang (#!), that interpreter is used.
 // Otherwise, the script is run with /bin/bash.
 func RunScript(dir, script string) error {
-	script = strings.TrimSpace(script)
+	script = internalstrings.TrimSpace(script)
 	if script == "" {
 		return nil
 	}
@@ -128,7 +130,7 @@ func RunScript(dir, script string) error {
 	if strings.HasPrefix(script, "#!") {
 		// Extract shebang line
 		lines := strings.SplitN(script, "\n", 2)
-		interpreter = strings.TrimSpace(strings.TrimPrefix(lines[0], "#!"))
+		interpreter = internalstrings.TrimSpace(strings.TrimPrefix(lines[0], "#!"))
 		if len(lines) > 1 {
 			scriptBody = lines[1]
 		}
