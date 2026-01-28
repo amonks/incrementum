@@ -435,9 +435,8 @@ func quoteForLog(value string) string {
 
 func truncateForLog(value string) string {
 	const maxLen = 160
-	trimmed := strings.TrimSpace(value)
-	if len(trimmed) <= maxLen {
-		return trimmed
+	if len(value) <= maxLen {
+		return value
 	}
-	return trimmed[:maxLen-3] + "..."
+	return value[:maxLen-3] + "..."
 }
