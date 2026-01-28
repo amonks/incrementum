@@ -102,11 +102,11 @@ func defaultOpencodeEventSwitches() map[string]bool {
 }
 
 func (i *opencodeEventInterpreter) Handle(event Event) ([]opencodeRenderedEvent, error) {
-	if strings.TrimSpace(event.Data) == "" {
+	if internalstrings.IsBlank(event.Data) {
 		return nil, nil
 	}
 	payload, err := parseOpencodeEventPayload(event.Data)
-	if err != nil || strings.TrimSpace(payload.Type) == "" {
+	if err != nil || internalstrings.IsBlank(payload.Type) {
 		return rawOpencodeEvent(opencodeEventLabel(event.Name), event.Data), nil
 	}
 
@@ -149,7 +149,7 @@ func (i *opencodeEventInterpreter) handleMessageUpdated(payload json.RawMessage)
 		return nil, fmt.Errorf("decode opencode message.updated: %w", err)
 	}
 	info := update.Info
-	if strings.TrimSpace(info.ID) == "" {
+	if internalstrings.IsBlank(info.ID) {
 		return nil, nil
 	}
 	role := internalstrings.NormalizeLowerTrimSpace(info.Role)
@@ -167,12 +167,12 @@ func (i *opencodeEventInterpreter) handleMessageUpdated(payload json.RawMessage)
 	if role == "assistant" && !state.responseEmitted && messageCompleted(info) && i.enabled("message.part.updated") {
 		events := make([]opencodeRenderedEvent, 0, 2)
 		thinking := combineParts(state.reasoningOrder, state.reasoningParts)
-		if strings.TrimSpace(thinking) != "" && !state.thinkingEmitted {
+		if !internalstrings.IsBlank(thinking) && !state.thinkingEmitted {
 			state.thinkingEmitted = true
 			events = append(events, renderThinking(thinking))
 		}
 		response := combineParts(state.textOrder, state.textParts)
-		if strings.TrimSpace(response) != "" {
+		if !internalstrings.IsBlank(response) {
 			state.responseEmitted = true
 			events = append(events, renderResponse(response))
 		}
@@ -188,7 +188,7 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 		return nil, fmt.Errorf("decode opencode message.part.updated: %w", err)
 	}
 	part := update.Part
-	if strings.TrimSpace(part.MessageID) == "" {
+	if internalstrings.IsBlank(part.MessageID) {
 		return nil, nil
 	}
 	state := i.ensureMessageState(part.MessageID)
@@ -209,7 +209,7 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 			return nil, nil
 		}
 		summary := summarizeToolCall(part.Tool, part.State.Input)
-		if strings.TrimSpace(summary) == "" {
+		if internalstrings.IsBlank(summary) {
 			return nil, nil
 		}
 		status := internalstrings.NormalizeLowerTrimSpace(part.State.Status)
@@ -243,7 +243,7 @@ func (i *opencodeEventInterpreter) ensureMessageState(messageID string) *opencod
 }
 
 func (i *opencodeEventInterpreter) storePartText(state *opencodeMessageState, partID, text string, reasoning bool) {
-	if state == nil || strings.TrimSpace(partID) == "" {
+	if state == nil || internalstrings.IsBlank(partID) {
 		return
 	}
 	if reasoning {
@@ -264,7 +264,7 @@ func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) 
 		return nil
 	}
 	prompt := combineParts(state.textOrder, state.textParts)
-	if strings.TrimSpace(prompt) == "" {
+	if internalstrings.IsBlank(prompt) {
 		return nil
 	}
 	state.promptEmitted = true
@@ -317,7 +317,7 @@ func combineParts(order []string, parts map[string]string) string {
 	merged := make([]string, 0, len(order))
 	for _, key := range order {
 		text := internalstrings.TrimTrailingNewlines(parts[key])
-		if strings.TrimSpace(text) == "" {
+		if internalstrings.IsBlank(text) {
 			continue
 		}
 		merged = append(merged, text)
@@ -334,7 +334,7 @@ func parseOpencodeEventPayload(data string) (opencodeEventPayload, error) {
 }
 
 func messageCompleted(info opencodeMessageInfo) bool {
-	return info.Time.Completed != 0 || strings.TrimSpace(info.Finish) != ""
+	return info.Time.Completed != 0 || !internalstrings.IsBlank(info.Finish)
 }
 
 func summarizeToolCall(tool string, input map[string]any) string {
