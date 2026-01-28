@@ -13,14 +13,15 @@ func resolveOpencodeAgent(cmd *cobra.Command, flagValue, configAgent string) str
 		return flagValue
 	}
 
-	envValue := strings.TrimSpace(os.Getenv(opencode.AgentEnvVar))
-	if envValue != "" {
-		return envValue
-	}
+	return firstTrimmed(os.Getenv(opencode.AgentEnvVar), configAgent)
+}
 
-	configValue := strings.TrimSpace(configAgent)
-	if configValue != "" {
-		return configValue
+func firstTrimmed(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
 	}
 	return ""
 }
