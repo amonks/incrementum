@@ -62,10 +62,8 @@ func commandCombinedOutput(cmd *exec.Cmd, context string) ([]byte, error) {
 }
 
 func runCombinedOutput(cmd *exec.Cmd, context string) error {
-	if _, err := commandCombinedOutput(cmd, context); err != nil {
-		return err
-	}
-	return nil
+	_, err := commandCombinedOutput(cmd, context)
+	return err
 }
 
 func logFieldAt(workspacePath, rev, field string) (string, error) {
