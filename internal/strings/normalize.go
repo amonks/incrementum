@@ -21,7 +21,7 @@ func NormalizeLower(value string) string {
 
 // NormalizeLowerTrimSpace trims surrounding whitespace and lowercases the input.
 func NormalizeLowerTrimSpace(value string) string {
-	return strings.ToLower(strings.TrimSpace(value))
+	return NormalizeLower(strings.TrimSpace(value))
 }
 
 // IsBlank reports whether the string contains only whitespace.
