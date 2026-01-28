@@ -58,7 +58,7 @@ func formatCommitTodoWithWidth(item todo.Todo, width int) string {
 
 func renderMarkdownText(value string, width int) string {
 	value = strings.TrimSpace(value)
-	if value == "" {
+	if internalstrings.IsBlank(value) {
 		return ""
 	}
 	rendered := RenderMarkdown(value, width)
@@ -67,7 +67,7 @@ func renderMarkdownText(value string, width int) string {
 
 func renderMarkdownTextOrDash(value string, width int) string {
 	rendered := renderMarkdownText(value, width)
-	if strings.TrimSpace(rendered) == "" {
+	if internalstrings.IsBlank(rendered) {
 		return "-"
 	}
 	return rendered
@@ -77,12 +77,12 @@ func renderMarkdownLines(lines []string, width int) string {
 	renderedLines := make([]string, 0, len(lines))
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if line == "" {
+		if internalstrings.IsBlank(line) {
 			renderedLines = append(renderedLines, "")
 			continue
 		}
 		rendered := renderMarkdownText(line, width)
-		if strings.TrimSpace(rendered) == "" {
+		if internalstrings.IsBlank(rendered) {
 			renderedLines = append(renderedLines, "-")
 			continue
 		}
