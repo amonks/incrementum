@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // CreateOptions configures a new todo.
@@ -347,8 +349,8 @@ func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 		return nil, nil, err
 	}
 
-	titleQuery := strings.ToLower(filter.TitleSubstring)
-	descriptionQuery := strings.ToLower(filter.DescriptionSubstring)
+	titleQuery := internalstrings.NormalizeLower(filter.TitleSubstring)
+	descriptionQuery := internalstrings.NormalizeLower(filter.DescriptionSubstring)
 
 	todos, err := s.readTodosWithContext()
 	if err != nil {
@@ -409,7 +411,7 @@ func containsLower(haystack, needle string) bool {
 	if needle == "" {
 		return true
 	}
-	return strings.Contains(strings.ToLower(haystack), needle)
+	return strings.Contains(internalstrings.NormalizeLower(haystack), needle)
 }
 
 func idSetFromIDs(ids []string) map[string]struct{} {
