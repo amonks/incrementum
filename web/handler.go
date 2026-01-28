@@ -552,7 +552,7 @@ func (values todoFormValues) updateOptions() (todo.UpdateOptions, error) {
 }
 
 func trimmedRequired(value, field string, allowEmpty bool) (string, bool, error) {
-	trimmed := internalstrings.TrimSpace(value)
+	trimmed := trimmedValue(value)
 	if trimmed == "" {
 		if allowEmpty {
 			return "", true, nil
@@ -560,6 +560,10 @@ func trimmedRequired(value, field string, allowEmpty bool) (string, bool, error)
 		return "", false, fmt.Errorf("%s is required", field)
 	}
 	return trimmed, false, nil
+}
+
+func trimmedValue(value string) string {
+	return internalstrings.TrimSpace(value)
 }
 
 func parseStatus(value string, allowEmpty bool, fallback todo.Status) (todo.Status, error) {
@@ -611,11 +615,11 @@ func parsePriority(value string, allowEmpty bool, fallback int) (int, error) {
 }
 
 func trimmedQueryValue(r *http.Request, key string) string {
-	return internalstrings.TrimSpace(r.URL.Query().Get(key))
+	return trimmedValue(r.URL.Query().Get(key))
 }
 
 func trimmedFormValue(r *http.Request, key string) string {
-	return internalstrings.TrimSpace(r.FormValue(key))
+	return trimmedValue(r.FormValue(key))
 }
 
 func selectTodo(todos []todo.Todo, id string) *todo.Todo {
