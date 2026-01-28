@@ -43,7 +43,10 @@ func runHelp(cmd *cobra.Command, args []string) error {
 }
 
 func runHelpTemplates(cmd *cobra.Command, args []string) error {
-	info := job.DefaultPromptTemplateInfo()
+	info, err := job.DefaultPromptTemplateInfo()
+	if err != nil {
+		return err
+	}
 	var builder strings.Builder
 	for i, template := range info {
 		if i > 0 {
@@ -55,7 +58,14 @@ func runHelpTemplates(cmd *cobra.Command, args []string) error {
 		for _, variable := range template.Variables {
 			fmt.Fprintf(&builder, "    - %s (%s)\n", variable.Name, variable.Type)
 		}
+		builder.WriteString("  Template:\n")
+		builder.WriteString("```\n")
+		builder.WriteString(template.Contents)
+		if !strings.HasSuffix(template.Contents, "\n") {
+			builder.WriteString("\n")
+		}
+		builder.WriteString("```\n")
 	}
-	_, err := fmt.Fprint(cmd.OutOrStdout(), builder.String())
+	_, err = fmt.Fprint(cmd.OutOrStdout(), builder.String())
 	return err
 }

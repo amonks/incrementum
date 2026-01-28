@@ -262,8 +262,8 @@ project values override global values.
 ## Templates
 
 Bundled defaults via `//go:embed`, overridable by placing files in
-`.incrementum/templates/`. Use `ii help templates` to list the default
-templates, override paths, and variable types.
+`.incrementum/templates/`. Use `ii help templates` to print the default
+template contents, override paths, and variable types.
 
 | File                        | Stage        |
 | --------------------------- | ------------ |
