@@ -44,3 +44,8 @@ across subsystems.
 
 - Removes trailing `/` characters from the end of a string.
 - Used to normalize base URLs before building API or web client paths.
+
+## LeadingSpaces
+
+- Counts leading ASCII space characters in a string.
+- Used when formatting or reflowing indented text blocks.

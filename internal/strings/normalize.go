@@ -52,3 +52,15 @@ func TrimTrailingWhitespace(value string) string {
 func TrimTrailingSlash(value string) string {
 	return strings.TrimRight(value, "/")
 }
+
+// LeadingSpaces counts leading ASCII space characters.
+func LeadingSpaces(value string) int {
+	count := 0
+	for _, char := range value {
+		if char != ' ' {
+			break
+		}
+		count++
+	}
+	return count
+}

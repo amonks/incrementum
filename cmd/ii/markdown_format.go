@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	jobpkg "github.com/amonks/incrementum/job"
 )
 
@@ -26,7 +27,7 @@ func trimCommonIndent(value string) string {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		indent := leadingSpaces(line)
+		indent := internalstrings.LeadingSpaces(line)
 		if minIndent == -1 || indent < minIndent {
 			minIndent = indent
 		}
@@ -46,15 +47,4 @@ func trimCommonIndent(value string) string {
 		lines[i] = strings.TrimPrefix(line, indentStr)
 	}
 	return strings.Join(lines, "\n")
-}
-
-func leadingSpaces(value string) int {
-	count := 0
-	for _, char := range value {
-		if char != ' ' {
-			break
-		}
-		count++
-	}
-	return count
 }

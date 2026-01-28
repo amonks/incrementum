@@ -102,14 +102,14 @@ func ReflowIndentedText(value string, width int, baseIndent int) string {
 			i++
 			continue
 		}
-		indent := leadingSpaces(line)
+		indent := internalstrings.LeadingSpaces(line)
 		var parts []string
 		for i < len(lines) {
 			line = lines[i]
 			if strings.TrimSpace(line) == "" {
 				break
 			}
-			if leadingSpaces(line) != indent {
+			if internalstrings.LeadingSpaces(line) != indent {
 				break
 			}
 			parts = append(parts, strings.TrimSpace(line[indent:]))
@@ -125,15 +125,4 @@ func ReflowIndentedText(value string, width int, baseIndent int) string {
 		out = append(out, strings.Split(wrapped, "\n")...)
 	}
 	return strings.Join(out, "\n")
-}
-
-func leadingSpaces(value string) int {
-	count := 0
-	for _, char := range value {
-		if char != ' ' {
-			break
-		}
-		count++
-	}
-	return count
 }
