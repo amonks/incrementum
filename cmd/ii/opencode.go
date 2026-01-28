@@ -163,9 +163,6 @@ func opencodeFixedColumnsWidth(sessions []opencode.OpencodeSession, highlight fu
 	}
 
 	padding := ui.TableColumnPaddingWidth()
-	if padding < 0 {
-		padding = 0
-	}
 	return maxSession + maxStatus + maxAge + maxDuration + maxExit + padding*5
 }
 
