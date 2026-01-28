@@ -369,6 +369,35 @@ func TestSelectSessionPromptMatchFallbackStaysWithinRepo(t *testing.T) {
 	}
 }
 
+func TestSelectSessionCutoffFallbackStaysWithinRepo(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	otherRepo := filepath.Join(root, "other")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_repo",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(-10 * time.Minute),
+		},
+		{
+			ID:        "ses_other",
+			Directory: otherRepo,
+			CreatedAt: startedAt.Add(1 * time.Second),
+		},
+	}
+
+	selected, err := store.selectSession(entries, repoPath, startedAt, "")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_repo" {
+		t.Fatalf("expected repo fallback session, got %q", selected.ID)
+	}
+}
+
 func TestSelectSessionFallsBackToLatestSessionWhenNoRecentSessions(t *testing.T) {
 	root := t.TempDir()
 	store := Storage{Root: root}

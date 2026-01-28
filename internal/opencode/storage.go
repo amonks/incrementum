@@ -257,28 +257,28 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 	cutoff := startedAt.Add(-5 * time.Second)
 	trimmedPrompt := strings.TrimSpace(prompt)
 
-	var candidates []SessionMetadata
-	for _, session := range entries {
-		if !sessionMatchesRepo(session, repoPath) {
-			continue
+	repoEntries := entries
+	if repoPath != "" {
+		repoEntries = make([]SessionMetadata, 0, len(entries))
+		for _, session := range entries {
+			if !sessionMatchesRepo(session, repoPath) {
+				continue
+			}
+			repoEntries = append(repoEntries, session)
 		}
+	}
+
+	var candidates []SessionMetadata
+	for _, session := range repoEntries {
 		if !sessionAfterCutoff(session, cutoff) {
 			continue
 		}
 		candidates = append(candidates, session)
 	}
-	if len(candidates) == 0 {
-		for _, session := range entries {
-			if !sessionAfterCutoff(session, cutoff) {
-				continue
-			}
-			candidates = append(candidates, session)
-		}
-	}
 
-	if len(candidates) == 0 && len(entries) > 0 {
+	if len(candidates) == 0 && len(repoEntries) > 0 {
 		if trimmedPrompt != "" {
-			match, err := s.findPromptMatch(entries, repoPath, trimmedPrompt)
+			match, err := s.findPromptMatch(repoEntries, repoPath, trimmedPrompt)
 			if err != nil {
 				return SessionMetadata{}, err
 			}
@@ -286,7 +286,7 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 				return *match, nil
 			}
 		}
-		latest := latestSession(entries, repoPath)
+		latest := latestSession(repoEntries, repoPath)
 		if latest != nil {
 			return *latest, nil
 		}
