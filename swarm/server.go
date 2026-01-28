@@ -583,9 +583,9 @@ func (s *Server) recoverHandler(next http.Handler) http.Handler {
 }
 
 func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
-	cleanID := strings.TrimSpace(todoID)
-	if cleanID == "" {
-		return "", fmt.Errorf("todo id is required")
+	cleanID, err := requiredTrimmed(todoID, "todo id")
+	if err != nil {
+		return "", err
 	}
 	stagingMessage := fmt.Sprintf("staging for todo %s", cleanID)
 	wsPath, err := s.pool.Acquire(s.repoPath, workspace.AcquireOptions{
