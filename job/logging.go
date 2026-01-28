@@ -148,11 +148,16 @@ func (logger *ConsoleLogger) writeBlock(lines ...string) {
 }
 
 func normalizeLogBody(value string) string {
-	value = internalstrings.TrimTrailingNewlines(value)
-	if strings.TrimSpace(value) == "" {
+	value, empty := trimLogBody(value)
+	if empty {
 		return "-"
 	}
 	return value
+}
+
+func trimLogBody(value string) (string, bool) {
+	value = internalstrings.TrimTrailingNewlines(value)
+	return value, strings.TrimSpace(value) == ""
 }
 
 func formatLogLabel(label string, indent int) string {
@@ -187,8 +192,8 @@ func formatTranscriptBody(body string, indent int) string {
 
 func formatCommitMessageBody(body string, indent int, preformatted bool) string {
 	if preformatted {
-		body = internalstrings.TrimTrailingNewlines(body)
-		if strings.TrimSpace(body) == "" {
+		body, empty := trimLogBody(body)
+		if empty {
 			return IndentBlock("-", indent)
 		}
 		return IndentBlock(body, indent)
@@ -215,8 +220,8 @@ func formatMarkdownBody(body string, indent int) string {
 }
 
 func formatPromptBody(body string, indent int) string {
-	body = internalstrings.TrimTrailingNewlines(body)
-	if strings.TrimSpace(body) == "" {
+	body, empty := trimLogBody(body)
+	if empty {
 		return IndentBlock("-", indent)
 	}
 	if looksLikeMarkdown(body) {
@@ -256,8 +261,8 @@ func hasIndentedLines(body string) bool {
 }
 
 func formatMarkdownBlock(body string, indent int, preformatted bool) string {
-	body = internalstrings.TrimTrailingNewlines(body)
-	if strings.TrimSpace(body) == "" {
+	body, empty := trimLogBody(body)
+	if empty {
 		return IndentBlock("-", indent)
 	}
 	width := wrapWidthFor(lineWidth, indent)
