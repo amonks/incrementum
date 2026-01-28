@@ -196,7 +196,7 @@ func formatTranscriptBody(body string, indent int) string {
 
 func formatCommitMessageBody(body string, indent int, preformatted bool) string {
 	if preformatted {
-		return IndentBlock(normalizeLogBody(body), indent)
+		return formatLogBody(body, indent, false)
 	}
 	return formatMarkdownBlock(body, indent, false)
 }
