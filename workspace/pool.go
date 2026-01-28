@@ -96,7 +96,7 @@ type AcquireOptions struct {
 
 // ValidateAcquirePurpose ensures the purpose is present and single-line.
 func ValidateAcquirePurpose(purpose string) error {
-	if strings.TrimSpace(purpose) == "" {
+	if internalstrings.IsBlank(purpose) {
 		return fmt.Errorf("purpose is required")
 	}
 	if strings.ContainsAny(purpose, "\r\n") {
@@ -205,7 +205,7 @@ func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	}
 
 	newChange := func(parentRev string) (string, error) {
-		if strings.TrimSpace(opts.NewChangeMessage) != "" {
+		if !internalstrings.IsBlank(opts.NewChangeMessage) {
 			return p.jj.NewChangeWithMessage(wsPath, parentRev, opts.NewChangeMessage)
 		}
 		return p.jj.NewChange(wsPath, parentRev)
