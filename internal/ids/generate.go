@@ -3,8 +3,9 @@ package ids
 import (
 	"crypto/sha256"
 	"encoding/base32"
-	"strings"
 	"time"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // DefaultLength is the standard length for generated IDs.
@@ -20,7 +21,7 @@ func Generate(input string, length int) string {
 	if length > len(encoded) {
 		length = len(encoded)
 	}
-	return strings.ToLower(encoded[:length])
+	return internalstrings.NormalizeLower(encoded[:length])
 }
 
 // GenerateWithTimestamp appends a timestamp to input before hashing.

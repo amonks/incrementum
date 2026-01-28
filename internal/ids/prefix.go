@@ -4,6 +4,8 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // NormalizeUniqueIDs lowercases IDs and removes duplicates or empty values.
@@ -28,7 +30,7 @@ func normalizeID(id string) string {
 	for i := 0; i < len(id); i++ {
 		b := id[i]
 		if b >= utf8.RuneSelf || (b >= 'A' && b <= 'Z') {
-			return strings.ToLower(id)
+			return internalstrings.NormalizeLower(id)
 		}
 	}
 	return id
