@@ -553,8 +553,6 @@ func applyTodoUpdates(item *Todo, opts UpdateOptions, now time.Time) error {
 		newStatus := *opts.Status
 		if newStatus != item.Status {
 			applyStatusChange(item, newStatus, item.Status, opts, now)
-		} else {
-			item.Status = newStatus
 		}
 	}
 	if opts.Priority != nil {
