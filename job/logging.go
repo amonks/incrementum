@@ -306,9 +306,6 @@ func testResultLogsFrom[T any](results []T, build func(T) testResultLog) []testR
 }
 
 func formatTestLogBody(results []testResultLog) string {
-	if len(results) == 0 {
-		return formatLogBody("-", documentIndent, false)
-	}
 	var builder strings.Builder
 	for i, result := range results {
 		if i > 0 {
