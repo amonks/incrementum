@@ -25,15 +25,3 @@ func formatOpencodeText(event opencodeRenderedEvent) []string {
 		formatMarkdownBody(event.Body, subdocumentIndent),
 	}
 }
-
-func formatPlainBody(body string, indent int) string {
-	body = normalizeLogBody(body)
-	if isDashBody(body) {
-		return IndentBlock(body, indent)
-	}
-	rendered := ReflowParagraphs(body, wrapWidthFor(lineWidth, indent))
-	if internalstrings.IsBlank(rendered) {
-		return IndentBlock("-", indent)
-	}
-	return IndentBlock(rendered, indent)
-}
