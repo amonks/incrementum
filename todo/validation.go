@@ -115,21 +115,41 @@ func ValidateTodo(t *Todo) error {
 		return formatInvalidTypeError(t.Type)
 	}
 
-	// Check closed_at consistency
-	if t.Status == StatusClosed || t.Status == StatusDone || t.Status == StatusTombstone {
-		if (t.Status == StatusClosed || t.Status == StatusDone) && t.ClosedAt == nil {
+	if err := validateClosedAt(t); err != nil {
+		return err
+	}
+	if err := validateDeletedAt(t); err != nil {
+		return err
+	}
+	if err := validateStartedAt(t); err != nil {
+		return err
+	}
+	if err := validateCompletedAt(t); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateClosedAt(t *Todo) error {
+	switch t.Status {
+	case StatusClosed, StatusDone:
+		if t.ClosedAt == nil {
 			return ErrClosedTodoMissingClosedAt
 		}
-		if t.Status == StatusTombstone && t.ClosedAt != nil {
+	case StatusTombstone:
+		if t.ClosedAt != nil {
 			return ErrTombstoneHasClosedAt
 		}
-	} else {
+	default:
 		if t.ClosedAt != nil {
 			return ErrNotClosedTodoHasClosedAt
 		}
 	}
+	return nil
+}
 
-	// Check deleted_at consistency
+func validateDeletedAt(t *Todo) error {
 	if t.Status == StatusTombstone {
 		if t.DeletedAt == nil {
 			return ErrTombstoneMissingDeletedAt
@@ -147,20 +167,24 @@ func ValidateTodo(t *Todo) error {
 		return ErrDeleteReasonRequiresDeletedAt
 	}
 
-	// Check started_at consistency
+	return nil
+}
+
+func validateStartedAt(t *Todo) error {
 	if t.Status != StatusInProgress && t.Status != StatusDone {
 		if t.StartedAt != nil {
 			return ErrStartedAtRequiresActiveStatus
 		}
 	}
+	return nil
+}
 
-	// Check completed_at consistency
+func validateCompletedAt(t *Todo) error {
 	if t.Status != StatusDone {
 		if t.CompletedAt != nil {
 			return ErrCompletedAtRequiresDoneStatus
 		}
 	}
-
 	return nil
 }
 
