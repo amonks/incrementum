@@ -35,7 +35,7 @@ func ContainsAnyLower(value string, substrings ...string) bool {
 	if value == "" || len(substrings) == 0 {
 		return false
 	}
-	value = strings.ToLower(value)
+	value = NormalizeLower(value)
 	for _, substring := range substrings {
 		if strings.Contains(value, substring) {
 			return true
