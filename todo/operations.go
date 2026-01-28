@@ -392,10 +392,10 @@ func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 				continue
 			}
 		}
-		if titleQuery != "" && !strings.Contains(strings.ToLower(todo.Title), titleQuery) {
+		if !containsLower(todo.Title, titleQuery) {
 			continue
 		}
-		if descriptionQuery != "" && !strings.Contains(strings.ToLower(todo.Description), descriptionQuery) {
+		if !containsLower(todo.Description, descriptionQuery) {
 			continue
 		}
 
@@ -403,6 +403,13 @@ func (s *Store) listWithTodos(filter ListFilter) ([]Todo, []Todo, error) {
 	}
 
 	return result, todos, nil
+}
+
+func containsLower(haystack, needle string) bool {
+	if needle == "" {
+		return true
+	}
+	return strings.Contains(strings.ToLower(haystack), needle)
 }
 
 func idSetFromIDs(ids []string) map[string]struct{} {
