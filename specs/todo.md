@@ -144,6 +144,8 @@ Fields (JSON keys):
 - CLI table output includes an `AGE` column formatted as `<count><unit>`, using
   `s`, `m`, `h`, or `d` based on recency.
 - `AGE` uses `now - created_at`.
+- CLI table output includes an `UPDATED` column formatted as `<count><unit>`.
+- `UPDATED` uses `now - updated_at`.
 - CLI table output includes a `DURATION` column for active/finished work.
 - `DURATION` uses `now - started_at` for `in_progress` todos.
 - `DURATION` uses `completed_at - started_at` for `done` todos.

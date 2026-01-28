@@ -28,6 +28,29 @@ func TestAgeDataRequiresCreatedAt(t *testing.T) {
 	}
 }
 
+func TestUpdatedDataUsesUpdatedAt(t *testing.T) {
+	updatedAt := time.Date(2025, 1, 1, 9, 0, 0, 0, time.UTC)
+	now := updatedAt.Add(8 * time.Minute)
+
+	item := Todo{UpdatedAt: updatedAt}
+
+	age, ok := UpdatedData(item, now)
+	if !ok {
+		t.Fatalf("expected updated age data")
+	}
+	if age != 8*time.Minute {
+		t.Fatalf("expected updated age 8m, got %s", age)
+	}
+}
+
+func TestUpdatedDataRequiresUpdatedAt(t *testing.T) {
+	item := Todo{}
+
+	if _, ok := UpdatedData(item, time.Now()); ok {
+		t.Fatalf("expected no updated age data")
+	}
+}
+
 func TestDurationDataInProgressUsesNow(t *testing.T) {
 	startedAt := time.Date(2025, 1, 1, 9, 0, 0, 0, time.UTC)
 	now := startedAt.Add(5 * time.Minute)

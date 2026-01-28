@@ -20,7 +20,7 @@ func printTodoTable(todos []todo.Todo, prefixLengths map[string]int, now time.Ti
 }
 
 func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight func(string, int) string, now time.Time) string {
-	builder := ui.NewTableBuilder([]string{"ID", "PRI", "TYPE", "STATUS", "AGE", "DURATION", "TITLE"}, len(todos))
+	builder := ui.NewTableBuilder([]string{"ID", "PRI", "TYPE", "STATUS", "AGE", "UPDATED", "DURATION", "TITLE"}, len(todos))
 
 	if prefixLengths == nil {
 		prefixLengths = todoIDPrefixLengths(todos)
@@ -31,6 +31,7 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 		prefixLen := ui.PrefixLength(prefixLengths, t.ID)
 		highlighted := highlight(t.ID, prefixLen)
 		age := formatTodoAge(t, now)
+		updated := formatTodoUpdated(t, now)
 		duration := formatTodoDuration(t, now)
 		row := []string{
 			highlighted,
@@ -38,6 +39,7 @@ func formatTodoTable(todos []todo.Todo, prefixLengths map[string]int, highlight 
 			string(t.Type),
 			string(t.Status),
 			age,
+			updated,
 			duration,
 			title,
 		}
@@ -58,6 +60,10 @@ func formatTodoAge(item todo.Todo, now time.Time) string {
 
 func formatTodoDuration(item todo.Todo, now time.Time) string {
 	return formatOptionalDuration(todo.DurationData(item, now))
+}
+
+func formatTodoUpdated(item todo.Todo, now time.Time) string {
+	return formatOptionalDuration(todo.UpdatedData(item, now))
 }
 
 // priorityShort returns a short representation of priority.

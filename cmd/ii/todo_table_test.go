@@ -80,7 +80,7 @@ func TestFormatTodoTableShowsAge(t *testing.T) {
 			Status:    todo.StatusClosed,
 			Title:     "Time check",
 			CreatedAt: now.Add(-2 * time.Hour),
-			UpdatedAt: now.Add(-110 * time.Minute),
+			UpdatedAt: now.Add(-45 * time.Minute),
 		},
 	}
 
@@ -89,8 +89,14 @@ func TestFormatTodoTableShowsAge(t *testing.T) {
 	if !strings.Contains(output, "2h") {
 		t.Fatalf("expected age in output, got:\n%s", output)
 	}
+	if !strings.Contains(output, "45m") {
+		t.Fatalf("expected updated age in output, got:\n%s", output)
+	}
 	if !strings.Contains(output, "DURATION") {
 		t.Fatalf("expected duration column present, got:\n%s", output)
+	}
+	if !strings.Contains(output, "UPDATED") {
+		t.Fatalf("expected updated column present, got:\n%s", output)
 	}
 }
 

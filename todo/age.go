@@ -11,6 +11,11 @@ func AgeData(item Todo, now time.Time) (time.Duration, bool) {
 	return internalage.AgeData(item.CreatedAt, now)
 }
 
+// UpdatedData computes the display updated age and whether timing data exists.
+func UpdatedData(item Todo, now time.Time) (time.Duration, bool) {
+	return internalage.AgeData(item.UpdatedAt, now)
+}
+
 // DurationData computes the display duration and whether timing data exists.
 func DurationData(item Todo, now time.Time) (time.Duration, bool) {
 	startedAt := time.Time{}
