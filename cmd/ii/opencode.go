@@ -190,9 +190,6 @@ func opencodeSessionPrefixLengths(sessions []opencode.OpencodeSession) map[strin
 }
 
 func opencodePromptLine(prompt string) string {
-	if prompt == "" {
-		return "-"
-	}
 	line := strings.SplitN(prompt, "\n", 2)[0]
 	line = internalstrings.TrimTrailingCarriageReturn(line)
 	if internalstrings.IsBlank(line) {
