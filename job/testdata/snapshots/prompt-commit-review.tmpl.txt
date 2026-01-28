@@ -1,8 +1,6 @@
 Review the changes in the jujutsu working tree. The diff purports to complete a step
 towards our todo and is described by the commit message below.
 
-Workspace root: /tmp/workspaces/snapshot-test
-
 Commit message
 
     feat: snapshot text formatting

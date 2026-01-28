@@ -38,8 +38,6 @@ Changes are reviewed according to these questions:
 When you make changes, write a multi-line commit message for this diff to
 ./.incrementum-commit-message
 
-Workspace root: /tmp/workspaces/snapshot-test
-
 Here are the previous changes we've made as part of this todo:
 - ID: abc1234
 Message:
