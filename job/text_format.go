@@ -30,10 +30,6 @@ func RenderMarkdown(value string, width int) string {
 
 // ReflowParagraphs wraps and normalizes paragraph text.
 func ReflowParagraphs(value string, width int) string {
-	value = internalstrings.TrimSpace(value)
-	if value == "" {
-		return ""
-	}
 	paragraphs := splitParagraphs(value)
 	wrapped := make([]string, 0, len(paragraphs))
 	for _, paragraph := range paragraphs {
