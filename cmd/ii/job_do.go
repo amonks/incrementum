@@ -99,7 +99,7 @@ func runJobDoTodo(cmd *cobra.Command, todoID string) error {
 	eventErrs := make(chan error, 1)
 	eventDone := make(chan struct{})
 	go func() {
-		formatter := jobpkg.NewEventFormatter()
+		formatter := jobpkg.NewEventFormatterWithRepoPath(repoPath)
 		var streamErr error
 		for {
 			select {

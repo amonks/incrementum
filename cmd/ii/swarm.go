@@ -185,7 +185,7 @@ func runSwarmDo(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Printf("Doing job %s\n", jobID)
-	return streamSwarmEvents(cmd.Context(), client, jobID)
+	return streamSwarmEvents(cmd.Context(), client, jobID, path)
 }
 
 func runSwarmKill(cmd *cobra.Command, args []string) error {
@@ -211,7 +211,7 @@ func runSwarmTail(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	client := swarm.NewClient(addr)
-	return streamSwarmEvents(cmd.Context(), client, args[0])
+	return streamSwarmEvents(cmd.Context(), client, args[0], repoPath)
 }
 
 func runSwarmLogs(cmd *cobra.Command, args []string) error {
@@ -228,7 +228,7 @@ func runSwarmLogs(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	formatter := job.NewEventFormatter()
+	formatter := job.NewEventFormatterWithRepoPath(repoPath)
 	for _, event := range events {
 		if err := appendAndPrintEvent(formatter, event); err != nil {
 			return err
@@ -345,7 +345,7 @@ func resolveRepoPath(path string) (string, error) {
 	return resolveRepoRoot(path)
 }
 
-func streamSwarmEvents(parent context.Context, client *swarm.Client, jobID string) error {
+func streamSwarmEvents(parent context.Context, client *swarm.Client, jobID string, repoPath string) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
@@ -361,7 +361,7 @@ func streamSwarmEvents(parent context.Context, client *swarm.Client, jobID strin
 		}
 	}()
 
-	formatter := job.NewEventFormatter()
+	formatter := job.NewEventFormatterWithRepoPath(repoPath)
 	events, errs := client.Tail(ctx, jobID)
 	for event := range events {
 		if err := appendAndPrintEvent(formatter, event); err != nil {

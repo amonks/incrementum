@@ -3,6 +3,7 @@ package job
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	internalstrings "github.com/amonks/incrementum/internal/strings"
@@ -66,19 +67,24 @@ type opencodeEventInterpreter struct {
 	switches     map[string]bool
 	messageRoles map[string]string
 	messages     map[string]*opencodeMessageState
+	repoPath     string
 }
 
-func newOpencodeEventInterpreter(switches map[string]bool) *opencodeEventInterpreter {
+func newOpencodeEventInterpreter(switches map[string]bool, repoPath string) *opencodeEventInterpreter {
 	resolved := defaultOpencodeEventSwitches()
 	if switches != nil {
 		for key, value := range switches {
 			resolved[key] = value
 		}
 	}
+	if !internalstrings.IsBlank(repoPath) {
+		repoPath = filepath.Clean(repoPath)
+	}
 	return &opencodeEventInterpreter{
 		switches:     resolved,
 		messageRoles: make(map[string]string),
 		messages:     make(map[string]*opencodeMessageState),
+		repoPath:     repoPath,
 	}
 }
 
@@ -208,7 +214,7 @@ func (i *opencodeEventInterpreter) handleMessagePartUpdated(payload json.RawMess
 		if !i.enabled("message.part.updated") {
 			return nil, nil
 		}
-		summary := summarizeToolCall(part.Tool, part.State.Input)
+		summary := i.summarizeToolCall(part.Tool, part.State.Input)
 		if internalstrings.IsBlank(summary) {
 			return nil, nil
 		}
@@ -337,11 +343,11 @@ func messageCompleted(info opencodeMessageInfo) bool {
 	return info.Time.Completed != 0 || !internalstrings.IsBlank(info.Finish)
 }
 
-func summarizeToolCall(tool string, input map[string]any) string {
+func (i *opencodeEventInterpreter) summarizeToolCall(tool string, input map[string]any) string {
 	name := internalstrings.NormalizeLowerTrimSpace(tool)
 	switch name {
 	case "read", "write", "edit":
-		if summary := fileToolSummary(name, input); summary != "" {
+		if summary := i.fileToolSummary(name, input); summary != "" {
 			return summary
 		}
 	case "apply_patch":
@@ -383,11 +389,30 @@ func summarizeToolCall(tool string, input map[string]any) string {
 	return "tool call"
 }
 
-func fileToolSummary(action string, input map[string]any) string {
+func (i *opencodeEventInterpreter) fileToolSummary(action string, input map[string]any) string {
 	if path := stringFromMap(input, "filePath"); path != "" {
-		return fmt.Sprintf("%s file %s", action, quoteForLog(path))
+		return fmt.Sprintf("%s file %s", action, quoteForLog(i.relativePathForLog(path)))
 	}
 	return ""
+}
+
+func (i *opencodeEventInterpreter) relativePathForLog(path string) string {
+	if internalstrings.IsBlank(path) {
+		return path
+	}
+	if !filepath.IsAbs(path) {
+		return filepath.Clean(path)
+	}
+	if internalstrings.IsBlank(i.repoPath) {
+		return filepath.Clean(path)
+	}
+	path = filepath.Clean(path)
+	repoPath := filepath.Clean(i.repoPath)
+	rel, err := filepath.Rel(repoPath, path)
+	if err != nil || rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
+		return path
+	}
+	return rel
 }
 
 func stringFromMap(input map[string]any, key string) string {

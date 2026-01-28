@@ -163,7 +163,7 @@ func runJobLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	snapshot, err := jobpkg.LogSnapshot(item.ID, jobpkg.EventLogOptions{})
+	snapshot, err := jobpkg.LogSnapshot(item.ID, jobpkg.EventLogOptions{RepoPath: repoPath})
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ func LogSnapshot(jobID string, opts EventLogOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	writer := &logSnapshotWriter{}
+	writer := &logSnapshotWriter{repoPath: opts.RepoPath}
 	for _, event := range entries {
 		if appendErr := writer.Append(event); appendErr != nil {
 			return "", appendErr
@@ -29,6 +29,7 @@ type logSnapshotWriter struct {
 	skipSpacing  bool
 	lastCategory string
 	opencode     *opencodeEventInterpreter
+	repoPath     string
 }
 
 func (writer *logSnapshotWriter) Append(event Event) error {
@@ -164,7 +165,7 @@ func (writer *logSnapshotWriter) writeBlock(lines ...string) {
 
 func (writer *logSnapshotWriter) appendOpencodeEvent(event Event) error {
 	if writer.opencode == nil {
-		writer.opencode = newOpencodeEventInterpreter(nil)
+		writer.opencode = newOpencodeEventInterpreter(nil, writer.repoPath)
 	}
 	outputs, err := writer.opencode.Handle(event)
 	if err != nil {
@@ -203,7 +204,12 @@ type EventFormatter struct {
 
 // NewEventFormatter creates a new EventFormatter.
 func NewEventFormatter() *EventFormatter {
-	return &EventFormatter{}
+	return NewEventFormatterWithRepoPath("")
+}
+
+// NewEventFormatterWithRepoPath creates a new EventFormatter anchored to a repo path.
+func NewEventFormatterWithRepoPath(repoPath string) *EventFormatter {
+	return &EventFormatter{writer: logSnapshotWriter{repoPath: repoPath}}
 }
 
 // Append formats a job event and returns the newly added output.

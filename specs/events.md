@@ -40,7 +40,7 @@ Switches control what is shown to users; all events are still recorded in full o
 Only a curated subset of opencode activity is shown in the text logs (CLI/TUI). Output is formatted to the standard line width and indented like other job log entries.
 
 - Tool calls: one-line summaries emitted when the tool state reaches `completed`.
-  - Example: `Opencode tool: read file '/path/to/file'`.
+  - Example: `Opencode tool: read file 'src/file.ts'` (paths are repo-relative when possible).
 - Prompt text: emitted for `message.part.updated` text parts associated with `role=user` messages.
   - Label: `Opencode prompt:`
 - Assistant responses: emitted when an assistant message completes.

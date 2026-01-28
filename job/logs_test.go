@@ -1,6 +1,7 @@
 package job
 
 import (
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -114,6 +115,39 @@ func TestLogSnapshotIncludesOpencodeError(t *testing.T) {
 	}
 	if !strings.Contains(snapshot, "opencode session not found") {
 		t.Fatalf("expected opencode error details, got %q", snapshot)
+	}
+}
+
+func TestLogSnapshotUsesRepoRelativePaths(t *testing.T) {
+	eventsDir := t.TempDir()
+	repoDir := t.TempDir()
+	jobID := "job-logs-relative"
+	log, err := OpenEventLog(jobID, EventLogOptions{EventsDir: eventsDir})
+	if err != nil {
+		t.Fatalf("open event log: %v", err)
+	}
+	defer func() {
+		if err := log.Close(); err != nil {
+			t.Fatalf("close log: %v", err)
+		}
+	}()
+
+	filePath := filepath.Join(repoDir, "src", "file.txt")
+	opencodeToolStart := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"read","state":{"status":"running","input":{"filePath":"` + filePath + `"}}}}}`
+	if err := log.Append(Event{Data: opencodeToolStart}); err != nil {
+		t.Fatalf("append opencode tool start event: %v", err)
+	}
+
+	snapshot, err := LogSnapshot(jobID, EventLogOptions{EventsDir: eventsDir, RepoPath: repoDir})
+	if err != nil {
+		t.Fatalf("snapshot: %v", err)
+	}
+
+	if !strings.Contains(snapshot, "read file 'src/file.txt'") {
+		t.Fatalf("expected repo-relative path, got %q", snapshot)
+	}
+	if strings.Contains(snapshot, repoDir) {
+		t.Fatalf("expected absolute path to be omitted, got %q", snapshot)
 	}
 }
 

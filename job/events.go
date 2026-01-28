@@ -36,6 +36,7 @@ type Event struct {
 // EventLogOptions configures job event logs.
 type EventLogOptions struct {
 	EventsDir string
+	RepoPath  string
 }
 
 // EventLog writes job events to a JSONL log.

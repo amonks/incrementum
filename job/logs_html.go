@@ -14,7 +14,12 @@ type EventHTMLFormatter struct {
 
 // NewEventHTMLFormatter creates a new EventHTMLFormatter.
 func NewEventHTMLFormatter() *EventHTMLFormatter {
-	return &EventHTMLFormatter{}
+	return NewEventHTMLFormatterWithRepoPath("")
+}
+
+// NewEventHTMLFormatterWithRepoPath creates a new EventHTMLFormatter anchored to a repo path.
+func NewEventHTMLFormatterWithRepoPath(repoPath string) *EventHTMLFormatter {
+	return &EventHTMLFormatter{writer: logHTMLWriter{repoPath: repoPath}}
 }
 
 // Append formats a job event and returns the newly added HTML output.
@@ -32,6 +37,7 @@ func (formatter *EventHTMLFormatter) Append(event Event) (template.HTML, error) 
 type logHTMLWriter struct {
 	builder  strings.Builder
 	opencode *opencodeEventInterpreter
+	repoPath string
 }
 
 func (writer *logHTMLWriter) Append(event Event) error {
@@ -93,7 +99,7 @@ func (writer *logHTMLWriter) Append(event Event) error {
 
 func (writer *logHTMLWriter) appendOpencodeEvent(event Event) error {
 	if writer.opencode == nil {
-		writer.opencode = newOpencodeEventInterpreter(nil)
+		writer.opencode = newOpencodeEventInterpreter(nil, writer.repoPath)
 	}
 	outputs, err := writer.opencode.Handle(event)
 	if err != nil {
