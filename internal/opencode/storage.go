@@ -678,7 +678,7 @@ func stringifyOutput(value any) (string, bool) {
 		if err != nil {
 			return "", false
 		}
-		text := strings.TrimSpace(string(data))
+		text := string(data)
 		if text == "" || text == "null" {
 			return "", false
 		}
