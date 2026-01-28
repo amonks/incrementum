@@ -501,7 +501,7 @@ func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) 
 	if err := os.MkdirAll(promptDir, 0o755); err != nil {
 		t.Fatalf("create prompt dir: %v", err)
 	}
-	customPrompt := "Review the changes in the working tree."
+	customPrompt := "Review the changes in the jujutsu working tree."
 	if err := os.WriteFile(filepath.Join(promptDir, "prompt-commit-review.tmpl"), []byte(customPrompt), 0o644); err != nil {
 		t.Fatalf("write prompt: %v", err)
 	}
