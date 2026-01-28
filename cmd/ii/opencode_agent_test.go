@@ -70,3 +70,56 @@ func TestResolveOpencodeAgentDefaultsEmpty(t *testing.T) {
 		t.Fatalf("expected empty string, got %q", got)
 	}
 }
+
+func TestResolveOpencodeAgentOverrideUsesFlagValue(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("agent", "", "")
+	if err := cmd.Flags().Set("agent", "flag-agent"); err != nil {
+		t.Fatalf("set flag: %v", err)
+	}
+	t.Setenv(opencode.AgentEnvVar, "env-agent")
+
+	got := resolveOpencodeAgentOverride(cmd, "flag-agent")
+
+	if got != "flag-agent" {
+		t.Fatalf("expected flag-agent, got %q", got)
+	}
+}
+
+func TestResolveOpencodeAgentOverrideUsesEnvWhenFlagUnset(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("agent", "", "")
+	t.Setenv(opencode.AgentEnvVar, "env-agent")
+
+	got := resolveOpencodeAgentOverride(cmd, "")
+
+	if got != "env-agent" {
+		t.Fatalf("expected env-agent, got %q", got)
+	}
+}
+
+func TestResolveOpencodeAgentOverrideHonorsEmptyFlag(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("agent", "", "")
+	if err := cmd.Flags().Set("agent", ""); err != nil {
+		t.Fatalf("set flag: %v", err)
+	}
+	t.Setenv(opencode.AgentEnvVar, "env-agent")
+
+	got := resolveOpencodeAgentOverride(cmd, "")
+
+	if got != "" {
+		t.Fatalf("expected empty string, got %q", got)
+	}
+}
+
+func TestResolveOpencodeAgentOverrideDefaultsEmpty(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("agent", "", "")
+
+	got := resolveOpencodeAgentOverride(cmd, "")
+
+	if got != "" {
+		t.Fatalf("expected empty string, got %q", got)
+	}
+}

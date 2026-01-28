@@ -16,6 +16,14 @@ func resolveOpencodeAgent(cmd *cobra.Command, flagValue, configAgent string) str
 	return firstTrimmed(os.Getenv(opencode.AgentEnvVar), configAgent)
 }
 
+func resolveOpencodeAgentOverride(cmd *cobra.Command, flagValue string) string {
+	if cmd != nil && cmd.Flags().Changed("agent") {
+		return flagValue
+	}
+
+	return firstTrimmed(os.Getenv(opencode.AgentEnvVar))
+}
+
 func firstTrimmed(values ...string) string {
 	for _, value := range values {
 		trimmed := internalstrings.TrimSpace(value)

@@ -36,6 +36,12 @@ type Job struct {
 	TestCommands []string `toml:"test-commands"`
 	// Agent selects the default opencode agent for job runs.
 	Agent string `toml:"agent"`
+	// ImplementationModel selects the opencode model for implementing.
+	ImplementationModel string `toml:"implementation-model"`
+	// CodeReviewModel selects the opencode model for step review.
+	CodeReviewModel string `toml:"code-review-model"`
+	// ProjectReviewModel selects the opencode model for final project review.
+	ProjectReviewModel string `toml:"project-review-model"`
 }
 
 // Load loads configuration from the repo root and the global config file.
@@ -98,6 +104,9 @@ func mergeConfigs(globalCfg, projectCfg *Config, globalMeta, projectMeta toml.Me
 	merged.Workspace.OnCreate = mergeString(projectMeta.IsDefined("workspace", "on-create"), projectCfg.Workspace.OnCreate, globalCfg.Workspace.OnCreate)
 	merged.Workspace.OnAcquire = mergeString(projectMeta.IsDefined("workspace", "on-acquire"), projectCfg.Workspace.OnAcquire, globalCfg.Workspace.OnAcquire)
 	merged.Job.Agent = mergeString(projectMeta.IsDefined("job", "agent"), projectCfg.Job.Agent, globalCfg.Job.Agent)
+	merged.Job.ImplementationModel = mergeString(projectMeta.IsDefined("job", "implementation-model"), projectCfg.Job.ImplementationModel, globalCfg.Job.ImplementationModel)
+	merged.Job.CodeReviewModel = mergeString(projectMeta.IsDefined("job", "code-review-model"), projectCfg.Job.CodeReviewModel, globalCfg.Job.CodeReviewModel)
+	merged.Job.ProjectReviewModel = mergeString(projectMeta.IsDefined("job", "project-review-model"), projectCfg.Job.ProjectReviewModel, globalCfg.Job.ProjectReviewModel)
 	if projectMeta.IsDefined("job", "test-commands") {
 		merged.Job.TestCommands = append([]string(nil), projectCfg.Job.TestCommands...)
 	} else if globalMeta.IsDefined("job", "test-commands") {

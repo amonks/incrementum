@@ -6,7 +6,8 @@ The config package loads project and global `incrementum.toml` configuration fil
 ## Configuration Model
 - `Config` holds workspace and job configuration.
 - `Workspace` defines `on-create` and `on-acquire` scripts.
-- `Job` defines `test-commands` and the optional default `agent` for opencode runs.
+- `Job` defines `test-commands`, the optional default `agent`, and optional per-task
+  opencode models (`implementation-model`, `code-review-model`, `project-review-model`).
 
 ## Behavior
 - `Load` reads `incrementum.toml` from the repo root and `~/.config/incrementum/config.toml`, then merges them.

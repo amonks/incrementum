@@ -244,6 +244,9 @@ On interrupt (SIGINT), mark job `failed` and reopen the todo.
 ```toml
 [job]
 agent = "gpt-5.2-codex"
+implementation-model = "gpt-5.2-impl"
+code-review-model = "gpt-5.2-review"
+project-review-model = "gpt-5.2-project"
 test-commands = [
   "go test ./...",
   "golangci-lint run",
@@ -256,8 +259,15 @@ testing stage if it is missing or empty.
 Config is loaded from `incrementum.toml` and `~/.config/incrementum/config.toml`;
 project values override global values.
 
+Callers can supply a preloaded config via `RunOptions.Config` to avoid
+filesystem reads; when set, the job runner does not call `LoadConfig`.
+
 `agent` is an optional default for opencode runs; it is overridden by the
 `--agent` flag and `INCREMENTUM_OPENCODE_AGENT`.
+
+`implementation-model`, `code-review-model`, and `project-review-model` override
+`agent` for their respective stages unless `--agent` or
+`INCREMENTUM_OPENCODE_AGENT` are set.
 
 ## Templates
 

@@ -39,11 +39,15 @@ type RunOptions struct {
 	WorkspacePath string
 	// Interrupts delivers signals that should interrupt the job.
 	// If nil, os.Interrupt is used.
-	Interrupts          <-chan os.Signal
-	Now                 func() time.Time
-	LoadConfig          func(string) (*config.Config, error)
-	RunTests            func(string, []string) ([]TestCommandResult, error)
-	RunOpencode         func(opencodeRunOptions) (OpencodeRunResult, error)
+	Interrupts <-chan os.Signal
+	Now        func() time.Time
+	LoadConfig func(string) (*config.Config, error)
+	// Config provides loaded configuration for the job run.
+	// When nil, LoadConfig is used.
+	Config      *config.Config
+	RunTests    func(string, []string) ([]TestCommandResult, error)
+	RunOpencode func(opencodeRunOptions) (OpencodeRunResult, error)
+	// OpencodeAgent overrides agent selection for all stages when set.
 	OpencodeAgent       string
 	CurrentCommitID     func(string) (string, error)
 	DiffStat            func(string, string, string) (string, error)
@@ -109,6 +113,16 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	if abs, absErr := filepath.Abs(repoPath); absErr == nil {
 		repoPath = abs
 	}
+	if opts.Config == nil {
+		cfg, err := opts.LoadConfig(repoPath)
+		if err != nil {
+			return result, fmt.Errorf("load config: %w", err)
+		}
+		if cfg == nil {
+			cfg = &config.Config{}
+		}
+		opts.Config = cfg
+	}
 
 	store, err := todo.Open(repoPath, todo.OpenOptions{
 		CreateIfMissing: true,
@@ -154,7 +168,8 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, errors.Join(err, reopenErr)
 	}
 
-	created, err := manager.Create(item.ID, startedAt, opts.OpencodeAgent)
+	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement")
+	created, err := manager.Create(item.ID, startedAt, agent)
 	if err != nil {
 		reopenErr := reopenTodo(repoPath, item.ID)
 		return result, errors.Join(err, reopenErr)
@@ -458,6 +473,30 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	return opts
 }
 
+func resolveOpencodeAgentForPurpose(cfg *config.Config, override, purpose string) string {
+	if !internalstrings.IsBlank(override) {
+		return internalstrings.TrimSpace(override)
+	}
+	if cfg == nil {
+		return ""
+	}
+	model := ""
+	switch purpose {
+	case "implement":
+		model = cfg.Job.ImplementationModel
+	case "review":
+		model = cfg.Job.CodeReviewModel
+	case "project-review":
+		model = cfg.Job.ProjectReviewModel
+	default:
+		model = cfg.Job.Agent
+	}
+	if internalstrings.IsBlank(model) {
+		model = cfg.Job.Agent
+	}
+	return internalstrings.TrimSpace(model)
+}
+
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitLog []CommitLogEntry, previousMessage string) (ImplementingStageResult, error) {
 	logger := resolveLogger(opts.Logger)
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
@@ -484,12 +523,13 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	}
 
 	updated := current
+	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement")
 	runAttempt := func() (OpencodeRunResult, error) {
 		result, err := runOpencodeWithEvents(opts, opencodeRunOptions{
 			RepoPath:      repoPath,
 			WorkspacePath: workspacePath,
 			Prompt:        prompt,
-			Agent:         opts.OpencodeAgent,
+			Agent:         agent,
 			StartedAt:     opts.Now(),
 			EventLog:      opts.EventLog,
 		}, "implement")
@@ -546,7 +586,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 			RepoPath:      repoPath,
 			WorkspacePath: workspacePath,
 			Prompt:        prompt,
-			Agent:         opts.OpencodeAgent,
+			Agent:         agent,
 		}, beforeCommitID, afterCommitID, afterCommitErr, restored, restoreErr, retryCount))
 	}
 
@@ -606,9 +646,13 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 
 func runTestingStage(manager *Manager, current Job, repoPath, workspacePath string, opts RunOptions) (Job, error) {
 	logger := resolveLogger(opts.Logger)
-	cfg, err := opts.LoadConfig(repoPath)
-	if err != nil {
-		return Job{}, fmt.Errorf("load config: %w", err)
+	cfg := opts.Config
+	if cfg == nil {
+		var err error
+		cfg, err = opts.LoadConfig(repoPath)
+		if err != nil {
+			return Job{}, fmt.Errorf("load config: %w", err)
+		}
 	}
 	if len(cfg.Job.TestCommands) < 1 {
 		return Job{}, fmt.Errorf("job test-commands must be configured")
@@ -657,6 +701,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		promptName = "prompt-project-review.tmpl"
 		purpose = "project-review"
 	}
+	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, purpose)
 
 	promptTemplate, err := LoadPrompt(workspacePath, promptName)
 	if err != nil {
@@ -675,7 +720,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		RepoPath:      repoPath,
 		WorkspacePath: workspacePath,
 		Prompt:        prompt,
-		Agent:         opts.OpencodeAgent,
+		Agent:         agent,
 		StartedAt:     opts.Now(),
 		EventLog:      opts.EventLog,
 	}, purpose)

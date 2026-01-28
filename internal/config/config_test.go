@@ -112,6 +112,9 @@ func TestLoad_JobConfig(t *testing.T) {
 [job]
 test-commands = ["go test ./...", "golangci-lint run"]
 agent = "gpt-5.2-codex"
+implementation-model = "gpt-5.2-impl"
+code-review-model = "gpt-5.2-review"
+project-review-model = "gpt-5.2-project"
 `
 
 	if err := os.WriteFile(filepath.Join(tmpDir, "incrementum.toml"), []byte(configContent), 0644); err != nil {
@@ -133,6 +136,15 @@ agent = "gpt-5.2-codex"
 
 	if cfg.Job.Agent != "gpt-5.2-codex" {
 		t.Fatalf("expected agent %q, got %q", "gpt-5.2-codex", cfg.Job.Agent)
+	}
+	if cfg.Job.ImplementationModel != "gpt-5.2-impl" {
+		t.Fatalf("expected implementation model %q, got %q", "gpt-5.2-impl", cfg.Job.ImplementationModel)
+	}
+	if cfg.Job.CodeReviewModel != "gpt-5.2-review" {
+		t.Fatalf("expected code review model %q, got %q", "gpt-5.2-review", cfg.Job.CodeReviewModel)
+	}
+	if cfg.Job.ProjectReviewModel != "gpt-5.2-project" {
+		t.Fatalf("expected project review model %q, got %q", "gpt-5.2-project", cfg.Job.ProjectReviewModel)
 	}
 }
 
@@ -240,6 +252,9 @@ on-create = "global create"
 
 [job]
 agent = "global-agent"
+implementation-model = "global-implement"
+code-review-model = "global-review"
+project-review-model = "global-project"
 test-commands = ["go test ./..."]
 `
 
@@ -260,6 +275,15 @@ test-commands = ["go test ./..."]
 	if cfg.Job.Agent != "global-agent" {
 		t.Errorf("Agent = %q, expected %q", cfg.Job.Agent, "global-agent")
 	}
+	if cfg.Job.ImplementationModel != "global-implement" {
+		t.Errorf("ImplementationModel = %q, expected %q", cfg.Job.ImplementationModel, "global-implement")
+	}
+	if cfg.Job.CodeReviewModel != "global-review" {
+		t.Errorf("CodeReviewModel = %q, expected %q", cfg.Job.CodeReviewModel, "global-review")
+	}
+	if cfg.Job.ProjectReviewModel != "global-project" {
+		t.Errorf("ProjectReviewModel = %q, expected %q", cfg.Job.ProjectReviewModel, "global-project")
+	}
 	if len(cfg.Job.TestCommands) != 1 || cfg.Job.TestCommands[0] != "go test ./..." {
 		t.Fatalf("expected global test commands to load")
 	}
@@ -278,6 +302,9 @@ on-create = "global create"
 
 [job]
 agent = "global-agent"
+implementation-model = "global-implement"
+code-review-model = "global-review"
+project-review-model = "global-project"
 test-commands = ["global command"]
 `
 	globalPath := filepath.Join(configDir, "config.toml")
@@ -291,6 +318,9 @@ on-acquire = "project acquire"
 
 [job]
 agent = "project-agent"
+implementation-model = "project-implement"
+code-review-model = "project-review"
+project-review-model = "project-project"
 test-commands = ["project command"]
 `
 
@@ -313,6 +343,15 @@ test-commands = ["project command"]
 	if cfg.Job.Agent != "project-agent" {
 		t.Errorf("Agent = %q, expected %q", cfg.Job.Agent, "project-agent")
 	}
+	if cfg.Job.ImplementationModel != "project-implement" {
+		t.Errorf("ImplementationModel = %q, expected %q", cfg.Job.ImplementationModel, "project-implement")
+	}
+	if cfg.Job.CodeReviewModel != "project-review" {
+		t.Errorf("CodeReviewModel = %q, expected %q", cfg.Job.CodeReviewModel, "project-review")
+	}
+	if cfg.Job.ProjectReviewModel != "project-project" {
+		t.Errorf("ProjectReviewModel = %q, expected %q", cfg.Job.ProjectReviewModel, "project-project")
+	}
 	if len(cfg.Job.TestCommands) != 1 || cfg.Job.TestCommands[0] != "project command" {
 		t.Fatalf("expected project test commands to override global")
 	}
@@ -332,6 +371,9 @@ on-acquire = "global acquire"
 
 [job]
 agent = "global-agent"
+implementation-model = "global-implement"
+code-review-model = "global-review"
+project-review-model = "global-project"
 test-commands = ["global command"]
 `
 	globalPath := filepath.Join(configDir, "config.toml")
@@ -346,6 +388,9 @@ on-acquire = ""
 
 [job]
 agent = ""
+implementation-model = ""
+code-review-model = ""
+project-review-model = ""
 test-commands = []
 `
 
@@ -367,6 +412,15 @@ test-commands = []
 	}
 	if cfg.Job.Agent != "" {
 		t.Errorf("Agent = %q, expected empty string", cfg.Job.Agent)
+	}
+	if cfg.Job.ImplementationModel != "" {
+		t.Errorf("ImplementationModel = %q, expected empty string", cfg.Job.ImplementationModel)
+	}
+	if cfg.Job.CodeReviewModel != "" {
+		t.Errorf("CodeReviewModel = %q, expected empty string", cfg.Job.CodeReviewModel)
+	}
+	if cfg.Job.ProjectReviewModel != "" {
+		t.Errorf("ProjectReviewModel = %q, expected empty string", cfg.Job.ProjectReviewModel)
 	}
 	if len(cfg.Job.TestCommands) != 0 {
 		t.Fatalf("expected empty test commands, got %d", len(cfg.Job.TestCommands))

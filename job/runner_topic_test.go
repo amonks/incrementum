@@ -139,3 +139,66 @@ func TestRunStoresOpencodeAgent(t *testing.T) {
 		t.Fatalf("expected agent in state, got %q", stored.Agent)
 	}
 }
+
+func TestRunUsesPreloadedConfig(t *testing.T) {
+	repoPath := setupJobRepo(t)
+
+	store, err := todo.Open(repoPath, todo.OpenOptions{CreateIfMissing: true, PromptToCreate: false})
+	if err != nil {
+		t.Fatalf("open todo store: %v", err)
+	}
+	created, err := store.Create("Preloaded config", todo.CreateOptions{Priority: todo.PriorityPtr(todo.PriorityMedium)})
+	if err != nil {
+		store.Release()
+		t.Fatalf("create todo: %v", err)
+	}
+	store.Release()
+
+	now := time.Date(2026, 1, 4, 5, 6, 7, 0, time.UTC)
+	loadConfigCalled := false
+	agents := []string{}
+	preloaded := &config.Config{
+		Job: config.Job{
+			ImplementationModel: "impl-model",
+			ProjectReviewModel:  "project-model",
+		},
+	}
+
+	result, err := Run(repoPath, created.ID, RunOptions{
+		Now:    func() time.Time { return now },
+		Config: preloaded,
+		LoadConfig: func(string) (*config.Config, error) {
+			loadConfigCalled = true
+			return nil, fmt.Errorf("unexpected LoadConfig call")
+		},
+		RunTests: func(string, []string) ([]TestCommandResult, error) {
+			return nil, fmt.Errorf("unexpected RunTests call")
+		},
+		UpdateStale: func(string) error { return nil },
+		CurrentCommitID: func(string) (string, error) {
+			return "same", nil
+		},
+		RunOpencode: func(opts opencodeRunOptions) (OpencodeRunResult, error) {
+			agents = append(agents, opts.Agent)
+			return OpencodeRunResult{SessionID: fmt.Sprintf("opencode-%d", len(agents)), ExitCode: 0}, nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("run job: %v", err)
+	}
+	if loadConfigCalled {
+		t.Fatal("expected LoadConfig not to be called")
+	}
+	if result.Job.Agent != "impl-model" {
+		t.Fatalf("expected job agent %q, got %q", "impl-model", result.Job.Agent)
+	}
+	if len(agents) < 2 {
+		t.Fatalf("expected opencode calls for implement and review, got %d", len(agents))
+	}
+	if agents[0] != "impl-model" {
+		t.Fatalf("expected implement agent %q, got %q", "impl-model", agents[0])
+	}
+	if agents[1] != "project-model" {
+		t.Fatalf("expected review agent %q, got %q", "project-model", agents[1])
+	}
+}
