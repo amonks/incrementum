@@ -399,9 +399,6 @@ func fileToolSummary(action string, input map[string]any) string {
 }
 
 func stringFromMap(input map[string]any, key string) string {
-	if input == nil {
-		return ""
-	}
 	value, ok := input[key].(string)
 	if !ok {
 		return ""
@@ -410,9 +407,6 @@ func stringFromMap(input map[string]any, key string) string {
 }
 
 func firstQuestionText(input map[string]any) string {
-	if input == nil {
-		return ""
-	}
 	items, ok := input["questions"].([]any)
 	if !ok || len(items) == 0 {
 		return ""
