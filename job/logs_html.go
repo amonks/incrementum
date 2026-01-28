@@ -48,26 +48,26 @@ func (writer *logHTMLWriter) Append(event Event) error {
 			if err != nil {
 				return err
 			}
-			writer.writeEntry("prompt", promptLabel(data.Purpose), normalizeLogBody(data.Prompt))
+			writer.writeNormalizedEntry("prompt", promptLabel(data.Purpose), data.Prompt)
 		case jobEventCommitMessage:
 			data, err := decodeEventData[commitMessageEventData](event.Data)
 			if err != nil {
 				return err
 			}
 			label := commitMessageLabel(data.Label)
-			writer.writeEntry("commit", label, normalizeLogBody(data.Message))
+			writer.writeNormalizedEntry("commit", label, data.Message)
 		case jobEventTranscript:
 			data, err := decodeEventData[transcriptEventData](event.Data)
 			if err != nil {
 				return err
 			}
-			writer.writeEntry("transcript", "Opencode transcript:", normalizeLogBody(data.Transcript))
+			writer.writeNormalizedEntry("transcript", "Opencode transcript:", data.Transcript)
 		case jobEventReview:
 			data, err := decodeEventData[reviewEventData](event.Data)
 			if err != nil {
 				return err
 			}
-			writer.writeEntry("review", reviewLabel(data.Purpose), normalizeLogBody(data.Details))
+			writer.writeNormalizedEntry("review", reviewLabel(data.Purpose), data.Details)
 		case jobEventTests:
 			data, err := decodeEventData[testsEventData](event.Data)
 			if err != nil {
@@ -79,7 +79,7 @@ func (writer *logHTMLWriter) Append(event Event) error {
 			if err != nil {
 				return err
 			}
-			writer.writeEntry("opencode-error", opencodeErrorLabel(data.Purpose), normalizeLogBody(data.Error))
+			writer.writeNormalizedEntry("opencode-error", opencodeErrorLabel(data.Purpose), data.Error)
 		case jobEventOpencodeStart, jobEventOpencodeEnd:
 			return nil
 		default:
@@ -114,7 +114,7 @@ func (writer *logHTMLWriter) writeOpencodeEntry(event opencodeRenderedEvent) {
 		writer.writeInline(kind, event.Label, event.Inline)
 		return
 	}
-	writer.writeEntry(kind, event.Label, normalizeLogBody(event.Body))
+	writer.writeNormalizedEntry(kind, event.Label, event.Body)
 }
 
 func (writer *logHTMLWriter) writeEntry(kind, label, body string) {
@@ -122,6 +122,10 @@ func (writer *logHTMLWriter) writeEntry(kind, label, body string) {
 	writer.writeElement("div", "log-label", label)
 	writer.writeElement("div", "log-body", body)
 	writer.endEntry()
+}
+
+func (writer *logHTMLWriter) writeNormalizedEntry(kind, label, body string) {
+	writer.writeEntry(kind, label, normalizeLogBody(body))
 }
 
 func (writer *logHTMLWriter) writeInline(kind, label, value string) {
