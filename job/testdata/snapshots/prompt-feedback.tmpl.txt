@@ -34,8 +34,8 @@ Changes are reviewed according to these questions:
 - Does it work?
 
 
-When you make changes, write a multi-line commit message to ./.incrementum-commit-message
-Keep changes focused on the current step.
+When you make changes, write a multi-line commit message for the entire working
+tree diff to ./.incrementum-commit-message. Keep changes focused on the current step.
 
 Workspace root: /tmp/workspaces/snapshot-test
 
