@@ -68,9 +68,6 @@ func TestRunCommitMessageShowsSummaryInJjLog(t *testing.T) {
 		t.Fatalf("jj log: %v", err)
 	}
 	lines := strings.Split(logOutput, "\n")
-	if len(lines) == 0 {
-		t.Fatal("expected jj log output")
-	}
 	if lines[0] != "feat: commit summary" {
 		t.Fatalf("expected summary line, got %q", lines[0])
 	}

@@ -127,9 +127,6 @@ func TestFormatCommitMessageNormalizesOutput(t *testing.T) {
 
 	formatted := formatCommitMessage(item, message)
 	lines := strings.Split(formatted, "\n")
-	if len(lines) == 0 {
-		t.Fatal("expected formatted commit message")
-	}
 	if lines[0] != "feat: add widgets" {
 		t.Fatalf("expected normalized summary, got %q", lines[0])
 	}
