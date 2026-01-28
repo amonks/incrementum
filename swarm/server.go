@@ -276,6 +276,14 @@ func resolveWebBaseURL(addr string) string {
 	return "http://" + host
 }
 
+func requiredTrimmed(value, field string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", fmt.Errorf("%s is required", field)
+	}
+	return trimmed, nil
+}
+
 func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 	if !s.requireMethod(w, r, http.MethodPost) {
 		return
@@ -285,9 +293,9 @@ func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	todoID := strings.TrimSpace(payload.TodoID)
-	if todoID == "" {
-		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("todo id is required"))
+	todoID, err := requiredTrimmed(payload.TodoID, "todo id")
+	if err != nil {
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	jobID, err := s.startJob(r.Context(), todoID)
@@ -307,9 +315,9 @@ func (s *Server) handleKill(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	jobID := strings.TrimSpace(payload.JobID)
-	if jobID == "" {
-		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("job id is required"))
+	jobID, err := requiredTrimmed(payload.JobID, "job id")
+	if err != nil {
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.killJob(jobID); err != nil {
@@ -332,9 +340,9 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	jobID := strings.TrimSpace(payload.JobID)
-	if jobID == "" {
-		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("job id is required"))
+	jobID, err := requiredTrimmed(payload.JobID, "job id")
+	if err != nil {
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	if _, err := s.manager.Find(jobID); err != nil {
@@ -465,9 +473,9 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	jobID := strings.TrimSpace(payload.JobID)
-	if jobID == "" {
-		s.writeError(w, r, http.StatusBadRequest, fmt.Errorf("job id is required"))
+	jobID, err := requiredTrimmed(payload.JobID, "job id")
+	if err != nil {
+		s.writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	resolvedJobID, err := resolveTailJobID(s.manager, jobID)
