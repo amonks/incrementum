@@ -940,6 +940,43 @@ func TestRunCommittingStageOmitsEmptyCommitLog(t *testing.T) {
 	}
 }
 
+func TestDiffStatHasChangesDetectsEmptySummaries(t *testing.T) {
+	cases := []struct {
+		name     string
+		diffStat string
+		changed  bool
+	}{
+		{
+			name:     "empty output",
+			diffStat: "\n\n",
+			changed:  false,
+		},
+		{
+			name:     "no changes line",
+			diffStat: "No changes.\n",
+			changed:  false,
+		},
+		{
+			name:     "zero summary after header",
+			diffStat: "Working copy is clean\n0 files changed, 0 insertions(+), 0 deletions(-)\n",
+			changed:  false,
+		},
+		{
+			name:     "file changes",
+			diffStat: "file.txt | 2 +-\n1 file changed, 1 insertion(+), 1 deletion(-)\n",
+			changed:  true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := diffStatHasChanges(tc.diffStat); got != tc.changed {
+				t.Fatalf("expected changed=%t, got %t", tc.changed, got)
+			}
+		})
+	}
+}
+
 func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
 	stateDir := t.TempDir()
 	repoPath := t.TempDir()

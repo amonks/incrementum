@@ -833,11 +833,18 @@ func diffStatHasChanges(diffStat string) bool {
 	if trimmed == "" {
 		return false
 	}
-	if strings.HasPrefix(trimmed, "0 files changed") {
-		return false
-	}
-	if strings.HasPrefix(trimmed, "No changes") {
-		return false
+	lines := strings.Split(trimmed, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "0 files changed") {
+			return false
+		}
+		if strings.HasPrefix(line, "No changes") {
+			return false
+		}
 	}
 	return true
 }
