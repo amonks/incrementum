@@ -2,7 +2,6 @@
 package jj
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -39,6 +38,19 @@ func commandOutputString(cmd *exec.Cmd, context string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
+}
+
+func splitTrimmedLines(output []byte) []string {
+	lines := strings.Split(string(output), "\n")
+	trimmed := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		trimmed = append(trimmed, line)
+	}
+	return trimmed
 }
 
 func commandCombinedOutput(cmd *exec.Cmd, context string) ([]byte, error) {
@@ -92,15 +104,12 @@ func (c *Client) WorkspaceList(repoPath string) ([]string, error) {
 		return nil, err
 	}
 
-	lines := bytes.Split(bytes.TrimSpace(output), []byte("\n"))
+	lines := splitTrimmedLines(output)
 	workspaces := make([]string, 0, len(lines))
 	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
 		// Output format is "name: <change_id>" - extract just the name
-		parts := bytes.SplitN(line, []byte(":"), 2)
-		workspaces = append(workspaces, string(bytes.TrimSpace(parts[0])))
+		parts := strings.SplitN(line, ":", 2)
+		workspaces = append(workspaces, strings.TrimSpace(parts[0]))
 	}
 	return workspaces, nil
 }
@@ -131,15 +140,8 @@ func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	var bookmarks []string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			bookmarks = append(bookmarks, line)
-		}
-	}
-	return bookmarks, nil
+	lines := splitTrimmedLines(output)
+	return append([]string(nil), lines...), nil
 }
 
 // BookmarkCreate creates a bookmark at the specified revision.
