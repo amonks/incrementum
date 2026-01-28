@@ -12,10 +12,12 @@ func formatOpencodeText(event opencodeRenderedEvent) []string {
 		}
 		return []string{IndentBlock(line, documentIndent)}
 	}
-	if internalstrings.IsBlank(event.Label) && internalstrings.IsBlank(event.Body) {
+	labelBlank := internalstrings.IsBlank(event.Label)
+	bodyBlank := internalstrings.IsBlank(event.Body)
+	if labelBlank && bodyBlank {
 		return nil
 	}
-	if internalstrings.IsBlank(event.Body) {
+	if bodyBlank {
 		return []string{formatLogLabel(event.Label, documentIndent)}
 	}
 	return []string{
