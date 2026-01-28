@@ -3,9 +3,9 @@ package todo
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"unicode/utf8"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/validation"
 )
 
@@ -79,7 +79,7 @@ var (
 
 // ValidateTitle checks if the title is valid.
 func ValidateTitle(title string) error {
-	if strings.TrimSpace(title) == "" {
+	if internalstrings.IsBlank(title) {
 		return ErrEmptyTitle
 	}
 	length := utf8.RuneCountInString(title)
