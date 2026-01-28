@@ -123,17 +123,14 @@ func RunScript(dir, script string) error {
 	}
 
 	var interpreter string
-	var scriptBody string
+	scriptBody := ""
 
 	if strings.HasPrefix(script, "#!") {
 		// Extract shebang line
 		lines := strings.SplitN(script, "\n", 2)
-		interpreter = strings.TrimPrefix(lines[0], "#!")
-		interpreter = strings.TrimSpace(interpreter)
+		interpreter = strings.TrimSpace(strings.TrimPrefix(lines[0], "#!"))
 		if len(lines) > 1 {
 			scriptBody = lines[1]
-		} else {
-			scriptBody = ""
 		}
 	} else {
 		interpreter = "/bin/bash"
