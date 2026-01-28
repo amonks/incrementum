@@ -8,11 +8,7 @@ import (
 )
 
 func opencodeEmptyListMessage(total int, includeAll bool) string {
-	if total == 0 {
-		return "No opencode sessions found."
-	}
-
-	if !includeAll {
+	if total > 0 && !includeAll {
 		return "No active opencode sessions found. Use --all to include completed/failed/killed sessions."
 	}
 
