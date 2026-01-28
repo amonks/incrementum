@@ -110,7 +110,7 @@ func (writer *logSnapshotWriter) Append(event Event) error {
 }
 
 func opencodeEventLabel(name string) string {
-	trimmed := internalstrings.TrimSpace(name)
+	trimmed := trimmedValue(name)
 	if trimmed == "" {
 		return "Opencode event:"
 	}
@@ -118,12 +118,16 @@ func opencodeEventLabel(name string) string {
 }
 
 func opencodeErrorLabel(purpose string) string {
-	trimmed := internalstrings.TrimSpace(purpose)
+	trimmed := trimmedValue(purpose)
 	if trimmed == "" {
 		return "Opencode error:"
 	}
 	label := strings.ReplaceAll(trimmed, "-", " ")
 	return fmt.Sprintf("Opencode %s error:", label)
+}
+
+func trimmedValue(value string) string {
+	return internalstrings.TrimSpace(value)
 }
 
 func (writer *logSnapshotWriter) writeStage(value string) {
