@@ -418,6 +418,53 @@ func TestSelectSessionMatchesSymlinkedRepoPath(t *testing.T) {
 	}
 }
 
+func TestSelectSessionMatchesRepoSubdirSessionPath(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_subdir",
+			Directory: filepath.Join(repoPath, "work"),
+			CreatedAt: startedAt.Add(1 * time.Second),
+		},
+	}
+
+	selected, err := store.selectSession(entries, repoPath, startedAt, "")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_subdir" {
+		t.Fatalf("expected subdir session, got %q", selected.ID)
+	}
+}
+
+func TestSelectSessionMatchesRepoParentSessionPath(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	workdir := filepath.Join(repoPath, "nested")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_parent",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(1 * time.Second),
+		},
+	}
+
+	selected, err := store.selectSession(entries, workdir, startedAt, "")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_parent" {
+		t.Fatalf("expected parent session, got %q", selected.ID)
+	}
+}
+
 func writeMessageRecord(t *testing.T, root, sessionID, messageID, role string, createdAt int64) {
 	t.Helper()
 

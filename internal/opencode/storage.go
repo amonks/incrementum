@@ -363,7 +363,34 @@ func sessionMatchesRepo(session SessionMetadata, repoPath string) bool {
 	if session.Directory == "" {
 		return true
 	}
-	return cleanPath(session.Directory) == repoPath
+	sessionPath := cleanPath(session.Directory)
+	if sessionPath == repoPath {
+		return true
+	}
+	if pathContains(repoPath, sessionPath) {
+		return true
+	}
+	if pathContains(sessionPath, repoPath) {
+		return true
+	}
+	return false
+}
+
+func pathContains(base, target string) bool {
+	if base == "" || target == "" {
+		return false
+	}
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return false
+	}
+	if rel == "." {
+		return true
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	return true
 }
 
 func (s Storage) findPromptMatch(entries []SessionMetadata, repoPath, prompt string) (*SessionMetadata, error) {

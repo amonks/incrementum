@@ -57,6 +57,9 @@ Fields (JSON keys):
   found, they fall back to the current working directory.
 - Repo path comparisons resolve symlinks so opencode sessions stored under real
   paths still match when invoked from a symlinked worktree.
+- Repo path matching treats session directories nested within the repo (or repo
+  roots nested under a session directory) as eligible matches so workspace
+  runs locate sessions started from subdirectories.
 - Session discovery for opencode runs uses the working directory to locate
   session metadata, falling back to the repo path when they differ so workspace
   runs still resolve their session entries.
