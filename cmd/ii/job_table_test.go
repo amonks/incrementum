@@ -10,6 +10,10 @@ import (
 	jobpkg "github.com/amonks/incrementum/job"
 )
 
+func trimmedJobTable(options TableFormatOptions) string {
+	return internalstrings.TrimSpace(formatJobTable(options))
+}
+
 func TestFormatJobTablePreservesAlignmentWithANSI(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-2 * time.Minute)
@@ -135,12 +139,12 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 
 	todoTitles := map[string]string{"abc12345": "Title"}
 
-	output := internalstrings.TrimSpace(formatJobTable(TableFormatOptions{
+	output := trimmedJobTable(TableFormatOptions{
 		Jobs:       jobs,
 		Highlight:  func(id string, prefix int) string { return id },
 		Now:        now,
 		TodoTitles: todoTitles,
-	}))
+	})
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -178,12 +182,12 @@ func TestFormatJobTableUsesUpdatedDurationForCompleted(t *testing.T) {
 
 	todoTitles := map[string]string{"abc12345": "Title"}
 
-	output := internalstrings.TrimSpace(formatJobTable(TableFormatOptions{
+	output := trimmedJobTable(TableFormatOptions{
 		Jobs:       jobs,
 		Highlight:  func(id string, prefix int) string { return id },
 		Now:        now,
 		TodoTitles: todoTitles,
-	}))
+	})
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
