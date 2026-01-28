@@ -88,7 +88,7 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 func formatOpencodeTable(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) string {
 	rows := make([][]string, 0, len(sessions))
 	highlight, prefixLengths = normalizeOpencodeTableInputs(sessions, highlight, prefixLengths)
-	promptWidth := opencodePromptColumnWidth(sessions, highlight, now, prefixLengths)
+	promptWidth := opencodePromptColumnWidthWithInputs(sessions, highlight, now, prefixLengths)
 	promptHeader := "PROMPT"
 	if promptWidth > 0 {
 		promptHeader = ui.TruncateTableCellToWidth(promptHeader, promptWidth)
@@ -121,12 +121,16 @@ func formatOpencodeTable(sessions []opencode.OpencodeSession, highlight func(str
 }
 
 func opencodePromptColumnWidth(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
+	highlight, prefixLengths = normalizeOpencodeTableInputs(sessions, highlight, prefixLengths)
+	return opencodePromptColumnWidthWithInputs(sessions, highlight, now, prefixLengths)
+}
+
+func opencodePromptColumnWidthWithInputs(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
 	viewportWidth := ui.TableViewportWidth()
 	if viewportWidth <= 0 {
 		return ui.TableCellMaxWidth()
 	}
 
-	highlight, prefixLengths = normalizeOpencodeTableInputs(sessions, highlight, prefixLengths)
 	fixedWidth := opencodeFixedColumnsWidth(sessions, highlight, now, prefixLengths)
 	remaining := viewportWidth - fixedWidth
 	if remaining <= 0 {
