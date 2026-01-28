@@ -105,6 +105,7 @@ func TestLoad_JobConfig(t *testing.T) {
 	configContent := `
 [job]
 test-commands = ["go test ./...", "golangci-lint run"]
+agent = "gpt-5.2-codex"
 `
 
 	if err := os.WriteFile(filepath.Join(tmpDir, "incrementum.toml"), []byte(configContent), 0644); err != nil {
@@ -122,6 +123,10 @@ test-commands = ["go test ./...", "golangci-lint run"]
 
 	if cfg.Job.TestCommands[0] != "go test ./..." {
 		t.Fatalf("expected first test command %q, got %q", "go test ./...", cfg.Job.TestCommands[0])
+	}
+
+	if cfg.Job.Agent != "gpt-5.2-codex" {
+		t.Fatalf("expected agent %q, got %q", "gpt-5.2-codex", cfg.Job.Agent)
 	}
 }
 

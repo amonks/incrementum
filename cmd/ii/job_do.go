@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/editor"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 	jobpkg "github.com/amonks/incrementum/job"
@@ -81,6 +82,12 @@ func runJobDoTodo(cmd *cobra.Command, todoID string) error {
 		return err
 	}
 
+	cfg, err := config.Load(repoPath)
+	if err != nil {
+		return err
+	}
+	opencodeAgent := resolveOpencodeAgent(cmd, jobDoAgent, cfg.Job.Agent)
+
 	logger := jobpkg.NewConsoleLogger(os.Stdout)
 	reporter := newJobStageReporter(logger)
 	onStageChange := reporter.OnStageChange
@@ -120,7 +127,7 @@ func runJobDoTodo(cmd *cobra.Command, todoID string) error {
 		OnStageChange: onStageChange,
 		Logger:        logger,
 		EventStream:   eventStream,
-		OpencodeAgent: resolveOpencodeAgent(cmd, jobDoAgent),
+		OpencodeAgent: opencodeAgent,
 	})
 	close(eventDone)
 	streamErr := <-eventErrs

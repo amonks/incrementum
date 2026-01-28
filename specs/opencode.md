@@ -89,7 +89,8 @@ Fields (JSON keys):
 - Starts `opencode serve`, opens the event stream, then executes
   `opencode run --attach=<server-url>` from the repo root with the prompt sent
   over stdin.
-- `--agent` selects the opencode agent; it defaults to `INCREMENTUM_OPENCODE_AGENT`.
+- `--agent` selects the opencode agent; it defaults to `INCREMENTUM_OPENCODE_AGENT`,
+  then `job.agent` from `incrementum.toml`.
 - Streams opencode events to `~/.local/share/incrementum/opencode/events`.
 - Returns an event channel to callers so they can read the full event stream.
 - Creates a new opencode session record in state shortly after the run starts (once opencode writes session metadata).

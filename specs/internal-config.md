@@ -6,7 +6,7 @@ The config package loads `incrementum.toml` files and runs hook scripts.
 ## Configuration Model
 - `Config` holds workspace and job configuration.
 - `Workspace` defines `on-create` and `on-acquire` scripts.
-- `Job` defines `test-commands` used by the job workflow.
+- `Job` defines `test-commands` and the optional default `agent` for opencode runs.
 
 ## Behavior
 - `Load` reads `incrementum.toml` from the repo root and returns an empty config if missing.

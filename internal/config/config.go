@@ -32,6 +32,8 @@ type Workspace struct {
 type Job struct {
 	// TestCommands defines commands to run during job testing.
 	TestCommands []string `toml:"test-commands"`
+	// Agent selects the default opencode agent for job runs.
+	Agent string `toml:"agent"`
 }
 
 // Load loads the incrementum.toml configuration from the given directory.

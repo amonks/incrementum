@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func resolveOpencodeAgent(cmd *cobra.Command, flagValue string) string {
+func resolveOpencodeAgent(cmd *cobra.Command, flagValue, configAgent string) string {
 	if cmd != nil && cmd.Flags().Changed("agent") {
 		return flagValue
 	}
@@ -16,6 +16,11 @@ func resolveOpencodeAgent(cmd *cobra.Command, flagValue string) string {
 	envValue := strings.TrimSpace(os.Getenv(opencode.AgentEnvVar))
 	if envValue != "" {
 		return envValue
+	}
+
+	configValue := strings.TrimSpace(configAgent)
+	if configValue != "" {
+		return configValue
 	}
 	return ""
 }

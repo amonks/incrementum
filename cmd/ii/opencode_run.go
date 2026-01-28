@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/config"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/opencode"
 	"github.com/spf13/cobra"
@@ -32,6 +33,11 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	cfg, err := config.Load(repoPath)
+	if err != nil {
+		return err
+	}
+
 	prompt, err := resolveOpencodePrompt(args, os.Stdin)
 	if err != nil {
 		return err
@@ -41,7 +47,7 @@ func runOpencodeRun(cmd *cobra.Command, args []string) error {
 		RepoPath:  repoPath,
 		WorkDir:   repoPath,
 		Prompt:    prompt,
-		Agent:     resolveOpencodeAgent(cmd, opencodeRunAgent),
+		Agent:     resolveOpencodeAgent(cmd, opencodeRunAgent, cfg.Job.Agent),
 		StartedAt: time.Now(),
 		Stdout:    os.Stdout,
 		Stderr:    os.Stderr,

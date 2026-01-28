@@ -243,6 +243,7 @@ On interrupt (SIGINT), mark job `failed` and reopen the todo.
 
 ```toml
 [job]
+agent = "gpt-5.2-codex"
 test-commands = [
   "go test ./...",
   "golangci-lint run",
@@ -251,6 +252,9 @@ test-commands = [
 
 `test-commands` must be configured with at least one entry; jobs fail in the
 testing stage if it is missing or empty.
+
+`agent` is an optional default for opencode runs; it is overridden by the
+`--agent` flag and `INCREMENTUM_OPENCODE_AGENT`.
 
 ## Templates
 
@@ -292,7 +296,8 @@ Create and run a job to completion (blocking).
 - If creation flags provided: create todo first (same flags as `ii todo create`:
   `--title`, `--type`, `--priority`, `--description/--desc`, `--deps`,
   `--edit/--no-edit`).
-- `--agent` selects the opencode agent and overrides `INCREMENTUM_OPENCODE_AGENT`.
+- `--agent` selects the opencode agent and overrides `INCREMENTUM_OPENCODE_AGENT`
+  and `job.agent`.
 - If no args and interactive: open $EDITOR to create todo.
 - If `--rev` is omitted, default to `trunk()`.
 

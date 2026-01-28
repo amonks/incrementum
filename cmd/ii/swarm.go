@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/listflags"
 	"github.com/amonks/incrementum/internal/swarmtui"
 	"github.com/amonks/incrementum/internal/ui"
@@ -112,6 +113,11 @@ func runSwarmServe(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+
+	cfg, err := config.Load(repoPath)
+	if err != nil {
+		return err
+	}
 	addr, err := swarm.ResolveAddr(repoPath, swarmAddr)
 	if err != nil {
 		return err
@@ -119,7 +125,7 @@ func runSwarmServe(cmd *cobra.Command, _ []string) error {
 	if err := logSwarmServeAddr(addr); err != nil {
 		return err
 	}
-	opencodeAgent := resolveOpencodeAgent(cmd, swarmAgent)
+	opencodeAgent := resolveOpencodeAgent(cmd, swarmAgent, cfg.Job.Agent)
 	server, err := swarm.NewServer(swarm.ServerOptions{
 		RepoPath:      repoPath,
 		JobRunOptions: job.RunOptions{OpencodeAgent: opencodeAgent},
