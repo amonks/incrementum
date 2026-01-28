@@ -139,7 +139,7 @@ func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
 	}
 
 	lines := splitTrimmedLines(output)
-	return append([]string(nil), lines...), nil
+	return lines, nil
 }
 
 // BookmarkCreate creates a bookmark at the specified revision.
