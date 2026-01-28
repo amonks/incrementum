@@ -27,7 +27,8 @@
 //
 // # Configuration
 //
-// Repositories can include a incrementum.toml file to configure workspace behavior:
+// Repositories can include an incrementum.toml or .incrementum/config.toml file to
+// configure workspace behavior:
 //
 //	[workspace]
 //	on-create = ["npm install"]  # Run every time workspace is acquired

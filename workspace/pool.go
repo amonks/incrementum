@@ -114,8 +114,8 @@ func ValidateAcquirePurpose(purpose string) error {
 // The returned path is the root directory of the acquired workspace.
 // Call Release when done to return the workspace to the pool.
 //
-// If the repository contains a incrementum.toml configuration file, the on-create
-// hooks run on every acquire.
+// If the repository contains an incrementum.toml or .incrementum/config.toml
+// configuration file, the on-create hooks run on every acquire.
 
 func (p *Pool) Acquire(repoPath string, opts AcquireOptions) (string, error) {
 	// Apply defaults

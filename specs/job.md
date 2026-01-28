@@ -265,8 +265,8 @@ test-commands = [
 `test-commands` must be configured with at least one entry; jobs fail in the
 testing stage if it is missing or empty.
 
-Config is loaded from `incrementum.toml` and `~/.config/incrementum/config.toml`;
-project values override global values.
+Config is loaded from `incrementum.toml` or `.incrementum/config.toml` and
+`~/.config/incrementum/config.toml`; project values override global values.
 
 Callers can supply a preloaded config via `RunOptions.Config` to avoid
 filesystem reads; when set, the job runner does not call `LoadConfig`.

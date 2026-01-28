@@ -62,6 +62,37 @@ on-acquire = "npm install"
 	}
 }
 
+func TestLoad_Full_DotIncrementum(t *testing.T) {
+	testsupport.SetupTestHome(t)
+	tmpDir := t.TempDir()
+
+	configContent := `
+[workspace]
+on-create = "dot config"
+on-acquire = "dot acquire"
+`
+
+	configDir := filepath.Join(tmpDir, ".incrementum")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("failed to create config dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte(configContent), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := config.Load(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if cfg.Workspace.OnCreate != "dot config" {
+		t.Errorf("OnCreate = %q, expected %q", cfg.Workspace.OnCreate, "dot config")
+	}
+	if cfg.Workspace.OnAcquire != "dot acquire" {
+		t.Errorf("OnAcquire = %q, expected %q", cfg.Workspace.OnAcquire, "dot acquire")
+	}
+}
+
 func TestLoad_WithShebang(t *testing.T) {
 	testsupport.SetupTestHome(t)
 	tmpDir := t.TempDir()
@@ -101,6 +132,28 @@ func TestLoad_InvalidTOML(t *testing.T) {
 	_, err := config.Load(tmpDir)
 	if err == nil {
 		t.Error("expected error for invalid TOML")
+	}
+}
+
+func TestLoad_ProjectConfigConflict(t *testing.T) {
+	testsupport.SetupTestHome(t)
+	tmpDir := t.TempDir()
+
+	configDir := filepath.Join(tmpDir, ".incrementum")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("failed to create config dir: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(tmpDir, "incrementum.toml"), []byte("[workspace]\non-create=\"root\"\n"), 0o644); err != nil {
+		t.Fatalf("failed to write root config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte("[workspace]\non-create=\"dot\"\n"), 0o644); err != nil {
+		t.Fatalf("failed to write dot config: %v", err)
+	}
+
+	_, err := config.Load(tmpDir)
+	if err == nil {
+		t.Fatal("expected error for conflicting project configs")
 	}
 }
 

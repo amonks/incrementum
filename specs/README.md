@@ -58,7 +58,7 @@
 | Spec                                                   | Code                                                | Purpose                                              |
 | ------------------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------- |
 | [internal-age.md](./internal-age.md)                   | [internal/age/](../internal/age/)                   | Timing helpers for computed ages and durations       |
-| [internal-config.md](./internal-config.md)             | [internal/config/](../internal/config/)             | Load `incrementum.toml` configuration and run hook scripts |
+| [internal-config.md](./internal-config.md)             | [internal/config/](../internal/config/)             | Load project/global configuration and run hook scripts      |
 | [internal-editor.md](./internal-editor.md)             | [internal/editor/](../internal/editor/)             | `$EDITOR` integration and todo TOML editing flow     |
 | [internal-ids.md](./internal-ids.md)                   | [internal/ids/](../internal/ids/)                   | Unique prefix length calculation for IDs             |
 | [internal-jj.md](./internal-jj.md)                     | [internal/jj/](../internal/jj/)                     | Go wrapper around jj CLI commands                    |

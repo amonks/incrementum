@@ -1,7 +1,7 @@
 # Internal Config
 
 ## Overview
-The config package loads project and global `incrementum.toml` configuration files and runs hook scripts.
+The config package loads project and global configuration files and runs hook scripts.
 
 ## Configuration Model
 - `Config` holds workspace and job configuration.
@@ -10,7 +10,8 @@ The config package loads project and global `incrementum.toml` configuration fil
   opencode models (`implementation-model`, `code-review-model`, `project-review-model`).
 
 ## Behavior
-- `Load` reads `incrementum.toml` from the repo root and `~/.config/incrementum/config.toml`, then merges them.
+- `Load` reads either `incrementum.toml` or `.incrementum/config.toml` from the repo root and `~/.config/incrementum/config.toml`, then merges them.
+- If both `incrementum.toml` and `.incrementum/config.toml` exist, `Load` returns an error.
 - Project values override global values, including explicitly empty strings or lists; missing configs return an empty config.
 - TOML decoding errors are surfaced with context.
 - `RunScript` executes hook scripts in a target directory.

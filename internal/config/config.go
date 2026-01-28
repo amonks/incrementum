@@ -1,4 +1,4 @@
-// Package config handles loading incrementum.toml configuration files.
+// Package config handles loading project and global configuration files.
 package config
 
 import (
@@ -13,7 +13,7 @@ import (
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
-// Config represents the incrementum.toml configuration file.
+// Config represents the configuration file schema.
 type Config struct {
 	Workspace Workspace `toml:"workspace"`
 	Job       Job       `toml:"job"`
@@ -57,13 +57,52 @@ func Load(repoPath string) (*Config, error) {
 		return nil, err
 	}
 
-	projectCfg, projectMeta, err := loadConfigFile(filepath.Join(repoPath, "incrementum.toml"))
+	projectCfg, projectMeta, err := loadProjectConfig(repoPath)
 	if err != nil {
 		return nil, err
 	}
 
 	merged := mergeConfigs(globalCfg, projectCfg, globalMeta, projectMeta)
 	return merged, nil
+}
+
+func loadProjectConfig(repoPath string) (*Config, toml.MetaData, error) {
+	rootPath := filepath.Join(repoPath, "incrementum.toml")
+	altPath := filepath.Join(repoPath, ".incrementum", "config.toml")
+
+	rootExists, err := fileExists(rootPath)
+	if err != nil {
+		return nil, toml.MetaData{}, fmt.Errorf("check project config %s: %w", rootPath, err)
+	}
+
+	altExists, err := fileExists(altPath)
+	if err != nil {
+		return nil, toml.MetaData{}, fmt.Errorf("check project config %s: %w", altPath, err)
+	}
+
+	if rootExists && altExists {
+		return nil, toml.MetaData{}, fmt.Errorf("project config files both exist: %s and %s", rootPath, altPath)
+	}
+
+	if rootExists {
+		return loadConfigFile(rootPath)
+	}
+	if altExists {
+		return loadConfigFile(altPath)
+	}
+
+	return &Config{}, toml.MetaData{}, nil
+}
+
+func fileExists(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err == nil {
+		return !info.IsDir(), nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 func globalConfigPath() (string, error) {
