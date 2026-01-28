@@ -85,6 +85,80 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 	}
 }
 
+func TestRunImplementingStageSnapshotsWorkspaceBeforeOpencode(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/repo"
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 9, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-789", startedAt, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	workspacePath := t.TempDir()
+	snapshotCalled := false
+	commitIDs := []string{"before", "after"}
+	commitIndex := 0
+
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		Snapshot: func(path string) error {
+			if path != workspacePath {
+				return fmt.Errorf("unexpected workspace path %q", path)
+			}
+			snapshotCalled = true
+			return nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			if !snapshotCalled {
+				return OpencodeRunResult{}, fmt.Errorf("expected snapshot before opencode")
+			}
+			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
+			if err := os.WriteFile(messagePath, []byte("feat: snapshot"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "oc-789", ExitCode: 0}, nil
+		},
+	}
+
+	item := todo.Todo{
+		ID:          "todo-789",
+		Title:       "Snapshot todo",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil, "")
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+	if !snapshotCalled {
+		t.Fatalf("expected snapshot to be called")
+	}
+	if result.Job.Stage != StageTesting {
+		t.Fatalf("expected stage %q, got %q", StageTesting, result.Job.Stage)
+	}
+}
+
 func TestRunReviewingStageUpdatesStaleWorkspace(t *testing.T) {
 	tmpDir := t.TempDir()
 	repoPath := "/Users/test/repo-review"
@@ -141,6 +215,68 @@ func TestRunReviewingStageUpdatesStaleWorkspace(t *testing.T) {
 	}
 	if !updateCalled {
 		t.Fatalf("expected update-stale to be called")
+	}
+	if updated.Stage != StageCommitting {
+		t.Fatalf("expected stage %q, got %q", StageCommitting, updated.Stage)
+	}
+}
+
+func TestRunReviewingStageSnapshotsWorkspaceBeforeOpencode(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/repo-review"
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 13, 10, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-987", startedAt, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	workspacePath := t.TempDir()
+	snapshotCalled := false
+	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
+
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		Snapshot: func(path string) error {
+			if path != workspacePath {
+				return fmt.Errorf("unexpected workspace path %q", path)
+			}
+			snapshotCalled = true
+			return nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			if !snapshotCalled {
+				return OpencodeRunResult{}, fmt.Errorf("expected snapshot before opencode")
+			}
+			if err := os.WriteFile(feedbackPath, []byte("ACCEPT\n"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "oc-987", ExitCode: 0}, nil
+		},
+	}
+
+	item := todo.Todo{
+		ID:          "todo-987",
+		Title:       "Review snapshot todo",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	commitMessage := "fix: snapshot review"
+	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
+	if err != nil {
+		t.Fatalf("run reviewing stage: %v", err)
+	}
+	if !snapshotCalled {
+		t.Fatalf("expected snapshot to be called")
 	}
 	if updated.Stage != StageCommitting {
 		t.Fatalf("expected stage %q, got %q", StageCommitting, updated.Stage)

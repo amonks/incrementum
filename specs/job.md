@@ -123,28 +123,30 @@ any stage -> failed (unrecoverable error)
    the job run.
 5. Template receives: `Todo`, `Feedback`, and `Message` (previous commit message
    when responding to feedback).
-6. Record opencode session in `opencode_sessions` with purpose `implement`.
+6. Best-effort `jj debug snapshot` in the repo working directory immediately
+   before opencode runs.
 7. Run opencode to completion.
-8. If opencode returns an error before completion, record a `job.opencode.error`
+8. Record opencode session in `opencode_sessions` with purpose `implement`.
+9. If opencode returns an error before completion, record a `job.opencode.error`
    event with the purpose and error message, then mark the job `failed`.
-9. If opencode fails (nonzero exit): mark job `failed` with an error that
+10. If opencode fails (nonzero exit): mark job `failed` with an error that
    includes purpose, session id, agent, prompt template, opencode run/serve
    command lines, repo/workspace paths, and before/after commit ids when
    available. If the exit code is negative and the working copy commit changed,
    best-effort restore the workspace to the pre-opencode commit and retry
    opencode once. If the retry still fails, best-effort restore before failing
    and include the retry attempt in the error details.
-10. Record the current working copy commit id again.
-11. If the commit id changed, run `jj log -r @ -T empty --no-graph` and treat a
+11. Record the current working copy commit id again.
+12. If the commit id changed, run `jj log -r @ -T empty --no-graph` and treat a
     `true` result as no change (empty working copy) and `false` as changed.
-12. If the commit id did not change (or the change is empty):
+13. If the commit id did not change (or the change is empty):
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
     - Flag the next review cycle as the final project review.
-13. If the commit id changed and the change is not empty:
+14. If the commit id changed and the change is not empty:
     - Read `.incrementum-commit-message` from the workspace root, trimming trailing
       newlines, trailing whitespace on each line, and any leading blank lines.
     - Store the message for the committing stage.
-14. Transition to `testing` when changes were detected, otherwise transition to
+15. Transition to `testing` when changes were detected, otherwise transition to
     `reviewing`.
 
 ### testing
@@ -165,26 +167,28 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` from the workspace root if it exists.
-3. Run opencode with `OPENCODE_CONFIG_CONTENT` set to
+3. Best-effort `jj debug snapshot` in the repo working directory immediately
+   before opencode runs.
+4. Run opencode with `OPENCODE_CONFIG_CONTENT` set to
    `{"permission":{"question":"deny"}}` to deny question prompts and:
    - `prompt-commit-review.tmpl` during the work loop, or
    - `prompt-project-review.tmpl` during the final project review.
-4. Template receives: `Todo`, `Message` (commit message from the implementing stage).
+5. Template receives: `Todo`, `Message` (commit message from the implementing stage).
    If the review template does not reference `Message` or `CommitMessageBlock`,
    the job appends a `Commit message` block with heading-and-indent formatting
    before rendering.
    - If the commit message is required for the step review and missing, fail with
      a descriptive error that calls out the opencode implementation prompt and
      expected `.incrementum-commit-message` location.
-5. Template instructs opencode to inspect changes (or the commit sequence for
+6. Template instructs opencode to inspect changes (or the commit sequence for
    project review) and write outcome to `.incrementum-feedback`.
-6. Record opencode session in `opencode_sessions` with purpose `review` or
-   `project-review`.
 7. Run opencode to completion.
-8. If opencode returns an error before completion, record a `job.opencode.error`
+8. Record opencode session in `opencode_sessions` with purpose `review` or
+   `project-review`.
+9. If opencode returns an error before completion, record a `job.opencode.error`
    event with the purpose and error message, then mark the job `failed`.
-9. If opencode fails (nonzero exit): mark job `failed`.
-10. Read `.incrementum-feedback` from the workspace root:
+10. If opencode fails (nonzero exit): mark job `failed`.
+11. Read `.incrementum-feedback` from the workspace root:
    - Delete `.incrementum-feedback` after reading.
    - Missing or first line is `ACCEPT`:
      - During the work loop: transition to `committing`.

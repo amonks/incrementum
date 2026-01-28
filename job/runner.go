@@ -58,6 +58,7 @@ type RunOptions struct {
 	Commit              func(string, string) error
 	RestoreWorkspace    func(string, string) error
 	UpdateStale         func(string) error
+	Snapshot            func(string) error
 	OpencodeTranscripts func(string, []OpencodeSession) ([]OpencodeTranscript, error)
 	EventLog            *EventLog
 	EventLogOptions     EventLogOptions
@@ -480,6 +481,10 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	if opts.UpdateStale == nil {
 		client := jj.New()
 		opts.UpdateStale = client.WorkspaceUpdateStale
+	}
+	if opts.Snapshot == nil {
+		client := jj.New()
+		opts.Snapshot = client.Snapshot
 	}
 	if opts.OpencodeTranscripts == nil {
 		opts.OpencodeTranscripts = opencodeTranscripts
@@ -1002,6 +1007,7 @@ func renderPromptTemplate(item todo.Todo, feedback, message string, commitLog []
 }
 
 func runOpencodeWithEvents(opts RunOptions, runOpts opencodeRunOptions, purpose string) (OpencodeRunResult, error) {
+	snapshotWorkspace(opts.Snapshot, runOpts.WorkspacePath)
 	if err := appendJobEvent(opts.EventLog, jobEventOpencodeStart, opencodeStartEventData{Purpose: purpose}); err != nil {
 		return OpencodeRunResult{}, err
 	}
@@ -1156,6 +1162,13 @@ func updateStaleWorkspace(update func(string) error, workspacePath string) {
 		return
 	}
 	_ = update(workspacePath)
+}
+
+func snapshotWorkspace(snapshot func(string) error, workspacePath string) {
+	if snapshot == nil {
+		return
+	}
+	_ = snapshot(workspacePath)
 }
 
 func applyOpencodeConfigEnv(env []string) []string {
