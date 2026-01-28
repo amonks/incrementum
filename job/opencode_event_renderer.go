@@ -341,16 +341,16 @@ func summarizeToolCall(tool string, input map[string]any) string {
 	name := internalstrings.NormalizeLowerTrimSpace(tool)
 	switch name {
 	case "read":
-		if path := stringFromMap(input, "filePath"); path != "" {
-			return fmt.Sprintf("read file %s", quoteForLog(path))
+		if summary := fileToolSummary("read", input); summary != "" {
+			return summary
 		}
 	case "write":
-		if path := stringFromMap(input, "filePath"); path != "" {
-			return fmt.Sprintf("write file %s", quoteForLog(path))
+		if summary := fileToolSummary("write", input); summary != "" {
+			return summary
 		}
 	case "edit":
-		if path := stringFromMap(input, "filePath"); path != "" {
-			return fmt.Sprintf("edit file %s", quoteForLog(path))
+		if summary := fileToolSummary("edit", input); summary != "" {
+			return summary
 		}
 	case "apply_patch":
 		return "apply patch"
@@ -389,6 +389,13 @@ func summarizeToolCall(tool string, input map[string]any) string {
 		return name
 	}
 	return "tool call"
+}
+
+func fileToolSummary(action string, input map[string]any) string {
+	if path := stringFromMap(input, "filePath"); path != "" {
+		return fmt.Sprintf("%s file %s", action, quoteForLog(path))
+	}
+	return ""
 }
 
 func stringFromMap(input map[string]any, key string) string {
