@@ -257,6 +257,137 @@ func TestSelectSessionUsesUpdatedAtWhenCreatedIsStale(t *testing.T) {
 	}
 }
 
+func TestSelectSessionFallsBackToPromptMatchWhenNoRecentSessions(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_old",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(-15 * time.Minute),
+		},
+	}
+
+	writeMessageRecord(t, root, "ses_old", "msg_old", "user", 1000)
+	writePartRecord(t, root, "msg_old", "prt_old", map[string]any{
+		"type": "text",
+		"text": "Please Match me\n",
+		"time": map[string]any{
+			"start": int64(1000),
+		},
+	})
+
+	selected, err := store.selectSession(entries, repoPath, startedAt, "Match me")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_old" {
+		t.Fatalf("expected prompt match session, got %q", selected.ID)
+	}
+}
+
+func TestSelectSessionPromptMatchFallbackStaysWithinRepo(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	otherRepo := filepath.Join(root, "other")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_repo",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(-10 * time.Minute),
+		},
+		{
+			ID:        "ses_other",
+			Directory: otherRepo,
+			CreatedAt: startedAt.Add(-9 * time.Minute),
+		},
+	}
+
+	writeMessageRecord(t, root, "ses_other", "msg_other", "user", 1000)
+	writePartRecord(t, root, "msg_other", "prt_other", map[string]any{
+		"type": "text",
+		"text": "Please Match me\n",
+		"time": map[string]any{
+			"start": int64(1000),
+		},
+	})
+
+	selected, err := store.selectSession(entries, repoPath, startedAt, "Match me")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_repo" {
+		t.Fatalf("expected repo session, got %q", selected.ID)
+	}
+}
+
+func TestSelectSessionFallsBackToLatestSessionWhenNoRecentSessions(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_old",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(-20 * time.Minute),
+			UpdatedAt: startedAt.Add(-19 * time.Minute),
+		},
+		{
+			ID:        "ses_latest",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(-18 * time.Minute),
+			UpdatedAt: startedAt.Add(-10 * time.Minute),
+		},
+	}
+
+	selected, err := store.selectSession(entries, repoPath, startedAt, "")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_latest" {
+		t.Fatalf("expected latest session, got %q", selected.ID)
+	}
+}
+
+func TestSelectSessionLatestFallbackStaysWithinRepo(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	otherRepo := filepath.Join(root, "other")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_old",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(-30 * time.Minute),
+			UpdatedAt: startedAt.Add(-20 * time.Minute),
+		},
+		{
+			ID:        "ses_other",
+			Directory: otherRepo,
+			CreatedAt: startedAt.Add(-10 * time.Minute),
+			UpdatedAt: startedAt.Add(-5 * time.Minute),
+		},
+	}
+
+	selected, err := store.selectSession(entries, repoPath, startedAt, "")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_old" {
+		t.Fatalf("expected repo latest session, got %q", selected.ID)
+	}
+}
+
 func writeMessageRecord(t *testing.T, root, sessionID, messageID, role string, createdAt int64) {
 	t.Helper()
 

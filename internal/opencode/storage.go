@@ -241,10 +241,11 @@ func (s Storage) listAllSessions() ([]SessionMetadata, error) {
 func (s Storage) selectSession(entries []SessionMetadata, repoPath string, startedAt time.Time, prompt string) (SessionMetadata, error) {
 	repoPath = cleanPath(repoPath)
 	cutoff := startedAt.Add(-5 * time.Second)
+	trimmedPrompt := strings.TrimSpace(prompt)
 
 	var candidates []SessionMetadata
 	for _, session := range entries {
-		if session.Directory != "" && cleanPath(session.Directory) != repoPath {
+		if !sessionMatchesRepo(session, repoPath) {
 			continue
 		}
 		if !sessionAfterCutoff(session, cutoff) {
@@ -258,6 +259,22 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 				continue
 			}
 			candidates = append(candidates, session)
+		}
+	}
+
+	if len(candidates) == 0 && len(entries) > 0 {
+		if trimmedPrompt != "" {
+			match, err := s.findPromptMatch(entries, repoPath, trimmedPrompt)
+			if err != nil {
+				return SessionMetadata{}, err
+			}
+			if match != nil {
+				return *match, nil
+			}
+		}
+		latest := latestSession(entries, repoPath)
+		if latest != nil {
+			return *latest, nil
 		}
 	}
 
@@ -283,7 +300,6 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 		return item.ID
 	})
 
-	trimmedPrompt := strings.TrimSpace(prompt)
 	if trimmedPrompt != "" {
 		for _, session := range candidates {
 			matches, err := s.sessionContainsPrompt(session.ID, trimmedPrompt)
@@ -325,6 +341,72 @@ func sessionSortTime(session SessionMetadata, cutoff time.Time) time.Time {
 		return session.CreatedAt
 	}
 	return session.UpdatedAt
+}
+
+func sessionLatestTime(session SessionMetadata) time.Time {
+	if session.CreatedAt.IsZero() {
+		return session.UpdatedAt
+	}
+	if session.UpdatedAt.IsZero() {
+		return session.CreatedAt
+	}
+	if session.UpdatedAt.After(session.CreatedAt) {
+		return session.UpdatedAt
+	}
+	return session.CreatedAt
+}
+
+func sessionMatchesRepo(session SessionMetadata, repoPath string) bool {
+	if repoPath == "" {
+		return true
+	}
+	if session.Directory == "" {
+		return true
+	}
+	return cleanPath(session.Directory) == repoPath
+}
+
+func (s Storage) findPromptMatch(entries []SessionMetadata, repoPath, prompt string) (*SessionMetadata, error) {
+	var match SessionMetadata
+	found := false
+	for _, session := range entries {
+		if !sessionMatchesRepo(session, repoPath) {
+			continue
+		}
+		matches, err := s.sessionContainsPrompt(session.ID, prompt)
+		if err != nil {
+			return nil, err
+		}
+		if !matches {
+			continue
+		}
+		if !found || sessionLatestTime(session).After(sessionLatestTime(match)) {
+			match = session
+			found = true
+		}
+	}
+	if !found {
+		return nil, nil
+	}
+	return &match, nil
+}
+
+func latestSession(entries []SessionMetadata, repoPath string) *SessionMetadata {
+	var match SessionMetadata
+	found := false
+	for _, session := range entries {
+		if !sessionMatchesRepo(session, repoPath) {
+			continue
+		}
+		if !found || sessionLatestTime(session).After(sessionLatestTime(match)) {
+			match = session
+			found = true
+		}
+	}
+	if !found {
+		return nil
+	}
+	return &match
 }
 
 type messageRecord struct {
