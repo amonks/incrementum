@@ -20,6 +20,11 @@ across subsystems.
 - Trims surrounding whitespace with `strings.TrimSpace` and then lowercases.
 - Does not alter inner whitespace beyond trimming the edges.
 
+## TrimSpace
+
+- Trims leading and trailing Unicode whitespace.
+- Used to normalize raw string values before validation or formatting.
+
 ## IsBlank
 
 - Reports whether a string is empty or contains only Unicode whitespace.

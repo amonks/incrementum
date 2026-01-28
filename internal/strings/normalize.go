@@ -21,12 +21,17 @@ func NormalizeLower(value string) string {
 
 // NormalizeLowerTrimSpace trims surrounding whitespace and lowercases the input.
 func NormalizeLowerTrimSpace(value string) string {
-	return NormalizeLower(strings.TrimSpace(value))
+	return NormalizeLower(TrimSpace(value))
+}
+
+// TrimSpace trims surrounding whitespace.
+func TrimSpace(value string) string {
+	return strings.TrimSpace(value)
 }
 
 // IsBlank reports whether the string contains only whitespace.
 func IsBlank(value string) bool {
-	return strings.TrimSpace(value) == ""
+	return TrimSpace(value) == ""
 }
 
 // ContainsAnyLower reports whether lowercased value contains any substrings.

@@ -111,6 +111,44 @@ func TestNormalizeLowerTrimSpace(t *testing.T) {
 	}
 }
 
+func TestTrimSpace(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "empty",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "whitespace only",
+			input: " \t\n ",
+			want:  "",
+		},
+		{
+			name:  "trimmed",
+			input: "  note  ",
+			want:  "note",
+		},
+		{
+			name:  "inner whitespace preserved",
+			input: "  one  two  ",
+			want:  "one  two",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := TrimSpace(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}
+
 func TestIsBlank(t *testing.T) {
 	cases := []struct {
 		name  string

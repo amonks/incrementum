@@ -69,7 +69,7 @@ func formatTodoItem(item todoItem, width int) string {
 	if item.isDraft {
 		id = "draft"
 	}
-	title := trimmedValue(item.todo.Title)
+	title := internalstrings.TrimSpace(item.todo.Title)
 	if title == "" {
 		title = "(untitled)"
 	}
@@ -329,22 +329,22 @@ func (model todoDetailModel) advanceField(delta int) todoDetailModel {
 
 func (model todoDetailModel) computeDirty() bool {
 	values := model.valuesByKind()
-	trimmedTitle := trimmedValue(values[fieldTitle])
-	if trimmedTitle != trimmedValue(model.todo.Title) {
+	trimmedTitle := internalstrings.TrimSpace(values[fieldTitle])
+	if trimmedTitle != internalstrings.TrimSpace(model.todo.Title) {
 		return true
 	}
 	if values[fieldDescription] != model.todo.Description {
 		return true
 	}
-	trimmedStatus := trimmedValue(values[fieldStatus])
+	trimmedStatus := internalstrings.TrimSpace(values[fieldStatus])
 	if trimmedStatus != string(model.todo.Status) {
 		return true
 	}
-	trimmedType := trimmedValue(values[fieldType])
+	trimmedType := internalstrings.TrimSpace(values[fieldType])
 	if trimmedType != string(model.todo.Type) {
 		return true
 	}
-	trimmedPriority := trimmedValue(values[fieldPriority])
+	trimmedPriority := internalstrings.TrimSpace(values[fieldPriority])
 	if trimmedPriority != strconv.Itoa(model.todo.Priority) && trimmedPriority != todo.PriorityName(model.todo.Priority) {
 		return true
 	}
@@ -429,7 +429,7 @@ func (model todoDetailModel) renderContent() string {
 
 func (model todoDetailModel) buildCreateOptions() (string, todo.CreateOptions, error) {
 	values := model.valuesByKind()
-	title := trimmedValue(values[fieldTitle])
+	title := internalstrings.TrimSpace(values[fieldTitle])
 	status, err := parseStatus(values[fieldStatus])
 	if err != nil {
 		return "", todo.CreateOptions{}, err
@@ -465,7 +465,7 @@ func (model todoDetailModel) buildUpdateOptions() (todo.UpdateOptions, error) {
 		return todo.UpdateOptions{}, err
 	}
 	return todo.UpdateOptions{
-		Title:       stringPtr(trimmedValue(values[fieldTitle])),
+		Title:       stringPtr(internalstrings.TrimSpace(values[fieldTitle])),
 		Description: stringPtr(values[fieldDescription]),
 		Status:      &status,
 		Priority:    &priority,
@@ -580,10 +580,6 @@ func valueOrDash(value string) string {
 		return "-"
 	}
 	return value
-}
-
-func trimmedValue(value string) string {
-	return strings.TrimSpace(value)
 }
 
 func stringPtr(value string) *string {
