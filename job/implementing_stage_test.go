@@ -110,7 +110,12 @@ func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.
 			return "after", nil
 		},
 		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
-			return OpencodeRunResult{SessionID: "ses-789", ExitCode: -1}, nil
+			return OpencodeRunResult{
+				SessionID:    "ses-789",
+				ExitCode:     -1,
+				RunCommand:   "opencode run --attach=http://127.0.0.1:1234 --agent=gpt-5.2-codex",
+				ServeCommand: "opencode serve --port=1234 --hostname=127.0.0.1",
+			}, nil
 		},
 		RestoreWorkspace: func(_ string, commitID string) error {
 			restoreCalled = true
@@ -142,6 +147,12 @@ func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.
 	}
 	if !strings.Contains(message, "prompt prompt-implementation.tmpl") {
 		t.Fatalf("expected prompt context, got %v", message)
+	}
+	if !strings.Contains(message, "run opencode run --attach=http://127.0.0.1:1234 --agent=gpt-5.2-codex") {
+		t.Fatalf("expected run command context, got %v", message)
+	}
+	if !strings.Contains(message, "serve opencode serve --port=1234 --hostname=127.0.0.1") {
+		t.Fatalf("expected serve command context, got %v", message)
 	}
 	if !strings.Contains(message, "before before") || !strings.Contains(message, "after after") {
 		t.Fatalf("expected commit context, got %v", message)

@@ -118,10 +118,10 @@ any stage -> failed (unrecoverable error)
 8. If opencode returns an error before completion, record a `job.opencode.error`
    event with the purpose and error message, then mark the job `failed`.
 9. If opencode fails (nonzero exit): mark job `failed` with an error that
-   includes purpose, session id, agent, prompt template, repo/workspace paths,
-   and before/after commit ids when available. If the exit code is negative and
-   the working copy commit changed, best-effort restore the workspace to the
-   pre-opencode commit before failing.
+   includes purpose, session id, agent, prompt template, opencode run/serve
+   command lines, repo/workspace paths, and before/after commit ids when
+   available. If the exit code is negative and the working copy commit changed,
+   best-effort restore the workspace to the pre-opencode commit before failing.
 10. Record the current working copy commit id again.
 11. If the commit id changed, run `jj diff --from <before> --to <after> --stat` to
     confirm the working copy diff is non-empty; treat an empty diff stat or a

@@ -32,8 +32,10 @@ type RunOptions struct {
 
 // RunResult captures output from running opencode.
 type RunResult struct {
-	SessionID string
-	ExitCode  int
+	SessionID    string
+	ExitCode     int
+	ServeCommand string
+	RunCommand   string
 }
 
 // Run executes opencode and records session state.
@@ -80,7 +82,9 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 	serverURL := fmt.Sprintf("http://%s:%d", serverHost, port)
 	eventURL := serverURL + "/event"
 
-	serveCmd := exec.Command("opencode", "serve", "--port="+strconv.Itoa(port), "--hostname="+serverHost)
+	serveArgs := []string{"serve", "--port=" + strconv.Itoa(port), "--hostname=" + serverHost}
+	serveCmd := exec.Command("opencode", serveArgs...)
+	serveCommand := formatCommand("opencode", serveArgs...)
 	serveCmd.Dir = workDir
 	serveCmd.Env = env
 	serveCmd.Stdout = runStderr
@@ -126,6 +130,7 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 		runArgs = append(runArgs, "--agent="+opts.Agent)
 	}
 	runCmd := exec.Command("opencode", runArgs...)
+	runCommand := formatCommand("opencode", runArgs...)
 	runCmd.Dir = workDir
 	runCmd.Env = env
 	runCmd.Stdout = runStdout
@@ -180,7 +185,7 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 			if runErr != nil {
 				return RunResult{}, runErr
 			}
-			return RunResult{SessionID: sessionResult.session.ID, ExitCode: exitCode}, nil
+			return RunResult{SessionID: sessionResult.session.ID, ExitCode: exitCode, ServeCommand: serveCommand, RunCommand: runCommand}, nil
 		},
 	}
 
@@ -225,6 +230,22 @@ func (s *Store) ensureSession(repoPath, workDir string, startedAt time.Time, pro
 	}
 
 	return s.CreateSession(repoPath, metadata.ID, prompt, sessionStartedAt)
+}
+
+func formatCommand(name string, args ...string) string {
+	parts := make([]string, 0, len(args)+1)
+	parts = append(parts, name)
+	for _, arg := range args {
+		parts = append(parts, formatCommandArg(arg))
+	}
+	return strings.Join(parts, " ")
+}
+
+func formatCommandArg(arg string) string {
+	if arg == "" || strings.ContainsAny(arg, " \t\n\r\"") {
+		return strconv.Quote(arg)
+	}
+	return arg
 }
 
 func samePath(left, right string) bool {

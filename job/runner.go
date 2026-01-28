@@ -66,8 +66,10 @@ type RunResult struct {
 
 // OpencodeRunResult captures output from running opencode.
 type OpencodeRunResult struct {
-	SessionID string
-	ExitCode  int
+	SessionID    string
+	ExitCode     int
+	ServeCommand string
+	RunCommand   string
 }
 
 type reviewScope int
@@ -932,6 +934,12 @@ func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunR
 	if strings.TrimSpace(promptName) != "" {
 		parts = append(parts, fmt.Sprintf("prompt %s", promptName))
 	}
+	if strings.TrimSpace(result.RunCommand) != "" {
+		parts = append(parts, fmt.Sprintf("run %s", result.RunCommand))
+	}
+	if strings.TrimSpace(result.ServeCommand) != "" {
+		parts = append(parts, fmt.Sprintf("serve %s", result.ServeCommand))
+	}
 	if strings.TrimSpace(runOpts.RepoPath) != "" {
 		parts = append(parts, fmt.Sprintf("repo %s", runOpts.RepoPath))
 	}
@@ -1074,7 +1082,7 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 	if eventErr != nil {
 		return OpencodeRunResult{}, eventErr
 	}
-	return OpencodeRunResult{SessionID: result.SessionID, ExitCode: result.ExitCode}, nil
+	return OpencodeRunResult{SessionID: result.SessionID, ExitCode: result.ExitCode, ServeCommand: result.ServeCommand, RunCommand: result.RunCommand}, nil
 }
 
 func recordOpencodeEvents(log *EventLog, events <-chan opencode.Event) <-chan error {
