@@ -774,7 +774,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 		}
 		return updated, nil
 	}
-	message := strings.TrimSpace(opts.CommitMessage)
+	message := internalstrings.TrimSpace(opts.CommitMessage)
 	if message == "" {
 		return Job{}, fmt.Errorf("commit message is required")
 	}
@@ -886,7 +886,7 @@ func diffStatHasChanges(diffStat string) bool {
 	seenSummary := false
 	changedSummary := false
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
+		line = internalstrings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
