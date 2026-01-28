@@ -63,13 +63,6 @@ def read_prompt(args):
     return ""
 
 
-def extract_workspace_root(prompt: str) -> str:
-    for line in prompt.splitlines():
-        if line.startswith("Workspace root:"):
-            return line.split(":", 1)[1].strip()
-    return ""
-
-
 def extract_command(prompt: str) -> str:
     match = re.search(r"execute '([^']+)'", prompt)
     if match:
@@ -87,14 +80,10 @@ def commit_message_for_command(command: str) -> str:
 
 
 def run_job(prompt: str):
-    workspace_root = extract_workspace_root(prompt)
     pwd = os.environ.get("PWD", "")
     if not pwd:
         raise RuntimeError("PWD not set")
-    if not workspace_root:
-        workspace_root = pwd
-    if os.path.realpath(pwd) != os.path.realpath(workspace_root):
-        raise RuntimeError(f"PWD {pwd} does not match workspace root {workspace_root}")
+    workspace_root = pwd
     marker = os.path.join(workspace_root, ".incrementum-work-complete")
     if not os.path.exists(marker) and not prompt.startswith("Review"):
         command = extract_command(prompt)
