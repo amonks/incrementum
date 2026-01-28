@@ -3,10 +3,10 @@ package jj_test
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/amonks/incrementum/internal/jj"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 func TestWorkspaceRoot(t *testing.T) {
@@ -295,7 +295,7 @@ func TestDescribe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read description: %v", err)
 	}
-	if strings.TrimSpace(description) != "test description" {
+	if internalstrings.TrimSpace(description) != "test description" {
 		t.Fatalf("expected description to be set")
 	}
 }
@@ -317,7 +317,7 @@ func TestCommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read commit description: %v", err)
 	}
-	if strings.TrimSpace(description) != "test commit" {
+	if internalstrings.TrimSpace(description) != "test commit" {
 		t.Fatalf("expected commit description to be set")
 	}
 }

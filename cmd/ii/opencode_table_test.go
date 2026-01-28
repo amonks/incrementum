@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/opencode"
 	"github.com/charmbracelet/lipgloss"
@@ -253,7 +254,7 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -287,7 +288,7 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -314,7 +315,7 @@ func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(value string, prefix int) string { return value }, now, nil))
+	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(value string, prefix int) string { return value }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -343,7 +344,7 @@ func TestFormatOpencodeTableShowsAgeForCompletedSession(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -375,7 +376,7 @@ func TestFormatOpencodeTableShowsDuration(t *testing.T) {
 		},
 	}
 
-	output := strings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)

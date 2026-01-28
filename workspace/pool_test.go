@@ -9,6 +9,7 @@ import (
 
 	"github.com/amonks/incrementum/internal/jj"
 	statestore "github.com/amonks/incrementum/internal/state"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/workspace"
 )
 
@@ -301,8 +302,8 @@ func TestPool_Acquire_ImmutableRevisionCreatesNewChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get change description: %v", err)
 	}
-	if strings.TrimSpace(description) != message {
-		t.Fatalf("expected change description %q, got %q", message, strings.TrimSpace(description))
+	if internalstrings.TrimSpace(description) != message {
+		t.Fatalf("expected change description %q, got %q", message, internalstrings.TrimSpace(description))
 	}
 
 	list, err := pool.List(repoPath)

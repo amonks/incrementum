@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -107,7 +108,7 @@ func TestLogSwarmServeAddr(t *testing.T) {
 				}
 			})
 			want := fmt.Sprintf("Swarm server listening on %s", tc.want)
-			if strings.TrimSpace(output) != want {
+			if internalstrings.TrimSpace(output) != want {
 				t.Fatalf("expected %q, got %q", want, output)
 			}
 		})

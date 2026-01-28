@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 	jobpkg "github.com/amonks/incrementum/job"
 )
 
@@ -134,7 +135,7 @@ func TestFormatJobTableUsesCompactAge(t *testing.T) {
 
 	todoTitles := map[string]string{"abc12345": "Title"}
 
-	output := strings.TrimSpace(formatJobTable(TableFormatOptions{
+	output := internalstrings.TrimSpace(formatJobTable(TableFormatOptions{
 		Jobs:       jobs,
 		Highlight:  func(id string, prefix int) string { return id },
 		Now:        now,
@@ -177,7 +178,7 @@ func TestFormatJobTableUsesUpdatedDurationForCompleted(t *testing.T) {
 
 	todoTitles := map[string]string{"abc12345": "Title"}
 
-	output := strings.TrimSpace(formatJobTable(TableFormatOptions{
+	output := internalstrings.TrimSpace(formatJobTable(TableFormatOptions{
 		Jobs:       jobs,
 		Highlight:  func(id string, prefix int) string { return id },
 		Now:        now,
