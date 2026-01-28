@@ -93,7 +93,7 @@ func (logger *ConsoleLogger) Prompt(entry PromptLog) {
 		formatLogLabel(logger.headerStyle.Render(label), documentIndent),
 		formatPromptBody(entry.Prompt, subdocumentIndent),
 	}
-	if strings.TrimSpace(entry.Transcript) != "" {
+	if !isBlank(entry.Transcript) {
 		lines = append(lines,
 			formatLogLabel(logger.headerStyle.Render("Opencode transcript:"), documentIndent),
 			formatTranscriptBody(entry.Transcript, subdocumentIndent),
@@ -157,11 +157,15 @@ func normalizeLogBody(value string) string {
 
 func trimLogBody(value string) (string, bool) {
 	value = internalstrings.TrimTrailingNewlines(value)
-	return value, strings.TrimSpace(value) == ""
+	return value, isBlank(value)
+}
+
+func isBlank(value string) bool {
+	return strings.TrimSpace(value) == ""
 }
 
 func formatLogLabel(label string, indent int) string {
-	if strings.TrimSpace(label) == "" {
+	if isBlank(label) {
 		return ""
 	}
 	return IndentBlock(label, indent)
@@ -169,7 +173,7 @@ func formatLogLabel(label string, indent int) string {
 
 func renderMarkdownBlockOrDash(body string, indent int, renderWidth int) string {
 	rendered := RenderMarkdown(body, renderWidth)
-	if strings.TrimSpace(rendered) == "" {
+	if isBlank(rendered) {
 		return IndentBlock("-", indent)
 	}
 	return IndentBlock(rendered, indent)
@@ -207,7 +211,7 @@ const markdownHardBreakPadding = 2
 func preserveMarkdownLineBreaks(value string) string {
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
-		if strings.TrimSpace(line) == "" {
+		if isBlank(line) {
 			continue
 		}
 		lines[i] = line + "  "
@@ -231,7 +235,7 @@ func formatPromptBody(body string, indent int) string {
 		return IndentBlock(body, indent)
 	}
 	reflowed := ReflowParagraphs(body, wrapWidthFor(lineWidth, indent))
-	if strings.TrimSpace(reflowed) == "" {
+	if isBlank(reflowed) {
 		return IndentBlock("-", indent)
 	}
 	return IndentBlock(reflowed, indent)
@@ -352,7 +356,7 @@ func reviewLabel(purpose string) string {
 }
 
 func commitMessageLabel(label string) string {
-	if strings.TrimSpace(label) == "" {
+	if isBlank(label) {
 		return "Commit message:"
 	}
 	return fmt.Sprintf("%s commit message:", label)
