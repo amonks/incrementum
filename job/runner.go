@@ -96,7 +96,7 @@ type opencodeRunOptions struct {
 
 // Run creates and executes a job for the given todo.
 func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
-	if strings.TrimSpace(todoID) == "" {
+	if internalstrings.IsBlank(todoID) {
 		return nil, fmt.Errorf("todo id is required")
 	}
 
@@ -139,7 +139,7 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 	}
 	startedAt := opts.Now()
 	workspacePath := repoPath
-	if strings.TrimSpace(opts.WorkspacePath) != "" {
+	if !internalstrings.IsBlank(opts.WorkspacePath) {
 		workspacePath = opts.WorkspacePath
 	}
 	workspacePath = filepath.Clean(workspacePath)
@@ -472,7 +472,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	}
 
 	promptName := "prompt-implementation.tmpl"
-	if strings.TrimSpace(current.Feedback) != "" {
+	if !internalstrings.IsBlank(current.Feedback) {
 		promptName = "prompt-feedback.tmpl"
 	}
 	prompt, err := renderPromptTemplate(item, current.Feedback, previousMessage, commitLog, nil, promptName, workspacePath)
@@ -503,7 +503,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 			return OpencodeRunResult{}, err
 		}
 		transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
-		if strings.TrimSpace(transcript) != "" {
+		if !internalstrings.IsBlank(transcript) {
 			if err := appendJobEvent(opts.EventLog, jobEventTranscript, transcriptEventData{Purpose: "implement", Transcript: transcript}); err != nil {
 				return OpencodeRunResult{}, err
 			}
@@ -521,7 +521,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	for opencodeResult.ExitCode != 0 {
 		afterCommitID := ""
 		var afterCommitErr error
-		if opts.CurrentCommitID != nil && strings.TrimSpace(workspacePath) != "" {
+		if opts.CurrentCommitID != nil && !internalstrings.IsBlank(workspacePath) {
 			afterCommitID, afterCommitErr = opts.CurrentCommitID(workspacePath)
 		}
 		restored := false
@@ -689,7 +689,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 	transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
-	if strings.TrimSpace(transcript) != "" {
+	if !internalstrings.IsBlank(transcript) {
 		if err := appendJobEvent(opts.EventLog, jobEventTranscript, transcriptEventData{Purpose: purpose, Transcript: transcript}); err != nil {
 			return Job{}, err
 		}
@@ -943,31 +943,31 @@ func runOpencodeWithEvents(opts RunOptions, runOpts opencodeRunOptions, purpose 
 
 func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunResult, runOpts opencodeRunOptions, beforeCommitID, afterCommitID string, afterCommitErr error, restored bool, restoreErr error, retryCount int) string {
 	parts := []string{}
-	if strings.TrimSpace(result.SessionID) != "" {
+	if !internalstrings.IsBlank(result.SessionID) {
 		parts = append(parts, fmt.Sprintf("session %s", result.SessionID))
 	}
-	if strings.TrimSpace(runOpts.Agent) != "" {
+	if !internalstrings.IsBlank(runOpts.Agent) {
 		parts = append(parts, fmt.Sprintf("agent %q", runOpts.Agent))
 	}
-	if strings.TrimSpace(promptName) != "" {
+	if !internalstrings.IsBlank(promptName) {
 		parts = append(parts, fmt.Sprintf("prompt %s", promptName))
 	}
-	if strings.TrimSpace(result.RunCommand) != "" {
+	if !internalstrings.IsBlank(result.RunCommand) {
 		parts = append(parts, fmt.Sprintf("run %s", result.RunCommand))
 	}
-	if strings.TrimSpace(result.ServeCommand) != "" {
+	if !internalstrings.IsBlank(result.ServeCommand) {
 		parts = append(parts, fmt.Sprintf("serve %s", result.ServeCommand))
 	}
-	if strings.TrimSpace(runOpts.RepoPath) != "" {
+	if !internalstrings.IsBlank(runOpts.RepoPath) {
 		parts = append(parts, fmt.Sprintf("repo %s", runOpts.RepoPath))
 	}
-	if strings.TrimSpace(runOpts.WorkspacePath) != "" {
+	if !internalstrings.IsBlank(runOpts.WorkspacePath) {
 		parts = append(parts, fmt.Sprintf("workspace %s", runOpts.WorkspacePath))
 	}
-	if strings.TrimSpace(beforeCommitID) != "" {
+	if !internalstrings.IsBlank(beforeCommitID) {
 		parts = append(parts, fmt.Sprintf("before %s", beforeCommitID))
 	}
-	if strings.TrimSpace(afterCommitID) != "" {
+	if !internalstrings.IsBlank(afterCommitID) {
 		parts = append(parts, fmt.Sprintf("after %s", afterCommitID))
 	}
 	if afterCommitErr != nil {
@@ -993,7 +993,7 @@ func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunR
 }
 
 func ensureCommitMessageInPrompt(prompt, message string) string {
-	if strings.TrimSpace(message) == "" {
+	if internalstrings.IsBlank(message) {
 		return prompt
 	}
 	if promptMessagePattern.MatchString(prompt) {
@@ -1029,7 +1029,7 @@ func readCommitMessage(path string) (string, error) {
 		removeErr = fmt.Errorf("remove commit message: %w", removeErr)
 	}
 	message := normalizeCommitMessage(string(data))
-	if strings.TrimSpace(message) == "" {
+	if internalstrings.IsBlank(message) {
 		return "", errors.Join(fmt.Errorf("commit message is empty"), removeErr)
 	}
 	if removeErr != nil {
@@ -1039,10 +1039,10 @@ func readCommitMessage(path string) (string, error) {
 }
 
 func resolveReviewCommitMessage(commitMessage, workspacePath string, requireMessage bool) (string, error) {
-	if strings.TrimSpace(commitMessage) != "" {
+	if !internalstrings.IsBlank(commitMessage) {
 		return commitMessage, nil
 	}
-	if strings.TrimSpace(workspacePath) == "" {
+	if internalstrings.IsBlank(workspacePath) {
 		return "", nil
 	}
 	messagePath := filepath.Join(workspacePath, commitMessageFilename)
