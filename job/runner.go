@@ -878,9 +878,6 @@ func testingStageOutcome(results []TestCommandResult) (Stage, string) {
 }
 
 func diffStatHasChanges(diffStat string) bool {
-	if internalstrings.IsBlank(diffStat) {
-		return false
-	}
 	lines := strings.Split(diffStat, "\n")
 	seenChangeLine := false
 	seenSummary := false
