@@ -96,9 +96,6 @@ func (r *eventRecorder) Write(data []byte) error {
 	if r.writer == nil {
 		return fmt.Errorf("event recorder is closed")
 	}
-	if len(data) == 0 {
-		return nil
-	}
 	_, err := r.writer.Write(data)
 	return err
 }
