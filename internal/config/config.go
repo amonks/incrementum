@@ -106,10 +106,11 @@ func mergeConfigs(globalCfg, projectCfg *Config, globalMeta, projectMeta toml.Me
 }
 
 func mergeString(projectDefined bool, projectValue, globalValue string) string {
+	value := globalValue
 	if projectDefined {
-		return strings.TrimSpace(projectValue)
+		value = projectValue
 	}
-	return strings.TrimSpace(globalValue)
+	return strings.TrimSpace(value)
 }
 
 // RunScript executes a script in the given directory.
