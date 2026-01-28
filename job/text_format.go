@@ -33,7 +33,7 @@ func RenderMarkdown(value string, width int) string {
 
 // ReflowParagraphs wraps and normalizes paragraph text.
 func ReflowParagraphs(value string, width int) string {
-	value = strings.TrimSpace(value)
+	value = internalstrings.TrimSpace(value)
 	if value == "" {
 		return ""
 	}
@@ -104,7 +104,7 @@ func ReflowIndentedText(value string, width int, baseIndent int) string {
 			if internalstrings.LeadingSpaces(line) != indent {
 				break
 			}
-			parts = append(parts, strings.TrimSpace(line[indent:]))
+			parts = append(parts, internalstrings.TrimSpace(line[indent:]))
 			i++
 		}
 		normalized := internalstrings.NormalizeWhitespace(strings.Join(parts, " "))
