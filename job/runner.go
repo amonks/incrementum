@@ -878,11 +878,10 @@ func testingStageOutcome(results []TestCommandResult) (Stage, string) {
 }
 
 func diffStatHasChanges(diffStat string) bool {
-	trimmed := strings.TrimSpace(diffStat)
-	if trimmed == "" {
+	if internalstrings.IsBlank(diffStat) {
 		return false
 	}
-	lines := strings.Split(trimmed, "\n")
+	lines := strings.Split(diffStat, "\n")
 	seenChangeLine := false
 	seenSummary := false
 	changedSummary := false
