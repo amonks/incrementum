@@ -87,12 +87,12 @@ func MatchPrefixNormalized(ids []string, prefix string) (string, bool, bool) {
 }
 
 func matchPrefix(ids []string, prefix string, normalizeIDs bool) (string, bool, bool) {
-	needle := strings.ToLower(prefix)
+	needle := normalizeID(prefix)
 	var match string
 	for _, id := range ids {
 		idKey := id
 		if normalizeIDs {
-			idKey = strings.ToLower(id)
+			idKey = normalizeID(id)
 		}
 		if idKey != needle && !strings.HasPrefix(idKey, needle) {
 			continue
