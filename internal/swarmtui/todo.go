@@ -329,19 +329,23 @@ func (model todoDetailModel) advanceField(delta int) todoDetailModel {
 
 func (model todoDetailModel) computeDirty() bool {
 	values := model.valuesByKind()
-	if strings.TrimSpace(values[fieldTitle]) != strings.TrimSpace(model.todo.Title) {
+	trimmedTitle := strings.TrimSpace(values[fieldTitle])
+	if trimmedTitle != strings.TrimSpace(model.todo.Title) {
 		return true
 	}
 	if values[fieldDescription] != model.todo.Description {
 		return true
 	}
-	if strings.TrimSpace(values[fieldStatus]) != string(model.todo.Status) {
+	trimmedStatus := strings.TrimSpace(values[fieldStatus])
+	if trimmedStatus != string(model.todo.Status) {
 		return true
 	}
-	if strings.TrimSpace(values[fieldType]) != string(model.todo.Type) {
+	trimmedType := strings.TrimSpace(values[fieldType])
+	if trimmedType != string(model.todo.Type) {
 		return true
 	}
-	if strings.TrimSpace(values[fieldPriority]) != strconv.Itoa(model.todo.Priority) && strings.TrimSpace(values[fieldPriority]) != todo.PriorityName(model.todo.Priority) {
+	trimmedPriority := strings.TrimSpace(values[fieldPriority])
+	if trimmedPriority != strconv.Itoa(model.todo.Priority) && trimmedPriority != todo.PriorityName(model.todo.Priority) {
 		return true
 	}
 	return false
