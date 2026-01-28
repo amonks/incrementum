@@ -9,9 +9,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	internalopencode "github.com/amonks/incrementum/internal/opencode"
 )
 
 // RunOptions configures an opencode run.
@@ -110,7 +113,7 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 
 	sessionCh := make(chan sessionResult, 1)
 	go func() {
-		session, err := s.ensureSession(repoPath, startedAt, opts.Prompt)
+		session, err := s.ensureSession(repoPath, workDir, startedAt, opts.Prompt)
 		var recordErr error
 		if err == nil {
 			recordErr = recorder.SetSessionID(session.ID)
@@ -184,10 +187,28 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 	return handle, nil
 }
 
-func (s *Store) ensureSession(repoPath string, startedAt time.Time, prompt string) (OpencodeSession, error) {
-	metadata, err := s.storage.FindSessionForRunWithRetry(repoPath, startedAt, prompt, 5*time.Second)
-	if err != nil {
-		return OpencodeSession{}, err
+func (s *Store) ensureSession(repoPath, workDir string, startedAt time.Time, prompt string) (OpencodeSession, error) {
+	lookupPaths := make([]string, 0, 2)
+	if workDir != "" {
+		lookupPaths = append(lookupPaths, workDir)
+	}
+	if repoPath != "" && !samePath(repoPath, workDir) {
+		lookupPaths = append(lookupPaths, repoPath)
+	}
+	if len(lookupPaths) == 0 {
+		lookupPaths = append(lookupPaths, repoPath)
+	}
+
+	var metadata internalopencode.SessionMetadata
+	var err error
+	for idx, path := range lookupPaths {
+		metadata, err = s.storage.FindSessionForRunWithRetry(path, startedAt, prompt, 5*time.Second)
+		if err == nil {
+			break
+		}
+		if idx == len(lookupPaths)-1 {
+			return OpencodeSession{}, err
+		}
 	}
 
 	sessionStartedAt := startedAt
@@ -204,6 +225,20 @@ func (s *Store) ensureSession(repoPath string, startedAt time.Time, prompt strin
 	}
 
 	return s.CreateSession(repoPath, metadata.ID, prompt, sessionStartedAt)
+}
+
+func samePath(left, right string) bool {
+	return normalizePath(left) == normalizePath(right)
+}
+
+func normalizePath(path string) string {
+	if path == "" {
+		return ""
+	}
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	return filepath.Clean(path)
 }
 
 func replaceEnvVar(env []string, key, value string) []string {

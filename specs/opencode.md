@@ -55,6 +55,9 @@ Fields (JSON keys):
 - Opencode commands resolve the jj repo root from the current working directory
   when possible (workspace roots map to their source repo). When no repo is
   found, they fall back to the current working directory.
+- Session discovery for opencode runs uses the working directory to locate
+  session metadata, falling back to the repo path when they differ so workspace
+  runs still resolve their session entries.
 - Session IDs accept case-insensitive prefix matching; prefixes must be
   unambiguous.
 - `run` starts `opencode serve` bound to `127.0.0.1` and streams events from
