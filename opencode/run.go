@@ -15,6 +15,7 @@ import (
 	"time"
 
 	internalopencode "github.com/amonks/incrementum/internal/opencode"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // RunOptions configures an opencode run.
@@ -126,7 +127,7 @@ func (s *Store) Run(opts RunOptions) (*RunHandle, error) {
 	}()
 
 	runArgs := []string{"run", "--attach=" + serverURL}
-	if strings.TrimSpace(opts.Agent) != "" {
+	if !internalstrings.IsBlank(opts.Agent) {
 		runArgs = append(runArgs, "--agent="+opts.Agent)
 	}
 	runCmd := exec.Command("opencode", runArgs...)

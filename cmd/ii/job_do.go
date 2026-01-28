@@ -140,7 +140,7 @@ func runJobDoTodo(cmd *cobra.Command, todoID string) error {
 
 	if len(result.CommitLog) > 0 {
 		fmt.Printf("\n%s\n", formatCommitMessagesOutput(result.CommitLog))
-	} else if strings.TrimSpace(result.CommitMessage) != "" {
+	} else if !internalstrings.IsBlank(result.CommitMessage) {
 		fmt.Printf("\n%s\n", formatCommitMessageOutput(result.CommitMessage))
 	}
 	return nil
@@ -152,7 +152,7 @@ func formatCommitMessagesOutput(entries []jobpkg.CommitLogEntry) string {
 	for _, entry := range entries {
 		out.WriteString("\n")
 		label := "Commit"
-		if strings.TrimSpace(entry.ID) != "" {
+		if !internalstrings.IsBlank(entry.ID) {
 			label = fmt.Sprintf("Commit %s", entry.ID)
 		}
 		out.WriteString(jobpkg.IndentBlock(label+":", jobDocumentIndent))

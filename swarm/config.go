@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // DefaultPort is used when no port is configured.
@@ -42,7 +43,7 @@ func LoadConfig(repoPath string) (SwarmConfig, error) {
 
 // ResolveAddr returns the swarm server address for the repo.
 func ResolveAddr(repoPath, addr string) (string, error) {
-	if strings.TrimSpace(addr) != "" {
+	if !internalstrings.IsBlank(addr) {
 		return normalizeAddr(addr)
 	}
 	cfg, err := LoadConfig(repoPath)
