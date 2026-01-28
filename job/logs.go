@@ -162,9 +162,6 @@ func (writer *logSnapshotWriter) appendOpencodeEvent(event Event) error {
 	if err != nil {
 		return err
 	}
-	if len(outputs) == 0 {
-		return nil
-	}
 	for _, output := range outputs {
 		lines := formatOpencodeText(output)
 		if len(lines) == 0 {
