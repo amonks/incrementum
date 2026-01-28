@@ -188,6 +188,48 @@ func TestListSessionsSupportsSecondTimestamps(t *testing.T) {
 	}
 }
 
+func TestFindSessionForRunUsesAllProjectMatches(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	projectDir := filepath.Join(root, "storage", "project")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatalf("create project dir: %v", err)
+	}
+	writeJSON(t, filepath.Join(projectDir, "proj_old.json"), map[string]any{
+		"id":       "proj_old",
+		"worktree": repoPath,
+	})
+	writeJSON(t, filepath.Join(projectDir, "proj_new.json"), map[string]any{
+		"id":       "proj_new",
+		"worktree": repoPath,
+	})
+
+	created := startedAt.Add(2 * time.Second).Unix()
+	sessionDir := filepath.Join(root, "storage", "session", "proj_new")
+	if err := os.MkdirAll(sessionDir, 0o755); err != nil {
+		t.Fatalf("create session dir: %v", err)
+	}
+	writeJSON(t, filepath.Join(sessionDir, "ses_new.json"), map[string]any{
+		"id":        "ses_new",
+		"projectID": "proj_new",
+		"directory": repoPath,
+		"time": map[string]any{
+			"created": created,
+		},
+	})
+
+	selected, err := store.FindSessionForRun(repoPath, startedAt, "")
+	if err != nil {
+		t.Fatalf("find session: %v", err)
+	}
+	if selected.ID != "ses_new" {
+		t.Fatalf("expected session ses_new, got %q", selected.ID)
+	}
+}
+
 func TestSelectSessionUsesPromptMatch(t *testing.T) {
 	root := t.TempDir()
 	store := Storage{Root: root}

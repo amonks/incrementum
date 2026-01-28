@@ -60,6 +60,8 @@ Fields (JSON keys):
 - Repo path matching treats session directories nested within the repo (or repo
   roots nested under a session directory) as eligible matches so workspace
   runs locate sessions started from subdirectories.
+- Session discovery aggregates sessions for every project record that maps to
+  the repo worktree so stale project ids do not hide new sessions.
 - Session discovery for opencode runs uses the working directory to locate
   session metadata, falling back to the repo path when they differ so workspace
   runs still resolve their session entries.

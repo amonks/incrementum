@@ -145,25 +145,29 @@ type projectRecord struct {
 	Worktree string `json:"worktree"`
 }
 
-func (s Storage) projectIDForRepo(repoPath string) (string, error) {
+func (s Storage) projectIDsForRepo(repoPath string) ([]string, error) {
 	projectsDir := filepath.Join(s.storageDir(), "project")
 	entries, err := listJSONEntries(projectsDir, "opencode projects")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	repoPath = cleanPath(repoPath)
+	ids := make([]string, 0)
 	for _, entry := range entries {
 		var record projectRecord
 		if err := decodeJSONEntry(projectsDir, "opencode project", entry, &record); err != nil {
-			return "", err
+			return nil, err
 		}
 		if cleanPath(record.Worktree) != repoPath {
 			continue
 		}
-		return storageRecordID(record.ID, entry.Name()), nil
+		ids = append(ids, storageRecordID(record.ID, entry.Name()))
 	}
-	return "", fmt.Errorf("opencode project not found")
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("opencode project not found")
+	}
+	return ids, nil
 }
 
 type sessionRecord struct {
@@ -203,9 +207,19 @@ func (s Storage) listSessions(projectID string) ([]SessionMetadata, error) {
 }
 
 func (s Storage) sessionsForRepo(repoPath string) ([]SessionMetadata, error) {
-	projectID, err := s.projectIDForRepo(repoPath)
-	if err == nil {
-		return s.listSessions(projectID)
+	projectIDs, err := s.projectIDsForRepo(repoPath)
+	if err == nil && len(projectIDs) > 0 {
+		entries := make([]SessionMetadata, 0)
+		for _, projectID := range projectIDs {
+			projectSessions, err := s.listSessions(projectID)
+			if err != nil {
+				return nil, err
+			}
+			entries = append(entries, projectSessions...)
+		}
+		if len(entries) > 0 {
+			return entries, nil
+		}
 	}
 
 	entries, readErr := s.listAllSessions()
