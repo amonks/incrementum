@@ -34,7 +34,7 @@ func IsBlank(value string) bool {
 // ContainsAnyLower reports whether lowercased value contains any substrings.
 // Substrings should be provided in lowercase.
 func ContainsAnyLower(value string, substrings ...string) bool {
-	if value == "" || len(substrings) == 0 {
+	if len(substrings) == 0 {
 		return false
 	}
 	value = NormalizeLower(value)
