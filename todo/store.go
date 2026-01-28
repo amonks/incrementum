@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -835,8 +834,7 @@ func isStaleWorkspaceError(err error) bool {
 	if err == nil {
 		return false
 	}
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "working copy is stale") || strings.Contains(message, "workspace is stale")
+	return internalstrings.ContainsAnyLower(err.Error(), "working copy is stale", "workspace is stale")
 }
 
 func writeJSONLStoreWithContext[T any](store *Store, filename, label string, items []T) error {

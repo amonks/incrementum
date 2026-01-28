@@ -20,6 +20,11 @@ across subsystems.
 - Trims surrounding whitespace with `strings.TrimSpace` and then lowercases.
 - Does not alter inner whitespace beyond trimming the edges.
 
+## ContainsAnyLower
+
+- Lowercases the input string and reports whether it contains any provided substrings.
+- Substrings are expected to be provided in lowercase.
+
 ## NormalizeNewlines
 
 - Replaces CRLF and CR sequences with LF.

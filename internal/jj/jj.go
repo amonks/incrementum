@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // Client wraps the jj CLI.
@@ -259,9 +261,10 @@ func (c *Client) FileShow(repoPath, rev, path string) ([]byte, error) {
 }
 
 func isFileNotFoundOutput(output []byte) bool {
-	message := strings.ToLower(string(output))
-	return strings.Contains(message, "no such file") ||
-		strings.Contains(message, "no such path") ||
-		strings.Contains(message, "path does not exist") ||
-		strings.Contains(message, "path doesn't exist")
+	return internalstrings.ContainsAnyLower(string(output),
+		"no such file",
+		"no such path",
+		"path does not exist",
+		"path doesn't exist",
+	)
 }

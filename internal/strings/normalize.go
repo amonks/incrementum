@@ -24,6 +24,21 @@ func NormalizeLowerTrimSpace(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
+// ContainsAnyLower reports whether lowercased value contains any substrings.
+// Substrings should be provided in lowercase.
+func ContainsAnyLower(value string, substrings ...string) bool {
+	if value == "" || len(substrings) == 0 {
+		return false
+	}
+	value = strings.ToLower(value)
+	for _, substring := range substrings {
+		if strings.Contains(value, substring) {
+			return true
+		}
+	}
+	return false
+}
+
 // NormalizeNewlines replaces CRLF and CR with LF.
 func NormalizeNewlines(value string) string {
 	if value == "" {

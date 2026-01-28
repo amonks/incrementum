@@ -12,6 +12,7 @@ import (
 	"github.com/amonks/incrementum/internal/jj"
 	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // Pool manages a pool of jujutsu workspaces.
@@ -411,8 +412,7 @@ func isMissingRevisionError(err error) bool {
 	if err == nil {
 		return false
 	}
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "doesn't exist") || strings.Contains(message, "does not exist")
+	return internalstrings.ContainsAnyLower(err.Error(), "doesn't exist", "does not exist")
 }
 
 func looksLikeChangeID(rev string) bool {
