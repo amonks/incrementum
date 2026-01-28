@@ -16,9 +16,6 @@ var (
 
 // Render formats markdown text for terminal output.
 func Render(width, indent int, input []byte) []byte {
-	if len(input) == 0 {
-		return nil
-	}
 	value := internalstrings.NormalizeNewlines(string(input))
 	value = internalstrings.TrimTrailingNewlines(value)
 	if internalstrings.IsBlank(value) {
