@@ -422,10 +422,7 @@ func firstQuestionText(input map[string]any) string {
 	if !ok {
 		return ""
 	}
-	if text, ok := first["question"].(string); ok {
-		return strings.TrimSpace(text)
-	}
-	return ""
+	return stringFromMap(first, "question")
 }
 
 func quoteForLog(value string) string {
