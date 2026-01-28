@@ -135,15 +135,12 @@ any stage -> failed (unrecoverable error)
    opencode once. If the retry still fails, best-effort restore before failing
    and include the retry attempt in the error details.
 10. Record the current working copy commit id again.
-11. If the commit id changed, run `jj diff --from <before> --to <after> --stat` to
-    confirm the working copy diff is non-empty; treat an empty diff stat or a
-    zero-files summary (for example, "0 files changed, 0 insertions(+), 0
-    deletions(-)") as no change. If the output contains no file stat lines or
-    non-zero summary, treat it as empty.
-12. If the commit id did not change (or the diff stat is empty):
+11. If the commit id changed, run `jj log -r @ -T empty --no-graph` and treat a
+    `true` result as no change (empty working copy) and `false` as changed.
+12. If the commit id did not change (or the change is empty):
     - Delete `.incrementum-commit-message` from the workspace root if it exists.
     - Flag the next review cycle as the final project review.
-13. If the commit id changed and the diff stat is non-empty:
+13. If the commit id changed and the change is not empty:
     - Read `.incrementum-commit-message` from the workspace root, trimming trailing
       newlines, trailing whitespace on each line, and any leading blank lines.
     - Store the message for the committing stage.

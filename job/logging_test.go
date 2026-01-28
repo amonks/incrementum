@@ -255,8 +255,8 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "file.txt | 1 +\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
@@ -339,8 +339,8 @@ func TestRunImplementingStageUsesFeedbackPrompt(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "file.txt | 1 +\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
@@ -418,8 +418,8 @@ func TestRunImplementingStageRecordsEventLog(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "file.txt | 1 +\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)

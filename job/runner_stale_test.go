@@ -50,8 +50,8 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "file.txt | 1 +\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			if !updateCalled {

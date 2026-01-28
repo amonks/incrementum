@@ -52,6 +52,7 @@ type RunOptions struct {
 	// OpencodeAgent overrides agent selection for all stages when set.
 	OpencodeAgent       string
 	CurrentCommitID     func(string) (string, error)
+	CurrentChangeEmpty  func(string) (bool, error)
 	DiffStat            func(string, string, string) (string, error)
 	CommitIDAt          func(string, string) (string, error)
 	Commit              func(string, string) error
@@ -456,6 +457,10 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		client := jj.New()
 		opts.CurrentCommitID = client.CurrentCommitID
 	}
+	if opts.CurrentChangeEmpty == nil {
+		client := jj.New()
+		opts.CurrentChangeEmpty = client.CurrentChangeEmpty
+	}
 	if opts.DiffStat == nil {
 		client := jj.New()
 		opts.DiffStat = client.DiffStat
@@ -625,11 +630,14 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 
 	changed := beforeCommitID != afterCommitID
 	if changed {
-		diffStat, err := opts.DiffStat(workspacePath, beforeCommitID, afterCommitID)
+		if opts.CurrentChangeEmpty == nil {
+			return ImplementingStageResult{}, fmt.Errorf("current change empty check is required")
+		}
+		empty, err := opts.CurrentChangeEmpty(workspacePath)
 		if err != nil {
 			return ImplementingStageResult{}, err
 		}
-		if !diffStatHasChanges(diffStat) {
+		if empty {
 			changed = false
 		}
 	}

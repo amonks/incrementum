@@ -44,8 +44,8 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 			}
 			return "after", nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "file.txt | 1 +\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
 		},
 		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
 			return OpencodeRunResult{SessionID: "ses-123", ExitCode: 0}, nil
@@ -216,8 +216,8 @@ func TestRunImplementingStageSetsOpencodeConfigEnv(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "file.txt | 1 +\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			value, ok := envValue(runOpts.Env, opencodeConfigEnvVar)
@@ -313,7 +313,7 @@ func TestRunImplementingStageRetriesOpencodeAfterRestore(t *testing.T) {
 	}
 }
 
-func TestRunImplementingStageTreatsEmptyDiffAsNoChange(t *testing.T) {
+func TestRunImplementingStageTreatsEmptyChangeAsNoChange(t *testing.T) {
 	repoPath := t.TempDir()
 	stateDir := t.TempDir()
 
@@ -350,8 +350,8 @@ func TestRunImplementingStageTreatsEmptyDiffAsNoChange(t *testing.T) {
 			}
 			return "after", nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return true, nil
 		},
 		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
 			return OpencodeRunResult{SessionID: "ses-456", ExitCode: 0}, nil
@@ -370,7 +370,7 @@ func TestRunImplementingStageTreatsEmptyDiffAsNoChange(t *testing.T) {
 	}
 }
 
-func TestRunImplementingStageTreatsZeroDiffStatAsNoChange(t *testing.T) {
+func TestRunImplementingStageTreatsEmptyChangeAsNoChangeAfterCommit(t *testing.T) {
 	repoPath := t.TempDir()
 	stateDir := t.TempDir()
 
@@ -407,8 +407,8 @@ func TestRunImplementingStageTreatsZeroDiffStatAsNoChange(t *testing.T) {
 			}
 			return "after", nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "0 files changed, 0 insertions(+), 0 deletions(-)\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return true, nil
 		},
 		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
 			return OpencodeRunResult{SessionID: "ses-789", ExitCode: 0}, nil

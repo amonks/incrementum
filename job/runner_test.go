@@ -129,8 +129,8 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "file.txt | 1 +\n", nil
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
@@ -203,8 +203,8 @@ func TestRunImplementingStageNoChangesSkipsTesting(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
-		DiffStat: func(string, string, string) (string, error) {
-			return "", fmt.Errorf("diff stat should not be called")
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, fmt.Errorf("change empty check should not be called")
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			return OpencodeRunResult{SessionID: "oc-790", ExitCode: 0}, nil
@@ -272,6 +272,9 @@ func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *tes
 			}
 			return "same", nil
 		},
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, fmt.Errorf("change empty check should not be called")
+		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			seenPrompt = runOpts.Prompt
 			return OpencodeRunResult{SessionID: "oc-111", ExitCode: 0}, nil
@@ -334,6 +337,9 @@ func TestRunImplementingStageIncludesCommitLog(t *testing.T) {
 			id := commitIDs[commitIndex]
 			commitIndex++
 			return id, nil
+		},
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, fmt.Errorf("change empty check should not be called")
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			seenPrompt = runOpts.Prompt

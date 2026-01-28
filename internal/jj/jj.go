@@ -129,6 +129,22 @@ func (c *Client) CurrentCommitID(workspacePath string) (string, error) {
 	return logFieldAt(workspacePath, "@", "commit_id")
 }
 
+// CurrentChangeEmpty reports whether the current change has no diff.
+func (c *Client) CurrentChangeEmpty(workspacePath string) (bool, error) {
+	output, err := logFieldAt(workspacePath, "@", "empty")
+	if err != nil {
+		return false, err
+	}
+	switch output {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected jj log empty output %q", output)
+	}
+}
+
 // BookmarkList returns all bookmark names in the repository.
 func (c *Client) BookmarkList(workspacePath string) ([]string, error) {
 	cmd := exec.Command("jj", "bookmark", "list", "-T", "name ++ \"\\n\"")
