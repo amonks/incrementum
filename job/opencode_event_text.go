@@ -6,11 +6,7 @@ import (
 
 func formatOpencodeText(event opencodeRenderedEvent) []string {
 	if event.Inline != "" {
-		line := internalstrings.TrimSpace(event.Label + " " + event.Inline)
-		if line == "" {
-			return nil
-		}
-		return []string{IndentBlock(line, documentIndent)}
+		return []string{IndentBlock(event.Label+" "+event.Inline, documentIndent)}
 	}
 	labelBlank := internalstrings.IsBlank(event.Label)
 	bodyBlank := internalstrings.IsBlank(event.Body)
