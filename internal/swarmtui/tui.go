@@ -737,7 +737,7 @@ func (m model) renderStatusLine() string {
 }
 
 func (m model) renderHelpLine() string {
-	text := strings.TrimSpace(m.helpSummary())
+	text := internalstrings.TrimSpace(m.helpSummary())
 	if text == "" {
 		return ""
 	}
