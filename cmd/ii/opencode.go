@@ -195,7 +195,7 @@ func opencodePromptLine(prompt string) string {
 	}
 	line := strings.SplitN(prompt, "\n", 2)[0]
 	line = internalstrings.TrimTrailingCarriageReturn(line)
-	if strings.TrimSpace(line) == "" {
+	if internalstrings.IsBlank(line) {
 		return "-"
 	}
 	return line

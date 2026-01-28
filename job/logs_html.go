@@ -3,6 +3,8 @@ package job
 import (
 	"html/template"
 	"strings"
+
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // EventHTMLFormatter formats job events for HTML output.
@@ -130,7 +132,7 @@ func (writer *logHTMLWriter) writeInline(kind, label, value string) {
 }
 
 func (writer *logHTMLWriter) writeElement(tag, className, value string) {
-	if strings.TrimSpace(value) == "" {
+	if internalstrings.IsBlank(value) {
 		return
 	}
 	writer.builder.WriteString("<")

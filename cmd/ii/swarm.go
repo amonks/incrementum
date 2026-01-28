@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/config"
@@ -345,7 +344,7 @@ func openTodoStoreForPath(cmd *cobra.Command, repoPath string) (*todo.Store, err
 }
 
 func resolveRepoPath(path string) (string, error) {
-	if strings.TrimSpace(path) == "" {
+	if internalstrings.IsBlank(path) {
 		return getRepoPath()
 	}
 	return resolveRepoRoot(path)

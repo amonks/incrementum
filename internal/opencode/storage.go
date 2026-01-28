@@ -729,7 +729,7 @@ func formatToolOutput(stdout, stderr string) string {
 
 func formatToolOutputSection(label, text string) string {
 	text = internalstrings.TrimTrailingNewlines(text)
-	if strings.TrimSpace(text) == "" {
+	if internalstrings.IsBlank(text) {
 		return ""
 	}
 	return label + "\n" + indentToolOutput(text)

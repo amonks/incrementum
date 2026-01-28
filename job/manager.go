@@ -9,6 +9,7 @@ import (
 	"github.com/amonks/incrementum/internal/ids"
 	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // OpenOptions configures a job manager.
@@ -38,7 +39,7 @@ func Open(repoPath string, opts OpenOptions) (*Manager, error) {
 
 // Create stores a new job with active status and implementing stage.
 func (m *Manager) Create(todoID string, startedAt time.Time, agent string) (Job, error) {
-	if strings.TrimSpace(todoID) == "" {
+	if internalstrings.IsBlank(todoID) {
 		return Job{}, fmt.Errorf("todo id is required")
 	}
 
@@ -82,7 +83,7 @@ type UpdateOptions struct {
 
 // Update updates an existing job by id or prefix.
 func (m *Manager) Update(jobID string, opts UpdateOptions, updatedAt time.Time) (Job, error) {
-	if strings.TrimSpace(jobID) == "" {
+	if internalstrings.IsBlank(jobID) {
 		return Job{}, ErrJobNotFound
 	}
 

@@ -72,7 +72,7 @@ const shutdownJobTimeout = 5 * time.Second
 
 // NewServer creates a swarm server.
 func NewServer(opts ServerOptions) (*Server, error) {
-	if strings.TrimSpace(opts.RepoPath) == "" {
+	if internalstrings.IsBlank(opts.RepoPath) {
 		return nil, fmt.Errorf("repo path is required")
 	}
 	repoPath := filepath.Clean(opts.RepoPath)
@@ -491,7 +491,7 @@ func (s *Server) handleTail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) isJobRunning(jobID string) bool {
-	if strings.TrimSpace(jobID) == "" {
+	if internalstrings.IsBlank(jobID) {
 		return false
 	}
 	s.mu.Lock()
@@ -666,7 +666,7 @@ func (s *Server) startJob(ctx context.Context, todoID string) (string, error) {
 }
 
 func (s *Server) killJob(jobID string) error {
-	if strings.TrimSpace(jobID) == "" {
+	if internalstrings.IsBlank(jobID) {
 		return job.ErrJobNotFound
 	}
 	s.mu.Lock()

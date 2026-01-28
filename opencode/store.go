@@ -3,13 +3,13 @@ package opencode
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/ids"
 	internalopencode "github.com/amonks/incrementum/internal/opencode"
 	"github.com/amonks/incrementum/internal/paths"
 	statestore "github.com/amonks/incrementum/internal/state"
+	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 // Store manages opencode session state.
@@ -89,7 +89,7 @@ func (s *Store) CreateSession(repoPath, sessionID, prompt string, startedAt time
 	if err != nil {
 		return OpencodeSession{}, err
 	}
-	if strings.TrimSpace(sessionID) == "" {
+	if internalstrings.IsBlank(sessionID) {
 		return OpencodeSession{}, fmt.Errorf("session id is required")
 	}
 

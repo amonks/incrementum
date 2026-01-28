@@ -64,7 +64,7 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 	}
 
 	firstLine := strings.TrimSpace(lines[0])
-	if firstLine == "" {
+	if internalstrings.IsBlank(firstLine) {
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
 
@@ -81,7 +81,7 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 
 	blankIndex := -1
 	for i := 1; i < len(lines); i++ {
-		if strings.TrimSpace(lines[i]) == "" {
+		if internalstrings.IsBlank(lines[i]) {
 			blankIndex = i
 			break
 		}

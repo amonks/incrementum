@@ -522,7 +522,7 @@ func (values todoFormValues) createOptions() (todo.CreateOptions, error) {
 }
 
 func (values todoFormValues) updateOptions() (todo.UpdateOptions, error) {
-	if strings.TrimSpace(values.Title) == "" {
+	if internalstrings.IsBlank(values.Title) {
 		return todo.UpdateOptions{}, fmt.Errorf("title is required")
 	}
 	status, err := parseStatus(values.Status, false, "")
@@ -708,7 +708,7 @@ func typeOptions() []selectOption {
 }
 
 func todoRedirectPath(todoID string) string {
-	if strings.TrimSpace(todoID) == "" {
+	if internalstrings.IsBlank(todoID) {
 		return "/web/todos"
 	}
 	return "/web/todos?id=" + todoID

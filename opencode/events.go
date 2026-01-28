@@ -117,7 +117,7 @@ func (r *eventRecorder) Close() error {
 }
 
 func (r *eventRecorder) SetSessionID(sessionID string) error {
-	if strings.TrimSpace(sessionID) == "" {
+	if internalstrings.IsBlank(sessionID) {
 		return fmt.Errorf("session id is required")
 	}
 

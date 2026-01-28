@@ -28,7 +28,7 @@ func normalizeFormattedCommitMessage(message string) string {
 	}
 	lines := strings.Split(message, "\n")
 	for i, line := range lines {
-		if strings.TrimSpace(line) == "" {
+		if internalstrings.IsBlank(line) {
 			continue
 		}
 		lines[i] = strings.TrimLeftFunc(line, unicode.IsSpace)
@@ -41,7 +41,7 @@ func trimLeadingBlankLines(message string) string {
 	lines := strings.Split(message, "\n")
 	start := 0
 	for start < len(lines) {
-		if strings.TrimSpace(lines[start]) != "" {
+		if !internalstrings.IsBlank(lines[start]) {
 			break
 		}
 		start++

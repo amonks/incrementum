@@ -171,7 +171,7 @@ func (c *Client) NewChangeWithMessage(workspacePath, parentRev, message string) 
 	if err != nil {
 		return "", err
 	}
-	if strings.TrimSpace(message) == "" {
+	if internalstrings.IsBlank(message) {
 		return changeID, nil
 	}
 	if err := c.Describe(workspacePath, message); err != nil {
