@@ -9,7 +9,7 @@ import (
 
 func renderMarkdownOrDash(value string, width int) string {
 	formatted := jobpkg.RenderMarkdown(value, width)
-	if strings.TrimSpace(formatted) == "" {
+	if internalstrings.IsBlank(formatted) {
 		return "-"
 	}
 	return formatted
@@ -24,7 +24,7 @@ func trimCommonIndent(value string) string {
 	lines := strings.Split(value, "\n")
 	minIndent := -1
 	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
+		if internalstrings.IsBlank(line) {
 			continue
 		}
 		indent := internalstrings.LeadingSpaces(line)
@@ -40,7 +40,7 @@ func trimCommonIndent(value string) string {
 	}
 	indentStr := strings.Repeat(" ", minIndent)
 	for i, line := range lines {
-		if strings.TrimSpace(line) == "" {
+		if internalstrings.IsBlank(line) {
 			lines[i] = ""
 			continue
 		}

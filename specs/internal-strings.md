@@ -20,6 +20,11 @@ across subsystems.
 - Trims surrounding whitespace with `strings.TrimSpace` and then lowercases.
 - Does not alter inner whitespace beyond trimming the edges.
 
+## IsBlank
+
+- Reports whether a string is empty or contains only Unicode whitespace.
+- Uses `strings.TrimSpace` for the check.
+
 ## ContainsAnyLower
 
 - Lowercases the input string and reports whether it contains any provided substrings.

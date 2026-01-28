@@ -21,7 +21,7 @@ func Render(width, indent int, input []byte) []byte {
 	}
 	value := internalstrings.NormalizeNewlines(string(input))
 	value = internalstrings.TrimTrailingNewlines(value)
-	if strings.TrimSpace(value) == "" {
+	if internalstrings.IsBlank(value) {
 		return nil
 	}
 	if width < 1 {
@@ -45,7 +45,7 @@ func Render(width, indent int, input []byte) []byte {
 	}
 	rendered = internalstrings.TrimTrailingNewlines(rendered)
 	rendered = cleanRenderedMarkdown(rendered)
-	if strings.TrimSpace(rendered) == "" {
+	if internalstrings.IsBlank(rendered) {
 		return nil
 	}
 	if indent <= 0 {
@@ -60,7 +60,7 @@ func cleanRenderedMarkdown(value string) string {
 		lines[i] = internalstrings.TrimTrailingWhitespace(line)
 	}
 	cleaned := strings.Join(lines, "\n")
-	if strings.TrimSpace(cleaned) == "" {
+	if internalstrings.IsBlank(cleaned) {
 		return ""
 	}
 	return cleaned

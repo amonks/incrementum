@@ -61,7 +61,7 @@ func splitParagraphs(value string) []string {
 		current = nil
 	}
 	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
+		if internalstrings.IsBlank(line) {
 			flush()
 			continue
 		}
@@ -81,7 +81,7 @@ func IndentBlock(value string, spaces int) string {
 func ReflowIndentedText(value string, width int, baseIndent int) string {
 	value = internalstrings.NormalizeNewlines(value)
 	value = internalstrings.TrimTrailingNewlines(value)
-	if strings.TrimSpace(value) == "" {
+	if internalstrings.IsBlank(value) {
 		return IndentBlock("-", baseIndent)
 	}
 
@@ -89,7 +89,7 @@ func ReflowIndentedText(value string, width int, baseIndent int) string {
 	var out []string
 	for i := 0; i < len(lines); {
 		line := lines[i]
-		if strings.TrimSpace(line) == "" {
+		if internalstrings.IsBlank(line) {
 			out = append(out, strings.Repeat(" ", baseIndent))
 			i++
 			continue
@@ -98,7 +98,7 @@ func ReflowIndentedText(value string, width int, baseIndent int) string {
 		var parts []string
 		for i < len(lines) {
 			line = lines[i]
-			if strings.TrimSpace(line) == "" {
+			if internalstrings.IsBlank(line) {
 				break
 			}
 			if internalstrings.LeadingSpaces(line) != indent {

@@ -24,6 +24,11 @@ func NormalizeLowerTrimSpace(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
+// IsBlank reports whether the string contains only whitespace.
+func IsBlank(value string) bool {
+	return strings.TrimSpace(value) == ""
+}
+
 // ContainsAnyLower reports whether lowercased value contains any substrings.
 // Substrings should be provided in lowercase.
 func ContainsAnyLower(value string, substrings ...string) bool {
