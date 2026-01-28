@@ -32,13 +32,16 @@ to skip the editor, or --edit to force opening the editor even when not interact
 }
 
 var (
-	todoCreateTitle       string
-	todoCreateType        string
-	todoCreatePriority    int
-	todoCreateDescription string
-	todoCreateDeps        []string
-	todoCreateEdit        bool
-	todoCreateNoEdit      bool
+	todoCreateTitle               string
+	todoCreateType                string
+	todoCreatePriority            int
+	todoCreateDescription         string
+	todoCreateImplementationModel string
+	todoCreateCodeReviewModel     string
+	todoCreateProjectReviewModel  string
+	todoCreateDeps                []string
+	todoCreateEdit                bool
+	todoCreateNoEdit              bool
 )
 
 // todo update
@@ -58,13 +61,16 @@ Use --no-edit to skip the editor, or --edit to force opening the editor even whe
 }
 
 var (
-	todoUpdateTitle       string
-	todoUpdateDescription string
-	todoUpdateStatus      string
-	todoUpdatePriority    int
-	todoUpdateType        string
-	todoUpdateEdit        bool
-	todoUpdateNoEdit      bool
+	todoUpdateTitle               string
+	todoUpdateDescription         string
+	todoUpdateStatus              string
+	todoUpdatePriority            int
+	todoUpdateType                string
+	todoUpdateImplementationModel string
+	todoUpdateCodeReviewModel     string
+	todoUpdateProjectReviewModel  string
+	todoUpdateEdit                bool
+	todoUpdateNoEdit              bool
 )
 
 // todo close
@@ -187,6 +193,9 @@ func init() {
 	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature)")
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description (use '-' to read from stdin)")
+	todoCreateCmd.Flags().StringVar(&todoCreateImplementationModel, "implementation-model", "", "Opencode model for implementation")
+	todoCreateCmd.Flags().StringVar(&todoCreateCodeReviewModel, "code-review-model", "", "Opencode model for commit review")
+	todoCreateCmd.Flags().StringVar(&todoCreateProjectReviewModel, "project-review-model", "", "Opencode model for project review")
 	todoCreateCmd.Flags().StringArrayVar(&todoCreateDeps, "deps", nil, "Dependencies in format <id> (e.g., abc123)")
 	todoCreateCmd.Flags().BoolVarP(&todoCreateEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	todoCreateCmd.Flags().BoolVar(&todoCreateNoEdit, "no-edit", false, "Do not open $EDITOR")
@@ -197,6 +206,9 @@ func init() {
 	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, proposed, in_progress, closed, done, tombstone)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateImplementationModel, "implementation-model", "", "Opencode model for implementation")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateCodeReviewModel, "code-review-model", "", "Opencode model for commit review")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateProjectReviewModel, "project-review-model", "", "Opencode model for project review")
 	todoUpdateCmd.Flags().BoolVarP(&todoUpdateEdit, "edit", "e", false, "Open $EDITOR (default if interactive)")
 	todoUpdateCmd.Flags().BoolVar(&todoUpdateNoEdit, "no-edit", false, "Do not open $EDITOR")
 
@@ -264,6 +276,15 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("description") {
 			data.Description = todoCreateDescription
 		}
+		if cmd.Flags().Changed("implementation-model") {
+			data.ImplementationModel = todoCreateImplementationModel
+		}
+		if cmd.Flags().Changed("code-review-model") {
+			data.CodeReviewModel = todoCreateCodeReviewModel
+		}
+		if cmd.Flags().Changed("project-review-model") {
+			data.ProjectReviewModel = todoCreateProjectReviewModel
+		}
 
 		parsed, err := editor.EditTodoWithData(data)
 		if err != nil {
@@ -304,11 +325,14 @@ func runTodoCreate(cmd *cobra.Command, args []string) error {
 	defer store.Release()
 
 	created, err := store.Create(todoCreateTitle, todo.CreateOptions{
-		Status:       defaultTodoStatus(),
-		Type:         todo.TodoType(todoCreateType),
-		Priority:     todoCreatePriorityValue(cmd),
-		Description:  todoCreateDescription,
-		Dependencies: todoCreateDeps,
+		Status:              defaultTodoStatus(),
+		Type:                todo.TodoType(todoCreateType),
+		Priority:            todoCreatePriorityValue(cmd),
+		Description:         todoCreateDescription,
+		ImplementationModel: todoCreateImplementationModel,
+		CodeReviewModel:     todoCreateCodeReviewModel,
+		ProjectReviewModel:  todoCreateProjectReviewModel,
+		Dependencies:        todoCreateDeps,
 	})
 	if err != nil {
 		return err
@@ -333,7 +357,7 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	hasFlags := hasChangedFlags(cmd, "title", "description", "status", "priority", "type")
+	hasFlags := hasChangedFlags(cmd, "title", "description", "status", "priority", "type", "implementation-model", "code-review-model", "project-review-model")
 
 	// Determine whether to open editor:
 	// - --edit forces editor
@@ -366,6 +390,15 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 			}
 			if cmd.Flags().Changed("type") {
 				data.Type = todoUpdateType
+			}
+			if cmd.Flags().Changed("implementation-model") {
+				data.ImplementationModel = todoUpdateImplementationModel
+			}
+			if cmd.Flags().Changed("code-review-model") {
+				data.CodeReviewModel = todoUpdateCodeReviewModel
+			}
+			if cmd.Flags().Changed("project-review-model") {
+				data.ProjectReviewModel = todoUpdateProjectReviewModel
 			}
 
 			parsed, err := editor.EditTodoWithData(data)
@@ -407,6 +440,15 @@ func runTodoUpdate(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("type") {
 		typ := todo.TodoType(todoUpdateType)
 		opts.Type = &typ
+	}
+	if cmd.Flags().Changed("implementation-model") {
+		opts.ImplementationModel = &todoUpdateImplementationModel
+	}
+	if cmd.Flags().Changed("code-review-model") {
+		opts.CodeReviewModel = &todoUpdateCodeReviewModel
+	}
+	if cmd.Flags().Changed("project-review-model") {
+		opts.ProjectReviewModel = &todoUpdateProjectReviewModel
 	}
 
 	updated, err := store.Update(args, opts)

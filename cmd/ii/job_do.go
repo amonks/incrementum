@@ -23,14 +23,17 @@ var jobDoCmd = &cobra.Command{
 var jobRun = jobpkg.Run
 
 var (
-	jobDoTitle       string
-	jobDoType        string
-	jobDoPriority    int
-	jobDoDescription string
-	jobDoDeps        []string
-	jobDoEdit        bool
-	jobDoNoEdit      bool
-	jobDoAgent       string
+	jobDoTitle               string
+	jobDoType                string
+	jobDoPriority            int
+	jobDoDescription         string
+	jobDoImplementationModel string
+	jobDoCodeReviewModel     string
+	jobDoProjectReviewModel  string
+	jobDoDeps                []string
+	jobDoEdit                bool
+	jobDoNoEdit              bool
+	jobDoAgent               string
 )
 
 func init() {
@@ -41,6 +44,9 @@ func init() {
 	jobDoCmd.Flags().StringVarP(&jobDoType, "type", "t", "task", "Todo type (task, bug, feature)")
 	jobDoCmd.Flags().IntVarP(&jobDoPriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	jobDoCmd.Flags().StringVarP(&jobDoDescription, "description", "d", "", "Description (use '-' to read from stdin)")
+	jobDoCmd.Flags().StringVar(&jobDoImplementationModel, "implementation-model", "", "Opencode model for implementation")
+	jobDoCmd.Flags().StringVar(&jobDoCodeReviewModel, "code-review-model", "", "Opencode model for commit review")
+	jobDoCmd.Flags().StringVar(&jobDoProjectReviewModel, "project-review-model", "", "Opencode model for project review")
 	jobDoCmd.Flags().StringArrayVar(&jobDoDeps, "deps", nil, "Dependencies in format <id> (e.g., abc123)")
 	jobDoCmd.Flags().BoolVarP(&jobDoEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	jobDoCmd.Flags().BoolVar(&jobDoNoEdit, "no-edit", false, "Do not open $EDITOR")
@@ -205,6 +211,15 @@ func createTodoFromJobFlags(cmd *cobra.Command, hasCreateFlags bool, openStore f
 		if cmd.Flags().Changed("description") {
 			data.Description = jobDoDescription
 		}
+		if cmd.Flags().Changed("implementation-model") {
+			data.ImplementationModel = jobDoImplementationModel
+		}
+		if cmd.Flags().Changed("code-review-model") {
+			data.CodeReviewModel = jobDoCodeReviewModel
+		}
+		if cmd.Flags().Changed("project-review-model") {
+			data.ProjectReviewModel = jobDoProjectReviewModel
+		}
 
 		parsed, err := editor.EditTodoWithData(data)
 		if err != nil {
@@ -237,11 +252,14 @@ func createTodoFromJobFlags(cmd *cobra.Command, hasCreateFlags bool, openStore f
 	defer store.Release()
 
 	created, err := store.Create(jobDoTitle, todo.CreateOptions{
-		Status:       defaultTodoStatus(),
-		Type:         todo.TodoType(jobDoType),
-		Priority:     jobDoPriorityValue(cmd),
-		Description:  jobDoDescription,
-		Dependencies: jobDoDeps,
+		Status:              defaultTodoStatus(),
+		Type:                todo.TodoType(jobDoType),
+		Priority:            jobDoPriorityValue(cmd),
+		Description:         jobDoDescription,
+		ImplementationModel: jobDoImplementationModel,
+		CodeReviewModel:     jobDoCodeReviewModel,
+		ProjectReviewModel:  jobDoProjectReviewModel,
+		Dependencies:        jobDoDeps,
 	})
 	if err != nil {
 		return "", err

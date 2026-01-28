@@ -100,11 +100,14 @@ type pageData struct {
 }
 
 type todoFormValues struct {
-	Title       string
-	Description string
-	Status      string
-	Priority    string
-	Type        string
+	Title               string
+	Description         string
+	Status              string
+	Priority            string
+	Type                string
+	ImplementationModel string
+	CodeReviewModel     string
+	ProjectReviewModel  string
 }
 
 type todoFormDraft struct {
@@ -482,21 +485,27 @@ func defaultTodoFormValues() todoFormValues {
 
 func todoFormValuesFromTodo(item todo.Todo) todoFormValues {
 	return todoFormValues{
-		Title:       item.Title,
-		Description: item.Description,
-		Status:      string(item.Status),
-		Priority:    strconv.Itoa(item.Priority),
-		Type:        string(item.Type),
+		Title:               item.Title,
+		Description:         item.Description,
+		Status:              string(item.Status),
+		Priority:            strconv.Itoa(item.Priority),
+		Type:                string(item.Type),
+		ImplementationModel: item.ImplementationModel,
+		CodeReviewModel:     item.CodeReviewModel,
+		ProjectReviewModel:  item.ProjectReviewModel,
 	}
 }
 
 func todoFormValuesFromRequest(r *http.Request) todoFormValues {
 	return todoFormValues{
-		Title:       trimmedFormValue(r, "title"),
-		Description: r.FormValue("description"),
-		Status:      trimmedFormValue(r, "status"),
-		Priority:    trimmedFormValue(r, "priority"),
-		Type:        trimmedFormValue(r, "type"),
+		Title:               trimmedFormValue(r, "title"),
+		Description:         r.FormValue("description"),
+		Status:              trimmedFormValue(r, "status"),
+		Priority:            trimmedFormValue(r, "priority"),
+		Type:                trimmedFormValue(r, "type"),
+		ImplementationModel: trimmedFormValue(r, "implementation_model"),
+		CodeReviewModel:     trimmedFormValue(r, "code_review_model"),
+		ProjectReviewModel:  trimmedFormValue(r, "project_review_model"),
 	}
 }
 
@@ -514,10 +523,13 @@ func (values todoFormValues) createOptions() (todo.CreateOptions, error) {
 		return todo.CreateOptions{}, err
 	}
 	return todo.CreateOptions{
-		Status:      status,
-		Priority:    &priority,
-		Type:        typ,
-		Description: values.Description,
+		Status:              status,
+		Priority:            &priority,
+		Type:                typ,
+		Description:         values.Description,
+		ImplementationModel: values.ImplementationModel,
+		CodeReviewModel:     values.CodeReviewModel,
+		ProjectReviewModel:  values.ProjectReviewModel,
 	}, nil
 }
 
@@ -543,11 +555,14 @@ func (values todoFormValues) updateOptions() (todo.UpdateOptions, error) {
 	priorityPtr := priority
 	typePtr := typ
 	return todo.UpdateOptions{
-		Title:       &title,
-		Description: &description,
-		Status:      &statusPtr,
-		Priority:    &priorityPtr,
-		Type:        &typePtr,
+		Title:               &title,
+		Description:         &description,
+		Status:              &statusPtr,
+		Priority:            &priorityPtr,
+		Type:                &typePtr,
+		ImplementationModel: &values.ImplementationModel,
+		CodeReviewModel:     &values.CodeReviewModel,
+		ProjectReviewModel:  &values.ProjectReviewModel,
 	}, nil
 }
 

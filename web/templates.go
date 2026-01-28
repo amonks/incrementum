@@ -377,6 +377,18 @@ const pageTemplate = `<!doctype html>
               <label for="todo-description">Description</label>
               <textarea id="todo-description" name="description">{{.TodoForm.Description}}</textarea>
             </div>
+            <div class="field">
+              <label for="todo-implementation-model">Implementation model</label>
+              <input id="todo-implementation-model" type="text" name="implementation_model" value="{{.TodoForm.ImplementationModel}}">
+            </div>
+            <div class="field">
+              <label for="todo-code-review-model">Code review model</label>
+              <input id="todo-code-review-model" type="text" name="code_review_model" value="{{.TodoForm.CodeReviewModel}}">
+            </div>
+            <div class="field">
+              <label for="todo-project-review-model">Project review model</label>
+              <input id="todo-project-review-model" type="text" name="project_review_model" value="{{.TodoForm.ProjectReviewModel}}">
+            </div>
             <div class="actions">
               <button type="submit">Create todo</button>
             </div>
@@ -416,6 +428,18 @@ const pageTemplate = `<!doctype html>
               <label for="todo-description">Description</label>
               <textarea id="todo-description" name="description">{{.TodoForm.Description}}</textarea>
             </div>
+            <div class="field">
+              <label for="todo-implementation-model">Implementation model</label>
+              <input id="todo-implementation-model" type="text" name="implementation_model" value="{{.TodoForm.ImplementationModel}}">
+            </div>
+            <div class="field">
+              <label for="todo-code-review-model">Code review model</label>
+              <input id="todo-code-review-model" type="text" name="code_review_model" value="{{.TodoForm.CodeReviewModel}}">
+            </div>
+            <div class="field">
+              <label for="todo-project-review-model">Project review model</label>
+              <input id="todo-project-review-model" type="text" name="project_review_model" value="{{.TodoForm.ProjectReviewModel}}">
+            </div>
             <div class="actions">
               <button type="submit">Save changes</button>
             </div>
@@ -429,6 +453,9 @@ const pageTemplate = `<!doctype html>
             <dt>Completed</dt><dd>{{formatOptionalTime .SelectedTodo.CompletedAt}}</dd>
             <dt>Deleted</dt><dd>{{formatOptionalTime .SelectedTodo.DeletedAt}}</dd>
             <dt>Delete Reason</dt><dd>{{if .SelectedTodo.DeleteReason}}{{.SelectedTodo.DeleteReason}}{{else}}-{{end}}</dd>
+            <dt>Implementation Model</dt><dd>{{if .SelectedTodo.ImplementationModel}}{{.SelectedTodo.ImplementationModel}}{{else}}-{{end}}</dd>
+            <dt>Code Review Model</dt><dd>{{if .SelectedTodo.CodeReviewModel}}{{.SelectedTodo.CodeReviewModel}}{{else}}-{{end}}</dd>
+            <dt>Project Review Model</dt><dd>{{if .SelectedTodo.ProjectReviewModel}}{{.SelectedTodo.ProjectReviewModel}}{{else}}-{{end}}</dd>
           </dl>
           <form method="post" action="/web/jobs/start?id={{.SelectedTodo.ID}}">
             <div class="actions">

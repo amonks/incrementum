@@ -62,6 +62,13 @@ Fields (JSON keys):
 - `updated_at`: timestamp.
 - `completed_at`: timestamp.
 
+## Agent Selection
+
+- The opencode agent is resolved in this order: CLI override -> todo-level model
+  for the stage -> config stage model -> config default agent.
+- Todo-level fields map to stages: `implementation_model` for implementing,
+  `code_review_model` for step review, `project_review_model` for project review.
+
 ## Feedback File
 
 Opencode communicates review outcomes by writing to `.incrementum-feedback` in the

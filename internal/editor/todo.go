@@ -29,30 +29,42 @@ type TodoData struct {
 	Status string
 	// Description is the todo description.
 	Description string
+	// ImplementationModel selects the opencode model for implementation.
+	ImplementationModel string
+	// CodeReviewModel selects the opencode model for commit review.
+	CodeReviewModel string
+	// ProjectReviewModel selects the opencode model for project review.
+	ProjectReviewModel string
 }
 
 // DefaultCreateData returns TodoData with default values for creating a new todo.
 func DefaultCreateData() TodoData {
 	return TodoData{
-		IsUpdate:    false,
-		Title:       "",
-		Type:        string(todo.TypeTask),
-		Priority:    todo.PriorityMedium,
-		Status:      string(todo.StatusOpen),
-		Description: "",
+		IsUpdate:            false,
+		Title:               "",
+		Type:                string(todo.TypeTask),
+		Priority:            todo.PriorityMedium,
+		Status:              string(todo.StatusOpen),
+		Description:         "",
+		ImplementationModel: "",
+		CodeReviewModel:     "",
+		ProjectReviewModel:  "",
 	}
 }
 
 // DataFromTodo creates TodoData from an existing todo for editing.
 func DataFromTodo(t *todo.Todo) TodoData {
 	return TodoData{
-		IsUpdate:    true,
-		ID:          t.ID,
-		Title:       t.Title,
-		Type:        string(t.Type),
-		Priority:    t.Priority,
-		Status:      string(t.Status),
-		Description: t.Description,
+		IsUpdate:            true,
+		ID:                  t.ID,
+		Title:               t.Title,
+		Type:                string(t.Type),
+		Priority:            t.Priority,
+		Status:              string(t.Status),
+		Description:         t.Description,
+		ImplementationModel: t.ImplementationModel,
+		CodeReviewModel:     t.CodeReviewModel,
+		ProjectReviewModel:  t.ProjectReviewModel,
 	}
 }
 
@@ -63,6 +75,9 @@ var todoTemplate = template.Must(template.New("todo").Funcs(template.FuncMap{
 type = {{ printf "%q" .Type }} # {{ validTypes }}
 priority = {{ .Priority }} # 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 status = {{ printf "%q" .Status }} # {{ validStatuses }}
+implementation-model = {{ printf "%q" .ImplementationModel }}
+code-review-model = {{ printf "%q" .CodeReviewModel }}
+project-review-model = {{ printf "%q" .ProjectReviewModel }}
 ---
 {{ .Description }}
 `))
@@ -78,11 +93,14 @@ func RenderTodoTOML(data TodoData) (string, error) {
 
 // ParsedTodo represents the parsed result from the TOML editor output.
 type ParsedTodo struct {
-	Title       string  `toml:"title"`
-	Type        string  `toml:"type"`
-	Priority    int     `toml:"priority"`
-	Status      *string `toml:"status"`
-	Description string
+	Title               string  `toml:"title"`
+	Type                string  `toml:"type"`
+	Priority            int     `toml:"priority"`
+	Status              *string `toml:"status"`
+	ImplementationModel string  `toml:"implementation-model"`
+	CodeReviewModel     string  `toml:"code-review-model"`
+	ProjectReviewModel  string  `toml:"project-review-model"`
+	Description         string
 }
 
 // ParseTodoTOML parses the TOML content from the editor.
@@ -99,6 +117,9 @@ func ParseTodoTOML(content string) (*ParsedTodo, error) {
 		normalizedStatus := internalstrings.NormalizeLowerTrimSpace(*parsed.Status)
 		parsed.Status = &normalizedStatus
 	}
+	parsed.ImplementationModel = internalstrings.TrimSpace(parsed.ImplementationModel)
+	parsed.CodeReviewModel = internalstrings.TrimSpace(parsed.CodeReviewModel)
+	parsed.ProjectReviewModel = internalstrings.TrimSpace(parsed.ProjectReviewModel)
 
 	// Validate required fields
 	if err := todo.ValidateTitle(parsed.Title); err != nil {
@@ -209,9 +230,12 @@ func EditTodoWithData(data TodoData) (*ParsedTodo, error) {
 // ToCreateOptions converts a ParsedTodo to todo.CreateOptions.
 func (p *ParsedTodo) ToCreateOptions() todo.CreateOptions {
 	opts := todo.CreateOptions{
-		Type:        todo.TodoType(p.Type),
-		Priority:    todo.PriorityPtr(p.Priority),
-		Description: p.Description,
+		Type:                todo.TodoType(p.Type),
+		Priority:            todo.PriorityPtr(p.Priority),
+		Description:         p.Description,
+		ImplementationModel: p.ImplementationModel,
+		CodeReviewModel:     p.CodeReviewModel,
+		ProjectReviewModel:  p.ProjectReviewModel,
 	}
 	if p.Status != nil {
 		status := todo.Status(*p.Status)
@@ -223,8 +247,11 @@ func (p *ParsedTodo) ToCreateOptions() todo.CreateOptions {
 // ToUpdateOptions converts a ParsedTodo to todo.UpdateOptions.
 func (p *ParsedTodo) ToUpdateOptions() todo.UpdateOptions {
 	opts := todo.UpdateOptions{
-		Title:       &p.Title,
-		Description: &p.Description,
+		Title:               &p.Title,
+		Description:         &p.Description,
+		ImplementationModel: &p.ImplementationModel,
+		CodeReviewModel:     &p.CodeReviewModel,
+		ProjectReviewModel:  &p.ProjectReviewModel,
 	}
 
 	typ := todo.TodoType(p.Type)

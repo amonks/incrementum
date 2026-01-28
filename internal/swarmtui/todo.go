@@ -126,6 +126,9 @@ const (
 	fieldStatus
 	fieldPriority
 	fieldType
+	fieldImplementationModel
+	fieldCodeReviewModel
+	fieldProjectReviewModel
 )
 
 type todoField struct {
@@ -348,6 +351,15 @@ func (model todoDetailModel) computeDirty() bool {
 	if trimmedPriority != strconv.Itoa(model.todo.Priority) && trimmedPriority != todo.PriorityName(model.todo.Priority) {
 		return true
 	}
+	if trimmedValue(values[fieldImplementationModel]) != model.todo.ImplementationModel {
+		return true
+	}
+	if trimmedValue(values[fieldCodeReviewModel]) != model.todo.CodeReviewModel {
+		return true
+	}
+	if trimmedValue(values[fieldProjectReviewModel]) != model.todo.ProjectReviewModel {
+		return true
+	}
 	return false
 }
 
@@ -443,10 +455,13 @@ func (model todoDetailModel) buildCreateOptions() (string, todo.CreateOptions, e
 		return "", todo.CreateOptions{}, err
 	}
 	return title, todo.CreateOptions{
-		Status:      status,
-		Type:        typeName,
-		Priority:    todo.PriorityPtr(priority),
-		Description: values[fieldDescription],
+		Status:              status,
+		Type:                typeName,
+		Priority:            todo.PriorityPtr(priority),
+		Description:         values[fieldDescription],
+		ImplementationModel: trimmedValue(values[fieldImplementationModel]),
+		CodeReviewModel:     trimmedValue(values[fieldCodeReviewModel]),
+		ProjectReviewModel:  trimmedValue(values[fieldProjectReviewModel]),
 	}, nil
 }
 
@@ -465,11 +480,14 @@ func (model todoDetailModel) buildUpdateOptions() (todo.UpdateOptions, error) {
 		return todo.UpdateOptions{}, err
 	}
 	return todo.UpdateOptions{
-		Title:       stringPtr(trimmedValue(values[fieldTitle])),
-		Description: stringPtr(values[fieldDescription]),
-		Status:      &status,
-		Priority:    &priority,
-		Type:        &typeName,
+		Title:               stringPtr(trimmedValue(values[fieldTitle])),
+		Description:         stringPtr(values[fieldDescription]),
+		Status:              &status,
+		Priority:            &priority,
+		Type:                &typeName,
+		ImplementationModel: stringPtr(trimmedValue(values[fieldImplementationModel])),
+		CodeReviewModel:     stringPtr(trimmedValue(values[fieldCodeReviewModel])),
+		ProjectReviewModel:  stringPtr(trimmedValue(values[fieldProjectReviewModel])),
 	}, nil
 }
 
@@ -480,6 +498,9 @@ func buildTodoFields(item todo.Todo) []todoField {
 		newTodoField(fieldStatus, "Status", string(defaultStatus(item.Status))),
 		newTodoField(fieldPriority, "Priority", defaultPriorityValue(item.Priority)),
 		newTodoField(fieldType, "Type", string(defaultType(item.Type))),
+		newTodoField(fieldImplementationModel, "Implementation model", item.ImplementationModel),
+		newTodoField(fieldCodeReviewModel, "Code review model", item.CodeReviewModel),
+		newTodoField(fieldProjectReviewModel, "Project review model", item.ProjectReviewModel),
 	}
 	return fields
 }

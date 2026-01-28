@@ -593,6 +593,19 @@ func appendTodoJSONLine(buf []byte, todo *Todo) []byte {
 	buf, hasField = appendJSONFieldPrefix(buf, "type", hasField)
 	buf = appendJSONString(buf, string(todo.Type))
 
+	if todo.ImplementationModel != "" {
+		buf, hasField = appendJSONFieldPrefix(buf, "implementation_model", hasField)
+		buf = appendJSONString(buf, todo.ImplementationModel)
+	}
+	if todo.CodeReviewModel != "" {
+		buf, hasField = appendJSONFieldPrefix(buf, "code_review_model", hasField)
+		buf = appendJSONString(buf, todo.CodeReviewModel)
+	}
+	if todo.ProjectReviewModel != "" {
+		buf, hasField = appendJSONFieldPrefix(buf, "project_review_model", hasField)
+		buf = appendJSONString(buf, todo.ProjectReviewModel)
+	}
+
 	buf, hasField = appendJSONFieldPrefix(buf, "created_at", hasField)
 	buf = appendJSONTime(buf, todo.CreatedAt)
 

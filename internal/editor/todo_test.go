@@ -30,6 +30,15 @@ func TestRenderTodoTOML_Create(t *testing.T) {
 	if !strings.Contains(content, `status = "open"`) {
 		t.Error("expected default status open")
 	}
+	if !strings.Contains(content, `implementation-model = ""`) {
+		t.Error("expected default implementation-model empty")
+	}
+	if !strings.Contains(content, `code-review-model = ""`) {
+		t.Error("expected default code-review-model empty")
+	}
+	if !strings.Contains(content, `project-review-model = ""`) {
+		t.Error("expected default project-review-model empty")
+	}
 	if strings.Contains(content, "description =") {
 		t.Error("expected description to be in body")
 	}
@@ -44,12 +53,15 @@ func TestRenderTodoTOML_Create(t *testing.T) {
 
 func TestRenderTodoTOML_Update(t *testing.T) {
 	existing := &todo.Todo{
-		ID:          "abc12345",
-		Title:       "Test Todo",
-		Type:        todo.TypeFeature,
-		Priority:    todo.PriorityHigh,
-		Status:      todo.StatusInProgress,
-		Description: "A test description",
+		ID:                  "abc12345",
+		Title:               "Test Todo",
+		Type:                todo.TypeFeature,
+		Priority:            todo.PriorityHigh,
+		Status:              todo.StatusInProgress,
+		Description:         "A test description",
+		ImplementationModel: "impl-model",
+		CodeReviewModel:     "review-model",
+		ProjectReviewModel:  "project-model",
 	}
 
 	data := DataFromTodo(existing)
@@ -72,6 +84,15 @@ func TestRenderTodoTOML_Update(t *testing.T) {
 	if !strings.Contains(content, `status = "in_progress"`) {
 		t.Error("expected status to be in_progress")
 	}
+	if !strings.Contains(content, `implementation-model = "impl-model"`) {
+		t.Error("expected implementation model to be set")
+	}
+	if !strings.Contains(content, `code-review-model = "review-model"`) {
+		t.Error("expected code review model to be set")
+	}
+	if !strings.Contains(content, `project-review-model = "project-model"`) {
+		t.Error("expected project review model to be set")
+	}
 	if !strings.Contains(content, "proposed") {
 		t.Error("expected status comment to mention proposed")
 	}
@@ -89,6 +110,9 @@ func TestParseTodoTOML(t *testing.T) {
  type = "bug"
  priority = 0
  status = "done"
+ implementation-model = "impl"
+ code-review-model = "review"
+ project-review-model = "project"
  ---
  This is a description
  with multiple lines
@@ -110,6 +134,15 @@ func TestParseTodoTOML(t *testing.T) {
 	}
 	if parsed.Status == nil || *parsed.Status != "done" {
 		t.Errorf("expected status 'done', got %v", parsed.Status)
+	}
+	if parsed.ImplementationModel != "impl" {
+		t.Errorf("expected implementation model 'impl', got %q", parsed.ImplementationModel)
+	}
+	if parsed.CodeReviewModel != "review" {
+		t.Errorf("expected code review model 'review', got %q", parsed.CodeReviewModel)
+	}
+	if parsed.ProjectReviewModel != "project" {
+		t.Errorf("expected project review model 'project', got %q", parsed.ProjectReviewModel)
 	}
 	if strings.Contains(parsed.Description, "description =") {
 		t.Errorf("expected description body without key, got %q", parsed.Description)
@@ -202,11 +235,14 @@ status = "bad"`
 func TestToCreateOptions(t *testing.T) {
 	status := "proposed"
 	parsed := &ParsedTodo{
-		Title:       "Test",
-		Type:        "feature",
-		Priority:    1,
-		Status:      &status,
-		Description: "description",
+		Title:               "Test",
+		Type:                "feature",
+		Priority:            1,
+		Status:              &status,
+		Description:         "description",
+		ImplementationModel: "impl",
+		CodeReviewModel:     "review",
+		ProjectReviewModel:  "project",
 	}
 
 	opts := parsed.ToCreateOptions()
@@ -220,6 +256,15 @@ func TestToCreateOptions(t *testing.T) {
 	if opts.Description != "description" {
 		t.Errorf("expected description 'description', got %q", opts.Description)
 	}
+	if opts.ImplementationModel != "impl" {
+		t.Errorf("expected implementation model 'impl', got %q", opts.ImplementationModel)
+	}
+	if opts.CodeReviewModel != "review" {
+		t.Errorf("expected code review model 'review', got %q", opts.CodeReviewModel)
+	}
+	if opts.ProjectReviewModel != "project" {
+		t.Errorf("expected project review model 'project', got %q", opts.ProjectReviewModel)
+	}
 	if opts.Status != todo.StatusProposed {
 		t.Errorf("expected status proposed, got %v", opts.Status)
 	}
@@ -228,11 +273,14 @@ func TestToCreateOptions(t *testing.T) {
 func TestToUpdateOptions(t *testing.T) {
 	status := "in_progress"
 	parsed := &ParsedTodo{
-		Title:       "Test",
-		Type:        "bug",
-		Priority:    2,
-		Status:      &status,
-		Description: "description",
+		Title:               "Test",
+		Type:                "bug",
+		Priority:            2,
+		Status:              &status,
+		Description:         "description",
+		ImplementationModel: "impl",
+		CodeReviewModel:     "review",
+		ProjectReviewModel:  "project",
 	}
 
 	opts := parsed.ToUpdateOptions()
@@ -245,6 +293,15 @@ func TestToUpdateOptions(t *testing.T) {
 	}
 	if opts.Priority == nil || *opts.Priority != 2 {
 		t.Errorf("expected priority 2, got %v", opts.Priority)
+	}
+	if opts.ImplementationModel == nil || *opts.ImplementationModel != "impl" {
+		t.Errorf("expected implementation model 'impl', got %v", opts.ImplementationModel)
+	}
+	if opts.CodeReviewModel == nil || *opts.CodeReviewModel != "review" {
+		t.Errorf("expected code review model 'review', got %v", opts.CodeReviewModel)
+	}
+	if opts.ProjectReviewModel == nil || *opts.ProjectReviewModel != "project" {
+		t.Errorf("expected project review model 'project', got %v", opts.ProjectReviewModel)
 	}
 	if opts.Status == nil || *opts.Status != todo.StatusInProgress {
 		t.Errorf("expected status in_progress, got %v", opts.Status)

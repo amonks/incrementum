@@ -13,15 +13,15 @@ Keys: up/down move | enter edit | c new | s submit to swarm | tab switch tabs | 
 |                                 || Status: proposed                                                  |
 |                                 || Priority: medium                                                  |
 |                                 || Type: task                                                        |
+|                                 || Implementation model:                                             |
+|                                 || Code review model:                                                |
+|                                 || Project review model:                                             |
 |                                 ||                                                                   |
 |                                 || Read-only                                                         |
 |                                 || ID: todo-7777                                                     |
 |                                 || Created: 2026-01-18 22:30:00                                      |
 |                                 || Updated: 2026-01-20 04:30:00                                      |
 |                                 || Started: -                                                        |
-|                                 || Closed: -                                                         |
-|                                 || Completed: -                                                      |
-|                                 || Deleted: -                                                        |
 |                                 ||                                                                   |
 |                                 ||                                                                   |
 +---------------------------------++-------------------------------------------------------------------+

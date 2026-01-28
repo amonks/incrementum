@@ -259,6 +259,35 @@ func TestPrintTodoDetailIncludesDeleteMetadata(t *testing.T) {
 	}
 }
 
+func TestPrintTodoDetailIncludesModels(t *testing.T) {
+	item := todo.Todo{
+		ID:                  "abc12345",
+		Title:               "Modelled",
+		Type:                todo.TypeTask,
+		Status:              todo.StatusOpen,
+		Priority:            todo.PriorityLow,
+		CreatedAt:           time.Date(2026, 1, 1, 1, 2, 3, 0, time.UTC),
+		UpdatedAt:           time.Date(2026, 1, 1, 2, 3, 4, 0, time.UTC),
+		ImplementationModel: "impl-model",
+		CodeReviewModel:     "review-model",
+		ProjectReviewModel:  "project-model",
+	}
+
+	output := captureStdout(t, func() {
+		printTodoDetail(item, func(id string) string { return id })
+	})
+
+	if !strings.Contains(output, "Implementation Model: impl-model") {
+		t.Fatalf("expected implementation model in output, got: %q", output)
+	}
+	if !strings.Contains(output, "Code Review Model: review-model") {
+		t.Fatalf("expected code review model in output, got: %q", output)
+	}
+	if !strings.Contains(output, "Project Review Model: project-model") {
+		t.Fatalf("expected project review model in output, got: %q", output)
+	}
+}
+
 func TestPrintTodoDetailRendersMarkdownDescription(t *testing.T) {
 	item := todo.Todo{
 		ID:          "abc12345",

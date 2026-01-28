@@ -4,38 +4,45 @@ import (
 	"testing"
 
 	"github.com/amonks/incrementum/internal/config"
+	"github.com/amonks/incrementum/todo"
 )
 
 func TestResolveOpencodeAgentForPurposePrefersOverride(t *testing.T) {
 	cfg := &config.Config{Job: config.Job{Agent: "default", ImplementationModel: "impl"}}
+	item := todo.Todo{ImplementationModel: "todo-impl"}
 
-	got := resolveOpencodeAgentForPurpose(cfg, "override", "implement")
+	got := resolveOpencodeAgentForPurpose(cfg, "override", "implement", item)
 
 	if got != "override" {
 		t.Fatalf("expected override, got %q", got)
 	}
 }
 
-func TestResolveOpencodeAgentForPurposeUsesPerTaskModel(t *testing.T) {
+func TestResolveOpencodeAgentForPurposeUsesTodoModels(t *testing.T) {
 	cfg := &config.Config{Job: config.Job{
 		Agent:               "default",
 		ImplementationModel: "impl",
 		CodeReviewModel:     "review",
 		ProjectReviewModel:  "project",
 	}}
+	item := todo.Todo{
+		ImplementationModel: "todo-impl",
+		CodeReviewModel:     "todo-review",
+		ProjectReviewModel:  "todo-project",
+	}
 
 	cases := []struct {
 		name    string
 		purpose string
 		want    string
 	}{
-		{name: "implement", purpose: "implement", want: "impl"},
-		{name: "review", purpose: "review", want: "review"},
-		{name: "project-review", purpose: "project-review", want: "project"},
+		{name: "implement", purpose: "implement", want: "todo-impl"},
+		{name: "review", purpose: "review", want: "todo-review"},
+		{name: "project-review", purpose: "project-review", want: "todo-project"},
 	}
 
 	for _, tc := range cases {
-		if got := resolveOpencodeAgentForPurpose(cfg, "", tc.purpose); got != tc.want {
+		if got := resolveOpencodeAgentForPurpose(cfg, "", tc.purpose, item); got != tc.want {
 			t.Fatalf("%s: expected %q, got %q", tc.name, tc.want, got)
 		}
 	}
@@ -43,8 +50,9 @@ func TestResolveOpencodeAgentForPurposeUsesPerTaskModel(t *testing.T) {
 
 func TestResolveOpencodeAgentForPurposeFallsBackToAgent(t *testing.T) {
 	cfg := &config.Config{Job: config.Job{Agent: "default"}}
+	item := todo.Todo{}
 
-	got := resolveOpencodeAgentForPurpose(cfg, "", "review")
+	got := resolveOpencodeAgentForPurpose(cfg, "", "review", item)
 
 	if got != "default" {
 		t.Fatalf("expected default, got %q", got)

@@ -91,5 +91,5 @@ func resolveDescriptionFlag(cmd *cobra.Command, description *string, reader io.R
 }
 
 func hasTodoCreateFlags(cmd *cobra.Command) bool {
-	return hasChangedFlags(cmd, "title", "type", "priority", "description", "deps")
+	return hasChangedFlags(cmd, "title", "type", "priority", "description", "implementation-model", "code-review-model", "project-review-model", "deps")
 }

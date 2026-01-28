@@ -65,6 +65,33 @@ func TestStore_Create_WithOptions(t *testing.T) {
 	}
 }
 
+func TestStore_Create_WithModels(t *testing.T) {
+	store, err := openTestStore(t)
+	if err != nil {
+		t.Fatalf("failed to open store: %v", err)
+	}
+	defer store.Release()
+
+	created, err := store.Create("Wire review models", CreateOptions{
+		ImplementationModel: "impl-model",
+		CodeReviewModel:     "review-model",
+		ProjectReviewModel:  "project-model",
+	})
+	if err != nil {
+		t.Fatalf("failed to create todo: %v", err)
+	}
+
+	if created.ImplementationModel != "impl-model" {
+		t.Errorf("expected implementation model 'impl-model', got %q", created.ImplementationModel)
+	}
+	if created.CodeReviewModel != "review-model" {
+		t.Errorf("expected code review model 'review-model', got %q", created.CodeReviewModel)
+	}
+	if created.ProjectReviewModel != "project-model" {
+		t.Errorf("expected project review model 'project-model', got %q", created.ProjectReviewModel)
+	}
+}
+
 func TestStore_Create_WithStatus(t *testing.T) {
 	store, err := openTestStore(t)
 	if err != nil {

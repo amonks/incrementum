@@ -41,6 +41,9 @@ Fields (JSON keys):
 - `status`: `open`, `proposed`, `in_progress`, `closed`, `done`, or `tombstone`.
 - `priority`: integer 0..4 (0 = critical, 4 = backlog).
 - `type`: `task`, `bug`, or `feature`.
+- `implementation_model`: optional opencode model override for implementation.
+- `code_review_model`: optional opencode model override for commit review.
+- `project_review_model`: optional opencode model override for project review.
 - `created_at`, `updated_at`: timestamps.
 - `closed_at`: timestamp if closed or done.
 - `started_at`: timestamp when entering `in_progress`.
@@ -88,6 +91,9 @@ Fields (JSON keys):
   existing todo.
 - Dependency IDs accept the same case-insensitive prefix matching as other
   commands.
+- Optional per-todo model overrides (`implementation_model`, `code_review_model`,
+  `project_review_model`) default to empty and override project/global settings
+  when set.
 
 ### Update
 

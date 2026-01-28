@@ -24,6 +24,15 @@ type CreateOptions struct {
 	// Description provides additional context.
 	Description string
 
+	// ImplementationModel selects the opencode model for implementing.
+	ImplementationModel string
+
+	// CodeReviewModel selects the opencode model for commit review.
+	CodeReviewModel string
+
+	// ProjectReviewModel selects the opencode model for project review.
+	ProjectReviewModel string
+
 	// Dependencies is a list of dependency IDs.
 	Dependencies []string
 }
@@ -74,15 +83,21 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 	}
 
 	now := time.Now()
+	implementationModel := internalstrings.TrimSpace(opts.ImplementationModel)
+	codeReviewModel := internalstrings.TrimSpace(opts.CodeReviewModel)
+	projectReviewModel := internalstrings.TrimSpace(opts.ProjectReviewModel)
 	todo := Todo{
-		ID:          GenerateID(title, now),
-		Title:       title,
-		Description: opts.Description,
-		Status:      normalizedStatus,
-		Priority:    *priority,
-		Type:        opts.Type,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:                  GenerateID(title, now),
+		Title:               title,
+		Description:         opts.Description,
+		Status:              normalizedStatus,
+		Priority:            *priority,
+		Type:                opts.Type,
+		ImplementationModel: implementationModel,
+		CodeReviewModel:     codeReviewModel,
+		ProjectReviewModel:  projectReviewModel,
+		CreatedAt:           now,
+		UpdatedAt:           now,
 	}
 
 	// Read existing todos
@@ -143,13 +158,16 @@ func (s *Store) Create(title string, opts CreateOptions) (*Todo, error) {
 // UpdateOptions configures fields to update on todos.
 // Nil pointers mean "don't update this field".
 type UpdateOptions struct {
-	Title        *string
-	Description  *string
-	Status       *Status
-	Priority     *int
-	Type         *TodoType
-	DeletedAt    *time.Time
-	DeleteReason *string
+	Title               *string
+	Description         *string
+	Status              *Status
+	Priority            *int
+	Type                *TodoType
+	ImplementationModel *string
+	CodeReviewModel     *string
+	ProjectReviewModel  *string
+	DeletedAt           *time.Time
+	DeleteReason        *string
 }
 
 // Update updates one or more todos with the given options.
@@ -569,6 +587,15 @@ func applyTodoUpdates(item *Todo, opts UpdateOptions, now time.Time) error {
 	}
 	if opts.Type != nil {
 		item.Type = *opts.Type
+	}
+	if opts.ImplementationModel != nil {
+		item.ImplementationModel = internalstrings.TrimSpace(*opts.ImplementationModel)
+	}
+	if opts.CodeReviewModel != nil {
+		item.CodeReviewModel = internalstrings.TrimSpace(*opts.CodeReviewModel)
+	}
+	if opts.ProjectReviewModel != nil {
+		item.ProjectReviewModel = internalstrings.TrimSpace(*opts.ProjectReviewModel)
 	}
 	if opts.DeletedAt != nil {
 		item.DeletedAt = opts.DeletedAt

@@ -168,7 +168,7 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 		return result, errors.Join(err, reopenErr)
 	}
 
-	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement")
+	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement", item)
 	created, err := manager.Create(item.ID, startedAt, agent)
 	if err != nil {
 		reopenErr := reopenTodo(repoPath, item.ID)
@@ -473,9 +473,13 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 	return opts
 }
 
-func resolveOpencodeAgentForPurpose(cfg *config.Config, override, purpose string) string {
+func resolveOpencodeAgentForPurpose(cfg *config.Config, override, purpose string, item todo.Todo) string {
 	if !internalstrings.IsBlank(override) {
 		return internalstrings.TrimSpace(override)
+	}
+	modelOverride := todoModelForPurpose(item, purpose)
+	if !internalstrings.IsBlank(modelOverride) {
+		return internalstrings.TrimSpace(modelOverride)
 	}
 	if cfg == nil {
 		return ""
@@ -495,6 +499,19 @@ func resolveOpencodeAgentForPurpose(cfg *config.Config, override, purpose string
 		model = cfg.Job.Agent
 	}
 	return internalstrings.TrimSpace(model)
+}
+
+func todoModelForPurpose(item todo.Todo, purpose string) string {
+	switch purpose {
+	case "implement":
+		return item.ImplementationModel
+	case "review":
+		return item.CodeReviewModel
+	case "project-review":
+		return item.ProjectReviewModel
+	default:
+		return ""
+	}
 }
 
 func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitLog []CommitLogEntry, previousMessage string) (ImplementingStageResult, error) {
@@ -523,7 +540,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	}
 
 	updated := current
-	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement")
+	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement", item)
 	runAttempt := func() (OpencodeRunResult, error) {
 		result, err := runOpencodeWithEvents(opts, opencodeRunOptions{
 			RepoPath:      repoPath,
@@ -701,7 +718,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		promptName = "prompt-project-review.tmpl"
 		purpose = "project-review"
 	}
-	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, purpose)
+	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, purpose, item)
 
 	promptTemplate, err := LoadPrompt(workspacePath, promptName)
 	if err != nil {
