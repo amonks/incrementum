@@ -64,6 +64,7 @@ Fields (JSON keys):
   environment.
 - When opencode session metadata never appears in storage, `run` fails with a not-found error that includes the repo path, timing cutoff, and storage directory so the failure is logged with actionable context.
 - A session is "not found" when the opencode storage root has no session metadata within the retry window (for example, opencode wrote to a different XDG data directory or failed before creating the session record).
+- Session selection uses the created timestamp when available, falling back to updated timestamps when created times are missing or stale.
 - `run` updates session status and exit code when the command exits.
 - `kill` records status `killed` and sets `exit_code` to the signal exit code
   reported by opencode when available.

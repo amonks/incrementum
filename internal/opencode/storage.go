@@ -247,14 +247,14 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 		if session.Directory != "" && cleanPath(session.Directory) != repoPath {
 			continue
 		}
-		if !session.CreatedAt.IsZero() && session.CreatedAt.Before(cutoff) {
+		if !sessionAfterCutoff(session, cutoff) {
 			continue
 		}
 		candidates = append(candidates, session)
 	}
 	if len(candidates) == 0 {
 		for _, session := range entries {
-			if !session.CreatedAt.IsZero() && session.CreatedAt.Before(cutoff) {
+			if !sessionAfterCutoff(session, cutoff) {
 				continue
 			}
 			candidates = append(candidates, session)
@@ -278,7 +278,7 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 	}
 
 	sortByCreatedAt(candidates, func(item SessionMetadata) time.Time {
-		return item.CreatedAt
+		return sessionSortTime(item, cutoff)
 	}, func(item SessionMetadata) string {
 		return item.ID
 	})
@@ -297,6 +297,34 @@ func (s Storage) selectSession(entries []SessionMetadata, repoPath string, start
 	}
 
 	return candidates[0], nil
+}
+
+func sessionAfterCutoff(session SessionMetadata, cutoff time.Time) bool {
+	if cutoff.IsZero() {
+		return true
+	}
+	created := session.CreatedAt
+	updated := session.UpdatedAt
+	if created.IsZero() && updated.IsZero() {
+		return true
+	}
+	if !created.IsZero() && !created.Before(cutoff) {
+		return true
+	}
+	if !updated.IsZero() && !updated.Before(cutoff) {
+		return true
+	}
+	return false
+}
+
+func sessionSortTime(session SessionMetadata, cutoff time.Time) time.Time {
+	if !session.CreatedAt.IsZero() {
+		if !cutoff.IsZero() && session.CreatedAt.Before(cutoff) && !session.UpdatedAt.IsZero() {
+			return session.UpdatedAt
+		}
+		return session.CreatedAt
+	}
+	return session.UpdatedAt
 }
 
 type messageRecord struct {

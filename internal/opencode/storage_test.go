@@ -233,6 +233,30 @@ func TestSelectSessionUsesPromptMatch(t *testing.T) {
 	}
 }
 
+func TestSelectSessionUsesUpdatedAtWhenCreatedIsStale(t *testing.T) {
+	root := t.TempDir()
+	store := Storage{Root: root}
+	repoPath := filepath.Join(root, "repo")
+	startedAt := time.Date(2026, 1, 25, 12, 0, 0, 0, time.UTC)
+
+	entries := []SessionMetadata{
+		{
+			ID:        "ses_recent",
+			Directory: repoPath,
+			CreatedAt: startedAt.Add(-10 * time.Second),
+			UpdatedAt: startedAt.Add(2 * time.Second),
+		},
+	}
+
+	selected, err := store.selectSession(entries, repoPath, startedAt, "")
+	if err != nil {
+		t.Fatalf("select session: %v", err)
+	}
+	if selected.ID != "ses_recent" {
+		t.Fatalf("expected updated session, got %q", selected.ID)
+	}
+}
+
 func writeMessageRecord(t *testing.T, root, sessionID, messageID, role string, createdAt int64) {
 	t.Helper()
 
