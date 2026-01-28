@@ -37,14 +37,14 @@ func commandOutputString(cmd *exec.Cmd, context string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(output)), nil
+	return internalstrings.TrimSpace(string(output)), nil
 }
 
 func splitTrimmedLines(output []byte) []string {
 	lines := strings.Split(string(output), "\n")
 	trimmed := make([]string, 0, len(lines))
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
+		line = internalstrings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
@@ -107,7 +107,7 @@ func (c *Client) WorkspaceList(repoPath string) ([]string, error) {
 	for _, line := range lines {
 		// Output format is "name: <change_id>" - extract just the name
 		parts := strings.SplitN(line, ":", 2)
-		workspaces = append(workspaces, strings.TrimSpace(parts[0]))
+		workspaces = append(workspaces, internalstrings.TrimSpace(parts[0]))
 	}
 	return workspaces, nil
 }
