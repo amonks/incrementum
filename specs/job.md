@@ -243,6 +243,9 @@ test-commands = [
 ]
 ```
 
+`test-commands` must be configured with at least one entry; jobs fail in the
+testing stage if it is missing or empty.
+
 ## Templates
 
 Bundled defaults via `//go:embed`, overridable by placing files in

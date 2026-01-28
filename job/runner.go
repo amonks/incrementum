@@ -565,6 +565,9 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 	if err != nil {
 		return Job{}, fmt.Errorf("load config: %w", err)
 	}
+	if len(cfg.Job.TestCommands) < 1 {
+		return Job{}, fmt.Errorf("job test-commands must be configured")
+	}
 
 	results, err := opts.RunTests(workspacePath, cfg.Job.TestCommands)
 	if err != nil {

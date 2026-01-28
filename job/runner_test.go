@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/todo"
 )
 
@@ -41,6 +42,48 @@ func TestTestingStageOutcomeSuccess(t *testing.T) {
 	}
 	if feedback != "" {
 		t.Fatalf("expected empty feedback, got %q", feedback)
+	}
+}
+
+func TestRunTestingStageRequiresTestCommands(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 12, 11, 0, 0, 0, time.UTC)
+	current, err := manager.Create("todo-test-missing-tests", startedAt, "")
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	runCalled := false
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		LoadConfig: func(string) (*config.Config, error) {
+			return &config.Config{}, nil
+		},
+		RunTests: func(string, []string) ([]TestCommandResult, error) {
+			runCalled = true
+			return nil, fmt.Errorf("unexpected RunTests call")
+		},
+	}
+
+	_, err = runTestingStage(manager, current, repoPath, workspacePath, opts)
+	if err == nil {
+		t.Fatal("expected error for missing test commands")
+	}
+	if !strings.Contains(err.Error(), "test-commands") {
+		t.Fatalf("expected test-commands error, got %v", err)
+	}
+	if runCalled {
+		t.Fatal("expected RunTests not to be called")
 	}
 }
 

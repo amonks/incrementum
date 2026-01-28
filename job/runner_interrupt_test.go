@@ -100,5 +100,12 @@ func setupJobRepo(t *testing.T) string {
 		t.Fatalf("init repo: %v", err)
 	}
 
+	configPath := filepath.Join(tmpDir, "incrementum.toml")
+	config := "[job]\n" +
+		"test-commands = [\"true\"]\n"
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
 	return tmpDir
 }
