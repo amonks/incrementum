@@ -121,7 +121,9 @@ any stage -> failed (unrecoverable error)
    includes purpose, session id, agent, prompt template, opencode run/serve
    command lines, repo/workspace paths, and before/after commit ids when
    available. If the exit code is negative and the working copy commit changed,
-   best-effort restore the workspace to the pre-opencode commit before failing.
+   best-effort restore the workspace to the pre-opencode commit and retry
+   opencode once. If the retry still fails, best-effort restore before failing
+   and include the retry attempt in the error details.
 10. Record the current working copy commit id again.
 11. If the commit id changed, run `jj diff --from <before> --to <after> --stat` to
     confirm the working copy diff is non-empty; treat an empty diff stat or a

@@ -75,7 +75,7 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 	}
 }
 
-func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.T) {
+func TestRunImplementingStageFailedOpencodeRestoresRetriesAndReportsContext(t *testing.T) {
 	repoPath := t.TempDir()
 	stateDir := t.TempDir()
 
@@ -98,27 +98,41 @@ func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.
 	}
 
 	commitCalls := 0
-	restoreCalled := false
+	restoreCalls := 0
 	restoreCommit := ""
+	runCalls := 0
 	opts := RunOptions{
 		Now: func() time.Time { return now },
 		CurrentCommitID: func(string) (string, error) {
 			commitCalls++
-			if commitCalls == 1 {
+			switch commitCalls {
+			case 1:
 				return "before", nil
+			case 2:
+				return "after-first", nil
+			default:
+				return "after-second", nil
 			}
-			return "after", nil
 		},
 		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
+			runCalls++
+			if runCalls == 1 {
+				return OpencodeRunResult{
+					SessionID:    "ses-789",
+					ExitCode:     -1,
+					RunCommand:   "opencode run --attach=http://127.0.0.1:1234 --agent=gpt-5.2-codex",
+					ServeCommand: "opencode serve --port=1234 --hostname=127.0.0.1",
+				}, nil
+			}
 			return OpencodeRunResult{
-				SessionID:    "ses-789",
+				SessionID:    "ses-790",
 				ExitCode:     -1,
 				RunCommand:   "opencode run --attach=http://127.0.0.1:1234 --agent=gpt-5.2-codex",
 				ServeCommand: "opencode serve --port=1234 --hostname=127.0.0.1",
 			}, nil
 		},
 		RestoreWorkspace: func(_ string, commitID string) error {
-			restoreCalled = true
+			restoreCalls++
 			restoreCommit = commitID
 			return nil
 		},
@@ -129,8 +143,8 @@ func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.
 	if err == nil {
 		t.Fatal("expected opencode failure error")
 	}
-	if !restoreCalled {
-		t.Fatalf("expected restore to be called")
+	if restoreCalls != 2 {
+		t.Fatalf("expected restore to be called twice, got %d", restoreCalls)
 	}
 	if restoreCommit != "before" {
 		t.Fatalf("expected restore commit to be before, got %q", restoreCommit)
@@ -139,7 +153,7 @@ func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.
 	if !strings.Contains(message, "opencode implement failed with exit code -1") {
 		t.Fatalf("expected exit code context, got %v", message)
 	}
-	if !strings.Contains(message, "session ses-789") {
+	if !strings.Contains(message, "session ses-790") {
 		t.Fatalf("expected session context, got %v", message)
 	}
 	if !strings.Contains(message, "agent \"gpt-5.2-codex\"") {
@@ -154,11 +168,83 @@ func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.
 	if !strings.Contains(message, "serve opencode serve --port=1234 --hostname=127.0.0.1") {
 		t.Fatalf("expected serve command context, got %v", message)
 	}
-	if !strings.Contains(message, "before before") || !strings.Contains(message, "after after") {
+	if !strings.Contains(message, "before before") || !strings.Contains(message, "after after-second") {
 		t.Fatalf("expected commit context, got %v", message)
 	}
 	if !strings.Contains(message, "restored before") {
 		t.Fatalf("expected restore context, got %v", message)
+	}
+	if !strings.Contains(message, "retry 1") {
+		t.Fatalf("expected retry context, got %v", message)
+	}
+}
+
+func TestRunImplementingStageRetriesOpencodeAfterRestore(t *testing.T) {
+	repoPath := t.TempDir()
+	stateDir := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, time.January, 2, 3, 4, 6, 30, time.UTC)
+	current, err := manager.Create("todo-retry", now, "")
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-retry",
+		Title:    "Example",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	commitCalls := 0
+	restoreCalls := 0
+	runCalls := 0
+	opts := RunOptions{
+		Now: func() time.Time { return now },
+		CurrentCommitID: func(string) (string, error) {
+			commitCalls++
+			switch commitCalls {
+			case 1:
+				return "before", nil
+			case 2:
+				return "after-bad", nil
+			default:
+				return "before", nil
+			}
+		},
+		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
+			runCalls++
+			if runCalls == 1 {
+				return OpencodeRunResult{SessionID: "ses-1", ExitCode: -1}, nil
+			}
+			return OpencodeRunResult{SessionID: "ses-2", ExitCode: 0}, nil
+		},
+		RestoreWorkspace: func(string, string) error {
+			restoreCalls++
+			return nil
+		},
+	}
+
+	result, err := runImplementingStage(manager, current, item, repoPath, repoPath, opts, nil, "")
+	if err != nil {
+		t.Fatalf("expected retry to succeed, got %v", err)
+	}
+	if runCalls != 2 {
+		t.Fatalf("expected opencode to run twice, got %d", runCalls)
+	}
+	if restoreCalls != 1 {
+		t.Fatalf("expected restore to be called once, got %d", restoreCalls)
+	}
+	if result.Changed {
+		t.Fatalf("expected no change after retry")
+	}
+	if result.Job.Stage != StageReviewing {
+		t.Fatalf("expected stage %q, got %q", StageReviewing, result.Job.Stage)
 	}
 }
 

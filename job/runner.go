@@ -483,32 +483,42 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
-	opencodeResult, err := runOpencodeWithEvents(opts, opencodeRunOptions{
-		RepoPath:      repoPath,
-		WorkspacePath: workspacePath,
-		Prompt:        prompt,
-		Agent:         opts.OpencodeAgent,
-		StartedAt:     opts.Now(),
-		EventLog:      opts.EventLog,
-	}, "implement")
-	if err != nil {
-		return ImplementingStageResult{}, err
-	}
-
-	append := OpencodeSession{Purpose: "implement", ID: opencodeResult.SessionID}
-	updated, err := manager.Update(current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
-	if err != nil {
-		return ImplementingStageResult{}, err
-	}
-	transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
-	if strings.TrimSpace(transcript) != "" {
-		if err := appendJobEvent(opts.EventLog, jobEventTranscript, transcriptEventData{Purpose: "implement", Transcript: transcript}); err != nil {
-			return ImplementingStageResult{}, err
+	updated := current
+	runAttempt := func() (OpencodeRunResult, error) {
+		result, err := runOpencodeWithEvents(opts, opencodeRunOptions{
+			RepoPath:      repoPath,
+			WorkspacePath: workspacePath,
+			Prompt:        prompt,
+			Agent:         opts.OpencodeAgent,
+			StartedAt:     opts.Now(),
+			EventLog:      opts.EventLog,
+		}, "implement")
+		if err != nil {
+			return OpencodeRunResult{}, err
 		}
-	}
-	logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt, Transcript: transcript})
 
-	if opencodeResult.ExitCode != 0 {
+		append := OpencodeSession{Purpose: "implement", ID: result.SessionID}
+		updated, err = manager.Update(updated.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
+		if err != nil {
+			return OpencodeRunResult{}, err
+		}
+		transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
+		if strings.TrimSpace(transcript) != "" {
+			if err := appendJobEvent(opts.EventLog, jobEventTranscript, transcriptEventData{Purpose: "implement", Transcript: transcript}); err != nil {
+				return OpencodeRunResult{}, err
+			}
+		}
+		logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt, Transcript: transcript})
+		return result, nil
+	}
+
+	opencodeResult, err := runAttempt()
+	if err != nil {
+		return ImplementingStageResult{}, err
+	}
+
+	retryCount := 0
+	for opencodeResult.ExitCode != 0 {
 		afterCommitID := ""
 		var afterCommitErr error
 		if opts.CurrentCommitID != nil && strings.TrimSpace(workspacePath) != "" {
@@ -524,12 +534,20 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 				}
 			}
 		}
+		if restored && retryCount == 0 {
+			retryCount++
+			opencodeResult, err = runAttempt()
+			if err != nil {
+				return ImplementingStageResult{}, err
+			}
+			continue
+		}
 		return ImplementingStageResult{}, errors.New(buildOpencodeFailureMessage("implement", promptName, opencodeResult, opencodeRunOptions{
 			RepoPath:      repoPath,
 			WorkspacePath: workspacePath,
 			Prompt:        prompt,
 			Agent:         opts.OpencodeAgent,
-		}, beforeCommitID, afterCommitID, afterCommitErr, restored, restoreErr))
+		}, beforeCommitID, afterCommitID, afterCommitErr, restored, restoreErr, retryCount))
 	}
 
 	afterCommitID, err := opts.CurrentCommitID(workspacePath)
@@ -923,7 +941,7 @@ func runOpencodeWithEvents(opts RunOptions, runOpts opencodeRunOptions, purpose 
 	return result, nil
 }
 
-func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunResult, runOpts opencodeRunOptions, beforeCommitID, afterCommitID string, afterCommitErr error, restored bool, restoreErr error) string {
+func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunResult, runOpts opencodeRunOptions, beforeCommitID, afterCommitID string, afterCommitErr error, restored bool, restoreErr error, retryCount int) string {
 	parts := []string{}
 	if strings.TrimSpace(result.SessionID) != "" {
 		parts = append(parts, fmt.Sprintf("session %s", result.SessionID))
@@ -960,6 +978,9 @@ func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunR
 	}
 	if restoreErr != nil {
 		parts = append(parts, fmt.Sprintf("restore_error %v", restoreErr))
+	}
+	if retryCount > 0 {
+		parts = append(parts, fmt.Sprintf("retry %d", retryCount))
 	}
 	message := fmt.Sprintf("opencode %s failed with exit code %d", purpose, result.ExitCode)
 	if result.ExitCode < 0 {
