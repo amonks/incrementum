@@ -86,14 +86,8 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 }
 
 func formatOpencodeTable(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) string {
-	if highlight == nil {
-		highlight = func(value string, prefix int) string { return value }
-	}
-
 	rows := make([][]string, 0, len(sessions))
-	if prefixLengths == nil {
-		prefixLengths = opencodeSessionPrefixLengths(sessions)
-	}
+	highlight, prefixLengths = normalizeOpencodeTableInputs(sessions, highlight, prefixLengths)
 	promptWidth := opencodePromptColumnWidth(sessions, highlight, now, prefixLengths)
 	promptHeader := "PROMPT"
 	if promptWidth > 0 {
@@ -132,6 +126,7 @@ func opencodePromptColumnWidth(sessions []opencode.OpencodeSession, highlight fu
 		return ui.TableCellMaxWidth()
 	}
 
+	highlight, prefixLengths = normalizeOpencodeTableInputs(sessions, highlight, prefixLengths)
 	fixedWidth := opencodeFixedColumnsWidth(sessions, highlight, now, prefixLengths)
 	remaining := viewportWidth - fixedWidth
 	if remaining <= 0 {
@@ -145,13 +140,6 @@ func opencodePromptColumnWidth(sessions []opencode.OpencodeSession, highlight fu
 }
 
 func opencodeFixedColumnsWidth(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
-	if highlight == nil {
-		highlight = func(value string, prefix int) string { return value }
-	}
-	if prefixLengths == nil {
-		prefixLengths = opencodeSessionPrefixLengths(sessions)
-	}
-
 	maxSession := ui.TableCellWidth("SESSION")
 	maxStatus := ui.TableCellWidth("STATUS")
 	maxAge := ui.TableCellWidth("AGE")
@@ -187,6 +175,16 @@ func opencodeSessionPrefixLengths(sessions []opencode.OpencodeSession) map[strin
 		sessionIDs = append(sessionIDs, session.ID)
 	}
 	return ui.UniqueIDPrefixLengths(sessionIDs)
+}
+
+func normalizeOpencodeTableInputs(sessions []opencode.OpencodeSession, highlight func(string, int) string, prefixLengths map[string]int) (func(string, int) string, map[string]int) {
+	if highlight == nil {
+		highlight = func(value string, prefix int) string { return value }
+	}
+	if prefixLengths == nil {
+		prefixLengths = opencodeSessionPrefixLengths(sessions)
+	}
+	return highlight, prefixLengths
 }
 
 func opencodePromptLine(prompt string) string {
