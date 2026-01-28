@@ -1,14 +1,12 @@
 package job
 
 import (
-	"strings"
-
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
 func formatOpencodeText(event opencodeRenderedEvent) []string {
 	if event.Inline != "" {
-		line := internalstrings.TrimSpace(strings.Join([]string{event.Label, event.Inline}, " "))
+		line := internalstrings.TrimSpace(event.Label + " " + event.Inline)
 		if line == "" {
 			return nil
 		}
