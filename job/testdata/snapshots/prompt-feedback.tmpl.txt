@@ -3,8 +3,10 @@ completion of a todo.
 
 Previous feedback
 
-    Reviewer notes: - Verify wrapping in long paragraphs and list items. - Ensure
-    blank lines remain where expected.
+    Reviewer notes:
+    
+    - Verify wrapping in long paragraphs and list items.
+    - Ensure blank lines remain where expected.
     
     Please double-check that empty lines are preserved between sections.
 

@@ -61,7 +61,7 @@ func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitL
 		WorkspacePath:       workspacePath,
 		ReviewInstructions:  reviewInstructionsText,
 		TodoBlock:           formatTodoBlock(item),
-		FeedbackBlock:       formatPromptBlock("Previous feedback", feedback),
+		FeedbackBlock:       formatFeedbackBlock(feedback),
 		CommitMessageBlock:  formatPromptBlock("Commit message", message),
 	}
 }
@@ -90,6 +90,104 @@ func formatPromptBlock(label, body string) string {
 	}
 	formatted := ReflowIndentedText(body, lineWidth, documentIndent)
 	return fmt.Sprintf("%s\n\n%s", label, formatted)
+}
+
+func formatFeedbackBlock(body string) string {
+	if looksLikeMarkdownList(body) {
+		return formatPromptMarkdownBlock("Previous feedback", body)
+	}
+	return formatPromptBlock("Previous feedback", body)
+}
+
+func formatPromptMarkdownBlock(label, body string) string {
+	body = internalstrings.TrimTrailingNewlines(body)
+	if internalstrings.IsBlank(body) {
+		body = "-"
+	}
+	formatted := RenderMarkdown(body, lineWidth)
+	formatted = normalizePromptMarkdown(formatted)
+	if internalstrings.IsBlank(formatted) {
+		formatted = "-"
+	}
+	formatted = IndentBlock(formatted, documentIndent)
+	return fmt.Sprintf("%s\n\n%s", label, formatted)
+}
+
+func looksLikeMarkdownList(body string) bool {
+	body = internalstrings.NormalizeNewlines(body)
+	trimmed := internalstrings.TrimSpace(body)
+	if strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ") {
+		return true
+	}
+	return strings.Contains(body, "\n- ") || strings.Contains(body, "\n* ")
+}
+
+func normalizePromptMarkdown(value string) string {
+	value = internalstrings.NormalizeNewlines(value)
+	value = internalstrings.TrimTrailingNewlines(value)
+	value = promptTrimLeadingBlankLines(value)
+	if internalstrings.IsBlank(value) {
+		return ""
+	}
+	if !looksLikeMarkdownListBlock(value) {
+		return value
+	}
+	return promptTrimCommonIndent(value)
+}
+
+func looksLikeMarkdownListBlock(value string) bool {
+	lines := strings.Split(value, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimLeft(line, " ")
+		if strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ") {
+			return true
+		}
+	}
+	return false
+}
+
+func promptTrimLeadingBlankLines(value string) string {
+	lines := strings.Split(value, "\n")
+	start := 0
+	for start < len(lines) {
+		if !internalstrings.IsBlank(lines[start]) {
+			break
+		}
+		start++
+	}
+	if start >= len(lines) {
+		return ""
+	}
+	return strings.Join(lines[start:], "\n")
+}
+
+func promptTrimCommonIndent(value string) string {
+	lines := strings.Split(value, "\n")
+	minIndent := -1
+	for _, line := range lines {
+		if internalstrings.IsBlank(line) {
+			continue
+		}
+		spaces := internalstrings.LeadingSpaces(line)
+		if minIndent == -1 || spaces < minIndent {
+			minIndent = spaces
+		}
+	}
+	if minIndent <= 0 {
+		return value
+	}
+	for i, line := range lines {
+		if internalstrings.IsBlank(line) {
+			lines[i] = ""
+			continue
+		}
+		if len(line) <= minIndent {
+			lines[i] = ""
+			continue
+		}
+		lines[i] = line[minIndent:]
+	}
+	return strings.Join(lines, "\n")
 }
 
 func formatTodoField(label, value string) string {

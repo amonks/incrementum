@@ -156,6 +156,26 @@ func TestFormatTodoBlock_PreservesFieldLines(t *testing.T) {
 	}
 }
 
+func TestFormatFeedbackBlock_PreservesListItems(t *testing.T) {
+	feedback := strings.Join([]string{
+		"- npm run lint is passing",
+		"- npm run test is failing",
+	}, "\n")
+
+	formatted := formatFeedbackBlock(feedback)
+
+	expected := strings.Join([]string{
+		"Previous feedback",
+		"",
+		"    - npm run lint is passing",
+		"    - npm run test is failing",
+	}, "\n")
+
+	if internalstrings.TrimTrailingNewlines(formatted) != expected {
+		t.Fatalf("expected feedback list to stay on separate lines, got %q", formatted)
+	}
+}
+
 func TestRenderPrompt_RendersReviewQuestionsTemplate(t *testing.T) {
 	rendered, err := RenderPrompt("{{template \"review_questions\"}}", PromptData{})
 	if err != nil {
