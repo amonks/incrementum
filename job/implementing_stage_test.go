@@ -75,6 +75,82 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 	}
 }
 
+func TestRunImplementingStageFailedOpencodeRestoresAndReportsContext(t *testing.T) {
+	repoPath := t.TempDir()
+	stateDir := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, time.January, 2, 3, 4, 6, 0, time.UTC)
+	current, err := manager.Create("todo-restore", now, "")
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-restore",
+		Title:    "Example",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityLow,
+	}
+
+	commitCalls := 0
+	restoreCalled := false
+	restoreCommit := ""
+	opts := RunOptions{
+		Now: func() time.Time { return now },
+		CurrentCommitID: func(string) (string, error) {
+			commitCalls++
+			if commitCalls == 1 {
+				return "before", nil
+			}
+			return "after", nil
+		},
+		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
+			return OpencodeRunResult{SessionID: "ses-789", ExitCode: -1}, nil
+		},
+		RestoreWorkspace: func(_ string, commitID string) error {
+			restoreCalled = true
+			restoreCommit = commitID
+			return nil
+		},
+		OpencodeAgent: "gpt-5.2-codex",
+	}
+
+	_, err = runImplementingStage(manager, current, item, repoPath, repoPath, opts, nil, "")
+	if err == nil {
+		t.Fatal("expected opencode failure error")
+	}
+	if !restoreCalled {
+		t.Fatalf("expected restore to be called")
+	}
+	if restoreCommit != "before" {
+		t.Fatalf("expected restore commit to be before, got %q", restoreCommit)
+	}
+	message := err.Error()
+	if !strings.Contains(message, "opencode implement failed with exit code -1") {
+		t.Fatalf("expected exit code context, got %v", message)
+	}
+	if !strings.Contains(message, "session ses-789") {
+		t.Fatalf("expected session context, got %v", message)
+	}
+	if !strings.Contains(message, "agent \"gpt-5.2-codex\"") {
+		t.Fatalf("expected agent context, got %v", message)
+	}
+	if !strings.Contains(message, "prompt prompt-implementation.tmpl") {
+		t.Fatalf("expected prompt context, got %v", message)
+	}
+	if !strings.Contains(message, "before before") || !strings.Contains(message, "after after") {
+		t.Fatalf("expected commit context, got %v", message)
+	}
+	if !strings.Contains(message, "restored before") {
+		t.Fatalf("expected restore context, got %v", message)
+	}
+}
+
 func TestRunImplementingStageTreatsEmptyDiffAsNoChange(t *testing.T) {
 	repoPath := t.TempDir()
 	stateDir := t.TempDir()

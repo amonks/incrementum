@@ -49,6 +49,7 @@ type RunOptions struct {
 	DiffStat            func(string, string, string) (string, error)
 	CommitIDAt          func(string, string) (string, error)
 	Commit              func(string, string) error
+	RestoreWorkspace    func(string, string) error
 	UpdateStale         func(string) error
 	OpencodeTranscripts func(string, []OpencodeSession) ([]OpencodeTranscript, error)
 	EventLog            *EventLog
@@ -440,6 +441,10 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		client := jj.New()
 		opts.Commit = client.Commit
 	}
+	if opts.RestoreWorkspace == nil {
+		client := jj.New()
+		opts.RestoreWorkspace = client.Edit
+	}
 	if opts.UpdateStale == nil {
 		client := jj.New()
 		opts.UpdateStale = client.WorkspaceUpdateStale
@@ -502,7 +507,27 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 	logger.Prompt(PromptLog{Purpose: "implement", Template: promptName, Prompt: prompt, Transcript: transcript})
 
 	if opencodeResult.ExitCode != 0 {
-		return ImplementingStageResult{}, fmt.Errorf("opencode implement failed with exit code %d", opencodeResult.ExitCode)
+		afterCommitID := ""
+		var afterCommitErr error
+		if opts.CurrentCommitID != nil && strings.TrimSpace(workspacePath) != "" {
+			afterCommitID, afterCommitErr = opts.CurrentCommitID(workspacePath)
+		}
+		restored := false
+		var restoreErr error
+		if opencodeResult.ExitCode < 0 && afterCommitErr == nil && afterCommitID != "" && beforeCommitID != "" && afterCommitID != beforeCommitID {
+			if opts.RestoreWorkspace != nil {
+				restoreErr = opts.RestoreWorkspace(workspacePath, beforeCommitID)
+				if restoreErr == nil {
+					restored = true
+				}
+			}
+		}
+		return ImplementingStageResult{}, errors.New(buildOpencodeFailureMessage("implement", promptName, opencodeResult, opencodeRunOptions{
+			RepoPath:      repoPath,
+			WorkspacePath: workspacePath,
+			Prompt:        prompt,
+			Agent:         opts.OpencodeAgent,
+		}, beforeCommitID, afterCommitID, afterCommitErr, restored, restoreErr))
 	}
 
 	afterCommitID, err := opts.CurrentCommitID(workspacePath)
@@ -894,6 +919,48 @@ func runOpencodeWithEvents(opts RunOptions, runOpts opencodeRunOptions, purpose 
 		return OpencodeRunResult{}, err
 	}
 	return result, nil
+}
+
+func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunResult, runOpts opencodeRunOptions, beforeCommitID, afterCommitID string, afterCommitErr error, restored bool, restoreErr error) string {
+	parts := []string{}
+	if strings.TrimSpace(result.SessionID) != "" {
+		parts = append(parts, fmt.Sprintf("session %s", result.SessionID))
+	}
+	if strings.TrimSpace(runOpts.Agent) != "" {
+		parts = append(parts, fmt.Sprintf("agent %q", runOpts.Agent))
+	}
+	if strings.TrimSpace(promptName) != "" {
+		parts = append(parts, fmt.Sprintf("prompt %s", promptName))
+	}
+	if strings.TrimSpace(runOpts.RepoPath) != "" {
+		parts = append(parts, fmt.Sprintf("repo %s", runOpts.RepoPath))
+	}
+	if strings.TrimSpace(runOpts.WorkspacePath) != "" {
+		parts = append(parts, fmt.Sprintf("workspace %s", runOpts.WorkspacePath))
+	}
+	if strings.TrimSpace(beforeCommitID) != "" {
+		parts = append(parts, fmt.Sprintf("before %s", beforeCommitID))
+	}
+	if strings.TrimSpace(afterCommitID) != "" {
+		parts = append(parts, fmt.Sprintf("after %s", afterCommitID))
+	}
+	if afterCommitErr != nil {
+		parts = append(parts, fmt.Sprintf("after_commit_error %v", afterCommitErr))
+	}
+	if restored {
+		parts = append(parts, fmt.Sprintf("restored %s", beforeCommitID))
+	}
+	if restoreErr != nil {
+		parts = append(parts, fmt.Sprintf("restore_error %v", restoreErr))
+	}
+	message := fmt.Sprintf("opencode %s failed with exit code %d", purpose, result.ExitCode)
+	if result.ExitCode < 0 {
+		message += " (process did not exit cleanly)"
+	}
+	if len(parts) == 0 {
+		return message
+	}
+	return fmt.Sprintf("%s: %s", message, strings.Join(parts, ", "))
 }
 
 func ensureCommitMessageInPrompt(prompt, message string) string {
