@@ -281,8 +281,9 @@ filesystem reads; when set, the job runner does not call `LoadConfig`.
 ## Templates
 
 Bundled defaults via `//go:embed`, overridable by placing files in
-`.incrementum/templates/`. Use `ii help templates` to print the default
-template contents, override paths, and variable types.
+`.incrementum/templates/` unless noted. Use `ii help templates` to print the
+default template contents, override paths, and variable types for prompt
+templates.
 
 | File                        | Stage        |
 | --------------------------- | ------------ |
@@ -311,8 +312,12 @@ All prompt templates receive the same data:
 - `CommitMessageBlock` (`string`): formatted heading-and-indent block for the commit
   message text.
 
-The prompt renderer provides a `review_questions` template definition with the
-default review question list.
+Shared templates:
+
+- `review-questions.tmpl`: defines `review_questions`, the default review
+  question list. Overrides live at `.incrementum/templates/review-questions.tmpl`.
+- `review-instructions.tmpl`: embedded review output instructions block. This is
+  part of the internal API and is not overrideable.
 
 ## Commands
 

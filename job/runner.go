@@ -732,7 +732,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		return Job{}, err
 	}
 	promptTemplate = ensureCommitMessageInPrompt(promptTemplate, message)
-	prompt, err := RenderPrompt(promptTemplate, newPromptData(item, "", message, commitLog, nil, workspacePath))
+	prompt, err := RenderPrompt(workspacePath, promptTemplate, newPromptData(item, "", message, commitLog, nil, workspacePath))
 	if err != nil {
 		return Job{}, err
 	}
@@ -985,7 +985,7 @@ func renderPromptTemplate(item todo.Todo, feedback, message string, commitLog []
 	if err != nil {
 		return "", err
 	}
-	return RenderPrompt(prompt, newPromptData(item, feedback, message, commitLog, transcripts, workspacePath))
+	return RenderPrompt(workspacePath, prompt, newPromptData(item, feedback, message, commitLog, transcripts, workspacePath))
 }
 
 func runOpencodeWithEvents(opts RunOptions, runOpts opencodeRunOptions, purpose string) (OpencodeRunResult, error) {

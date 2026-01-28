@@ -59,7 +59,7 @@ func TestRenderPrompt_InterpolatesFields(t *testing.T) {
 		Message:  "Add coverage",
 	}
 
-	rendered, err := RenderPrompt("{{.Todo.ID}} {{.Todo.Title}} {{.Feedback}} {{.Message}}", data)
+	rendered, err := RenderPrompt("", "{{.Todo.ID}} {{.Todo.Title}} {{.Feedback}} {{.Message}}", data)
 	if err != nil {
 		t.Fatalf("render prompt: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestRenderPrompt_InterpolatesFields(t *testing.T) {
 func TestRenderPrompt_InterpolatesWorkspacePath(t *testing.T) {
 	data := PromptData{WorkspacePath: "/tmp/ws-123"}
 
-	rendered, err := RenderPrompt("{{.WorkspacePath}}", data)
+	rendered, err := RenderPrompt("", "{{.WorkspacePath}}", data)
 	if err != nil {
 		t.Fatalf("render prompt: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestRenderPrompt_InterpolatesCommitLog(t *testing.T) {
 		CommitLog: []CommitLogEntry{{ID: "commit-1", Message: "feat: first change"}},
 	}
 
-	rendered, err := RenderPrompt("{{range .CommitLog}}{{.ID}} {{.Message}}{{end}}", data)
+	rendered, err := RenderPrompt("", "{{range .CommitLog}}{{.ID}} {{.Message}}{{end}}", data)
 	if err != nil {
 		t.Fatalf("render prompt: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestRenderPrompt_InterpolatesCommitLog(t *testing.T) {
 func TestRenderPrompt_InterpolatesReviewInstructions(t *testing.T) {
 	data := PromptData{ReviewInstructions: "Follow the steps."}
 
-	rendered, err := RenderPrompt("{{.ReviewInstructions}}", data)
+	rendered, err := RenderPrompt("", "{{.ReviewInstructions}}", data)
 	if err != nil {
 		t.Fatalf("render prompt: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestRenderPrompt_InterpolatesReviewInstructions(t *testing.T) {
 func TestRenderPrompt_InterpolatesTodoBlock(t *testing.T) {
 	data := PromptData{TodoBlock: "Todo\n\n    id"}
 
-	rendered, err := RenderPrompt("{{.TodoBlock}}", data)
+	rendered, err := RenderPrompt("", "{{.TodoBlock}}", data)
 	if err != nil {
 		t.Fatalf("render prompt: %v", err)
 	}
@@ -177,12 +177,35 @@ func TestFormatFeedbackBlock_PreservesListItems(t *testing.T) {
 }
 
 func TestRenderPrompt_RendersReviewQuestionsTemplate(t *testing.T) {
-	rendered, err := RenderPrompt("{{template \"review_questions\"}}", PromptData{})
+	rendered, err := RenderPrompt("", "{{template \"review_questions\"}}", PromptData{})
 	if err != nil {
 		t.Fatalf("render prompt: %v", err)
 	}
 
 	if !strings.Contains(rendered, "Does it do what the message says?") {
 		t.Fatalf("expected review questions to render, got %q", rendered)
+	}
+}
+
+func TestRenderPrompt_UsesReviewQuestionsOverride(t *testing.T) {
+	repoPath := t.TempDir()
+	promptDir := filepath.Join(repoPath, ".incrementum", "templates")
+	if err := os.MkdirAll(promptDir, 0o755); err != nil {
+		t.Fatalf("create prompt dir: %v", err)
+	}
+
+	override := "{{define \"review_questions\"}}- override{{end}}"
+	overridePath := filepath.Join(promptDir, "review-questions.tmpl")
+	if err := os.WriteFile(overridePath, []byte(override), 0o644); err != nil {
+		t.Fatalf("write override: %v", err)
+	}
+
+	rendered, err := RenderPrompt(repoPath, "{{template \"review_questions\"}}", PromptData{})
+	if err != nil {
+		t.Fatalf("render prompt: %v", err)
+	}
+
+	if trimmedPromptOutput(rendered) != "- override" {
+		t.Fatalf("expected override content, got %q", rendered)
 	}
 }

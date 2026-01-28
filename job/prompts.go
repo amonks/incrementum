@@ -13,29 +13,16 @@ import (
 	"github.com/amonks/incrementum/todo"
 )
 
-const promptOverrideDir = ".incrementum/templates"
+const (
+	promptOverrideDir              = ".incrementum/templates"
+	reviewQuestionsTemplateName    = "review-questions.tmpl"
+	reviewInstructionsTemplateName = "review-instructions.tmpl"
+)
 
 //go:embed templates/*.tmpl
 var defaultTemplates embed.FS
 
-const reviewInstructionsText = "Publish your review to the file ./.incrementum-feedback\n\n" +
-	"Write one of the following allcaps words as the first line:\n" +
-	"- `ACCEPT` -- if the changes pass review and should be merged\n" +
-	"- `ABANDON` -- if the changes are so off-base as to be a lost cause\n" +
-	"- `REQUEST_CHANGES` -- if some modifications could get the changes into shape\n\n" +
-	"If requesting changes, add a blank line and the details after it.\n"
-
-const reviewQuestionsTemplate = `{{define "review_questions"}}- Does it do what the message says?
-- Does it move us towards the goal in the todo?
-- Is it _necessary_ for moving us towards the goal in the todo?
-- Is it free of defects?
-- Is the domain modeling coherent and sound?
-- Are things in the right place?
-- Does it include proper test coverage?
-- Does it keep the relevant specs up to date?
-- Does it conform to the norms of the code areas it modifies?
-- Does it work?
-{{end}}`
+var reviewInstructionsText = mustReadDefaultPromptTemplate(reviewInstructionsTemplateName)
 
 // PromptData supplies values for job prompt templates.
 type PromptData struct {
@@ -64,6 +51,14 @@ func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitL
 		FeedbackBlock:       formatFeedbackBlock(feedback),
 		CommitMessageBlock:  formatPromptBlock("Commit message", message),
 	}
+}
+
+func mustReadDefaultPromptTemplate(name string) string {
+	contents, err := readDefaultPromptTemplate(name)
+	if err != nil {
+		panic(fmt.Sprintf("load default prompt template %q: %v", name, err))
+	}
+	return contents
 }
 
 func formatTodoBlock(item todo.Todo) string {
@@ -222,10 +217,15 @@ func LoadPrompt(repoPath, name string) (string, error) {
 }
 
 // RenderPrompt renders the prompt with provided data.
-func RenderPrompt(contents string, data PromptData) (string, error) {
+func RenderPrompt(repoPath, contents string, data PromptData) (string, error) {
+	reviewQuestionsTemplate, err := LoadPrompt(repoPath, reviewQuestionsTemplateName)
+	if err != nil {
+		return "", fmt.Errorf("load review questions template: %w", err)
+	}
+
 	tmpl, err := template.New("prompt").Option("missingkey=error").Parse(reviewQuestionsTemplate)
 	if err != nil {
-		return "", fmt.Errorf("parse shared prompt: %w", err)
+		return "", fmt.Errorf("parse review questions template: %w", err)
 	}
 
 	tmpl, err = tmpl.Parse(contents)

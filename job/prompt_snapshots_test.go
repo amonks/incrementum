@@ -22,7 +22,7 @@ func TestPromptSnapshots(t *testing.T) {
 			if err != nil {
 				t.Fatalf("load prompt: %v", err)
 			}
-			rendered, err := RenderPrompt(contents, data)
+			rendered, err := RenderPrompt("", contents, data)
 			if err != nil {
 				t.Fatalf("render prompt: %v", err)
 			}
