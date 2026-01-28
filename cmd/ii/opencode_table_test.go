@@ -51,6 +51,10 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 	}
 }
 
+func trimmedOpencodeTable(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time) string {
+	return internalstrings.TrimSpace(formatOpencodeTable(sessions, highlight, now, nil))
+}
+
 func TestFormatOpencodeTableTruncatesPromptToViewport(t *testing.T) {
 	restore := ui.OverrideTableViewportWidth(func() int {
 		return 60
@@ -254,7 +258,7 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 		},
 	}
 
-	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := trimmedOpencodeTable(sessions, func(id string, prefix int) string { return id }, now)
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -288,7 +292,7 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 		},
 	}
 
-	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := trimmedOpencodeTable(sessions, func(id string, prefix int) string { return id }, now)
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -315,7 +319,7 @@ func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 		},
 	}
 
-	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(value string, prefix int) string { return value }, now, nil))
+	output := trimmedOpencodeTable(sessions, func(value string, prefix int) string { return value }, now)
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -344,7 +348,7 @@ func TestFormatOpencodeTableShowsAgeForCompletedSession(t *testing.T) {
 		},
 	}
 
-	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := trimmedOpencodeTable(sessions, func(id string, prefix int) string { return id }, now)
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
@@ -376,7 +380,7 @@ func TestFormatOpencodeTableShowsDuration(t *testing.T) {
 		},
 	}
 
-	output := internalstrings.TrimSpace(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil))
+	output := trimmedOpencodeTable(sessions, func(id string, prefix int) string { return id }, now)
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
 		t.Fatalf("expected header and row, got: %q", output)
