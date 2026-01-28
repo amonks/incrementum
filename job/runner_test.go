@@ -456,6 +456,13 @@ func TestRunReviewingStageReadsCommitMessageFile(t *testing.T) {
 		},
 		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
 			seenPrompt = runOpts.Prompt
+			value, ok := envValue(runOpts.Env, opencodeConfigEnvVar)
+			if !ok {
+				return OpencodeRunResult{}, fmt.Errorf("expected %s to be set", opencodeConfigEnvVar)
+			}
+			if value != opencodeConfigContent {
+				return OpencodeRunResult{}, fmt.Errorf("expected %s to be %q, got %q", opencodeConfigEnvVar, opencodeConfigContent, value)
+			}
 			if err := os.WriteFile(feedbackPath, []byte("ACCEPT\n"), 0o644); err != nil {
 				return OpencodeRunResult{}, err
 			}
@@ -533,6 +540,16 @@ func TestRunReviewingStageMissingCommitMessageExplainsContext(t *testing.T) {
 	if !strings.Contains(err.Error(), commitMessageFilename) {
 		t.Fatalf("expected commit message path context, got %v", err)
 	}
+}
+
+func envValue(env []string, key string) (string, bool) {
+	prefix := key + "="
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			return strings.TrimPrefix(entry, prefix), true
+		}
+	}
+	return "", false
 }
 
 func TestRunReviewingStageInjectsCommitMessageWhenTemplateMissing(t *testing.T) {

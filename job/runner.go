@@ -23,6 +23,8 @@ import (
 const (
 	feedbackFilename      = ".incrementum-feedback"
 	commitMessageFilename = ".incrementum-commit-message"
+	opencodeConfigEnvVar  = "OPENCODE_CONFIG_CONTENT"
+	opencodeConfigContent = `{"permission":{"question":"deny"}}`
 )
 
 var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.(Message|CommitMessageBlock)[^}]*\}\}`)
@@ -96,6 +98,7 @@ type opencodeRunOptions struct {
 	Agent         string
 	StartedAt     time.Time
 	EventLog      *EventLog
+	Env           []string
 }
 
 // Run creates and executes a job for the given todo.
@@ -556,6 +559,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 			Agent:         agent,
 			StartedAt:     opts.Now(),
 			EventLog:      opts.EventLog,
+			Env:           applyOpencodeConfigEnv(nil),
 		}, "implement")
 		if err != nil {
 			return OpencodeRunResult{}, err
@@ -747,6 +751,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		Agent:         agent,
 		StartedAt:     opts.Now(),
 		EventLog:      opts.EventLog,
+		Env:           applyOpencodeConfigEnv(nil),
 	}, purpose)
 	if err != nil {
 		return Job{}, err
@@ -1145,6 +1150,26 @@ func updateStaleWorkspace(update func(string) error, workspacePath string) {
 	_ = update(workspacePath)
 }
 
+func applyOpencodeConfigEnv(env []string) []string {
+	if env == nil {
+		env = os.Environ()
+	}
+	return replaceEnvVar(env, opencodeConfigEnvVar, opencodeConfigContent)
+}
+
+func replaceEnvVar(env []string, key, value string) []string {
+	prefix := key + "="
+	updated := make([]string, 0, len(env)+1)
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			continue
+		}
+		updated = append(updated, entry)
+	}
+	updated = append(updated, prefix+value)
+	return updated
+}
+
 func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (OpencodeRunResult, error) {
 	handle, err := store.Run(opencode.RunOptions{
 		RepoPath:  opts.RepoPath,
@@ -1154,6 +1179,7 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 		StartedAt: opts.StartedAt,
 		Stdout:    io.Discard,
 		Stderr:    io.Discard,
+		Env:       applyOpencodeConfigEnv(opts.Env),
 	})
 	if err != nil {
 		return OpencodeRunResult{}, err

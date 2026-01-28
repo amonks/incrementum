@@ -2,6 +2,7 @@ package job
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -176,6 +177,70 @@ func TestRunImplementingStageFailedOpencodeRestoresRetriesAndReportsContext(t *t
 	}
 	if !strings.Contains(message, "retry 1") {
 		t.Fatalf("expected retry context, got %v", message)
+	}
+}
+
+func TestRunImplementingStageSetsOpencodeConfigEnv(t *testing.T) {
+	repoPath := t.TempDir()
+	stateDir := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, time.January, 8, 9, 10, 11, 0, time.UTC)
+	current, err := manager.Create("todo-env", now, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:       "todo-env",
+		Title:    "Env config",
+		Type:     todo.TypeTask,
+		Priority: todo.PriorityMedium,
+	}
+
+	commitIDs := []string{"before", "after"}
+	commitIndex := 0
+
+	opts := RunOptions{
+		Now: func() time.Time { return now },
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", errors.New("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
+		DiffStat: func(string, string, string) (string, error) {
+			return "file.txt | 1 +\n", nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			value, ok := envValue(runOpts.Env, opencodeConfigEnvVar)
+			if !ok {
+				return OpencodeRunResult{}, fmt.Errorf("expected %s to be set", opencodeConfigEnvVar)
+			}
+			if value != opencodeConfigContent {
+				return OpencodeRunResult{}, fmt.Errorf("expected %s to be %q, got %q", opencodeConfigEnvVar, opencodeConfigContent, value)
+			}
+			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
+			if err := os.WriteFile(messagePath, []byte("feat: env"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "ses-env", ExitCode: 0}, nil
+		},
+	}
+
+	result, err := runImplementingStage(manager, current, item, repoPath, workspacePath, opts, nil, "")
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+	if !result.Changed {
+		t.Fatalf("expected change detected")
 	}
 }
 

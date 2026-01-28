@@ -118,7 +118,9 @@ any stage -> failed (unrecoverable error)
 3. Record the current working copy commit id.
 4. Run opencode with `prompt-implementation.tmpl` when no feedback is present,
    or `prompt-feedback.tmpl` when responding to feedback (PWD set to the
-   workspace root).
+   workspace root). Set `OPENCODE_CONFIG_CONTENT` to
+   `{"permission":{"question":"deny"}}` to deny question prompts during
+   the job run.
 5. Template receives: `Todo`, `Feedback`, and `Message` (previous commit message
    when responding to feedback).
 6. Record opencode session in `opencode_sessions` with purpose `implement`.
@@ -166,7 +168,8 @@ any stage -> failed (unrecoverable error)
 
 1. Best-effort `jj workspace update-stale` in the repo working directory.
 2. Delete `.incrementum-feedback` from the workspace root if it exists.
-3. Run opencode with:
+3. Run opencode with `OPENCODE_CONFIG_CONTENT` set to
+   `{"permission":{"question":"deny"}}` to deny question prompts and:
    - `prompt-commit-review.tmpl` during the work loop, or
    - `prompt-project-review.tmpl` during the final project review.
 4. Template receives: `Todo`, `Message` (commit message from the implementing stage).
