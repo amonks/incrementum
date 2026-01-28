@@ -64,7 +64,7 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 	}
 
 	firstLine := strings.TrimSpace(lines[0])
-	if internalstrings.IsBlank(firstLine) {
+	if firstLine == "" {
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
 

@@ -9,7 +9,7 @@ import (
 func formatOpencodeText(event opencodeRenderedEvent) []string {
 	if event.Inline != "" {
 		line := strings.TrimSpace(strings.Join([]string{event.Label, event.Inline}, " "))
-		if internalstrings.IsBlank(line) {
+		if line == "" {
 			return nil
 		}
 		return []string{IndentBlock(line, documentIndent)}
