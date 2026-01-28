@@ -28,7 +28,7 @@ func TestLoadPrompt_UsesOverride(t *testing.T) {
 		t.Fatalf("load prompt: %v", err)
 	}
 
-	if internalstrings.TrimSpace(loaded) != override {
+	if trimmedPromptOutput(loaded) != override {
 		t.Fatalf("expected override content, got %q", loaded)
 	}
 }
@@ -65,7 +65,7 @@ func TestRenderPrompt_InterpolatesFields(t *testing.T) {
 	}
 
 	expected := "todo-123 Ship it Needs more tests Add coverage"
-	if internalstrings.TrimSpace(rendered) != expected {
+	if trimmedPromptOutput(rendered) != expected {
 		t.Fatalf("expected %q, got %q", expected, rendered)
 	}
 }
@@ -78,7 +78,7 @@ func TestRenderPrompt_InterpolatesWorkspacePath(t *testing.T) {
 		t.Fatalf("render prompt: %v", err)
 	}
 
-	if internalstrings.TrimSpace(rendered) != "/tmp/ws-123" {
+	if trimmedPromptOutput(rendered) != "/tmp/ws-123" {
 		t.Fatalf("expected workspace path to render, got %q", rendered)
 	}
 }
@@ -94,7 +94,7 @@ func TestRenderPrompt_InterpolatesCommitLog(t *testing.T) {
 	}
 
 	expected := "commit-1 feat: first change"
-	if internalstrings.TrimSpace(rendered) != expected {
+	if trimmedPromptOutput(rendered) != expected {
 		t.Fatalf("expected %q, got %q", expected, rendered)
 	}
 }
@@ -107,7 +107,7 @@ func TestRenderPrompt_InterpolatesReviewInstructions(t *testing.T) {
 		t.Fatalf("render prompt: %v", err)
 	}
 
-	if internalstrings.TrimSpace(rendered) != "Follow the steps." {
+	if trimmedPromptOutput(rendered) != "Follow the steps." {
 		t.Fatalf("expected review instructions to render, got %q", rendered)
 	}
 }
@@ -120,9 +120,13 @@ func TestRenderPrompt_InterpolatesTodoBlock(t *testing.T) {
 		t.Fatalf("render prompt: %v", err)
 	}
 
-	if internalstrings.TrimSpace(rendered) != "Todo\n\n    id" {
+	if trimmedPromptOutput(rendered) != "Todo\n\n    id" {
 		t.Fatalf("expected todo block to render, got %q", rendered)
 	}
+}
+
+func trimmedPromptOutput(value string) string {
+	return internalstrings.TrimSpace(value)
 }
 
 func TestFormatTodoBlock_PreservesFieldLines(t *testing.T) {
