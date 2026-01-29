@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/amonks/incrementum/habit"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/validation"
+	jobpkg "github.com/amonks/incrementum/job"
 	"github.com/amonks/incrementum/todo"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +22,7 @@ var jobDoAllCmd = &cobra.Command{
 var (
 	jobDoAllPriority int
 	jobDoAllType     string
+	jobDoAllHabits   bool
 )
 
 type jobDoAllFilter struct {
@@ -31,6 +35,7 @@ func init() {
 
 	jobDoAllCmd.Flags().IntVar(&jobDoAllPriority, "priority", -1, "Filter by priority (0-4, includes higher priorities)")
 	jobDoAllCmd.Flags().StringVar(&jobDoAllType, "type", "", "Filter by type (task, bug, feature); design todos are excluded")
+	jobDoAllCmd.Flags().BoolVar(&jobDoAllHabits, "habits", false, "Run habits after todo queue is empty (round-robin)")
 }
 
 func runJobDoAll(cmd *cobra.Command, args []string) error {
@@ -39,16 +44,42 @@ func runJobDoAll(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	repoPath, err := getRepoPath()
+	if err != nil {
+		return err
+	}
+
+	// Track habit round-robin state
+	var habitNames []string
+	habitIndex := 0
+	if jobDoAllHabits {
+		habitNames, err = habit.List(repoPath)
+		if err != nil {
+			return err
+		}
+	}
+
 	for {
 		store, handled, err := openTodoStoreReadOnlyOrEmpty(cmd, args, false, func() error {
-			fmt.Println("nothing left to do")
+			if !jobDoAllHabits || len(habitNames) == 0 {
+				fmt.Println("nothing left to do")
+			}
 			return nil
 		})
 		if err != nil {
 			return err
 		}
 		if handled {
-			return nil
+			// No todos - check if we should run habits
+			if !jobDoAllHabits || len(habitNames) == 0 {
+				return nil
+			}
+			// Run the next habit in round-robin order
+			if err := runDoAllHabit(cmd, repoPath, habitNames[habitIndex]); err != nil {
+				return err
+			}
+			habitIndex = (habitIndex + 1) % len(habitNames)
+			continue
 		}
 
 		todoID, err := nextJobDoAllTodoID(store, filter)
@@ -57,14 +88,68 @@ func runJobDoAll(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if todoID == "" {
-			fmt.Println("nothing left to do")
-			return nil
+			// No ready todos - check if we should run habits
+			if !jobDoAllHabits || len(habitNames) == 0 {
+				fmt.Println("nothing left to do")
+				return nil
+			}
+			// Run the next habit in round-robin order
+			if err := runDoAllHabit(cmd, repoPath, habitNames[habitIndex]); err != nil {
+				return err
+			}
+			habitIndex = (habitIndex + 1) % len(habitNames)
+			continue
 		}
+
+		// Reset habit index when we have todos (prioritize todos)
+		habitIndex = 0
 
 		if err := runJobDoTodo(cmd, todoID); err != nil {
 			return err
 		}
 	}
+}
+
+func runDoAllHabit(cmd *cobra.Command, repoPath, habitName string) error {
+	h, err := habit.Load(repoPath, habitName)
+	if err != nil {
+		return err
+	}
+
+	opencodeAgent := resolveOpencodeAgentOverride(cmd, jobDoAgent)
+
+	logger := jobpkg.NewConsoleLogger(nil)
+	reporter := newJobStageReporter(logger)
+	onStageChange := reporter.OnStageChange
+	onStart := func(info jobpkg.HabitStartInfo) {
+		printHabitJobStart(info, h)
+	}
+
+	result, err := jobpkg.RunHabit(repoPath, h.Name, jobpkg.HabitRunOptions{
+		OnStart:       onStart,
+		OnStageChange: onStageChange,
+		Logger:        logger,
+		OpencodeAgent: opencodeAgent,
+	})
+	if err != nil {
+		var abandonedErr *jobpkg.AbandonedError
+		if errors.As(err, &abandonedErr) {
+			fmt.Printf("\n%s\n", formatAbandonReasonOutput(abandonedErr.Reason))
+			return err
+		}
+		return err
+	}
+
+	if result.Abandoned {
+		fmt.Println("\nNothing worth doing right now.")
+		return nil
+	}
+
+	if result.Artifact != nil {
+		fmt.Printf("\nCreated artifact todo: %s\n", result.Artifact.ID)
+	}
+
+	return nil
 }
 
 func jobDoAllFilters(cmd *cobra.Command) (jobDoAllFilter, error) {

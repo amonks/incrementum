@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amonks/incrementum/habit"
 	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/editor"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
@@ -45,6 +46,7 @@ var (
 	jobDoEdit                bool
 	jobDoNoEdit              bool
 	jobDoAgent               string
+	jobDoHabit               string
 )
 
 func init() {
@@ -62,11 +64,24 @@ func init() {
 	jobDoCmd.Flags().BoolVarP(&jobDoEdit, "edit", "e", false, "Open $EDITOR (default if interactive and no create flags)")
 	jobDoCmd.Flags().BoolVar(&jobDoNoEdit, "no-edit", false, "Do not open $EDITOR")
 	jobDoCmd.Flags().StringVar(&jobDoAgent, "agent", "", "Opencode agent")
+	jobDoCmd.Flags().StringVar(&jobDoHabit, "habit", "", "Run a habit instead of a todo (use habit name or empty for first)")
 }
 
 func runJobDo(cmd *cobra.Command, args []string) error {
 	if err := resolveDescriptionFlag(cmd, &jobDoDescription, os.Stdin); err != nil {
 		return err
+	}
+
+	// Handle --habit flag
+	if cmd.Flags().Changed("habit") {
+		hasCreateFlags := hasTodoCreateFlags(cmd)
+		if hasCreateFlags || jobDoEdit || jobDoNoEdit {
+			return fmt.Errorf("--habit cannot be combined with todo creation flags")
+		}
+		if len(args) > 0 {
+			return fmt.Errorf("--habit cannot be combined with todo ids")
+		}
+		return runHabitJob(cmd)
 	}
 
 	hasCreateFlags := hasTodoCreateFlags(cmd)
@@ -90,6 +105,110 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// runHabitJob runs a habit job using the --habit flag value.
+func runHabitJob(cmd *cobra.Command) error {
+	repoPath, err := getRepoPath()
+	if err != nil {
+		return err
+	}
+
+	var h *habit.Habit
+	if jobDoHabit == "" {
+		// Empty --habit means run the first habit alphabetically
+		h, err = habit.First(repoPath)
+		if err != nil {
+			return err
+		}
+		if h == nil {
+			return fmt.Errorf("no habits found in %s", habit.HabitsDir)
+		}
+	} else {
+		h, err = habit.Load(repoPath, jobDoHabit)
+		if err != nil {
+			return err
+		}
+	}
+
+	opencodeAgent := resolveOpencodeAgentOverride(cmd, jobDoAgent)
+
+	logger := jobpkg.NewConsoleLogger(os.Stdout)
+	reporter := newJobStageReporter(logger)
+	onStageChange := reporter.OnStageChange
+	onStart := func(info jobpkg.HabitStartInfo) {
+		printHabitJobStart(info, h)
+	}
+	eventStream := make(chan jobpkg.Event, 128)
+	eventErrs := make(chan error, 1)
+	eventDone := make(chan struct{})
+	go func() {
+		formatter := jobpkg.NewEventFormatterWithRepoPath(repoPath)
+		var streamErr error
+		for {
+			select {
+			case event, ok := <-eventStream:
+				if !ok {
+					eventErrs <- streamErr
+					return
+				}
+				if strings.HasPrefix(event.Name, "job.") {
+					continue
+				}
+				if err := appendAndPrintEvent(formatter, event); err != nil {
+					if streamErr == nil {
+						streamErr = err
+					}
+				}
+			case <-eventDone:
+				eventErrs <- streamErr
+				return
+			}
+		}
+	}()
+
+	result, err := jobpkg.RunHabit(repoPath, h.Name, jobpkg.HabitRunOptions{
+		OnStart:       onStart,
+		OnStageChange: onStageChange,
+		Logger:        logger,
+		EventStream:   eventStream,
+		OpencodeAgent: opencodeAgent,
+	})
+	close(eventDone)
+	streamErr := <-eventErrs
+	if err != nil {
+		var abandonedErr *jobpkg.AbandonedError
+		if errors.As(err, &abandonedErr) {
+			fmt.Printf("\n%s\n", formatAbandonReasonOutput(abandonedErr.Reason))
+			return err
+		}
+		return err
+	}
+	if streamErr != nil {
+		return streamErr
+	}
+
+	if result.Abandoned {
+		fmt.Println("\nNothing worth doing right now.")
+		return nil
+	}
+
+	if result.Artifact != nil {
+		fmt.Printf("\nCreated artifact todo: %s\n", result.Artifact.ID)
+		fmt.Printf("Title: %s\n", result.Artifact.Title)
+	}
+
+	if !internalstrings.IsBlank(result.CommitMessage) {
+		fmt.Printf("\n%s\n", formatCommitMessageOutput(result.CommitMessage))
+	}
+	return nil
+}
+
+func printHabitJobStart(info jobpkg.HabitStartInfo, h *habit.Habit) {
+	fmt.Printf("Doing habit job %s\n", info.JobID)
+	fmt.Printf("Workdir: %s\n", info.Workdir)
+	fmt.Printf("Habit: %s\n", info.HabitName)
+	fmt.Printf("Instructions:\n%s\n\n", jobpkg.IndentBlock(h.Instructions, jobDocumentIndent))
 }
 
 func runJobDoTodo(cmd *cobra.Command, todoID string) error {

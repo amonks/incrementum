@@ -168,6 +168,9 @@ type UpdateOptions struct {
 	ProjectReviewModel  *string
 	DeletedAt           *time.Time
 	DeleteReason        *string
+	Source              *string
+	StartedAt           *time.Time
+	CompletedAt         *time.Time
 }
 
 // Update updates one or more todos with the given options.
@@ -602,6 +605,15 @@ func applyTodoUpdates(item *Todo, opts UpdateOptions, now time.Time) error {
 	}
 	if opts.DeleteReason != nil {
 		item.DeleteReason = *opts.DeleteReason
+	}
+	if opts.Source != nil {
+		item.Source = internalstrings.TrimSpace(*opts.Source)
+	}
+	if opts.StartedAt != nil {
+		item.StartedAt = opts.StartedAt
+	}
+	if opts.CompletedAt != nil {
+		item.CompletedAt = opts.CompletedAt
 	}
 	item.UpdatedAt = now
 

@@ -36,6 +36,10 @@ type PromptData struct {
 	TodoBlock           string
 	FeedbackBlock       string
 	CommitMessageBlock  string
+
+	// Habit fields (empty for regular todo jobs)
+	HabitName         string
+	HabitInstructions string
 }
 
 func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitLogEntry, transcripts []OpencodeTranscript, workspacePath string) PromptData {
@@ -51,6 +55,30 @@ func newPromptData(item todo.Todo, feedback, message string, commitLog []CommitL
 		FeedbackBlock:       formatFeedbackBlock(feedback),
 		CommitMessageBlock:  formatPromptBlock("Commit message", message),
 	}
+}
+
+// newHabitPromptData creates prompt data for a habit run.
+func newHabitPromptData(habitName, habitInstructions, feedback, message string, commitLog []CommitLogEntry, transcripts []OpencodeTranscript, workspacePath string) PromptData {
+	return PromptData{
+		Feedback:            feedback,
+		Message:             message,
+		CommitLog:           commitLog,
+		OpencodeTranscripts: transcripts,
+		WorkspacePath:       workspacePath,
+		ReviewInstructions:  reviewInstructionsText,
+		FeedbackBlock:       formatFeedbackBlock(feedback),
+		CommitMessageBlock:  formatPromptBlock("Commit message", message),
+		HabitName:           habitName,
+		HabitInstructions:   formatHabitInstructions(habitInstructions),
+	}
+}
+
+func formatHabitInstructions(instructions string) string {
+	instructions = internalstrings.TrimTrailingNewlines(instructions)
+	if internalstrings.IsBlank(instructions) {
+		return "-"
+	}
+	return IndentBlock(instructions, documentIndent)
 }
 
 func mustReadDefaultPromptTemplate(name string) string {
