@@ -808,8 +808,9 @@ func createHabitArtifact(repoPath, habitName, commitMessage string) (*todo.Todo,
 
 	summary, body := splitCommitMessage(commitMessage)
 
+	// Create the artifact as in_progress first, then finish it to set ClosedAt correctly
 	artifact, err := store.Create(summary, todo.CreateOptions{
-		Status:      todo.StatusDone,
+		Status:      todo.StatusInProgress,
 		Type:        todo.TypeTask,
 		Description: body,
 	})
@@ -817,14 +818,19 @@ func createHabitArtifact(repoPath, habitName, commitMessage string) (*todo.Todo,
 		return nil, err
 	}
 
-	// Set the source, started_at, and completed_at fields via update
-	// Per spec, both should be set to creation time for habit artifacts
+	// Finish the todo to set it to done with correct ClosedAt and CompletedAt
+	finished, err := store.Finish([]string{artifact.ID})
+	if err != nil {
+		return nil, err
+	}
+	if len(finished) == 0 {
+		return nil, fmt.Errorf("finish returned no results")
+	}
+
+	// Set the source field via update
 	source := fmt.Sprintf("habit:%s", habitName)
-	now := artifact.CreatedAt
 	_, err = store.Update([]string{artifact.ID}, todo.UpdateOptions{
-		Source:      &source,
-		StartedAt:   &now,
-		CompletedAt: &now,
+		Source: &source,
 	})
 	if err != nil {
 		return nil, err
@@ -836,7 +842,7 @@ func createHabitArtifact(repoPath, habitName, commitMessage string) (*todo.Todo,
 		return nil, err
 	}
 	if len(items) == 0 {
-		return artifact, nil
+		return &finished[0], nil
 	}
 	return &items[0], nil
 }

@@ -65,6 +65,8 @@ func init() {
 	jobDoCmd.Flags().BoolVar(&jobDoNoEdit, "no-edit", false, "Do not open $EDITOR")
 	jobDoCmd.Flags().StringVar(&jobDoAgent, "agent", "", "Opencode agent")
 	jobDoCmd.Flags().StringVar(&jobDoHabit, "habit", "", "Run a habit instead of a todo (use habit name or empty for first)")
+	// Allow --habit without a value to run the first habit alphabetically
+	jobDoCmd.Flags().Lookup("habit").NoOptDefVal = " "
 }
 
 func runJobDo(cmd *cobra.Command, args []string) error {
@@ -115,7 +117,8 @@ func runHabitJob(cmd *cobra.Command) error {
 	}
 
 	var h *habit.Habit
-	if jobDoHabit == "" {
+	habitName := strings.TrimSpace(jobDoHabit)
+	if habitName == "" {
 		// Empty --habit means run the first habit alphabetically
 		h, err = habit.First(repoPath)
 		if err != nil {
@@ -125,7 +128,7 @@ func runHabitJob(cmd *cobra.Command) error {
 			return fmt.Errorf("no habits found in %s", habit.HabitsDir)
 		}
 	} else {
-		h, err = habit.Load(repoPath, jobDoHabit)
+		h, err = habit.Load(repoPath, habitName)
 		if err != nil {
 			return err
 		}
