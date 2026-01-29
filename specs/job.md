@@ -297,12 +297,14 @@ Bundled defaults via `//go:embed`, overridable by placing files in
 default template contents, override paths, and variable types for prompt
 templates.
 
-| File                        | Stage        |
-| --------------------------- | ------------ |
-| `prompt-implementation.tmpl` | implementing |
-| `prompt-feedback.tmpl`       | implementing |
-| `prompt-commit-review.tmpl`  | reviewing    |
-| `prompt-project-review.tmpl` | reviewing    |
+| File                             | Stage        | Mode   |
+| -------------------------------- | ------------ | ------ |
+| `prompt-implementation.tmpl`     | implementing | todo   |
+| `prompt-feedback.tmpl`           | implementing | both   |
+| `prompt-commit-review.tmpl`      | reviewing    | todo   |
+| `prompt-project-review.tmpl`     | reviewing    | todo   |
+| `prompt-habit-implementation.tmpl` | implementing | habit  |
+| `prompt-habit-review.tmpl`       | reviewing    | habit  |
 
 Templates use Go `text/template` syntax (commit messages are generated in code).
 
@@ -323,6 +325,10 @@ All prompt templates receive the same data:
 - `FeedbackBlock` (`string`): formatted heading-and-indent block for the feedback text.
 - `CommitMessageBlock` (`string`): formatted heading-and-indent block for the commit
   message text.
+- `HabitName` (`string`): name of the habit (filename without extension). Empty for
+  regular todo jobs.
+- `HabitInstructions` (`string`): full text of the habit instruction document,
+  formatted as an indented block. Empty for regular todo jobs.
 
 Shared templates:
 
@@ -333,7 +339,7 @@ Shared templates:
 
 ## Commands
 
-### `ii job do [todo-id... | creation-flags]`
+### `ii job do [todo-id... | creation-flags | --habit [name]]`
 
 Create and run a job to completion (blocking).
 
@@ -343,6 +349,9 @@ Create and run a job to completion (blocking).
   `--edit/--no-edit`).
 - `--agent` selects the opencode agent and overrides `INCREMENTUM_OPENCODE_AGENT`
   and `job.agent`.
+- `--habit <name>` runs the named habit from `.incrementum/habits/<name>.md`.
+- `--habit` (no name) runs the alphabetically first habit.
+- `--habit` cannot be combined with todo-ids or todo creation flags.
 - If no args and interactive: open $EDITOR to create todo.
 - If `--rev` is omitted, default to `trunk()`.
 
@@ -373,6 +382,23 @@ Exit codes:
 
 - 0: completed.
 - 1: failed or abandoned.
+
+#### Habit Workflow
+
+When `--habit` is provided, the workflow differs from regular todos:
+
+1. Load instructions from `.incrementum/habits/<name>.md`.
+2. Run implementation stage with `prompt-habit-implementation.tmpl` (or
+   `prompt-feedback.tmpl` when responding to feedback).
+3. Run testing stage (same as regular todos).
+4. Run step review with `prompt-habit-review.tmpl`.
+5. On ACCEPT: commit and create an artifact todo with `source: habit:<name>`.
+6. On REQUEST_CHANGES: loop back to implementation with feedback.
+7. On ABANDON: job completes successfully with no artifact (nothing worth doing
+   right now is a valid outcome for habits).
+
+Habits skip the project review stage. The commit message includes the full habit
+instructions text.
 
 ### `ii job do-all [--priority <n>] [--type <type>]`
 
