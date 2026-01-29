@@ -620,6 +620,10 @@ func appendTodoJSONLine(buf []byte, todo *Todo) []byte {
 		buf, hasField = appendJSONFieldPrefix(buf, "delete_reason", hasField)
 		buf = appendJSONString(buf, todo.DeleteReason)
 	}
+	if todo.Source != "" {
+		buf, hasField = appendJSONFieldPrefix(buf, "source", hasField)
+		buf = appendJSONString(buf, todo.Source)
+	}
 
 	buf = append(buf, '}', '\n')
 	return buf

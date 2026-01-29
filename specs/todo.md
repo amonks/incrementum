@@ -50,6 +50,7 @@ Fields (JSON keys):
 - `completed_at`: timestamp when finishing from `in_progress` to `done`.
 - `deleted_at`: timestamp if tombstoned.
 - `delete_reason`: optional reason when tombstoned.
+- `source`: optional origin tracker; empty means user-created, `habit:<name>` means created by a habit.
 
 ### Dependency
 

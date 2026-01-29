@@ -51,4 +51,9 @@ type Todo struct {
 
 	// DeleteReason explains why the todo was deleted.
 	DeleteReason string `json:"delete_reason,omitempty"`
+
+	// Source tracks the origin of the todo.
+	// Empty or omitted means user-created. Values like "habit:<name>" indicate
+	// the todo was created by running a habit.
+	Source string `json:"source,omitempty"`
 }
