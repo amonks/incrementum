@@ -68,7 +68,7 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 	var outcome ReviewOutcome
 	switch {
 	case strings.EqualFold(firstLine, string(ReviewOutcomeAccept)):
-		return ReviewFeedback{Outcome: ReviewOutcomeAccept}, nil
+		outcome = ReviewOutcomeAccept
 	case strings.EqualFold(firstLine, string(ReviewOutcomeAbandon)):
 		outcome = ReviewOutcomeAbandon
 	case strings.EqualFold(firstLine, string(ReviewOutcomeRequestChanges)):
@@ -84,13 +84,20 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 			break
 		}
 	}
+
+	// ACCEPT without details is allowed for backward compatibility
 	if blankIndex == -1 {
+		if outcome == ReviewOutcomeAccept {
+			return ReviewFeedback{Outcome: ReviewOutcomeAccept}, nil
+		}
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
 
 	details := strings.Join(lines[blankIndex+1:], "\n")
 	details = internalstrings.TrimTrailingNewlines(details)
-	if details == "" {
+
+	// ABANDON and REQUEST_CHANGES require details; ACCEPT details are optional
+	if details == "" && outcome != ReviewOutcomeAccept {
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
 

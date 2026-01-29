@@ -405,7 +405,7 @@ func TestRunReviewingStagePassesCommitMessage(t *testing.T) {
 
 	commitLog := []CommitLogEntry{{ID: "commit-abc", Message: "feat: previous"}}
 
-	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, commitLog, reviewScopeStep)
+	result, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, commitLog, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}
@@ -416,8 +416,8 @@ func TestRunReviewingStagePassesCommitMessage(t *testing.T) {
 	if !strings.Contains(seenPrompt, "commit-abc") {
 		t.Fatalf("expected prompt to include commit log, got %q", seenPrompt)
 	}
-	if updated.Stage != StageCommitting {
-		t.Fatalf("expected stage %q, got %q", StageCommitting, updated.Stage)
+	if result.Job.Stage != StageCommitting {
+		t.Fatalf("expected stage %q, got %q", StageCommitting, result.Job.Stage)
 	}
 }
 
@@ -746,7 +746,7 @@ func TestRunCommittingStageLogsFormattedCommitMessage(t *testing.T) {
 	}()
 
 	message := "feat: log commit message"
-	expectedLogMessage := formatCommitMessageWithWidth(item, message, lineWidth-subdocumentIndent)
+	expectedLogMessage := formatCommitMessageWithWidth(item, message, "", lineWidth-subdocumentIndent)
 
 	opts := RunOptions{
 		Now: func() time.Time {

@@ -191,13 +191,14 @@ func RunHabit(repoPath, habitName string, opts HabitRunOptions) (*HabitRunResult
 }
 
 type habitRunContext struct {
-	repoPath      string
-	workspacePath string
-	habit         *habit.Habit
-	opts          HabitRunOptions
-	manager       *Manager
-	result        *HabitRunResult
-	commitMessage string
+	repoPath       string
+	workspacePath  string
+	habit          *habit.Habit
+	opts           HabitRunOptions
+	manager        *Manager
+	result         *HabitRunResult
+	commitMessage  string
+	reviewComments string
 }
 
 func runHabitStages(ctx *habitRunContext, current Job, interrupts <-chan os.Signal) (Job, error) {
@@ -601,6 +602,7 @@ func (ctx *habitRunContext) runHabitReviewingStage(current Job) func() (Job, err
 
 		switch feedback.Outcome {
 		case ReviewOutcomeAccept:
+			ctx.reviewComments = feedback.Details
 			nextStage := StageCommitting
 			empty := ""
 			updated, err = ctx.manager.Update(updated.ID, UpdateOptions{Stage: &nextStage, Feedback: &empty}, ctx.opts.Now())
@@ -652,8 +654,8 @@ func (ctx *habitRunContext) runHabitCommittingStage(current Job) func() (Job, er
 			return Job{}, fmt.Errorf("commit message is required")
 		}
 
-		finalMessage := formatHabitCommitMessage(ctx.habit, message)
-		logMessage := formatHabitCommitMessageWithWidth(ctx.habit, message, lineWidth-subdocumentIndent)
+		finalMessage := formatHabitCommitMessage(ctx.habit, message, ctx.reviewComments)
+		logMessage := formatHabitCommitMessageWithWidth(ctx.habit, message, ctx.reviewComments, lineWidth-subdocumentIndent)
 		ctx.result.CommitMessage = finalMessage
 		logger.CommitMessage(CommitMessageLog{Label: "Final", Message: logMessage, Preformatted: true})
 		if err := appendJobEvent(ctx.opts.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Final", Message: logMessage, Preformatted: true}); err != nil {
@@ -775,11 +777,11 @@ func renderHabitPromptTemplate(h *habit.Habit, feedback, message string, commitL
 }
 
 // formatHabitCommitMessage formats a commit message for a habit commit.
-func formatHabitCommitMessage(h *habit.Habit, message string) string {
-	return formatHabitCommitMessageWithWidth(h, message, lineWidth)
+func formatHabitCommitMessage(h *habit.Habit, message, reviewComments string) string {
+	return formatHabitCommitMessageWithWidth(h, message, reviewComments, lineWidth)
 }
 
-func formatHabitCommitMessageWithWidth(h *habit.Habit, message string, width int) string {
+func formatHabitCommitMessageWithWidth(h *habit.Habit, message, reviewComments string, width int) string {
 	summary, body := splitCommitMessage(message)
 	formatted := renderMarkdownText(summary, width)
 
@@ -787,6 +789,12 @@ func formatHabitCommitMessageWithWidth(h *habit.Habit, message string, width int
 		bodyText := renderMarkdownTextOrDash(body, width-documentIndent)
 		formatted += "\n\n"
 		formatted += IndentBlock(bodyText, documentIndent)
+	}
+
+	if reviewComments != "" {
+		reviewText := renderMarkdownText(reviewComments, width-documentIndent)
+		formatted += "\n\nReview comments:\n\n"
+		formatted += IndentBlock(reviewText, documentIndent)
 	}
 
 	formatted += fmt.Sprintf("\n\nThis commit was created as part of the '%s' habit:\n\n", h.Name)

@@ -24,6 +24,6 @@ func TestCommitMessageSnapshot(t *testing.T) {
 		"go test ./... -run Snapshot\n" +
 		"```\n"
 
-	formatted := formatCommitMessage(item, message)
+	formatted := formatCommitMessage(item, message, "")
 	requireSnapshot(t, "commit-message.txt", formatted)
 }

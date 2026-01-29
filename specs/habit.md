@@ -63,10 +63,17 @@ and the generated commit message:
 
 <generated body>
 
+Review comments:
+
+    <review comments if present>
+
 This commit was created as part of the '<name>' habit:
 
     <habit instructions, indented>
 ```
+
+The "Review comments" section is only included when the reviewer provided comments
+with their ACCEPT verdict.
 
 ## Job Integration
 

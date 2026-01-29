@@ -114,6 +114,11 @@ type ImplementingStageResult struct {
 	Changed       bool
 }
 
+type ReviewingStageResult struct {
+	Job            Job
+	ReviewComments string
+}
+
 type opencodeRunOptions struct {
 	RepoPath      string
 	WorkspacePath string
@@ -278,15 +283,16 @@ func Run(repoPath, todoID string, opts RunOptions) (*RunResult, error) {
 }
 
 type runContext struct {
-	repoPath      string
-	workspacePath string
-	item          todo.Todo
-	opts          RunOptions
-	manager       *Manager
-	result        *RunResult
-	reviewScope   reviewScope
-	commitMessage string
-	workComplete  bool
+	repoPath       string
+	workspacePath  string
+	item           todo.Todo
+	opts           RunOptions
+	manager        *Manager
+	result         *RunResult
+	reviewScope    reviewScope
+	commitMessage  string
+	reviewComments string
+	workComplete   bool
 }
 
 func runJobStages(ctx *runContext, current Job, interrupts <-chan os.Signal) (Job, error) {
@@ -437,21 +443,27 @@ func (ctx *runContext) runTestingStage(current Job) func() (Job, error) {
 
 func (ctx *runContext) runReviewingStage(current Job) func() (Job, error) {
 	return func() (Job, error) {
-		return runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.commitMessage, ctx.result.CommitLog, ctx.reviewScope)
+		result, err := runReviewingStage(ctx.manager, current, ctx.item, ctx.repoPath, ctx.workspacePath, ctx.opts, ctx.commitMessage, ctx.result.CommitLog, ctx.reviewScope)
+		if err != nil {
+			return result.Job, err
+		}
+		ctx.reviewComments = result.ReviewComments
+		return result.Job, nil
 	}
 }
 
 func (ctx *runContext) runCommittingStage(current Job) func() (Job, error) {
 	return func() (Job, error) {
 		return runCommittingStage(CommittingStageOptions{
-			Manager:       ctx.manager,
-			Current:       current,
-			Item:          ctx.item,
-			RepoPath:      ctx.repoPath,
-			WorkspacePath: ctx.workspacePath,
-			RunOptions:    ctx.opts,
-			Result:        ctx.result,
-			CommitMessage: ctx.commitMessage,
+			Manager:        ctx.manager,
+			Current:        current,
+			Item:           ctx.item,
+			RepoPath:       ctx.repoPath,
+			WorkspacePath:  ctx.workspacePath,
+			RunOptions:     ctx.opts,
+			Result:         ctx.result,
+			CommitMessage:  ctx.commitMessage,
+			ReviewComments: ctx.reviewComments,
 		})
 	}
 }
@@ -744,17 +756,17 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 	return updated, nil
 }
 
-func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitMessage string, commitLog []CommitLogEntry, scope reviewScope) (Job, error) {
+func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, workspacePath string, opts RunOptions, commitMessage string, commitLog []CommitLogEntry, scope reviewScope) (ReviewingStageResult, error) {
 	logger := resolveLogger(opts.Logger)
 	updateStaleWorkspace(opts.UpdateStale, workspacePath)
 	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
 	if err := removeFileIfExists(feedbackPath); err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 
 	message, err := resolveReviewCommitMessage(commitMessage, workspacePath, scope == reviewScopeStep)
 	if err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 
 	promptName := "prompt-commit-review.tmpl"
@@ -767,15 +779,15 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 
 	promptTemplate, err := LoadPrompt(workspacePath, promptName)
 	if err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 	promptTemplate = ensureCommitMessageInPrompt(promptTemplate, message)
 	prompt, err := RenderPrompt(workspacePath, promptTemplate, newPromptData(item, "", message, commitLog, nil, workspacePath))
 	if err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 	if err := appendJobEvent(opts.EventLog, jobEventPrompt, promptEventData{Purpose: purpose, Template: promptName, Prompt: prompt}); err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 
 	opencodeResult, err := runOpencodeWithEvents(opts, opencodeRunOptions{
@@ -788,33 +800,33 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		Env:           applyOpencodeConfigEnv(nil),
 	}, purpose)
 	if err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 
 	append := OpencodeSession{Purpose: purpose, ID: opencodeResult.SessionID}
 	updated, err := manager.Update(current.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
 	if err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 	transcript := loadOpencodeTranscript(opts.OpencodeTranscripts, repoPath, append)
 	if !internalstrings.IsBlank(transcript) {
 		if err := appendJobEvent(opts.EventLog, jobEventTranscript, transcriptEventData{Purpose: purpose, Transcript: transcript}); err != nil {
-			return Job{}, err
+			return ReviewingStageResult{}, err
 		}
 	}
 	logger.Prompt(PromptLog{Purpose: purpose, Template: promptName, Prompt: prompt, Transcript: transcript})
 
 	if opencodeResult.ExitCode != 0 {
-		return Job{}, fmt.Errorf("opencode review failed with exit code %d", opencodeResult.ExitCode)
+		return ReviewingStageResult{}, fmt.Errorf("opencode review failed with exit code %d", opencodeResult.ExitCode)
 	}
 
 	feedback, err := ReadReviewFeedback(feedbackPath)
 	if err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 	logger.Review(ReviewLog{Purpose: purpose, Feedback: feedback})
 	if err := appendJobEvent(opts.EventLog, jobEventReview, reviewEventData{Purpose: purpose, Outcome: feedback.Outcome, Details: feedback.Details}); err != nil {
-		return Job{}, err
+		return ReviewingStageResult{}, err
 	}
 
 	switch feedback.Outcome {
@@ -823,45 +835,46 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 			status := StatusCompleted
 			updated, err = manager.Update(updated.ID, UpdateOptions{Status: &status}, opts.Now())
 			if err != nil {
-				return Job{}, err
+				return ReviewingStageResult{}, err
 			}
-			return updated, nil
+			return ReviewingStageResult{Job: updated, ReviewComments: feedback.Details}, nil
 		}
 		nextStage := StageCommitting
 		empty := ""
 		updated, err = manager.Update(updated.ID, UpdateOptions{Stage: &nextStage, Feedback: &empty}, opts.Now())
 		if err != nil {
-			return Job{}, err
+			return ReviewingStageResult{}, err
 		}
-		return updated, nil
+		return ReviewingStageResult{Job: updated, ReviewComments: feedback.Details}, nil
 	case ReviewOutcomeAbandon:
 		status := StatusAbandoned
 		updated, err = manager.Update(updated.ID, UpdateOptions{Status: &status}, opts.Now())
 		if err != nil {
-			return Job{}, err
+			return ReviewingStageResult{}, err
 		}
-		return updated, &AbandonedError{Reason: feedback.Details}
+		return ReviewingStageResult{Job: updated}, &AbandonedError{Reason: feedback.Details}
 	case ReviewOutcomeRequestChanges:
 		nextStage := StageImplementing
 		updated, err = manager.Update(updated.ID, UpdateOptions{Stage: &nextStage, Feedback: &feedback.Details}, opts.Now())
 		if err != nil {
-			return Job{}, err
+			return ReviewingStageResult{}, err
 		}
-		return updated, nil
+		return ReviewingStageResult{Job: updated}, nil
 	default:
-		return Job{}, ErrInvalidFeedbackFormat
+		return ReviewingStageResult{}, ErrInvalidFeedbackFormat
 	}
 }
 
 type CommittingStageOptions struct {
-	Manager       *Manager
-	Current       Job
-	Item          todo.Todo
-	RepoPath      string
-	WorkspacePath string
-	RunOptions    RunOptions
-	Result        *RunResult
-	CommitMessage string
+	Manager        *Manager
+	Current        Job
+	Item           todo.Todo
+	RepoPath       string
+	WorkspacePath  string
+	RunOptions     RunOptions
+	Result         *RunResult
+	CommitMessage  string
+	ReviewComments string
 }
 
 func runCommittingStage(opts CommittingStageOptions) (Job, error) {
@@ -887,8 +900,8 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 		return Job{}, fmt.Errorf("commit message is required")
 	}
 
-	finalMessage := formatCommitMessage(opts.Item, message)
-	logMessage := formatCommitMessageWithWidth(opts.Item, message, lineWidth-subdocumentIndent)
+	finalMessage := formatCommitMessage(opts.Item, message, opts.ReviewComments)
+	logMessage := formatCommitMessageWithWidth(opts.Item, message, opts.ReviewComments, lineWidth-subdocumentIndent)
 	opts.Result.CommitMessage = finalMessage
 	logger.CommitMessage(CommitMessageLog{Label: "Final", Message: logMessage, Preformatted: true})
 	if err := appendJobEvent(opts.RunOptions.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Final", Message: logMessage, Preformatted: true}); err != nil {

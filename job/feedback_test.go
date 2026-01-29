@@ -8,7 +8,7 @@ import (
 )
 
 func TestParseReviewFeedbackAccept(t *testing.T) {
-	feedback, err := ParseReviewFeedback("ACCEPT\n\nextra")
+	feedback, err := ParseReviewFeedback("ACCEPT")
 	if err != nil {
 		t.Fatalf("parse feedback: %v", err)
 	}
@@ -17,6 +17,19 @@ func TestParseReviewFeedbackAccept(t *testing.T) {
 	}
 	if feedback.Details != "" {
 		t.Fatalf("expected no details, got %q", feedback.Details)
+	}
+}
+
+func TestParseReviewFeedbackAcceptWithDetails(t *testing.T) {
+	feedback, err := ParseReviewFeedback("ACCEPT\n\nLooks good, clean implementation.")
+	if err != nil {
+		t.Fatalf("parse feedback: %v", err)
+	}
+	if feedback.Outcome != ReviewOutcomeAccept {
+		t.Fatalf("expected ACCEPT, got %q", feedback.Outcome)
+	}
+	if feedback.Details != "Looks good, clean implementation." {
+		t.Fatalf("expected details %q, got %q", "Looks good, clean implementation.", feedback.Details)
 	}
 }
 

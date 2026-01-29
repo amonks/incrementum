@@ -39,7 +39,7 @@ func TestFormatHabitCommitMessage(t *testing.T) {
 	}
 
 	message := "fix: remove unused function\n\nThe helper function was no longer used after refactoring."
-	formatted := formatHabitCommitMessage(h, message)
+	formatted := formatHabitCommitMessage(h, message, "")
 
 	// Check that the summary is at the start
 	if !strings.HasPrefix(formatted, "fix: remove unused function") {
@@ -65,7 +65,7 @@ func TestFormatHabitCommitMessageBody(t *testing.T) {
 
 	// Message with body
 	message := "docs: update README\n\nAdded installation instructions."
-	formatted := formatHabitCommitMessage(h, message)
+	formatted := formatHabitCommitMessage(h, message, "")
 
 	if !strings.Contains(formatted, "Added installation instructions") {
 		t.Error("expected body in formatted message")
@@ -83,7 +83,7 @@ func TestFormatHabitCommitMessageNoBody(t *testing.T) {
 
 	// Message without body (just summary)
 	message := "style: fix formatting"
-	formatted := formatHabitCommitMessage(h, message)
+	formatted := formatHabitCommitMessage(h, message, "")
 
 	if !strings.HasPrefix(formatted, "style: fix formatting") {
 		t.Error("expected summary at start")

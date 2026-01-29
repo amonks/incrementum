@@ -92,7 +92,7 @@ func TestFormatCommitMessage(t *testing.T) {
 	}
 	message := "feat: reflow logs\n\nEnsure log output is wrapped and indented for clarity."
 
-	formatted := formatCommitMessage(item, message)
+	formatted := formatCommitMessage(item, message, "")
 	if !strings.HasPrefix(formatted, "feat: reflow logs") {
 		t.Fatalf("expected commit summary at start, got %q", formatted)
 	}
@@ -125,7 +125,7 @@ func TestFormatCommitMessageNormalizesOutput(t *testing.T) {
 	}
 	message := "\n\nfeat: add widgets    \n\nBody line\t\n"
 
-	formatted := formatCommitMessage(item, message)
+	formatted := formatCommitMessage(item, message, "")
 	lines := strings.Split(formatted, "\n")
 	if lines[0] != "feat: add widgets" {
 		t.Fatalf("expected normalized summary, got %q", lines[0])
@@ -145,7 +145,7 @@ func TestFormatCommitMessageWithWidthRespectsLimit(t *testing.T) {
 	}
 	message := "feat: narrow commit message output width for logs\n\nThis body text should wrap to fit within the chosen width, even when the summary and description are long."
 
-	formatted := formatCommitMessageWithWidth(item, message, 60)
+	formatted := formatCommitMessageWithWidth(item, message, "", 60)
 	if maxLineLength(formatted) > 60 {
 		t.Fatalf("expected max line length <= 60, got %d", maxLineLength(formatted))
 	}
@@ -161,7 +161,7 @@ func TestFormatCommitMessageRendersMarkdownBody(t *testing.T) {
 	}
 	message := "feat: render markdown\n\n- First item\n- Second item"
 
-	formatted := formatCommitMessageWithWidth(item, message, 80)
+	formatted := formatCommitMessageWithWidth(item, message, "", 80)
 	checks := []string{
 		"    - First item",
 		"    - Second item",
@@ -170,6 +170,42 @@ func TestFormatCommitMessageRendersMarkdownBody(t *testing.T) {
 		if !strings.Contains(formatted, check) {
 			t.Fatalf("expected formatted message to include %q, got %q", check, formatted)
 		}
+	}
+}
+
+func TestFormatCommitMessageWithReviewComments(t *testing.T) {
+	item := todo.Todo{
+		ID:          "todo-789",
+		Title:       "Add review comments",
+		Description: "Include reviewer comments in commit messages.",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+	message := "feat: add review section\n\nAdded support for review comments."
+	reviewComments := "Clean implementation, good test coverage."
+
+	formatted := formatCommitMessage(item, message, reviewComments)
+	if !strings.Contains(formatted, "Review comments:") {
+		t.Fatalf("expected commit message to include review comments section, got %q", formatted)
+	}
+	if !strings.Contains(formatted, "    Clean implementation, good test coverage.") {
+		t.Fatalf("expected commit message to include review text indented, got %q", formatted)
+	}
+}
+
+func TestFormatCommitMessageEmptyReviewComments(t *testing.T) {
+	item := todo.Todo{
+		ID:          "todo-321",
+		Title:       "No review comments",
+		Description: "Should not include empty review section.",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityLow,
+	}
+	message := "feat: no review\n\nBasic change."
+
+	formatted := formatCommitMessage(item, message, "")
+	if strings.Contains(formatted, "Review comments:") {
+		t.Fatalf("expected commit message to not include review comments section when empty, got %q", formatted)
 	}
 }
 

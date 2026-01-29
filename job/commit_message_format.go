@@ -8,17 +8,23 @@ import (
 	"github.com/amonks/incrementum/todo"
 )
 
-func formatCommitMessage(item todo.Todo, message string) string {
-	return formatCommitMessageWithWidth(item, message, lineWidth)
+func formatCommitMessage(item todo.Todo, message, reviewComments string) string {
+	return formatCommitMessageWithWidth(item, message, reviewComments, lineWidth)
 }
 
-func formatCommitMessageWithWidth(item todo.Todo, message string, width int) string {
+func formatCommitMessageWithWidth(item todo.Todo, message, reviewComments string, width int) string {
 	summary, body := splitCommitMessage(message)
 	formatted := renderMarkdownText(summary, width)
 
 	bodyText := renderMarkdownTextOrDash(body, width-documentIndent)
 	formatted += "\n\nHere is a generated commit message:\n\n"
 	formatted += IndentBlock(bodyText, documentIndent)
+
+	if reviewComments != "" {
+		reviewText := renderMarkdownText(reviewComments, width-documentIndent)
+		formatted += "\n\nReview comments:\n\n"
+		formatted += IndentBlock(reviewText, documentIndent)
+	}
 
 	formatted += "\n\nThis commit is a step towards implementing this todo:\n\n"
 	formatted += formatCommitTodoWithWidth(item, width)

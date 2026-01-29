@@ -84,12 +84,14 @@ Format:
 
 Where `<OUTCOME>` (first line, trimmed) is one of:
 
-- `ACCEPT` - changes look good, proceed. No details required.
+- `ACCEPT` - changes look good, proceed. Optionally followed by blank line and
+  review comments noting what looks good or any observations. Comments are
+  included in the commit message when present.
 - `ABANDON` - task is impossible or misguided, give up. Must be followed by blank
   line and reason text explaining why the task is being abandoned.
 - `REQUEST_CHANGES` - followed by blank line and feedback text.
 
-If the file doesn't exist after review, treat as `ACCEPT`.
+If the file doesn't exist after review, treat as `ACCEPT` with no comments.
 
 ## Commit Message File
 
@@ -235,6 +237,10 @@ Here is a generated commit message:
 
     <reflowed body>
 
+Review comments:
+
+    <review comments if present>
+
 This commit is a step towards implementing this todo:
 
     ID: <id>
@@ -244,6 +250,9 @@ This commit is a step towards implementing this todo:
     Description:
         <markdown-rendered description>
 ```
+
+The "Review comments" section is only included when the reviewer provided comments
+with their ACCEPT verdict.
 
 ## Failure Handling
 

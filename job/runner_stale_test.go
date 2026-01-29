@@ -209,15 +209,15 @@ func TestRunReviewingStageUpdatesStaleWorkspace(t *testing.T) {
 	}
 
 	commitMessage := "fix: stale review"
-	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
+	result, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}
 	if !updateCalled {
 		t.Fatalf("expected update-stale to be called")
 	}
-	if updated.Stage != StageCommitting {
-		t.Fatalf("expected stage %q, got %q", StageCommitting, updated.Stage)
+	if result.Job.Stage != StageCommitting {
+		t.Fatalf("expected stage %q, got %q", StageCommitting, result.Job.Stage)
 	}
 }
 
@@ -271,14 +271,14 @@ func TestRunReviewingStageSnapshotsWorkspaceBeforeOpencode(t *testing.T) {
 	}
 
 	commitMessage := "fix: snapshot review"
-	updated, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
+	result, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
 	if err != nil {
 		t.Fatalf("run reviewing stage: %v", err)
 	}
 	if !snapshotCalled {
 		t.Fatalf("expected snapshot to be called")
 	}
-	if updated.Stage != StageCommitting {
-		t.Fatalf("expected stage %q, got %q", StageCommitting, updated.Stage)
+	if result.Job.Stage != StageCommitting {
+		t.Fatalf("expected stage %q, got %q", StageCommitting, result.Job.Stage)
 	}
 }
