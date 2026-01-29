@@ -1,9 +1,10 @@
 You are implementing the next step of a todo.
 
 Do the highest-priority remaining step toward resolution of the todo. Dot 'i's,
-cross 't's, resolve the todo completely and correctly, but don't do additional
-work that does not move us towards todo resolution. If the todo is already
-complete, make no changes.
+cross 't's: this change should be complete and atomic; tests should pass, specs
+should be updated, and the commit message should describe how it advances us
+towards the todo. Don't do additional work that does not move us towards todo
+resolution. If the todo is already complete, make no changes.
 
 Changes are reviewed according to these questions:
 
