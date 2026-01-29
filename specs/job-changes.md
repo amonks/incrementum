@@ -72,9 +72,18 @@ type JobChange struct {
 
 The iteration count for a change is `len(change.Commits)`.
 
-A change is complete when its last commit has a review with outcome `accept`.
-A change is in-progress when its last commit has no review, or has a review
-with outcome `request_changes`.
+A change is complete when its last commit has a review with outcome `ACCEPT`.
+
+For derived-state purposes, a change is considered "current" when it is not
+complete (i.e. its last commit is not accepted). This includes:
+
+- no commits yet
+- last commit has no review
+- last review outcome is not `ACCEPT` (e.g. `REQUEST_CHANGES` or `ABANDON`)
+
+Whether further work is allowed is gated by job status/stage: `REQUEST_CHANGES`
+loops back to implementation, while `ABANDON` ends the job even though the last
+change remains not complete in history.
 
 ### JobCommit
 
@@ -94,6 +103,7 @@ type JobCommit struct {
 
     // TestsPassed indicates whether tests passed for this commit.
     // Only meaningful after the testing stage completes.
+    // This is intentionally minimal (pass/fail only); logs stay in the event log.
     TestsPassed *bool `json:"tests_passed,omitempty"`
 
     // Review is the review decision for this commit.
@@ -117,7 +127,7 @@ review.
 ```go
 // JobReview captures a review decision.
 type JobReview struct {
-    // Outcome is the review verdict: accept, request_changes, or abandon.
+    // Outcome is the review verdict: ACCEPT, REQUEST_CHANGES, or ABANDON.
     Outcome ReviewOutcome `json:"outcome"`
 
     // Comments is the reviewer's feedback text.
@@ -131,24 +141,6 @@ type JobReview struct {
     ReviewedAt time.Time `json:"reviewed_at"`
 }
 ```
-
-### JobTestResult
-
-Minimal test result tracking (exit code only, no logs).
-
-```go
-// JobTestResult captures a test command result.
-type JobTestResult struct {
-    // Command is the test command that was run.
-    Command string `json:"command"`
-
-    // ExitCode is the command's exit code (0 = pass).
-    ExitCode int `json:"exit_code"`
-}
-```
-
-Note: Test output is not stored in the job record. It remains in the event log
-for debugging purposes only.
 
 ## State Transitions
 
@@ -191,15 +183,15 @@ On review completion:
 2. Create a `JobReview` with the outcome, comments, and session ID.
 3. Set `commit.Review` to the new review.
 
-If outcome is `accept`:
+If outcome is `ACCEPT`:
 - The change is now complete.
 - Proceed to committing stage.
 
-If outcome is `request_changes`:
+If outcome is `REQUEST_CHANGES`:
 - The change remains in-progress.
 - Return to implementing stage (next iteration will append a new commit).
 
-If outcome is `abandon`:
+If outcome is `ABANDON`:
 - Job ends with `abandoned` status.
 
 ### Reviewing Stage (Project Review)
@@ -209,13 +201,13 @@ On project review completion:
 1. Create a `JobReview` with the outcome, comments, and session ID.
 2. Set `Job.ProjectReview` to the new review.
 
-If outcome is `accept`:
+If outcome is `ACCEPT`:
 - Job ends with `completed` status.
 
-If outcome is `request_changes`:
+If outcome is `REQUEST_CHANGES`:
 - Return to implementing stage (will start a new change).
 
-If outcome is `abandon`:
+If outcome is `ABANDON`:
 - Job ends with `abandoned` status.
 
 ### Committing Stage
@@ -236,7 +228,7 @@ The current in-progress change is:
 
 ```go
 func (j *Job) CurrentChange() *JobChange {
-    if len(j.Changes) == 0 {
+    if j == nil || len(j.Changes) == 0 {
         return nil
     }
     last := &j.Changes[len(j.Changes)-1]
@@ -246,7 +238,7 @@ func (j *Job) CurrentChange() *JobChange {
     return last
 }
 
-func (c *JobChange) IsComplete() bool {
+func (c JobChange) IsComplete() bool {
     if len(c.Commits) == 0 {
         return false
     }

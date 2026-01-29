@@ -315,6 +315,217 @@ func TestManager_Update_InvalidStatus(t *testing.T) {
 	}
 }
 
+func TestManager_ChangeTrackingLifecycle(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/changes"
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-changes", now, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	change, err := manager.AppendChange(created.ID, JobChange{ChangeID: "chg-1"}, now.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("append change: %v", err)
+	}
+	if len(change.Changes) != 1 {
+		t.Fatalf("expected 1 change, got %d", len(change.Changes))
+	}
+	if change.Changes[0].ChangeID != "chg-1" {
+		t.Fatalf("expected change id %q, got %q", "chg-1", change.Changes[0].ChangeID)
+	}
+	if len(change.Changes[0].Commits) != 0 {
+		t.Fatalf("expected no commits initially, got %d", len(change.Changes[0].Commits))
+	}
+
+	commit := JobCommit{
+		CommitID:          "commit-1",
+		DraftMessage:      "feat: example",
+		OpencodeSessionID: "ses-1",
+	}
+	withCommit, err := manager.AppendCommitToCurrentChange(created.ID, commit, now.Add(2*time.Minute))
+	if err != nil {
+		t.Fatalf("append commit: %v", err)
+	}
+	if len(withCommit.Changes[0].Commits) != 1 {
+		t.Fatalf("expected 1 commit, got %d", len(withCommit.Changes[0].Commits))
+	}
+	if withCommit.Changes[0].Commits[0].CommitID != "commit-1" {
+		t.Fatalf("expected commit id %q, got %q", "commit-1", withCommit.Changes[0].Commits[0].CommitID)
+	}
+
+	passed := true
+	review := JobReview{Outcome: ReviewOutcomeAccept, Comments: "looks good", OpencodeSessionID: "ses-review"}
+	withReview, err := manager.UpdateCurrentCommit(created.ID, JobCommitUpdate{TestsPassed: &passed, Review: &review}, now.Add(3*time.Minute))
+	if err != nil {
+		t.Fatalf("update current commit: %v", err)
+	}
+	if got := withReview.Changes[0].Commits[0].TestsPassed; got == nil || *got != true {
+		t.Fatalf("expected tests passed true, got %v", got)
+	}
+	passed = false
+	if got := withReview.Changes[0].Commits[0].TestsPassed; got == nil || *got != true {
+		t.Fatalf("expected tests passed true after caller mutation, got %v", got)
+	}
+	if withReview.Changes[0].Commits[0].Review == nil || withReview.Changes[0].Commits[0].Review.Outcome != ReviewOutcomeAccept {
+		t.Fatalf("expected accepted review")
+	}
+	if withReview.CurrentChange() != nil {
+		t.Fatalf("expected no current change after accepted review")
+	}
+
+	projectReview := JobReview{Outcome: ReviewOutcomeAccept, OpencodeSessionID: "ses-project"}
+	final, err := manager.SetProjectReview(created.ID, projectReview, now.Add(4*time.Minute))
+	if err != nil {
+		t.Fatalf("set project review: %v", err)
+	}
+	if final.ProjectReview == nil {
+		t.Fatalf("expected project review set")
+	}
+	if final.ProjectReview.Outcome != ReviewOutcomeAccept {
+		t.Fatalf("expected project review accept, got %q", final.ProjectReview.Outcome)
+	}
+}
+
+func TestManager_ChangeTrackingInvariants(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/changes-invariants"
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, 1, 16, 10, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-changes-invariants", now, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	commit := JobCommit{CommitID: "commit-1", DraftMessage: "feat: example", OpencodeSessionID: "ses-1"}
+	if _, err := manager.AppendCommitToCurrentChange(created.ID, commit, now.Add(time.Minute)); !errors.Is(err, ErrNoCurrentChange) {
+		t.Fatalf("append commit without change: expected ErrNoCurrentChange, got %v", err)
+	}
+	if _, err := manager.UpdateCurrentCommit(created.ID, JobCommitUpdate{TestsPassed: ptrBool(true)}, now.Add(2*time.Minute)); !errors.Is(err, ErrNoCurrentChange) {
+		t.Fatalf("update commit without change: expected ErrNoCurrentChange, got %v", err)
+	}
+
+	if _, err := manager.AppendChange(created.ID, JobChange{ChangeID: "chg-1"}, now.Add(3*time.Minute)); err != nil {
+		t.Fatalf("append change: %v", err)
+	}
+	if _, err := manager.UpdateCurrentCommit(created.ID, JobCommitUpdate{TestsPassed: ptrBool(true)}, now.Add(4*time.Minute)); !errors.Is(err, ErrNoCurrentCommit) {
+		t.Fatalf("update commit with no commits: expected ErrNoCurrentCommit, got %v", err)
+	}
+
+	withCommit, err := manager.AppendCommitToCurrentChange(created.ID, commit, now.Add(5*time.Minute))
+	if err != nil {
+		t.Fatalf("append commit: %v", err)
+	}
+	if withCommit.CurrentCommit() == nil {
+		t.Fatalf("expected current commit after append")
+	}
+
+	review := JobReview{Outcome: ReviewOutcomeAccept, Comments: "ok", OpencodeSessionID: "ses-review"}
+	withReview, err := manager.UpdateCurrentCommit(created.ID, JobCommitUpdate{Review: &review}, now.Add(6*time.Minute))
+	if err != nil {
+		t.Fatalf("accept review: %v", err)
+	}
+	if withReview.CurrentChange() != nil {
+		t.Fatalf("expected no current change after accepted review")
+	}
+
+	if _, err := manager.AppendCommitToCurrentChange(created.ID, JobCommit{CommitID: "commit-2", DraftMessage: "fix: example", OpencodeSessionID: "ses-2"}, now.Add(7*time.Minute)); !errors.Is(err, ErrNoCurrentChange) {
+		t.Fatalf("append commit to completed change: expected ErrNoCurrentChange, got %v", err)
+	}
+	if _, err := manager.UpdateCurrentCommit(created.ID, JobCommitUpdate{TestsPassed: ptrBool(false)}, now.Add(8*time.Minute)); !errors.Is(err, ErrNoCurrentChange) {
+		t.Fatalf("update commit on completed change: expected ErrNoCurrentChange, got %v", err)
+	}
+
+	stored, err := manager.Find(created.ID)
+	if err != nil {
+		t.Fatalf("find job: %v", err)
+	}
+	if len(stored.Changes) != 1 {
+		t.Fatalf("expected 1 change, got %d", len(stored.Changes))
+	}
+	if len(stored.Changes[0].Commits) != 1 {
+		t.Fatalf("expected 1 commit, got %d", len(stored.Changes[0].Commits))
+	}
+	if stored.Changes[0].Commits[0].Review == nil || stored.Changes[0].Commits[0].Review.Outcome != ReviewOutcomeAccept {
+		t.Fatalf("expected stored commit review accept")
+	}
+}
+
+func TestManager_ChangeTracking_RequestChangesKeepsCurrentChange(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/changes-request-changes"
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, 1, 17, 10, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-changes-request-changes", now, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	if _, err := manager.AppendChange(created.ID, JobChange{ChangeID: "chg-1"}, now.Add(time.Minute)); err != nil {
+		t.Fatalf("append change: %v", err)
+	}
+
+	commit1 := JobCommit{CommitID: "commit-1", DraftMessage: "feat: example", OpencodeSessionID: "ses-1"}
+	withCommit1, err := manager.AppendCommitToCurrentChange(created.ID, commit1, now.Add(2*time.Minute))
+	if err != nil {
+		t.Fatalf("append commit: %v", err)
+	}
+	if withCommit1.CurrentChange() == nil {
+		t.Fatalf("expected current change after first commit")
+	}
+	if got := withCommit1.CurrentCommit(); got == nil || got.CommitID != "commit-1" {
+		t.Fatalf("expected current commit commit-1, got %v", got)
+	}
+
+	review := JobReview{Outcome: ReviewOutcomeRequestChanges, Comments: "needs work", OpencodeSessionID: "ses-review"}
+	withRequestChanges, err := manager.UpdateCurrentCommit(created.ID, JobCommitUpdate{TestsPassed: ptrBool(true), Review: &review}, now.Add(3*time.Minute))
+	if err != nil {
+		t.Fatalf("request changes review: %v", err)
+	}
+	if withRequestChanges.CurrentChange() == nil {
+		t.Fatalf("expected current change after REQUEST_CHANGES review")
+	}
+	if got := withRequestChanges.CurrentCommit(); got == nil || got.Review == nil || got.Review.Outcome != ReviewOutcomeRequestChanges {
+		t.Fatalf("expected current commit reviewed REQUEST_CHANGES, got %v", got)
+	}
+
+	commit2 := JobCommit{CommitID: "commit-2", DraftMessage: "fix: example", OpencodeSessionID: "ses-2"}
+	withCommit2, err := manager.AppendCommitToCurrentChange(created.ID, commit2, now.Add(4*time.Minute))
+	if err != nil {
+		t.Fatalf("append commit after REQUEST_CHANGES: %v", err)
+	}
+	if withCommit2.CurrentChange() == nil {
+		t.Fatalf("expected current change after second commit")
+	}
+	if got := withCommit2.CurrentCommit(); got == nil || got.CommitID != "commit-2" {
+		t.Fatalf("expected current commit commit-2, got %v", got)
+	}
+	commitsLen := 0
+	if len(withCommit2.Changes) > 0 {
+		commitsLen = len(withCommit2.Changes[0].Commits)
+	}
+	if len(withCommit2.Changes) != 1 || commitsLen != 2 {
+		t.Fatalf("expected 1 change with 2 commits, got %d changes / %d commits", len(withCommit2.Changes), commitsLen)
+	}
+}
+
+func ptrBool(v bool) *bool {
+	return &v
+}
+
 func insertJob(store *statestore.Store, repoSlug string, item statestore.Job) error {
 	return store.Update(func(st *statestore.State) error {
 		st.Jobs[repoSlug+"/"+item.ID] = item

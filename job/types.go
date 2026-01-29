@@ -46,6 +46,24 @@ func ValidStages() []Stage {
 // OpencodeSession tracks opencode sessions spawned by a job.
 type OpencodeSession = statestore.JobOpencodeSession
 
+// ReviewOutcome captures the outcome of opencode review feedback.
+type ReviewOutcome = statestore.ReviewOutcome
+
+const (
+	ReviewOutcomeAccept         ReviewOutcome = statestore.ReviewOutcomeAccept
+	ReviewOutcomeAbandon        ReviewOutcome = statestore.ReviewOutcomeAbandon
+	ReviewOutcomeRequestChanges ReviewOutcome = statestore.ReviewOutcomeRequestChanges
+)
+
+// JobChange represents a change being built up during a job.
+type JobChange = statestore.JobChange
+
+// JobCommit represents one commit within a change.
+type JobCommit = statestore.JobCommit
+
+// JobReview captures a review decision for a commit or the project.
+type JobReview = statestore.JobReview
+
 // OpencodeTranscript captures formatted opencode transcripts for job output.
 type OpencodeTranscript struct {
 	Purpose    string

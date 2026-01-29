@@ -21,6 +21,10 @@ var (
 	ErrJobNotFound = errors.New("job not found")
 	// ErrAmbiguousJobIDPrefix indicates a prefix matches multiple jobs.
 	ErrAmbiguousJobIDPrefix = errors.New("ambiguous job id prefix")
+	// ErrNoCurrentChange indicates a job has no current change.
+	ErrNoCurrentChange = errors.New("no current change")
+	// ErrNoCurrentCommit indicates a job has no current commit.
+	ErrNoCurrentCommit = errors.New("no current commit")
 )
 
 // AbandonedError is returned when a job is abandoned with a reason.

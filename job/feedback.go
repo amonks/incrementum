@@ -9,18 +9,6 @@ import (
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
-// ReviewOutcome captures the outcome of opencode review feedback.
-type ReviewOutcome string
-
-const (
-	// ReviewOutcomeAccept indicates the review accepted changes.
-	ReviewOutcomeAccept ReviewOutcome = "ACCEPT"
-	// ReviewOutcomeAbandon indicates the review rejected the work entirely.
-	ReviewOutcomeAbandon ReviewOutcome = "ABANDON"
-	// ReviewOutcomeRequestChanges indicates the review requested changes.
-	ReviewOutcomeRequestChanges ReviewOutcome = "REQUEST_CHANGES"
-)
-
 // ReviewFeedback is parsed feedback from the opencode review stage.
 type ReviewFeedback struct {
 	Outcome ReviewOutcome

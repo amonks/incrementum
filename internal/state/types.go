@@ -137,6 +137,59 @@ func (s JobStatus) IsValid() bool {
 	return validation.IsValidValue(s, ValidJobStatuses())
 }
 
+// ReviewOutcome represents a review verdict.
+type ReviewOutcome string
+
+const (
+	ReviewOutcomeAccept         ReviewOutcome = "ACCEPT"
+	ReviewOutcomeRequestChanges ReviewOutcome = "REQUEST_CHANGES"
+	ReviewOutcomeAbandon        ReviewOutcome = "ABANDON"
+)
+
+// ValidReviewOutcomes returns all valid review outcome values.
+func ValidReviewOutcomes() []ReviewOutcome {
+	return []ReviewOutcome{ReviewOutcomeAccept, ReviewOutcomeRequestChanges, ReviewOutcomeAbandon}
+}
+
+// IsValid returns true if the outcome is a known value.
+func (o ReviewOutcome) IsValid() bool {
+	return validation.IsValidValue(o, ValidReviewOutcomes())
+}
+
+// JobReview captures a review decision for a commit or the project.
+type JobReview struct {
+	Outcome           ReviewOutcome `json:"outcome"`
+	Comments          string        `json:"comments,omitempty"`
+	OpencodeSessionID string        `json:"opencode_session_id"`
+	ReviewedAt        time.Time     `json:"reviewed_at"`
+}
+
+// JobCommit represents one commit within a change.
+type JobCommit struct {
+	CommitID          string     `json:"commit_id"`
+	DraftMessage      string     `json:"draft_message"`
+	TestsPassed       *bool      `json:"tests_passed,omitempty"`
+	Review            *JobReview `json:"review,omitempty"`
+	OpencodeSessionID string     `json:"opencode_session_id"`
+	CreatedAt         time.Time  `json:"created_at"`
+}
+
+// JobChange represents a change being built up during a job.
+// Maps to a jj change (stable change ID across rebases).
+type JobChange struct {
+	ChangeID  string      `json:"change_id"`
+	Commits   []JobCommit `json:"commits"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+func (c JobChange) IsComplete() bool {
+	if len(c.Commits) == 0 {
+		return false
+	}
+	last := c.Commits[len(c.Commits)-1]
+	return last.Review != nil && last.Review.Outcome == ReviewOutcomeAccept
+}
+
 // JobOpencodeSession tracks an opencode session started by a job.
 type JobOpencodeSession struct {
 	Purpose string `json:"purpose"`
@@ -155,9 +208,38 @@ type Job struct {
 	Stage               JobStage             `json:"stage"`
 	Feedback            string               `json:"feedback,omitempty"`
 	OpencodeSessions    []JobOpencodeSession `json:"opencode_sessions,omitempty"`
-	Status              JobStatus            `json:"status"`
-	CreatedAt           time.Time            `json:"created_at,omitempty"`
-	StartedAt           time.Time            `json:"started_at"`
-	UpdatedAt           time.Time            `json:"updated_at"`
-	CompletedAt         time.Time            `json:"completed_at,omitempty"`
+	// Changes created by this job, in order of creation.
+	Changes []JobChange `json:"changes,omitempty"`
+	// ProjectReview captures the final project review (after all changes complete).
+	ProjectReview *JobReview `json:"project_review,omitempty"`
+	Status        JobStatus  `json:"status"`
+	CreatedAt     time.Time  `json:"created_at,omitempty"`
+	StartedAt     time.Time  `json:"started_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	CompletedAt   time.Time  `json:"completed_at,omitempty"`
+}
+
+// CurrentChange returns the current in-progress change.
+//
+// Note: this is derived solely from change/commit review outcomes and does not
+// gate on Job status/stage (e.g. an abandoned job can still have a non-nil
+// CurrentChange). Callers must ensure stage/status allow iterating.
+func (j *Job) CurrentChange() *JobChange {
+	if j == nil || len(j.Changes) == 0 {
+		return nil
+	}
+	last := &j.Changes[len(j.Changes)-1]
+	if last.IsComplete() {
+		return nil
+	}
+	return last
+}
+
+// CurrentCommit returns the current in-progress commit.
+func (j *Job) CurrentCommit() *JobCommit {
+	change := j.CurrentChange()
+	if change == nil || len(change.Commits) == 0 {
+		return nil
+	}
+	return &change.Commits[len(change.Commits)-1]
 }

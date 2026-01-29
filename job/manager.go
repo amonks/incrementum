@@ -155,6 +155,179 @@ func (m *Manager) Update(jobID string, opts UpdateOptions, updatedAt time.Time) 
 	return updated, nil
 }
 
+// JobCommitUpdate describes in-place updates to the current commit.
+// Nil fields mean "do not update".
+type JobCommitUpdate struct {
+	TestsPassed *bool
+	Review      *JobReview
+}
+
+// AppendChange appends a change to the job.
+func (m *Manager) AppendChange(jobID string, change JobChange, now time.Time) (Job, error) {
+	found, err := m.Find(jobID)
+	if err != nil {
+		return Job{}, err
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if change.CreatedAt.IsZero() {
+		change.CreatedAt = now
+	}
+	if change.Commits == nil {
+		change.Commits = make([]JobCommit, 0)
+	}
+
+	var updated Job
+	err = m.stateStore.Update(func(st *statestore.State) error {
+		key := found.Repo + "/" + found.ID
+		job, ok := st.Jobs[key]
+		if !ok {
+			return ErrJobNotFound
+		}
+		job.Changes = append(job.Changes, change)
+		job.UpdatedAt = now
+		st.Jobs[key] = job
+		updated = job
+		return nil
+	})
+	if err != nil {
+		return Job{}, err
+	}
+
+	return updated, nil
+}
+
+// AppendCommitToCurrentChange appends a commit to the job's current change.
+// Returns ErrNoCurrentChange if there are no changes, or if the last change is complete.
+func (m *Manager) AppendCommitToCurrentChange(jobID string, commit JobCommit, now time.Time) (Job, error) {
+	found, err := m.Find(jobID)
+	if err != nil {
+		return Job{}, err
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if commit.CreatedAt.IsZero() {
+		commit.CreatedAt = now
+	}
+
+	var updated Job
+	err = m.stateStore.Update(func(st *statestore.State) error {
+		key := found.Repo + "/" + found.ID
+		job, ok := st.Jobs[key]
+		if !ok {
+			return ErrJobNotFound
+		}
+		if len(job.Changes) == 0 {
+			return ErrNoCurrentChange
+		}
+		idx := len(job.Changes) - 1
+		if job.Changes[idx].IsComplete() {
+			return ErrNoCurrentChange
+		}
+		job.Changes[idx].Commits = append(job.Changes[idx].Commits, commit)
+		job.UpdatedAt = now
+		st.Jobs[key] = job
+		updated = job
+		return nil
+	})
+	if err != nil {
+		return Job{}, err
+	}
+
+	return updated, nil
+}
+
+// UpdateCurrentCommit updates the current in-progress commit.
+// Returns ErrNoCurrentChange if there are no changes, or if the last change is complete.
+// Returns ErrNoCurrentCommit if the current change has no commits.
+func (m *Manager) UpdateCurrentCommit(jobID string, update JobCommitUpdate, now time.Time) (Job, error) {
+	found, err := m.Find(jobID)
+	if err != nil {
+		return Job{}, err
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	var updated Job
+	err = m.stateStore.Update(func(st *statestore.State) error {
+		key := found.Repo + "/" + found.ID
+		job, ok := st.Jobs[key]
+		if !ok {
+			return ErrJobNotFound
+		}
+		if len(job.Changes) == 0 {
+			return ErrNoCurrentChange
+		}
+		changeIdx := len(job.Changes) - 1
+		if job.Changes[changeIdx].IsComplete() {
+			return ErrNoCurrentChange
+		}
+		if len(job.Changes[changeIdx].Commits) == 0 {
+			return ErrNoCurrentCommit
+		}
+		commitIdx := len(job.Changes[changeIdx].Commits) - 1
+		commit := job.Changes[changeIdx].Commits[commitIdx]
+		if update.TestsPassed != nil {
+			v := *update.TestsPassed
+			commit.TestsPassed = &v
+		}
+		if update.Review != nil {
+			review := *update.Review
+			if review.ReviewedAt.IsZero() {
+				review.ReviewedAt = now
+			}
+			commit.Review = &review
+		}
+		job.Changes[changeIdx].Commits[commitIdx] = commit
+		job.UpdatedAt = now
+		st.Jobs[key] = job
+		updated = job
+		return nil
+	})
+	if err != nil {
+		return Job{}, err
+	}
+
+	return updated, nil
+}
+
+// SetProjectReview sets the project's final review on the job.
+func (m *Manager) SetProjectReview(jobID string, review JobReview, now time.Time) (Job, error) {
+	found, err := m.Find(jobID)
+	if err != nil {
+		return Job{}, err
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if review.ReviewedAt.IsZero() {
+		review.ReviewedAt = now
+	}
+
+	var updated Job
+	err = m.stateStore.Update(func(st *statestore.State) error {
+		key := found.Repo + "/" + found.ID
+		job, ok := st.Jobs[key]
+		if !ok {
+			return ErrJobNotFound
+		}
+		copied := review
+		job.ProjectReview = &copied
+		job.UpdatedAt = now
+		st.Jobs[key] = job
+		updated = job
+		return nil
+	})
+	if err != nil {
+		return Job{}, err
+	}
+
+	return updated, nil
+}
+
 // ListFilter configures which jobs to return.
 type ListFilter struct {
 	// Status filters by exact status match.
