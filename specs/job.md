@@ -56,6 +56,10 @@ Fields (JSON keys):
   feedback).
 - `opencode_sessions`: list of `{"purpose": string, "id": string}` tracking
   opencode sessions created during this job.
+- `changes`: list of changes created during this job (see
+  [job-changes.md](./job-changes.md)).
+- `project_review`: final project review outcome (see
+  [job-changes.md](./job-changes.md)).
 - `status`: `active`, `completed`, `failed`, `abandoned`.
 - `created_at`: timestamp.
 - `started_at`: timestamp.

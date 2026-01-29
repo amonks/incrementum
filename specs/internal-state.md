@@ -22,8 +22,12 @@ The state file contains:
 
 ### Job
 - `id`, `repo`, `todo_id`, `stage`, `feedback`, `agent`, `opencode_sessions`, `status`, `created_at`, `started_at`, `updated_at`, `completed_at`
+- `changes`: list of `JobChange` tracking changes created during the job
+- `project_review`: final project review outcome (`JobReview`)
 - Stage: `implementing`, `testing`, `reviewing`, or `committing`
 - Status: `active`, `completed`, `failed`, or `abandoned`
+
+See [job-changes.md](./job-changes.md) for details on `JobChange`, `JobCommit`, and `JobReview` types.
 
 ## Locking
 All state updates use advisory file locking via `state.lock` to serialize concurrent access from multiple processes.

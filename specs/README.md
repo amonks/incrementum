@@ -43,15 +43,16 @@
 
 ## Public Packages
 
-| Spec                           | Code                        | Purpose                                                                                                      |
-| ------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [workspace.md](./workspace.md) | [workspace/](../workspace/) | Jujutsu workspace pool: acquire a workspace to do some isolated work, then release it                        |
-| [todo.md](./todo.md)           | [todo/](../todo/)           | Task tracking: command-line JIRA with TODOs stored in a special branch                                       |
-| [cli.md](./cli.md)             | [cmd/ii/](../cmd/ii/)       | CLI conventions and behavior notes                                                                             |
-| [opencode.md](./opencode.md)   | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
-| [job.md](./job.md)             | [job/](../job/)             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
-| [events.md](./events.md)       | [job/](../job/), [web/](../web/) | Event logging and rendering for opencode + jobs                                                              |
-| [swarm.md](./swarm.md)         | [swarm/](../swarm/)         | Swarm orchestration: run many jobs concurrently through a shared server                                       |
+| Spec                               | Code                        | Purpose                                                                                                      |
+| ---------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [workspace.md](./workspace.md)     | [workspace/](../workspace/) | Jujutsu workspace pool: acquire a workspace to do some isolated work, then release it                        |
+| [todo.md](./todo.md)               | [todo/](../todo/)           | Task tracking: command-line JIRA with TODOs stored in a special branch                                       |
+| [cli.md](./cli.md)                 | [cmd/ii/](../cmd/ii/)       | CLI conventions and behavior notes                                                                             |
+| [opencode.md](./opencode.md)       | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
+| [job.md](./job.md)                 | [job/](../job/)             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
+| [job-changes.md](./job-changes.md) | [job/](../job/)             | Job change tracking: persistent state for changes, commits, and reviews within a job                         |
+| [events.md](./events.md)           | [job/](../job/), [web/](../web/) | Event logging and rendering for opencode + jobs                                                              |
+| [swarm.md](./swarm.md)             | [swarm/](../swarm/)         | Swarm orchestration: run many jobs concurrently through a shared server                                       |
 
 ## Internal Packages
 
