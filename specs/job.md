@@ -14,8 +14,8 @@ Jobs emit a merged stream of opencode and job events to the JSONL event log and
 optionally to a caller-provided Go channel via `RunOptions.EventStream`, which
 is closed when the run completes.
 
-Jobs can optionally run from a separate workspace path (used by swarm
-orchestration). When unspecified, jobs run from the repo root.
+Jobs run from the repo root by default but can optionally use a separate
+workspace path.
 
 ## Architecture
 

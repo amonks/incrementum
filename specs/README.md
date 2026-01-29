@@ -51,8 +51,7 @@
 | [opencode.md](./opencode.md)       | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
 | [job.md](./job.md)                 | [job/](../job/)             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
 | [job-changes.md](./job-changes.md) | [job/](../job/)             | Job change tracking: persistent state for changes, commits, and reviews within a job                         |
-| [events.md](./events.md)           | [job/](../job/), [web/](../web/) | Event logging and rendering for opencode + jobs                                                              |
-| [swarm.md](./swarm.md)             | [swarm/](../swarm/)         | Swarm orchestration: run many jobs concurrently through a shared server                                       |
+| [events.md](./events.md)           | [job/](../job/)             | Event logging and rendering for opencode + jobs                                                              |
 
 ## Internal Packages
 

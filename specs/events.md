@@ -49,13 +49,6 @@ Only a curated subset of opencode activity is shown in the text logs (CLI/TUI). 
   - Label: `Opencode thinking:`
 - Prompt, response, and thinking bodies are rendered as markdown via `internal/markdown` (glamour) before indentation.
 
-## HTML rendering
-
-The web log view renders the same curated outputs as HTML blocks (see `job/logs_html.go`).
-
-- Each event is wrapped in a `.log-entry` container with a `.log-label` and optional `.log-body` or `.log-inline` text.
-- Bodies are escaped and displayed with `white-space: pre-wrap` to preserve line breaks without exposing raw JSON.
-
 ## Raw event display
 
 Raw JSON payloads are not rendered by default. If an opencode event payload cannot be decoded into a known shape, it falls back to a generic “Opencode event” block to avoid hiding malformed data in logs.

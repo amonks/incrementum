@@ -24,7 +24,6 @@ This state is lost on crash and unavailable to other processes. We want to:
 1. Show rich job status in `ii job list` and other UIs (kanban-style boards)
 2. Enable drilling into a job to see each change, its commits, and review history
 3. Debug abandonment cases by seeing what iterations were attempted
-4. Support multiple concurrent jobs per repo (swarm)
 
 ## Data Model
 
