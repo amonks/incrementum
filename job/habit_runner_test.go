@@ -150,6 +150,24 @@ func TestResolveHabitModel(t *testing.T) {
 	}
 }
 
+func TestFormatHabitCommitMessageWithReviewComments(t *testing.T) {
+	h := &habit.Habit{
+		Name:         "cleanup",
+		Instructions: "Look for cleanup opportunities.",
+	}
+
+	message := "fix: remove dead code\n\nRemoved unused helper function."
+	reviewComments := "Good cleanup, the function was clearly unused."
+
+	formatted := formatHabitCommitMessage(h, message, reviewComments)
+	if !strings.Contains(formatted, "Review comments:") {
+		t.Fatalf("expected habit commit message to include review comments section")
+	}
+	if !strings.Contains(formatted, "  Good cleanup, the function was clearly unused.") {
+		t.Fatalf("expected habit commit message to include indented review text")
+	}
+}
+
 func TestNewHabitPromptData(t *testing.T) {
 	data := newHabitPromptData("cleanup", "Clean up code.", "", "", nil, nil, "/path/to/repo")
 
