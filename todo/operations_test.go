@@ -943,7 +943,7 @@ func TestStore_List_InvalidFilters(t *testing.T) {
 	invalidStatus := Status("maybe")
 	if _, err := store.List(ListFilter{Status: &invalidStatus}); err == nil || !errors.Is(err, ErrInvalidStatus) {
 		t.Fatalf("expected invalid status error, got %v", err)
-	} else if !strings.Contains(err.Error(), "valid: open, proposed, in_progress, closed, done, tombstone") {
+	} else if !strings.Contains(err.Error(), "valid: open, proposed, in_progress, closed, done, waiting, tombstone") {
 		t.Fatalf("expected valid status hint, got %v", err)
 	}
 

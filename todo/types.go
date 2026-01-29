@@ -31,13 +31,19 @@ const (
 	// StatusDone indicates the todo is finished without closing it.
 	StatusDone Status = "done"
 
+	// StatusWaiting indicates the todo is blocked on external factors.
+	// Unlike dependency blocking (for internal task ordering), waiting is for
+	// external factors like upstream PRs, API availability, etc. The reason
+	// for waiting lives in the description field.
+	StatusWaiting Status = "waiting"
+
 	// StatusTombstone indicates the todo has been soft-deleted.
 	StatusTombstone Status = "tombstone"
 )
 
 // ValidStatuses returns all valid status values.
 func ValidStatuses() []Status {
-	return []Status{StatusOpen, StatusProposed, StatusInProgress, StatusClosed, StatusDone, StatusTombstone}
+	return []Status{StatusOpen, StatusProposed, StatusInProgress, StatusClosed, StatusDone, StatusWaiting, StatusTombstone}
 }
 
 // IsValid returns true if the status is a known valid value.

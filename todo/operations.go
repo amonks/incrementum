@@ -560,7 +560,7 @@ func applyStatusChange(item *Todo, newStatus Status, previousStatus Status, opts
 		if opts.DeletedAt == nil && item.DeletedAt == nil {
 			item.DeletedAt = &now
 		}
-	case StatusOpen, StatusInProgress, StatusProposed:
+	case StatusOpen, StatusInProgress, StatusProposed, StatusWaiting:
 		item.ClosedAt = nil
 		if newStatus == StatusInProgress && previousStatus != StatusInProgress {
 			item.StartedAt = &now

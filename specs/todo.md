@@ -38,7 +38,7 @@ Fields (JSON keys):
 - `id`: 8-character lowercase base32 identifier.
 - `title`: required; must include non-whitespace characters; max length 500 characters.
 - `description`: optional free text.
-- `status`: `open`, `proposed`, `in_progress`, `closed`, `done`, or `tombstone`.
+- `status`: `open`, `proposed`, `in_progress`, `closed`, `done`, `waiting`, or `tombstone`.
 - `priority`: integer 0..4 (0 = critical, 4 = backlog).
 - `type`: `task`, `bug`, or `feature`.
 - `implementation_model`: optional opencode model override for implementation.
@@ -70,12 +70,16 @@ Fields (JSON keys):
 
 ### Status + Timestamp Rules
 
-- `open`/`proposed`/`in_progress`: `closed_at` must be empty; `deleted_at` must be empty.
+- `open`/`proposed`/`in_progress`/`waiting`: `closed_at` must be empty; `deleted_at` must be empty.
 - `closed`/`done`: `closed_at` must be set; `deleted_at` must be empty.
 - `tombstone`: `deleted_at` must be set; `closed_at` must be empty;
   `delete_reason` is allowed only when tombstoned.
 - `started_at` is only set for `in_progress` or `done` todos.
 - `completed_at` is only set for `done` todos.
+- `waiting` represents todos blocked on external factors (upstream PRs, API
+  availability, etc.). Unlike dependency blocking (for internal task ordering),
+  waiting is for external factors. The reason for waiting lives in the
+  description field (unstructured).
 
 ### Create
 
@@ -135,7 +139,7 @@ Fields (JSON keys):
 - Setting `Status=tombstone` implicitly includes tombstones in list results.
 - CLI `todo list` includes tombstones when `--tombstones` is provided or when `--status tombstone` is specified.
 - CLI `todo list` excludes `done` todos by default unless `--status` or `--all` is provided.
-- Proposed todos are included in the default list output alongside open and in-progress work.
+- Proposed and waiting todos are included in the default list output alongside open and in-progress work.
 - When `todo list` is empty but matching `done` or `tombstone` todos exist, the CLI prints a hint to use `--all` and/or `--tombstones`.
 - CLI ID highlighting uses the shortest unique prefix across all todos,
   including tombstones, so the display matches prefix resolution.

@@ -87,6 +87,7 @@ func orderTodosForDisplay(todos []todo.Todo) []todo.Todo {
 	}
 	proposed := make([]todo.Todo, 0, len(todos))
 	open := make([]todo.Todo, 0, len(todos))
+	waiting := make([]todo.Todo, 0, len(todos))
 	done := make([]todo.Todo, 0, len(todos))
 	other := make([]todo.Todo, 0, len(todos))
 	for _, item := range todos {
@@ -95,6 +96,8 @@ func orderTodosForDisplay(todos []todo.Todo) []todo.Todo {
 			proposed = append(proposed, item)
 		case "", todo.StatusOpen, todo.StatusInProgress:
 			open = append(open, item)
+		case todo.StatusWaiting:
+			waiting = append(waiting, item)
 		case todo.StatusDone, todo.StatusClosed:
 			done = append(done, item)
 		default:
@@ -104,6 +107,7 @@ func orderTodosForDisplay(todos []todo.Todo) []todo.Todo {
 	ordered := make([]todo.Todo, 0, len(todos))
 	ordered = append(ordered, proposed...)
 	ordered = append(ordered, open...)
+	ordered = append(ordered, waiting...)
 	ordered = append(ordered, done...)
 	ordered = append(ordered, other...)
 	return ordered

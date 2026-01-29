@@ -12,6 +12,7 @@ func TestStatus_IsValid(t *testing.T) {
 		{StatusInProgress, true},
 		{StatusClosed, true},
 		{StatusDone, true},
+		{StatusWaiting, true},
 		{StatusTombstone, true},
 		{Status("invalid"), false},
 		{Status(""), false},
@@ -36,6 +37,7 @@ func TestStatus_IsResolved(t *testing.T) {
 		{StatusInProgress, false},
 		{StatusClosed, true},
 		{StatusDone, true},
+		{StatusWaiting, false},
 		{StatusTombstone, true},
 		{Status("unknown"), false},
 	}
