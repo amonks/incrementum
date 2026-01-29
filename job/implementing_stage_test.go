@@ -426,3 +426,64 @@ func TestRunImplementingStageTreatsEmptyChangeAsNoChangeAfterCommit(t *testing.T
 		t.Fatalf("expected commit message to be deleted")
 	}
 }
+
+func TestRunImplementingStageFailedOpencodeIncludesStderrInMessage(t *testing.T) {
+	repoPath := t.TempDir()
+	stateDir := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	now := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
+	current, err := manager.Create("todo-stderr", now, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-stderr",
+		Title:       "Test stderr capture",
+		Description: "Testing that stderr is captured in error messages",
+	}
+
+	opts := RunOptions{
+		Now: func() time.Time { return now },
+		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
+			return OpencodeRunResult{
+				SessionID: "ses-stderr",
+				ExitCode:  1,
+				Stderr:    "Something went terribly wrong\nWith multiple lines",
+			}, nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			return "before-commit", nil
+		},
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		Snapshot: func(string) error {
+			return nil
+		},
+	}
+
+	_, err = runImplementingStage(manager, current, item, repoPath, repoPath, opts, nil, "")
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+
+	errStr := err.Error()
+	if !strings.Contains(errStr, "stderr:") {
+		t.Fatalf("expected error message to contain 'stderr:', got: %s", errStr)
+	}
+	if !strings.Contains(errStr, "Something went terribly wrong") {
+		t.Fatalf("expected error message to contain stderr content, got: %s", errStr)
+	}
+	if !strings.Contains(errStr, "With multiple lines") {
+		t.Fatalf("expected error message to contain stderr content, got: %s", errStr)
+	}
+}

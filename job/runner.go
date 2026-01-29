@@ -78,6 +78,7 @@ type OpencodeRunResult struct {
 	ExitCode     int
 	ServeCommand string
 	RunCommand   string
+	Stderr       string
 }
 
 type reviewScope int
@@ -1066,6 +1067,9 @@ func buildOpencodeFailureMessage(purpose, promptName string, result OpencodeRunR
 	if retryCount > 0 {
 		parts = append(parts, fmt.Sprintf("retry %d", retryCount))
 	}
+	if !internalstrings.IsBlank(result.Stderr) {
+		parts = append(parts, fmt.Sprintf("stderr: %s", internalstrings.TrimSpace(result.Stderr)))
+	}
 	message := fmt.Sprintf("opencode %s failed with exit code %d", purpose, result.ExitCode)
 	if result.ExitCode < 0 {
 		message += " (process did not exit cleanly)"
@@ -1192,6 +1196,7 @@ func replaceEnvVar(env []string, key, value string) []string {
 }
 
 func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (OpencodeRunResult, error) {
+	var stderrBuf strings.Builder
 	handle, err := store.Run(opencode.RunOptions{
 		RepoPath:  opts.RepoPath,
 		WorkDir:   opts.WorkspacePath,
@@ -1199,7 +1204,7 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 		Agent:     opts.Agent,
 		StartedAt: opts.StartedAt,
 		Stdout:    io.Discard,
-		Stderr:    io.Discard,
+		Stderr:    &stderrBuf,
 		Env:       applyOpencodeConfigEnv(opts.Env),
 	})
 	if err != nil {
@@ -1215,7 +1220,13 @@ func runOpencodeSession(store *opencode.Store, opts opencodeRunOptions) (Opencod
 	if eventErr != nil {
 		return OpencodeRunResult{}, eventErr
 	}
-	return OpencodeRunResult{SessionID: result.SessionID, ExitCode: result.ExitCode, ServeCommand: result.ServeCommand, RunCommand: result.RunCommand}, nil
+	return OpencodeRunResult{
+		SessionID:    result.SessionID,
+		ExitCode:     result.ExitCode,
+		ServeCommand: result.ServeCommand,
+		RunCommand:   result.RunCommand,
+		Stderr:       stderrBuf.String(),
+	}, nil
 }
 
 func recordOpencodeEvents(log *EventLog, events <-chan opencode.Event) <-chan error {

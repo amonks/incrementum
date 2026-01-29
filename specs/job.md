@@ -130,12 +130,12 @@ any stage -> failed (unrecoverable error)
 9. If opencode returns an error before completion, record a `job.opencode.error`
    event with the purpose and error message, then mark the job `failed`.
 10. If opencode fails (nonzero exit): mark job `failed` with an error that
-   includes purpose, session id, agent, prompt template, opencode run/serve
-   command lines, repo/workspace paths, and before/after commit ids when
-   available. If the exit code is negative and the working copy commit changed,
-   best-effort restore the workspace to the pre-opencode commit and retry
-   opencode once. If the retry still fails, best-effort restore before failing
-   and include the retry attempt in the error details.
+    includes purpose, session id, agent, prompt template, opencode run/serve
+    command lines, repo/workspace paths, before/after commit ids, and stderr
+    output when available. If the exit code is negative and the working copy commit changed,
+    best-effort restore the workspace to the pre-opencode commit and retry
+    opencode once. If the retry still fails, best-effort restore before failing
+    and include the retry attempt in the error details.
 11. Record the current working copy commit id again.
 12. If the commit id changed, run `jj log -r @ -T empty --no-graph` and treat a
     `true` result as no change (empty working copy) and `false` as changed.
@@ -187,7 +187,10 @@ any stage -> failed (unrecoverable error)
    `project-review`.
 9. If opencode returns an error before completion, record a `job.opencode.error`
    event with the purpose and error message, then mark the job `failed`.
-10. If opencode fails (nonzero exit): mark job `failed`.
+10. If opencode fails (nonzero exit): mark job `failed` with an error that
+    includes purpose, session id, agent, prompt template, opencode run/serve
+    command lines, repo/workspace paths, before/after commit ids, and stderr
+    output when available.
 11. Read `.incrementum-feedback` from the workspace root:
    - Delete `.incrementum-feedback` after reading.
    - Missing or first line is `ACCEPT`:
