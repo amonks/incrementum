@@ -119,9 +119,12 @@ any stage -> failed (unrecoverable error)
 3. Record the current working copy commit id.
 4. Run opencode with `prompt-implementation.tmpl` when no feedback is present,
    or `prompt-feedback.tmpl` when responding to feedback (PWD set to the
-   workspace root). Set `OPENCODE_CONFIG_CONTENT` to
-   `{"permission":{"question":"deny"}}` to deny question prompts during
-   the job run.
+   workspace root). Set `OPENCODE_CONFIG_CONTENT` to a JSON config that:
+   - Denies question prompts (`permission.question = "deny"`)
+   - Allows all bash commands by default (`permission.bash["*"] = "allow"`)
+   - Denies most jj commands (`permission.bash["jj *"] = "deny"`)
+   - Allows read-only jj commands: `jj diff`, `jj file`, `jj log`, `jj show`
+     and their variants with arguments
 5. Template receives: `Todo`, `Feedback`, and `Message` (previous commit message
    when responding to feedback).
 6. Best-effort `jj debug snapshot` in the repo working directory immediately
@@ -170,8 +173,8 @@ any stage -> failed (unrecoverable error)
 2. Delete `.incrementum-feedback` from the workspace root if it exists.
 3. Best-effort `jj debug snapshot` in the repo working directory immediately
    before opencode runs.
-4. Run opencode with `OPENCODE_CONFIG_CONTENT` set to
-   `{"permission":{"question":"deny"}}` to deny question prompts and:
+4. Run opencode with `OPENCODE_CONFIG_CONTENT` set as in the implementing
+   stage (denies questions, allows bash except most jj commands) and:
    - `prompt-commit-review.tmpl` during the work loop, or
    - `prompt-project-review.tmpl` during the final project review.
 5. Template receives: `Todo`, `Message` (commit message from the implementing stage).

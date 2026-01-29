@@ -466,8 +466,9 @@ func TestRunReviewingStageReadsCommitMessageFile(t *testing.T) {
 			if !ok {
 				return OpencodeRunResult{}, fmt.Errorf("expected %s to be set", opencodeConfigEnvVar)
 			}
-			if value != opencodeConfigContent {
-				return OpencodeRunResult{}, fmt.Errorf("expected %s to be %q, got %q", opencodeConfigEnvVar, opencodeConfigContent, value)
+			expected := opencodeConfigJSON()
+			if value != expected {
+				return OpencodeRunResult{}, fmt.Errorf("expected %s to be %q, got %q", opencodeConfigEnvVar, expected, value)
 			}
 			if err := os.WriteFile(feedbackPath, []byte("ACCEPT\n"), 0o644); err != nil {
 				return OpencodeRunResult{}, err

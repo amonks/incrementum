@@ -1,6 +1,7 @@
 package job
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,8 +25,27 @@ const (
 	feedbackFilename      = ".incrementum-feedback"
 	commitMessageFilename = ".incrementum-commit-message"
 	opencodeConfigEnvVar  = "OPENCODE_CONFIG_CONTENT"
-	opencodeConfigContent = `{"permission":{"question":"deny"}}`
 )
+
+// opencodeConfig defines the configuration passed to opencode via OPENCODE_CONFIG_CONTENT.
+// This structure is marshaled to JSON and controls permission grants for opencode tools.
+var opencodeConfig = map[string]any{
+	"permission": map[string]any{
+		"question": "deny",
+		"bash": map[string]string{
+			"*":         "allow",
+			"jj *":      "deny",
+			"jj diff":   "allow",
+			"jj diff *": "allow",
+			"jj file":   "allow",
+			"jj file *": "allow",
+			"jj log":    "allow",
+			"jj log *":  "allow",
+			"jj show":   "allow",
+			"jj show *": "allow",
+		},
+	},
+}
 
 var promptMessagePattern = regexp.MustCompile(`\{\{[^}]*\.(Message|CommitMessageBlock)[^}]*\}\}`)
 
@@ -1179,7 +1199,19 @@ func applyOpencodeConfigEnv(env []string) []string {
 	if env == nil {
 		env = os.Environ()
 	}
-	return replaceEnvVar(env, opencodeConfigEnvVar, opencodeConfigContent)
+	return replaceEnvVar(env, opencodeConfigEnvVar, opencodeConfigJSON())
+}
+
+// opencodeConfigJSON returns the JSON encoding of the opencode configuration.
+// This is used internally and exported for test assertions.
+func opencodeConfigJSON() string {
+	configJSON, err := json.Marshal(opencodeConfig)
+	if err != nil {
+		// This should never happen since opencodeConfig is a static map.
+		// Fall back to minimal config if marshaling fails.
+		return `{"permission":{"question":"deny"}}`
+	}
+	return string(configJSON)
 }
 
 func replaceEnvVar(env []string, key, value string) []string {

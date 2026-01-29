@@ -224,8 +224,9 @@ func TestRunImplementingStageSetsOpencodeConfigEnv(t *testing.T) {
 			if !ok {
 				return OpencodeRunResult{}, fmt.Errorf("expected %s to be set", opencodeConfigEnvVar)
 			}
-			if value != opencodeConfigContent {
-				return OpencodeRunResult{}, fmt.Errorf("expected %s to be %q, got %q", opencodeConfigEnvVar, opencodeConfigContent, value)
+			expected := opencodeConfigJSON()
+			if value != expected {
+				return OpencodeRunResult{}, fmt.Errorf("expected %s to be %q, got %q", opencodeConfigEnvVar, expected, value)
 			}
 			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
 			if err := os.WriteFile(messagePath, []byte("feat: env"), 0o644); err != nil {
