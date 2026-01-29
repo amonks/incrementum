@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/amonks/incrementum/internal/config"
 	"github.com/amonks/incrementum/internal/editor"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 	jobpkg "github.com/amonks/incrementum/job"
+	"github.com/amonks/incrementum/opencode"
 	"github.com/amonks/incrementum/todo"
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/spf13/cobra"
@@ -22,6 +25,13 @@ var jobDoCmd = &cobra.Command{
 }
 
 var jobRun = jobpkg.Run
+
+// jobDoTodo is the function called to run a single todo. It can be overridden for testing.
+var jobDoTodo = runJobDoTodo
+
+// runInteractiveSession is the function called to run an interactive opencode session.
+// It can be overridden for testing.
+var runInteractiveSession = defaultRunInteractiveSession
 
 var (
 	jobDoTitle               string
@@ -42,7 +52,7 @@ func init() {
 	addDescriptionFlagAliases(jobDoCmd)
 
 	jobDoCmd.Flags().StringVar(&jobDoTitle, "title", "", "Todo title")
-	jobDoCmd.Flags().StringVarP(&jobDoType, "type", "t", "task", "Todo type (task, bug, feature)")
+	jobDoCmd.Flags().StringVarP(&jobDoType, "type", "t", "task", "Todo type (task, bug, feature, design)")
 	jobDoCmd.Flags().IntVarP(&jobDoPriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	jobDoCmd.Flags().StringVarP(&jobDoDescription, "description", "d", "", "Description (use '-' to read from stdin)")
 	jobDoCmd.Flags().StringVar(&jobDoImplementationModel, "implementation-model", "", "Opencode model for implementation")
@@ -74,7 +84,7 @@ func runJobDo(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, todoID := range todoIDs {
-		if err := runJobDoTodo(cmd, todoID); err != nil {
+		if err := jobDoTodo(cmd, todoID); err != nil {
 			return err
 		}
 	}
@@ -88,6 +98,167 @@ func runJobDoTodo(cmd *cobra.Command, todoID string) error {
 		return err
 	}
 
+	// Look up the todo to check its type
+	store, err := todo.Open(repoPath, todo.OpenOptions{
+		CreateIfMissing: false,
+		PromptToCreate:  false,
+		Purpose:         fmt.Sprintf("job do %s", todoID),
+	})
+	if err != nil {
+		return err
+	}
+
+	items, err := store.Show([]string{todoID})
+	if err != nil {
+		releaseErr := store.Release()
+		return errors.Join(err, releaseErr)
+	}
+	if len(items) == 0 {
+		releaseErr := store.Release()
+		return errors.Join(fmt.Errorf("todo not found: %s", todoID), releaseErr)
+	}
+	item := items[0]
+	if err := store.Release(); err != nil {
+		return err
+	}
+
+	// Design todos require interactive sessions
+	if item.Type.IsInteractive() {
+		return runDesignTodo(cmd, repoPath, item)
+	}
+
+	return runHeadlessJob(cmd, repoPath, todoID)
+}
+
+// interactiveSessionOptions contains the parameters for running an interactive session.
+type interactiveSessionOptions struct {
+	repoPath string
+	prompt   string
+	agent    string
+}
+
+// interactiveSessionResult contains the result of an interactive session.
+type interactiveSessionResult struct {
+	exitCode int
+}
+
+// defaultRunInteractiveSession runs an interactive opencode session using the real opencode store.
+func defaultRunInteractiveSession(opts interactiveSessionOptions) (interactiveSessionResult, error) {
+	opencodeStore, err := opencode.Open()
+	if err != nil {
+		return interactiveSessionResult{}, err
+	}
+
+	handle, err := opencodeStore.Run(opencode.RunOptions{
+		RepoPath:  opts.repoPath,
+		WorkDir:   opts.repoPath,
+		Prompt:    opts.prompt,
+		Agent:     opts.agent,
+		StartedAt: time.Now(),
+		Stdout:    os.Stdout,
+		Stderr:    os.Stderr,
+	})
+	if err != nil {
+		return interactiveSessionResult{}, err
+	}
+
+	drainDone := opencode.DrainEvents(handle.Events)
+	result, err := handle.Wait()
+	<-drainDone
+	if err != nil {
+		return interactiveSessionResult{}, err
+	}
+
+	return interactiveSessionResult{exitCode: result.ExitCode}, nil
+}
+
+// runDesignTodo runs an interactive opencode session for design todos.
+func runDesignTodo(cmd *cobra.Command, repoPath string, item todo.Todo) error {
+	cfg, err := config.Load(repoPath)
+	if err != nil {
+		return err
+	}
+
+	// Mark the todo as started
+	store, err := todo.Open(repoPath, todo.OpenOptions{
+		CreateIfMissing: false,
+		PromptToCreate:  false,
+		Purpose:         fmt.Sprintf("design todo %s start", item.ID),
+	})
+	if err != nil {
+		return err
+	}
+	if _, err := store.Start([]string{item.ID}); err != nil {
+		releaseErr := store.Release()
+		return errors.Join(err, releaseErr)
+	}
+	if err := store.Release(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Starting design session for todo %s\n", item.ID)
+	fmt.Printf("Title: %s\n", item.Title)
+	if !internalstrings.IsBlank(item.Description) {
+		fmt.Printf("Description:\n%s\n", jobpkg.IndentBlock(item.Description, jobDocumentIndent))
+	}
+	fmt.Println()
+
+	// Build a prompt for the design session
+	prompt := fmt.Sprintf("You are working on a design todo.\n\n%s", formatDesignTodoBlock(item))
+
+	result, err := runInteractiveSession(interactiveSessionOptions{
+		repoPath: repoPath,
+		prompt:   prompt,
+		agent:    resolveOpencodeAgent(cmd, jobDoAgent, cfg.Job.Agent),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Mark todo as done on successful completion
+	if result.exitCode == 0 {
+		store, err := todo.Open(repoPath, todo.OpenOptions{
+			CreateIfMissing: false,
+			PromptToCreate:  false,
+			Purpose:         fmt.Sprintf("design todo %s finish", item.ID),
+		})
+		if err != nil {
+			return err
+		}
+		if _, err := store.Finish([]string{item.ID}); err != nil {
+			releaseErr := store.Release()
+			return errors.Join(err, releaseErr)
+		}
+		if err := store.Release(); err != nil {
+			return err
+		}
+		fmt.Printf("\nDesign todo %s marked as done.\n", item.ID)
+	}
+
+	if result.exitCode != 0 {
+		return exitError{code: result.exitCode}
+	}
+	return nil
+}
+
+func formatDesignTodoBlock(item todo.Todo) string {
+	description := internalstrings.TrimTrailingNewlines(item.Description)
+	if internalstrings.IsBlank(description) {
+		description = "-"
+	}
+	description = jobpkg.ReflowIndentedText(description, jobLineWidth, jobSubdocumentIndent)
+	fields := []string{
+		fmt.Sprintf("ID: %s", item.ID),
+		fmt.Sprintf("Title: %s", item.Title),
+		fmt.Sprintf("Type: %s", item.Type),
+		fmt.Sprintf("Priority: %d", item.Priority),
+		"Description:",
+	}
+	fieldBlock := jobpkg.IndentBlock(strings.Join(fields, "\n"), jobDocumentIndent)
+	return fmt.Sprintf("Todo\n\n%s\n%s", fieldBlock, description)
+}
+
+func runHeadlessJob(cmd *cobra.Command, repoPath, todoID string) error {
 	opencodeAgent := resolveOpencodeAgentOverride(cmd, jobDoAgent)
 
 	logger := jobpkg.NewConsoleLogger(os.Stdout)

@@ -19,7 +19,7 @@ type Todo struct {
 	// Priority is the importance level (0=critical, 4=backlog).
 	Priority int `json:"priority"`
 
-	// Type categorizes the todo (task, bug, feature).
+	// Type categorizes the todo (task, bug, feature, design).
 	Type TodoType `json:"type"`
 
 	// ImplementationModel selects the opencode model for implementing this todo.

@@ -89,7 +89,7 @@ func init() {
 	swarmDoCmd.Flags().StringVar(&swarmAddr, "addr", "", "Swarm server address")
 	swarmDoCmd.Flags().StringVar(&swarmPath, "path", "", "Repository path")
 	swarmDoCmd.Flags().StringVar(&jobDoTitle, "title", "", "Todo title")
-	swarmDoCmd.Flags().StringVarP(&jobDoType, "type", "t", "task", "Todo type (task, bug, feature)")
+	swarmDoCmd.Flags().StringVarP(&jobDoType, "type", "t", "task", "Todo type (task, bug, feature, design)")
 	swarmDoCmd.Flags().IntVarP(&jobDoPriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	swarmDoCmd.Flags().StringVarP(&jobDoDescription, "description", "d", "", "Description (use '-' to read from stdin)")
 	swarmDoCmd.Flags().StringArrayVar(&jobDoDeps, "deps", nil, "Dependencies in format <id> (e.g., abc123)")

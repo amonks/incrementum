@@ -21,7 +21,7 @@ type TodoData struct {
 	ID string
 	// Title is the todo title.
 	Title string
-	// Type is the todo type (task, bug, feature).
+	// Type is the todo type (task, bug, feature, design).
 	Type string
 	// Priority is the todo priority (0-4).
 	Priority int

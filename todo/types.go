@@ -67,16 +67,25 @@ const (
 
 	// TypeFeature is a new feature.
 	TypeFeature TodoType = "feature"
+
+	// TypeDesign is a design or specification task requiring interactive work.
+	TypeDesign TodoType = "design"
 )
 
 // ValidTodoTypes returns all valid todo type values.
 func ValidTodoTypes() []TodoType {
-	return []TodoType{TypeTask, TypeBug, TypeFeature}
+	return []TodoType{TypeTask, TypeBug, TypeFeature, TypeDesign}
 }
 
 // IsValid returns true if the type is a known valid value.
 func (t TodoType) IsValid() bool {
 	return validation.IsValidValue(t, ValidTodoTypes())
+}
+
+// IsInteractive returns true for todo types that require interactive sessions.
+// Design todos produce specifications and require user collaboration.
+func (t TodoType) IsInteractive() bool {
+	return t == TypeDesign
 }
 
 // TodoTypeRank returns the sort rank for a todo type.
@@ -88,8 +97,10 @@ func TodoTypeRank(t TodoType) int {
 		return 1
 	case TypeFeature:
 		return 2
-	default:
+	case TypeDesign:
 		return 3
+	default:
+		return 4
 	}
 }
 

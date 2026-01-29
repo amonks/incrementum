@@ -15,7 +15,7 @@ type CreateOptions struct {
 	// Status is the todo status. Defaults to StatusOpen.
 	Status Status
 
-	// Type is the todo type (task, bug, feature). Defaults to TypeTask.
+	// Type is the todo type (task, bug, feature, design). Defaults to TypeTask.
 	Type TodoType
 
 	// Priority is the importance level (0-4). Defaults to PriorityMedium (2) when nil.

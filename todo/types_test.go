@@ -57,6 +57,7 @@ func TestTodoType_IsValid(t *testing.T) {
 		{TypeTask, true},
 		{TypeBug, true},
 		{TypeFeature, true},
+		{TypeDesign, true},
 		{TodoType("invalid"), false},
 		{TodoType(""), false},
 	}
@@ -65,6 +66,27 @@ func TestTodoType_IsValid(t *testing.T) {
 		t.Run(string(tt.typ), func(t *testing.T) {
 			if got := tt.typ.IsValid(); got != tt.valid {
 				t.Errorf("TodoType(%q).IsValid() = %v, want %v", tt.typ, got, tt.valid)
+			}
+		})
+	}
+}
+
+func TestTodoType_IsInteractive(t *testing.T) {
+	tests := []struct {
+		typ         TodoType
+		interactive bool
+	}{
+		{TypeTask, false},
+		{TypeBug, false},
+		{TypeFeature, false},
+		{TypeDesign, true},
+		{TodoType("unknown"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.typ), func(t *testing.T) {
+			if got := tt.typ.IsInteractive(); got != tt.interactive {
+				t.Errorf("TodoType(%q).IsInteractive() = %v, want %v", tt.typ, got, tt.interactive)
 			}
 		})
 	}

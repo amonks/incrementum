@@ -190,7 +190,7 @@ func init() {
 
 	// todo create flags
 	todoCreateCmd.Flags().StringVar(&todoCreateTitle, "title", "", "Todo title")
-	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature)")
+	todoCreateCmd.Flags().StringVarP(&todoCreateType, "type", "t", "task", "Todo type (task, bug, feature, design)")
 	todoCreateCmd.Flags().IntVarP(&todoCreatePriority, "priority", "p", todo.PriorityMedium, "Priority (0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	todoCreateCmd.Flags().StringVarP(&todoCreateDescription, "description", "d", "", "Description (use '-' to read from stdin)")
 	todoCreateCmd.Flags().StringVar(&todoCreateImplementationModel, "implementation-model", "", "Opencode model for implementation")
@@ -205,7 +205,7 @@ func init() {
 	todoUpdateCmd.Flags().StringVarP(&todoUpdateDescription, "description", "d", "", "New description (use '-' to read from stdin)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateStatus, "status", "", "New status (open, proposed, in_progress, closed, done, tombstone)")
 	todoUpdateCmd.Flags().IntVar(&todoUpdatePriority, "priority", 0, "New priority (0-4)")
-	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature)")
+	todoUpdateCmd.Flags().StringVar(&todoUpdateType, "type", "", "New type (task, bug, feature, design)")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateImplementationModel, "implementation-model", "", "Opencode model for implementation")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateCodeReviewModel, "code-review-model", "", "Opencode model for commit review")
 	todoUpdateCmd.Flags().StringVar(&todoUpdateProjectReviewModel, "project-review-model", "", "Opencode model for project review")

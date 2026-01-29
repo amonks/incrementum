@@ -950,7 +950,7 @@ func TestStore_List_InvalidFilters(t *testing.T) {
 	invalidType := TodoType("oops")
 	if _, err := store.List(ListFilter{Type: &invalidType}); err == nil || !errors.Is(err, ErrInvalidType) {
 		t.Fatalf("expected invalid type error, got %v", err)
-	} else if !strings.Contains(err.Error(), "valid: task, bug, feature") {
+	} else if !strings.Contains(err.Error(), "valid: task, bug, feature, design") {
 		t.Fatalf("expected valid type hint, got %v", err)
 	}
 

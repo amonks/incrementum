@@ -30,7 +30,7 @@ func init() {
 	jobCmd.AddCommand(jobDoAllCmd)
 
 	jobDoAllCmd.Flags().IntVar(&jobDoAllPriority, "priority", -1, "Filter by priority (0-4, includes higher priorities)")
-	jobDoAllCmd.Flags().StringVar(&jobDoAllType, "type", "", "Filter by type (task, bug, feature)")
+	jobDoAllCmd.Flags().StringVar(&jobDoAllType, "type", "", "Filter by type (task, bug, feature); design todos are excluded")
 }
 
 func runJobDoAll(cmd *cobra.Command, args []string) error {
@@ -81,6 +81,9 @@ func jobDoAllFilters(cmd *cobra.Command) (jobDoAllFilter, error) {
 		if !normalized.IsValid() {
 			return filter, validation.FormatInvalidValueError(todo.ErrInvalidType, normalized, todo.ValidTodoTypes())
 		}
+		if normalized.IsInteractive() {
+			return filter, fmt.Errorf("%s todos require interactive sessions and cannot be run with do-all", normalized)
+		}
 		filter.todoType = &normalized
 	}
 
@@ -94,6 +97,10 @@ func nextJobDoAllTodoID(store *todo.Store, filter jobDoAllFilter) (string, error
 	}
 
 	for _, item := range todos {
+		// Skip interactive todos (e.g., design) since they require user collaboration
+		if item.Type.IsInteractive() {
+			continue
+		}
 		if filter.maxPriority != nil && item.Priority > *filter.maxPriority {
 			continue
 		}
