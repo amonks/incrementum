@@ -1,6 +1,8 @@
 package markdown
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -9,13 +11,27 @@ import (
 	"github.com/charmbracelet/glamour/styles"
 )
 
+type termRenderer interface {
+	Render(string) (string, error)
+}
+
 var (
 	rendererMu sync.Mutex
-	renderers  = map[int]*glamour.TermRenderer{}
+	renderers  = map[int]termRenderer{}
 )
+
+var errRendererPanic = errors.New("markdown renderer panicked")
 
 // Render formats markdown text for terminal output.
 func Render(width, indent int, input []byte) []byte {
+	return SafeRender(width, indent, input)
+}
+
+// SafeRender formats markdown text for terminal output, recovering from renderer panics.
+//
+// glamour has historically panicked on some markdown inputs; we prefer a best-effort
+// render over crashing the CLI.
+func SafeRender(width, indent int, input []byte) []byte {
 	value := internalstrings.NormalizeNewlines(string(input))
 	value = internalstrings.TrimTrailingNewlines(value)
 	if internalstrings.IsBlank(value) {
@@ -35,7 +51,9 @@ func Render(width, indent int, input []byte) []byte {
 	renderer := markdownRenderer(renderWidth)
 	rendered := value
 	if renderer != nil {
-		formatted, err := renderer.Render(value)
+		formatted, err := safeRender(func() (string, error) {
+			return renderer.Render(value)
+		})
 		if err == nil {
 			rendered = formatted
 		}
@@ -51,6 +69,16 @@ func Render(width, indent int, input []byte) []byte {
 	return []byte(internalstrings.IndentBlock(rendered, indent))
 }
 
+func safeRender(render func() (string, error)) (out string, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			out = ""
+			err = fmt.Errorf("%w: %v", errRendererPanic, recovered)
+		}
+	}()
+	return render()
+}
+
 func cleanRenderedMarkdown(value string) string {
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
@@ -63,7 +91,7 @@ func cleanRenderedMarkdown(value string) string {
 	return cleaned
 }
 
-func markdownRenderer(width int) *glamour.TermRenderer {
+func markdownRenderer(width int) termRenderer {
 	rendererMu.Lock()
 	defer rendererMu.Unlock()
 	if cached, ok := renderers[width]; ok {

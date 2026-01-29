@@ -24,7 +24,7 @@ func wrapWidthFor(width int, indent int) int {
 
 // RenderMarkdown formats markdown text for terminal display.
 func RenderMarkdown(value string, width int) string {
-	rendered := markdown.Render(width, 0, []byte(value))
+	rendered := markdown.SafeRender(width, 0, []byte(value))
 	return string(rendered)
 }
 
