@@ -35,6 +35,28 @@ func TestParseReviewFeedbackRequestChanges(t *testing.T) {
 	}
 }
 
+func TestParseReviewFeedbackAbandon(t *testing.T) {
+	contents := "ABANDON\n\nThe approach is fundamentally flawed.\nNeed to reconsider.\n"
+	feedback, err := ParseReviewFeedback(contents)
+	if err != nil {
+		t.Fatalf("parse feedback: %v", err)
+	}
+	if feedback.Outcome != ReviewOutcomeAbandon {
+		t.Fatalf("expected ABANDON, got %q", feedback.Outcome)
+	}
+	expected := "The approach is fundamentally flawed.\nNeed to reconsider."
+	if feedback.Details != expected {
+		t.Fatalf("expected details %q, got %q", expected, feedback.Details)
+	}
+}
+
+func TestParseReviewFeedbackAbandonMissingDetails(t *testing.T) {
+	_, err := ParseReviewFeedback("ABANDON")
+	if !errors.Is(err, ErrInvalidFeedbackFormat) {
+		t.Fatalf("expected invalid feedback error, got %v", err)
+	}
+}
+
 func TestParseReviewFeedbackInvalid(t *testing.T) {
 	_, err := ParseReviewFeedback("REQUEST_CHANGES\nmissing blank")
 	if !errors.Is(err, ErrInvalidFeedbackFormat) {
@@ -66,5 +88,26 @@ func TestReadReviewFeedbackDeletesFile(t *testing.T) {
 
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Fatalf("expected feedback file to be deleted")
+	}
+}
+
+func TestAbandonedError(t *testing.T) {
+	err := &AbandonedError{Reason: "test reason"}
+	if err.Error() != "job abandoned" {
+		t.Fatalf("expected error message %q, got %q", "job abandoned", err.Error())
+	}
+	if !errors.Is(err, ErrJobAbandoned) {
+		t.Fatalf("expected error to wrap ErrJobAbandoned")
+	}
+}
+
+func TestAbandonedErrorAs(t *testing.T) {
+	var err error = &AbandonedError{Reason: "the approach is flawed"}
+	var abandonedErr *AbandonedError
+	if !errors.As(err, &abandonedErr) {
+		t.Fatalf("expected errors.As to succeed")
+	}
+	if abandonedErr.Reason != "the approach is flawed" {
+		t.Fatalf("expected reason %q, got %q", "the approach is flawed", abandonedErr.Reason)
 	}
 }

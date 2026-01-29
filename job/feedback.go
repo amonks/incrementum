@@ -65,12 +65,14 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
 
+	var outcome ReviewOutcome
 	switch {
 	case strings.EqualFold(firstLine, string(ReviewOutcomeAccept)):
 		return ReviewFeedback{Outcome: ReviewOutcomeAccept}, nil
 	case strings.EqualFold(firstLine, string(ReviewOutcomeAbandon)):
-		return ReviewFeedback{Outcome: ReviewOutcomeAbandon}, nil
+		outcome = ReviewOutcomeAbandon
 	case strings.EqualFold(firstLine, string(ReviewOutcomeRequestChanges)):
+		outcome = ReviewOutcomeRequestChanges
 	default:
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
@@ -92,5 +94,5 @@ func ParseReviewFeedback(contents string) (ReviewFeedback, error) {
 		return ReviewFeedback{}, ErrInvalidFeedbackFormat
 	}
 
-	return ReviewFeedback{Outcome: ReviewOutcomeRequestChanges, Details: details}, nil
+	return ReviewFeedback{Outcome: outcome, Details: details}, nil
 }

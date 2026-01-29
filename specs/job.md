@@ -79,13 +79,14 @@ Format:
 ```
 <OUTCOME>
 
-<optional details>
+<details>
 ```
 
 Where `<OUTCOME>` (first line, trimmed) is one of:
 
-- `ACCEPT` - changes look good, proceed.
-- `ABANDON` - task is impossible or misguided, give up.
+- `ACCEPT` - changes look good, proceed. No details required.
+- `ABANDON` - task is impossible or misguided, give up. Must be followed by blank
+  line and reason text explaining why the task is being abandoned.
 - `REQUEST_CHANGES` - followed by blank line and feedback text.
 
 If the file doesn't exist after review, treat as `ACCEPT`.
@@ -196,7 +197,8 @@ any stage -> failed (unrecoverable error)
    - Missing or first line is `ACCEPT`:
      - During the work loop: transition to `committing`.
      - During project review: mark job `completed`.
-   - First line is `ABANDON`: mark job `abandoned`.
+   - First line is `ABANDON`: extract reason (lines after first blank line),
+     mark job `abandoned`, and return an error with the reason attached.
    - First line is `REQUEST_CHANGES`: extract feedback (lines after first blank
      line), transition to `implementing` and restart the work loop if needed.
    - Other first line: treat as invalid format, mark job `failed`.
@@ -360,7 +362,9 @@ Behavior:
 9. On success: mark todo done and print final commit info with 80-column
    wrapping and 0/4/8-space indentation (todo descriptions are
    markdown-rendered).
-10. On failure/abandon: reopen todo and print reason.
+10. On failure/abandon: reopen todo and print reason. For abandoned jobs, print
+    the abandon reason with the same 80-column wrapping and indentation used for
+    commit messages.
 
 Exit codes:
 

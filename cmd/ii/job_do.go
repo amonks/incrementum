@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -133,6 +134,11 @@ func runJobDoTodo(cmd *cobra.Command, todoID string) error {
 	close(eventDone)
 	streamErr := <-eventErrs
 	if err != nil {
+		var abandonedErr *jobpkg.AbandonedError
+		if errors.As(err, &abandonedErr) {
+			fmt.Printf("\n%s\n", formatAbandonReasonOutput(abandonedErr.Reason))
+			return err
+		}
 		return err
 	}
 	if streamErr != nil {
@@ -167,6 +173,11 @@ func formatCommitMessagesOutput(entries []jobpkg.CommitLogEntry) string {
 func formatCommitMessageOutput(message string) string {
 	formatted := formatCommitMessageBody(message, jobDocumentIndent)
 	return fmt.Sprintf("Commit message:\n\n%s", formatted)
+}
+
+func formatAbandonReasonOutput(reason string) string {
+	formatted := formatCommitMessageBody(reason, jobDocumentIndent)
+	return fmt.Sprintf("Job abandoned:\n\n%s", formatted)
 }
 
 func formatCommitMessageBody(message string, indent int) string {

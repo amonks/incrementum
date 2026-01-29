@@ -15,11 +15,26 @@ var (
 	ErrInvalidFeedbackFormat = errors.New("invalid feedback format")
 	// ErrJobInterrupted indicates the job was interrupted.
 	ErrJobInterrupted = errors.New("job interrupted")
+	// ErrJobAbandoned indicates the job was abandoned.
+	ErrJobAbandoned = errors.New("job abandoned")
 	// ErrJobNotFound indicates the requested job is missing.
 	ErrJobNotFound = errors.New("job not found")
 	// ErrAmbiguousJobIDPrefix indicates a prefix matches multiple jobs.
 	ErrAmbiguousJobIDPrefix = errors.New("ambiguous job id prefix")
 )
+
+// AbandonedError is returned when a job is abandoned with a reason.
+type AbandonedError struct {
+	Reason string
+}
+
+func (e *AbandonedError) Error() string {
+	return "job abandoned"
+}
+
+func (e *AbandonedError) Unwrap() error {
+	return ErrJobAbandoned
+}
 
 func formatInvalidStatusError(status Status) error {
 	return validation.FormatInvalidValueError(ErrInvalidStatus, status, ValidStatuses())

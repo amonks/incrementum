@@ -820,7 +820,7 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 		if err != nil {
 			return Job{}, err
 		}
-		return updated, fmt.Errorf("job abandoned")
+		return updated, &AbandonedError{Reason: feedback.Details}
 	case ReviewOutcomeRequestChanges:
 		nextStage := StageImplementing
 		updated, err = manager.Update(updated.ID, UpdateOptions{Stage: &nextStage, Feedback: &feedback.Details}, opts.Now())
