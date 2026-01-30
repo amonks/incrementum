@@ -58,6 +58,7 @@ func SafeRender(width, indent int, input []byte) []byte {
 			rendered = formatted
 		}
 	}
+	rendered = internalstrings.TrimLeadingNewlines(rendered)
 	rendered = internalstrings.TrimTrailingNewlines(rendered)
 	rendered = cleanRenderedMarkdown(rendered)
 	if internalstrings.IsBlank(rendered) {

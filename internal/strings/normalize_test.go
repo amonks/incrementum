@@ -273,6 +273,54 @@ func TestTrimTrailingNewlines(t *testing.T) {
 	}
 }
 
+func TestTrimLeadingNewlines(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "empty",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "no newline",
+			input: "note",
+			want:  "note",
+		},
+		{
+			name:  "leading newline",
+			input: "\nnote",
+			want:  "note",
+		},
+		{
+			name:  "leading crlf",
+			input: "\r\nnote",
+			want:  "note",
+		},
+		{
+			name:  "multiple leading",
+			input: "\n\r\nnote",
+			want:  "note",
+		},
+		{
+			name:  "preserves trailing",
+			input: "\nnote\n",
+			want:  "note\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := TrimLeadingNewlines(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}
+
 func TestIndentBlock(t *testing.T) {
 	cases := []struct {
 		name   string

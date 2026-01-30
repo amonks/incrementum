@@ -1,6 +1,5 @@
 Running implementation prompt:
     Implementation prompt:
-        
           Checklist:
         
           This paragraph is deliberately long to confirm that markdown rendering
@@ -42,7 +41,6 @@ Implementation prompt complete; running tests:
 
 Starting review:
     Code review result:
-        
           Review notes:
         
           - Update the snapshot file to match the current output.

@@ -62,6 +62,11 @@ func TrimTrailingNewlines(value string) string {
 	return strings.TrimRight(value, "\r\n")
 }
 
+// TrimLeadingNewlines removes leading CR/LF characters.
+func TrimLeadingNewlines(value string) string {
+	return strings.TrimLeft(value, "\r\n")
+}
+
 // TrimTrailingWhitespace removes trailing Unicode whitespace characters.
 func TrimTrailingWhitespace(value string) string {
 	return strings.TrimRightFunc(value, unicode.IsSpace)

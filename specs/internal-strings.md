@@ -50,6 +50,11 @@ across subsystems.
 - Removes trailing `\r` and `\n` characters from the end of a string.
 - Used when normalizing multi-line input/output before formatting.
 
+## TrimLeadingNewlines
+
+- Removes leading `\r` and `\n` characters from the start of a string.
+- Used to strip leading blank lines from rendered markdown output.
+
 ## TrimTrailingWhitespace
 
 - Removes trailing Unicode whitespace characters from a string.
