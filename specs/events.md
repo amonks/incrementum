@@ -39,8 +39,11 @@ Switches control what is shown to users; all events are still recorded in full o
 
 Only a curated subset of opencode activity is shown in the text logs (CLI/TUI). Output is formatted to the standard line width and indented like other job log entries.
 
-- Tool calls: one-line summaries emitted when the tool state reaches `completed`.
-  - Example: `Opencode tool: read file 'src/file.ts'` (paths are repo-relative when possible).
+- Tool calls: one-line summaries with start/end markers. Tool start is emitted when the tool begins; tool end is emitted when the state reaches a terminal status (completed, failed, error, cancelled).
+  - Example: `Tool start: read file 'src/file.ts'` and `Tool end: read file 'src/file.ts'` (paths are repo-relative when possible).
+  - Failed tools show the status: `Tool end: read file '/missing.txt' (failed)`
+  - For `apply_patch` tools, file paths are extracted from the unified diff and shown in the summary.
+  - For `bash` tools with empty command input, no log is emitted (the command arrives in a subsequent event).
 - Prompt text: emitted for `message.part.updated` text parts associated with `role=user` messages.
   - Label: `Opencode prompt:`
 - Assistant responses: emitted when an assistant message completes.

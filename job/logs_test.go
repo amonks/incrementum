@@ -69,8 +69,8 @@ func TestLogSnapshotFormatsJobEvents(t *testing.T) {
 		"        Opencode line.",
 		"    Draft commit message:",
 		"        feat: add logs",
-		"    Opencode tool start: read file '/tmp/example.txt'",
-		"    Opencode tool end: read file '/tmp/example.txt'",
+		"    Tool start: read file '/tmp/example.txt'",
+		"    Tool end: read file '/tmp/example.txt'",
 		"Implementation prompt complete; running tests:",
 		"Command: go test ./...",
 		"Exit Code: 1",
@@ -246,16 +246,16 @@ func TestEventFormatterAppendsOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("append opencode tool start event: %v", err)
 	}
-	if !strings.Contains(chunk, "Opencode tool start: glob '") {
-		t.Fatalf("expected opencode tool start output, got %q", chunk)
+	if !strings.Contains(chunk, "Tool start: glob '") {
+		t.Fatalf("expected tool start output, got %q", chunk)
 	}
 	opencodeToolEnd := `{"type":"message.part.updated","properties":{"part":{"id":"prt-tool","messageID":"msg-tool","type":"tool","tool":"glob","state":{"status":"completed","input":{"pattern":"**/*.go","path":"/tmp"}}}}}`
 	chunk, err = formatter.Append(Event{Data: opencodeToolEnd})
 	if err != nil {
 		t.Fatalf("append opencode tool end event: %v", err)
 	}
-	if !strings.Contains(chunk, "Opencode tool end: glob '") {
-		t.Fatalf("expected opencode tool end output, got %q", chunk)
+	if !strings.Contains(chunk, "Tool end: glob '") {
+		t.Fatalf("expected tool end output, got %q", chunk)
 	}
 
 	chunk, err = formatter.Append(Event{Name: "job.opencode.error", Data: "{\"purpose\":\"implement\",\"error\":\"opencode session not found\"}"})
@@ -358,5 +358,79 @@ func TestEventFormatterFallsBackOnMalformedOpencodeMessage(t *testing.T) {
 	}
 	if !strings.Contains(chunk, `"type":"message.updated"`) {
 		t.Fatalf("expected raw opencode payload, got %q", chunk)
+	}
+}
+
+func TestEventFormatterRendersApplyPatchWithFiles(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	patchJSON := `{"type":"message.part.updated","properties":{"part":{"id":"prt-patch","messageID":"msg-patch","type":"tool","tool":"apply_patch","state":{"status":"running","input":{"patch":"--- a/src/main.go\n+++ b/src/main.go\n@@ -1,3 +1,4 @@\n package main\n+import \"fmt\"\n"}}}}}`
+	chunk, err := formatter.Append(Event{Data: patchJSON})
+	if err != nil {
+		t.Fatalf("append apply_patch event: %v", err)
+	}
+	if !strings.Contains(chunk, "patch file 'src/main.go'") {
+		t.Fatalf("expected patch file summary, got %q", chunk)
+	}
+}
+
+func TestEventFormatterRendersApplyPatchWithMultipleFiles(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	patchJSON := `{"type":"message.part.updated","properties":{"part":{"id":"prt-multi","messageID":"msg-multi","type":"tool","tool":"apply_patch","state":{"status":"running","input":{"patch":"--- a/src/main.go\n+++ b/src/main.go\n@@ -1,3 +1,4 @@\n package main\n+import \"fmt\"\n--- a/src/util.go\n+++ b/src/util.go\n@@ -1 +1,2 @@\n package main\n+func helper() {}\n"}}}}}`
+	chunk, err := formatter.Append(Event{Data: patchJSON})
+	if err != nil {
+		t.Fatalf("append apply_patch event: %v", err)
+	}
+	if !strings.Contains(chunk, "patch files 'src/main.go, src/util.go'") {
+		t.Fatalf("expected patch files summary, got %q", chunk)
+	}
+}
+
+func TestEventFormatterRendersApplyPatchWithoutPatchContent(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	// When patch content is missing, fall back to "apply patch"
+	patchJSON := `{"type":"message.part.updated","properties":{"part":{"id":"prt-empty","messageID":"msg-empty","type":"tool","tool":"apply_patch","state":{"status":"running","input":{}}}}}`
+	chunk, err := formatter.Append(Event{Data: patchJSON})
+	if err != nil {
+		t.Fatalf("append apply_patch event: %v", err)
+	}
+	if !strings.Contains(chunk, "Tool start: apply patch") {
+		t.Fatalf("expected fallback apply patch summary, got %q", chunk)
+	}
+}
+
+func TestEventFormatterSuppressesBashWithoutCommand(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	// When bash command is empty, no log should be emitted
+	bashJSON := `{"type":"message.part.updated","properties":{"part":{"id":"prt-bash","messageID":"msg-bash","type":"tool","tool":"bash","state":{"status":"running","input":{}}}}}`
+	chunk, err := formatter.Append(Event{Data: bashJSON})
+	if err != nil {
+		t.Fatalf("append bash event: %v", err)
+	}
+	if strings.Contains(chunk, "Tool start") {
+		t.Fatalf("expected no tool start log for bash without command, got %q", chunk)
+	}
+}
+
+func TestEventFormatterRendersToolFailure(t *testing.T) {
+	formatter := NewEventFormatter()
+
+	// Start the tool first
+	startJSON := `{"type":"message.part.updated","properties":{"part":{"id":"prt-fail","messageID":"msg-fail","type":"tool","tool":"read","state":{"status":"running","input":{"filePath":"/tmp/missing.txt"}}}}}`
+	if _, err := formatter.Append(Event{Data: startJSON}); err != nil {
+		t.Fatalf("append tool start event: %v", err)
+	}
+
+	// End with failed status
+	endJSON := `{"type":"message.part.updated","properties":{"part":{"id":"prt-fail","messageID":"msg-fail","type":"tool","tool":"read","state":{"status":"failed","input":{"filePath":"/tmp/missing.txt"}}}}}`
+	chunk, err := formatter.Append(Event{Data: endJSON})
+	if err != nil {
+		t.Fatalf("append tool end event: %v", err)
+	}
+	if !strings.Contains(chunk, "(failed)") {
+		t.Fatalf("expected failed status in output, got %q", chunk)
 	}
 }

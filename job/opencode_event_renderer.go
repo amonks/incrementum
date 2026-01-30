@@ -278,11 +278,11 @@ func (i *opencodeEventInterpreter) maybeEmitPrompt(state *opencodeMessageState) 
 }
 
 func renderToolStart(summary string) opencodeRenderedEvent {
-	return opencodeRenderedEvent{Kind: "tool", Label: "Opencode tool start:", Inline: summary}
+	return opencodeRenderedEvent{Kind: "tool", Label: "Tool start:", Inline: summary}
 }
 
 func renderToolEnd(summary, status string) opencodeRenderedEvent {
-	return opencodeRenderedEvent{Kind: "tool", Label: "Opencode tool end:", Inline: toolSummaryWithStatus(summary, status)}
+	return opencodeRenderedEvent{Kind: "tool", Label: "Tool end:", Inline: toolSummaryWithStatus(summary, status)}
 }
 
 func renderPrompt(text string) opencodeRenderedEvent {
@@ -310,7 +310,8 @@ func toolSummaryWithStatus(summary, status string) string {
 	if summary == "" || status == "" {
 		return summary
 	}
-	if status == "completed" || status == "complete" {
+	// Don't append status for success states - only show status for failures
+	if status == "completed" || status == "complete" || status == "succeeded" || status == "success" {
 		return summary
 	}
 	return fmt.Sprintf("%s (%s)", summary, status)
@@ -351,6 +352,12 @@ func (i *opencodeEventInterpreter) summarizeToolCall(tool string, input map[stri
 			return summary
 		}
 	case "apply_patch":
+		if files := i.extractPatchFiles(input); len(files) > 0 {
+			if len(files) == 1 {
+				return fmt.Sprintf("patch file %s", quoteForLog(files[0]))
+			}
+			return fmt.Sprintf("patch files %s", quoteForLog(strings.Join(files, ", ")))
+		}
 		return "apply patch"
 	case "glob":
 		pattern := stringFromMap(input, "pattern")
@@ -374,6 +381,9 @@ func (i *opencodeEventInterpreter) summarizeToolCall(tool string, input map[stri
 		if command := stringFromMap(input, "command"); command != "" {
 			return fmt.Sprintf("run %s", quoteForLog(truncateForLog(command)))
 		}
+		// Return empty string to suppress redundant "bash" log when command is empty.
+		// The command will arrive in a subsequent event.
+		return ""
 	case "webfetch":
 		if url := stringFromMap(input, "url"); url != "" {
 			return fmt.Sprintf("fetch %s", quoteForLog(url))
@@ -394,6 +404,34 @@ func (i *opencodeEventInterpreter) fileToolSummary(action string, input map[stri
 		return fmt.Sprintf("%s file %s", action, quoteForLog(i.relativePathForLog(path)))
 	}
 	return ""
+}
+
+func (i *opencodeEventInterpreter) extractPatchFiles(input map[string]any) []string {
+	patch := stringFromMap(input, "patch")
+	if patch == "" {
+		return nil
+	}
+	seen := make(map[string]bool)
+	var files []string
+	for _, line := range strings.Split(patch, "\n") {
+		// Unified diff format: +++ b/path/to/file or +++ path/to/file
+		if strings.HasPrefix(line, "+++ ") {
+			path := strings.TrimPrefix(line, "+++ ")
+			// Strip a/ or b/ prefix commonly used in git diffs
+			path = strings.TrimPrefix(path, "b/")
+			path = strings.TrimPrefix(path, "a/")
+			// Handle timestamp suffix (e.g., "file.txt	2024-01-01 12:00:00")
+			if idx := strings.Index(path, "\t"); idx != -1 {
+				path = path[:idx]
+			}
+			path = internalstrings.TrimSpace(path)
+			if path != "" && path != "/dev/null" && !seen[path] {
+				seen[path] = true
+				files = append(files, i.relativePathForLog(path))
+			}
+		}
+	}
+	return files
 }
 
 func (i *opencodeEventInterpreter) relativePathForLog(path string) string {
