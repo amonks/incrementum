@@ -98,6 +98,11 @@ func runJobList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Mark stale jobs as failed before listing
+	if _, err := manager.MarkStaleJobsFailed(time.Now()); err != nil {
+		return err
+	}
+
 	filter := jobpkg.ListFilter{IncludeAll: jobListAll}
 	if jobListStatus != "" {
 		status := jobpkg.Status(jobListStatus)

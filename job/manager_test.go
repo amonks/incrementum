@@ -532,3 +532,227 @@ func insertJob(store *statestore.Store, repoSlug string, item statestore.Job) er
 		return nil
 	})
 }
+
+func TestManager_MarkStaleJobsFailed(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/stale"
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	store := statestore.NewStore(tmpDir)
+	repoSlug, err := store.GetOrCreateRepoName(repoPath)
+	if err != nil {
+		t.Fatalf("repo slug: %v", err)
+	}
+
+	now := time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC)
+	staleTime := now.Add(-15 * time.Minute) // 15 minutes ago (> 10 min threshold)
+	recentTime := now.Add(-5 * time.Minute) // 5 minutes ago (< 10 min threshold)
+
+	staleJob := statestore.Job{
+		ID:        "stale-job",
+		Repo:      repoSlug,
+		TodoID:    "habit:cleanup",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusActive,
+		CreatedAt: staleTime.Add(-time.Hour),
+		StartedAt: staleTime.Add(-time.Hour),
+		UpdatedAt: staleTime,
+	}
+	recentJob := statestore.Job{
+		ID:        "recent-job",
+		Repo:      repoSlug,
+		TodoID:    "todo-123",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusActive,
+		CreatedAt: recentTime.Add(-time.Hour),
+		StartedAt: recentTime.Add(-time.Hour),
+		UpdatedAt: recentTime,
+	}
+	completedJob := statestore.Job{
+		ID:          "completed-job",
+		Repo:        repoSlug,
+		TodoID:      "todo-456",
+		Stage:       statestore.JobStageCommitting,
+		Status:      statestore.JobStatusCompleted,
+		CreatedAt:   staleTime.Add(-2 * time.Hour),
+		StartedAt:   staleTime.Add(-2 * time.Hour),
+		UpdatedAt:   staleTime,
+		CompletedAt: staleTime,
+	}
+
+	if err := insertJob(store, repoSlug, staleJob); err != nil {
+		t.Fatalf("insert stale job: %v", err)
+	}
+	if err := insertJob(store, repoSlug, recentJob); err != nil {
+		t.Fatalf("insert recent job: %v", err)
+	}
+	if err := insertJob(store, repoSlug, completedJob); err != nil {
+		t.Fatalf("insert completed job: %v", err)
+	}
+
+	marked, err := manager.MarkStaleJobsFailed(now)
+	if err != nil {
+		t.Fatalf("mark stale jobs: %v", err)
+	}
+	if marked != 1 {
+		t.Fatalf("expected 1 job marked, got %d", marked)
+	}
+
+	found, err := manager.Find(staleJob.ID)
+	if err != nil {
+		t.Fatalf("find stale job: %v", err)
+	}
+	if found.Status != StatusFailed {
+		t.Fatalf("expected stale job status failed, got %q", found.Status)
+	}
+	if !found.CompletedAt.Equal(now) {
+		t.Fatalf("expected stale job completed at %v, got %v", now, found.CompletedAt)
+	}
+
+	found, err = manager.Find(recentJob.ID)
+	if err != nil {
+		t.Fatalf("find recent job: %v", err)
+	}
+	if found.Status != StatusActive {
+		t.Fatalf("expected recent job status active, got %q", found.Status)
+	}
+
+	found, err = manager.Find(completedJob.ID)
+	if err != nil {
+		t.Fatalf("find completed job: %v", err)
+	}
+	if found.Status != StatusCompleted {
+		t.Fatalf("expected completed job status unchanged, got %q", found.Status)
+	}
+}
+
+func TestManager_MarkStaleJobsFailed_OnlyAffectsCurrentRepo(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/stale-repo"
+	otherRepoPath := "/Users/test/other-repo"
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	store := statestore.NewStore(tmpDir)
+	repoSlug, err := store.GetOrCreateRepoName(repoPath)
+	if err != nil {
+		t.Fatalf("repo slug: %v", err)
+	}
+	otherSlug, err := store.GetOrCreateRepoName(otherRepoPath)
+	if err != nil {
+		t.Fatalf("other repo slug: %v", err)
+	}
+
+	now := time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC)
+	staleTime := now.Add(-15 * time.Minute)
+
+	staleJobOurs := statestore.Job{
+		ID:        "stale-ours",
+		Repo:      repoSlug,
+		TodoID:    "todo-ours",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusActive,
+		CreatedAt: staleTime.Add(-time.Hour),
+		StartedAt: staleTime.Add(-time.Hour),
+		UpdatedAt: staleTime,
+	}
+	staleJobOther := statestore.Job{
+		ID:        "stale-other",
+		Repo:      otherSlug,
+		TodoID:    "todo-other",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusActive,
+		CreatedAt: staleTime.Add(-time.Hour),
+		StartedAt: staleTime.Add(-time.Hour),
+		UpdatedAt: staleTime,
+	}
+
+	if err := insertJob(store, repoSlug, staleJobOurs); err != nil {
+		t.Fatalf("insert stale job ours: %v", err)
+	}
+	if err := insertJob(store, otherSlug, staleJobOther); err != nil {
+		t.Fatalf("insert stale job other: %v", err)
+	}
+
+	marked, err := manager.MarkStaleJobsFailed(now)
+	if err != nil {
+		t.Fatalf("mark stale jobs: %v", err)
+	}
+	if marked != 1 {
+		t.Fatalf("expected 1 job marked, got %d", marked)
+	}
+
+	st, err := store.Load()
+	if err != nil {
+		t.Fatalf("load state: %v", err)
+	}
+	otherJob := st.Jobs[otherSlug+"/"+staleJobOther.ID]
+	if otherJob.Status != statestore.JobStatusActive {
+		t.Fatalf("expected other repo job unchanged, got status %q", otherJob.Status)
+	}
+}
+
+func TestIsJobStale(t *testing.T) {
+	now := time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name      string
+		job       Job
+		wantStale bool
+	}{
+		{
+			name: "active job updated recently",
+			job: Job{
+				Status:    StatusActive,
+				UpdatedAt: now.Add(-5 * time.Minute),
+			},
+			wantStale: false,
+		},
+		{
+			name: "active job updated at threshold",
+			job: Job{
+				Status:    StatusActive,
+				UpdatedAt: now.Add(-10 * time.Minute),
+			},
+			wantStale: true,
+		},
+		{
+			name: "active job updated long ago",
+			job: Job{
+				Status:    StatusActive,
+				UpdatedAt: now.Add(-1 * time.Hour),
+			},
+			wantStale: true,
+		},
+		{
+			name: "completed job updated long ago",
+			job: Job{
+				Status:    StatusCompleted,
+				UpdatedAt: now.Add(-1 * time.Hour),
+			},
+			wantStale: false,
+		},
+		{
+			name: "failed job updated long ago",
+			job: Job{
+				Status:    StatusFailed,
+				UpdatedAt: now.Add(-1 * time.Hour),
+			},
+			wantStale: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := IsJobStale(tt.job, now)
+			if got != tt.wantStale {
+				t.Fatalf("IsJobStale() = %v, want %v", got, tt.wantStale)
+			}
+		})
+	}
+}

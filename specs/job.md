@@ -267,6 +267,13 @@ Both reopen the todo.
 
 On interrupt (SIGINT), mark job `failed` and reopen the todo.
 
+### Stale Job Detection
+
+Active jobs that haven't been updated within 10 minutes are considered stale
+(orphaned). When `ii job list` runs, it automatically marks stale active jobs
+as `failed`. This handles cases where a job process crashed or was killed
+without proper cleanup.
+
 ## Todo Status Updates
 
 - Before running, mark the todo `in_progress`.

@@ -11,6 +11,11 @@ import (
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
+// StaleJobTimeout is the duration after which an active job is considered stale
+// and should be marked as failed. Jobs that haven't been updated within this
+// duration are assumed to be orphaned (e.g., the process crashed or was killed).
+const StaleJobTimeout = 10 * time.Minute
+
 // OpenOptions configures a job manager.
 type OpenOptions struct {
 	// StateDir is the directory where job state is stored.
@@ -416,6 +421,54 @@ func (m *Manager) Find(jobID string) (Job, error) {
 	}
 
 	return jobsByID[matchID], nil
+}
+
+// MarkStaleJobsFailed finds active jobs that haven't been updated within the
+// StaleJobTimeout and marks them as failed. Returns the number of jobs marked.
+func (m *Manager) MarkStaleJobsFailed(now time.Time) (int, error) {
+	repoName, err := m.stateStore.GetOrCreateRepoName(m.repoPath)
+	if err != nil {
+		return 0, fmt.Errorf("get repo name: %w", err)
+	}
+
+	cutoff := now.Add(-StaleJobTimeout)
+	marked := 0
+
+	err = m.stateStore.Update(func(st *statestore.State) error {
+		for key, job := range st.Jobs {
+			if job.Repo != repoName {
+				continue
+			}
+			if job.Status != StatusActive {
+				continue
+			}
+			if job.UpdatedAt.After(cutoff) {
+				continue
+			}
+			// Job is stale - mark it as failed
+			job.Status = StatusFailed
+			job.CompletedAt = now
+			job.UpdatedAt = now
+			st.Jobs[key] = job
+			marked++
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return marked, nil
+}
+
+// IsJobStale returns true if the job is active but hasn't been updated within
+// the StaleJobTimeout.
+func IsJobStale(job Job, now time.Time) bool {
+	if job.Status != StatusActive {
+		return false
+	}
+	cutoff := now.Add(-StaleJobTimeout)
+	return !job.UpdatedAt.After(cutoff)
 }
 
 func resolveStateDir(opts OpenOptions) (string, error) {
