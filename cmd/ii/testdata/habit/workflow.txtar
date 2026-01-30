@@ -1,0 +1,50 @@
+# setup repo
+mkdir repo
+cd repo
+exec jj git init
+
+# list habits when none exist
+exec $II habit list
+! stdout .
+
+# create a habit
+env EDITOR=true
+exec $II habit create cleanup
+stdout 'Created habit'
+stdout 'cleanup.md'
+
+# list habits
+exec $II habit list
+stdout 'cleanup'
+
+# show habit
+exec $II habit show cleanup
+stdout '# cleanup'
+stdout 'Guidelines'
+
+# create another habit
+exec $II habit create code-review
+stdout 'Created habit'
+
+# list shows sorted
+exec $II habit list
+stdout 'cleanup'
+stdout 'code-review'
+
+# show non-existent habit fails
+! exec $II habit show nonexistent
+stderr 'habit not found: nonexistent'
+
+# edit non-existent habit fails
+! exec $II habit edit nonexistent
+stderr 'habit not found: nonexistent'
+
+# create existing habit fails
+! exec $II habit create cleanup
+stderr 'already exists'
+
+# edit existing habit opens editor
+exec $II habit edit cleanup
+
+# update alias works
+exec $II habit update cleanup

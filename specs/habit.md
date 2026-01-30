@@ -169,7 +169,7 @@ New habits are created with a template containing:
 The CLI provides subcommands for managing habits:
 
 - `habit list` -> `habit.List`
-- `habit show <name>` -> `habit.Load`
+- `habit show <name>` -> `habit.Path` + reads file directly (to show raw content including frontmatter)
 - `habit edit <name>` (`habit update`) -> `habit.Path` + opens `$EDITOR`
 - `habit create <name>` -> `habit.Create` + opens `$EDITOR`
 
