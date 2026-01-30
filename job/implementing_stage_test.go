@@ -44,6 +44,9 @@ func TestRunImplementingStage_MissingCommitMessageExplainsContext(t *testing.T) 
 			}
 			return "after", nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-123", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil
 		},
@@ -114,6 +117,9 @@ func TestRunImplementingStageFailedOpencodeRestoresRetriesAndReportsContext(t *t
 			default:
 				return "after-second", nil
 			}
+		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-restore", nil
 		},
 		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
 			runCalls++
@@ -216,6 +222,9 @@ func TestRunImplementingStageSetsOpencodeConfigEnv(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-env", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil
 		},
@@ -282,6 +291,9 @@ func TestRunImplementingStageRetriesOpencodeAfterRestore(t *testing.T) {
 			default:
 				return "before", nil
 			}
+		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-retry", nil
 		},
 		RunOpencode: func(opencodeRunOptions) (OpencodeRunResult, error) {
 			runCalls++
@@ -351,6 +363,9 @@ func TestRunImplementingStageTreatsEmptyChangeAsNoChange(t *testing.T) {
 			}
 			return "after", nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-456", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return true, nil
 		},
@@ -408,6 +423,9 @@ func TestRunImplementingStageTreatsEmptyChangeAsNoChangeAfterCommit(t *testing.T
 			}
 			return "after", nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-789", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return true, nil
 		},
@@ -460,6 +478,9 @@ func TestRunImplementingStageFailedOpencodeIncludesStderrInMessage(t *testing.T)
 		},
 		CurrentCommitID: func(string) (string, error) {
 			return "before-commit", nil
+		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-stderr", nil
 		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil

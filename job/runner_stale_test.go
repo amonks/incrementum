@@ -50,6 +50,9 @@ func TestRunImplementingStageUpdatesStaleWorkspace(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-stale", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil
 		},
@@ -123,6 +126,9 @@ func TestRunImplementingStageSnapshotsWorkspaceBeforeOpencode(t *testing.T) {
 			id := commitIDs[commitIndex]
 			commitIndex++
 			return id, nil
+		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-snapshot", nil
 		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil

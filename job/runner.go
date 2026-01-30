@@ -72,6 +72,7 @@ type RunOptions struct {
 	// OpencodeAgent overrides agent selection for all stages when set.
 	OpencodeAgent       string
 	CurrentCommitID     func(string) (string, error)
+	CurrentChangeID     func(string) (string, error)
 	CurrentChangeEmpty  func(string) (bool, error)
 	DiffStat            func(string, string, string) (string, error)
 	CommitIDAt          func(string, string) (string, error)
@@ -491,6 +492,10 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 		client := jj.New()
 		opts.CurrentCommitID = client.CurrentCommitID
 	}
+	if opts.CurrentChangeID == nil {
+		client := jj.New()
+		opts.CurrentChangeID = client.CurrentChangeID
+	}
 	if opts.CurrentChangeEmpty == nil {
 		client := jj.New()
 		opts.CurrentChangeEmpty = client.CurrentChangeEmpty
@@ -580,6 +585,20 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
+	// Ensure we have a current change to track commits against.
+	// Create a new JobChange if there's no in-progress change.
+	updated := current
+	if updated.CurrentChange() == nil {
+		changeID, err := opts.CurrentChangeID(workspacePath)
+		if err != nil {
+			return ImplementingStageResult{}, fmt.Errorf("get current change id: %w", err)
+		}
+		updated, err = manager.AppendChange(updated.ID, JobChange{ChangeID: changeID}, opts.Now())
+		if err != nil {
+			return ImplementingStageResult{}, fmt.Errorf("append change: %w", err)
+		}
+	}
+
 	promptName := "prompt-implementation.tmpl"
 	if !internalstrings.IsBlank(current.Feedback) {
 		promptName = "prompt-feedback.tmpl"
@@ -592,8 +611,8 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		return ImplementingStageResult{}, err
 	}
 
-	updated := current
 	agent := resolveOpencodeAgentForPurpose(opts.Config, opts.OpencodeAgent, "implement", item)
+	var lastSessionID string
 	runAttempt := func() (OpencodeRunResult, error) {
 		result, err := runOpencodeWithEvents(opts, opencodeRunOptions{
 			RepoPath:      repoPath,
@@ -608,6 +627,7 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 			return OpencodeRunResult{}, err
 		}
 
+		lastSessionID = result.SessionID
 		append := OpencodeSession{Purpose: "implement", ID: result.SessionID}
 		updated, err = manager.Update(updated.ID, UpdateOptions{AppendOpencodeSession: &append}, opts.Now())
 		if err != nil {
@@ -700,6 +720,17 @@ func runImplementingStage(manager *Manager, current Job, item todo.Todo, repoPat
 		if err := appendJobEvent(opts.EventLog, jobEventCommitMessage, commitMessageEventData{Label: "Draft", Message: message}); err != nil {
 			return ImplementingStageResult{}, err
 		}
+
+		// Record the commit in the current change.
+		commit := JobCommit{
+			CommitID:          afterCommitID,
+			DraftMessage:      message,
+			OpencodeSessionID: lastSessionID,
+		}
+		updated, err = manager.AppendCommitToCurrentChange(updated.ID, commit, opts.Now())
+		if err != nil {
+			return ImplementingStageResult{}, fmt.Errorf("append commit to change: %w", err)
+		}
 	} else {
 		messagePath := filepath.Join(workspacePath, commitMessageFilename)
 		if err := removeFileIfExists(messagePath); err != nil {
@@ -742,6 +773,17 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 	}
 
 	nextStage, feedback := testingStageOutcome(results)
+
+	// Record test result on the current commit.
+	updated := current
+	if updated.CurrentCommit() != nil {
+		passed := feedback == ""
+		updated, err = manager.UpdateCurrentCommit(updated.ID, JobCommitUpdate{TestsPassed: &passed}, opts.Now())
+		if err != nil {
+			return Job{}, fmt.Errorf("update commit tests passed: %w", err)
+		}
+	}
+
 	update := UpdateOptions{Stage: &nextStage}
 	if feedback != "" {
 		update.Feedback = &feedback
@@ -749,7 +791,7 @@ func runTestingStage(manager *Manager, current Job, repoPath, workspacePath stri
 		empty := ""
 		update.Feedback = &empty
 	}
-	updated, err := manager.Update(current.ID, update, opts.Now())
+	updated, err = manager.Update(updated.ID, update, opts.Now())
 	if err != nil {
 		return Job{}, err
 	}
@@ -827,6 +869,24 @@ func runReviewingStage(manager *Manager, current Job, item todo.Todo, repoPath, 
 	logger.Review(ReviewLog{Purpose: purpose, Feedback: feedback})
 	if err := appendJobEvent(opts.EventLog, jobEventReview, reviewEventData{Purpose: purpose, Outcome: feedback.Outcome, Details: feedback.Details}); err != nil {
 		return ReviewingStageResult{}, err
+	}
+
+	// Record the review in the appropriate place.
+	review := JobReview{
+		Outcome:           feedback.Outcome,
+		Comments:          feedback.Details,
+		OpencodeSessionID: opencodeResult.SessionID,
+	}
+	if scope == reviewScopeProject {
+		updated, err = manager.SetProjectReview(updated.ID, review, opts.Now())
+		if err != nil {
+			return ReviewingStageResult{}, fmt.Errorf("set project review: %w", err)
+		}
+	} else if updated.CurrentCommit() != nil {
+		updated, err = manager.UpdateCurrentCommit(updated.ID, JobCommitUpdate{Review: &review}, opts.Now())
+		if err != nil {
+			return ReviewingStageResult{}, fmt.Errorf("update commit review: %w", err)
+		}
 	}
 
 	switch feedback.Outcome {

@@ -255,6 +255,9 @@ func TestRunImplementingStageLogsPromptAndCommitMessage(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-log", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil
 		},
@@ -339,6 +342,9 @@ func TestRunImplementingStageUsesFeedbackPrompt(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-feedback", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil
 		},
@@ -417,6 +423,9 @@ func TestRunImplementingStageRecordsEventLog(t *testing.T) {
 			id := commitIDs[commitIndex]
 			commitIndex++
 			return id, nil
+		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-events", nil
 		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil

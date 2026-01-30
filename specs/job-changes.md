@@ -343,28 +343,37 @@ change history is preserved for debugging, and the new job starts fresh.
 - **Change ID generation**: The spec assumes jj provides the change ID. The
   implementation will need to capture this from jj after the first commit.
 
+## Implementation Status
+
+This spec is fully implemented. The following components are in place:
+
+- **Data model**: `JobChange`, `JobCommit`, `JobReview` in `internal/state/types.go`
+- **Derived state**: `CurrentChange()`, `CurrentCommit()`, `IsComplete()` methods on Job
+- **Manager API**: `AppendChange`, `AppendCommitToCurrentChange`, `UpdateCurrentCommit`,
+  `SetProjectReview` methods in `job/manager.go`
+- **Runner integration**: State transitions wired into `runImplementingStage`,
+  `runTestingStage`, and `runReviewingStage` in `job/runner.go`
+- **Test coverage**: Integration tests in `job/runner_test.go` and unit tests in
+  `job/manager_test.go`
+
 ## Implementation Notes
 
 ### Capturing Change ID
 
-After the first commit in a new change, capture the jj change ID:
-
-```bash
-jj log -r @ -T 'change_id' --no-graph
-```
-
-This should be stored in `JobChange.ChangeID`.
+The change ID is captured via `opts.CurrentChangeID(workspacePath)` in the runner,
+which calls `jj log -r @ -T 'change_id' --no-graph` via the jj client.
 
 ### Backward Compatibility
 
-The runner should handle jobs that were created before this feature:
+The runner handles jobs that were created before this feature:
 
 - If `Changes` is nil/empty but the job has opencode sessions, it's a legacy job.
 - Legacy jobs can still complete; they just won't have change tracking.
 
 ### Manager API
 
-The `job.Manager` will need new update options:
+The `job.Manager` provides dedicated methods (chosen over UpdateOptions fields
+for clarity):
 
 ```go
 type UpdateOptions struct {

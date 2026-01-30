@@ -129,6 +129,9 @@ func TestRunImplementingStageReadsCommitMessage(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-789", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, nil
 		},
@@ -203,6 +206,9 @@ func TestRunImplementingStageNoChangesSkipsTesting(t *testing.T) {
 			commitIndex++
 			return id, nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-790", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, fmt.Errorf("change empty check should not be called")
 		},
@@ -272,6 +278,9 @@ func TestRunImplementingStageIncludesCommitMessageInstructionWithFeedback(t *tes
 			}
 			return "same", nil
 		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-111", nil
+		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, fmt.Errorf("change empty check should not be called")
 		},
@@ -337,6 +346,9 @@ func TestRunImplementingStageIncludesCommitLog(t *testing.T) {
 			id := commitIDs[commitIndex]
 			commitIndex++
 			return id, nil
+		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-212", nil
 		},
 		CurrentChangeEmpty: func(string) (bool, error) {
 			return false, fmt.Errorf("change empty check should not be called")
@@ -1121,5 +1133,359 @@ func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
 	}
 	if !strings.Contains(result.CommitLog[0].Message, "feat: log commit") {
 		t.Fatalf("expected commit log to include message, got %q", result.CommitLog[0].Message)
+	}
+}
+
+func TestRunImplementingStageCreatesJobChange(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := "/Users/test/repo"
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 20, 10, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-change-track", startedAt, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-change-track",
+		Title:       "Track changes",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	commitIDs := []string{"before", "after"}
+	commitIndex := 0
+
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		CurrentCommitID: func(string) (string, error) {
+			if commitIndex >= len(commitIDs) {
+				return "", fmt.Errorf("commit id lookup exhausted")
+			}
+			id := commitIDs[commitIndex]
+			commitIndex++
+			return id, nil
+		},
+		CurrentChangeID: func(string) (string, error) {
+			return "change-abc123", nil
+		},
+		CurrentChangeEmpty: func(string) (bool, error) {
+			return false, nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			messagePath := filepath.Join(runOpts.WorkspacePath, commitMessageFilename)
+			if err := os.WriteFile(messagePath, []byte("feat: track changes"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "oc-change-track", ExitCode: 0}, nil
+		},
+	}
+
+	result, err := runImplementingStage(manager, created, item, repoPath, workspacePath, opts, nil, "")
+	if err != nil {
+		t.Fatalf("run implementing stage: %v", err)
+	}
+
+	// Verify the job has a change created
+	if len(result.Job.Changes) != 1 {
+		t.Fatalf("expected 1 change, got %d", len(result.Job.Changes))
+	}
+	change := result.Job.Changes[0]
+	if change.ChangeID != "change-abc123" {
+		t.Fatalf("expected change id %q, got %q", "change-abc123", change.ChangeID)
+	}
+
+	// Verify the change has a commit
+	if len(change.Commits) != 1 {
+		t.Fatalf("expected 1 commit, got %d", len(change.Commits))
+	}
+	commit := change.Commits[0]
+	if commit.CommitID != "after" {
+		t.Fatalf("expected commit id %q, got %q", "after", commit.CommitID)
+	}
+	if commit.DraftMessage != "feat: track changes" {
+		t.Fatalf("expected draft message %q, got %q", "feat: track changes", commit.DraftMessage)
+	}
+	if commit.OpencodeSessionID != "oc-change-track" {
+		t.Fatalf("expected opencode session id %q, got %q", "oc-change-track", commit.OpencodeSessionID)
+	}
+}
+
+func TestRunTestingStageUpdatesCommitTestsPassed(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 20, 11, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-test-pass", startedAt, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	// Add a change with a commit first
+	created, err = manager.AppendChange(created.ID, JobChange{ChangeID: "change-test"}, startedAt)
+	if err != nil {
+		t.Fatalf("append change: %v", err)
+	}
+	created, err = manager.AppendCommitToCurrentChange(created.ID, JobCommit{
+		CommitID:          "commit-test",
+		DraftMessage:      "feat: test",
+		OpencodeSessionID: "ses-test",
+	}, startedAt)
+	if err != nil {
+		t.Fatalf("append commit: %v", err)
+	}
+
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		LoadConfig: func(string) (*config.Config, error) {
+			return &config.Config{
+				Job: config.Job{
+					TestCommands: []string{"echo ok"},
+				},
+			}, nil
+		},
+		RunTests: func(string, []string) ([]TestCommandResult, error) {
+			return []TestCommandResult{{Command: "echo ok", ExitCode: 0}}, nil
+		},
+	}
+
+	result, err := runTestingStage(manager, created, repoPath, workspacePath, opts)
+	if err != nil {
+		t.Fatalf("run testing stage: %v", err)
+	}
+
+	// Verify the commit has tests_passed set to true
+	if len(result.Changes) == 0 || len(result.Changes[0].Commits) == 0 {
+		t.Fatalf("expected change with commit, got %v", result.Changes)
+	}
+	commit := result.Changes[0].Commits[0]
+	if commit.TestsPassed == nil {
+		t.Fatalf("expected tests passed to be set")
+	}
+	if *commit.TestsPassed != true {
+		t.Fatalf("expected tests passed true, got %v", *commit.TestsPassed)
+	}
+}
+
+func TestRunTestingStageUpdatesCommitTestsFailed(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 20, 11, 30, 0, 0, time.UTC)
+	created, err := manager.Create("todo-test-fail", startedAt, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	// Add a change with a commit first
+	created, err = manager.AppendChange(created.ID, JobChange{ChangeID: "change-fail"}, startedAt)
+	if err != nil {
+		t.Fatalf("append change: %v", err)
+	}
+	created, err = manager.AppendCommitToCurrentChange(created.ID, JobCommit{
+		CommitID:          "commit-fail",
+		DraftMessage:      "feat: test fail",
+		OpencodeSessionID: "ses-fail",
+	}, startedAt)
+	if err != nil {
+		t.Fatalf("append commit: %v", err)
+	}
+
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		LoadConfig: func(string) (*config.Config, error) {
+			return &config.Config{
+				Job: config.Job{
+					TestCommands: []string{"go test ./..."},
+				},
+			}, nil
+		},
+		RunTests: func(string, []string) ([]TestCommandResult, error) {
+			return []TestCommandResult{{Command: "go test ./...", ExitCode: 1, Output: "FAIL"}}, nil
+		},
+	}
+
+	result, err := runTestingStage(manager, created, repoPath, workspacePath, opts)
+	if err != nil {
+		t.Fatalf("run testing stage: %v", err)
+	}
+
+	// Verify the commit has tests_passed set to false
+	if len(result.Changes) == 0 || len(result.Changes[0].Commits) == 0 {
+		t.Fatalf("expected change with commit, got %v", result.Changes)
+	}
+	commit := result.Changes[0].Commits[0]
+	if commit.TestsPassed == nil {
+		t.Fatalf("expected tests passed to be set")
+	}
+	if *commit.TestsPassed != false {
+		t.Fatalf("expected tests passed false, got %v", *commit.TestsPassed)
+	}
+}
+
+func TestRunReviewingStageUpdatesCommitReview(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := "/Users/test/repo"
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 20, 12, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-review", startedAt, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	// Add a change with a commit first
+	created, err = manager.AppendChange(created.ID, JobChange{ChangeID: "change-review"}, startedAt)
+	if err != nil {
+		t.Fatalf("append change: %v", err)
+	}
+	created, err = manager.AppendCommitToCurrentChange(created.ID, JobCommit{
+		CommitID:          "commit-review",
+		DraftMessage:      "feat: review",
+		OpencodeSessionID: "ses-review-impl",
+	}, startedAt)
+	if err != nil {
+		t.Fatalf("append commit: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-review",
+		Title:       "Review commit",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			if err := os.WriteFile(feedbackPath, []byte("ACCEPT\n\nlooks good"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "oc-review", ExitCode: 0}, nil
+		},
+	}
+
+	commitMessage := "feat: review"
+	result, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, commitMessage, nil, reviewScopeStep)
+	if err != nil {
+		t.Fatalf("run reviewing stage: %v", err)
+	}
+
+	// Verify the commit has review set
+	if len(result.Job.Changes) == 0 || len(result.Job.Changes[0].Commits) == 0 {
+		t.Fatalf("expected change with commit, got %v", result.Job.Changes)
+	}
+	commit := result.Job.Changes[0].Commits[0]
+	if commit.Review == nil {
+		t.Fatalf("expected review to be set")
+	}
+	if commit.Review.Outcome != ReviewOutcomeAccept {
+		t.Fatalf("expected review outcome %q, got %q", ReviewOutcomeAccept, commit.Review.Outcome)
+	}
+	if commit.Review.Comments != "looks good" {
+		t.Fatalf("expected review comments %q, got %q", "looks good", commit.Review.Comments)
+	}
+	if commit.Review.OpencodeSessionID != "oc-review" {
+		t.Fatalf("expected review session id %q, got %q", "oc-review", commit.Review.OpencodeSessionID)
+	}
+}
+
+func TestRunReviewingStageProjectSetsProjectReview(t *testing.T) {
+	stateDir := t.TempDir()
+	repoPath := "/Users/test/repo"
+	workspacePath := t.TempDir()
+
+	manager, err := Open(repoPath, OpenOptions{StateDir: stateDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	startedAt := time.Date(2026, 1, 20, 13, 0, 0, 0, time.UTC)
+	created, err := manager.Create("todo-project-review", startedAt, CreateOptions{})
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	item := todo.Todo{
+		ID:          "todo-project-review",
+		Title:       "Project review",
+		Description: "",
+		Type:        todo.TypeTask,
+		Priority:    todo.PriorityMedium,
+	}
+
+	feedbackPath := filepath.Join(workspacePath, feedbackFilename)
+	opts := RunOptions{
+		Now: func() time.Time {
+			return startedAt
+		},
+		UpdateStale: func(string) error {
+			return nil
+		},
+		RunOpencode: func(runOpts opencodeRunOptions) (OpencodeRunResult, error) {
+			if err := os.WriteFile(feedbackPath, []byte("ACCEPT\n\nproject complete"), 0o644); err != nil {
+				return OpencodeRunResult{}, err
+			}
+			return OpencodeRunResult{SessionID: "oc-project-review", ExitCode: 0}, nil
+		},
+	}
+
+	result, err := runReviewingStage(manager, created, item, repoPath, workspacePath, opts, "", nil, reviewScopeProject)
+	if err != nil {
+		t.Fatalf("run reviewing stage: %v", err)
+	}
+
+	// Verify project review is set
+	if result.Job.ProjectReview == nil {
+		t.Fatalf("expected project review to be set")
+	}
+	if result.Job.ProjectReview.Outcome != ReviewOutcomeAccept {
+		t.Fatalf("expected project review outcome %q, got %q", ReviewOutcomeAccept, result.Job.ProjectReview.Outcome)
+	}
+	if result.Job.ProjectReview.Comments != "project complete" {
+		t.Fatalf("expected project review comments %q, got %q", "project complete", result.Job.ProjectReview.Comments)
+	}
+	if result.Job.ProjectReview.OpencodeSessionID != "oc-project-review" {
+		t.Fatalf("expected project review session id %q, got %q", "oc-project-review", result.Job.ProjectReview.OpencodeSessionID)
 	}
 }
