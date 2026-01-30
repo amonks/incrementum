@@ -7,9 +7,7 @@ import (
 	"time"
 
 	internalstrings "github.com/amonks/incrementum/internal/strings"
-	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/opencode"
-	"github.com/charmbracelet/lipgloss"
 )
 
 func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
@@ -20,7 +18,6 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 		{
 			ID:        "sess1",
 			Status:    opencode.OpencodeSessionActive,
-			Prompt:    "Run tests\nSecond line",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
 			UpdatedAt: createdAt,
@@ -28,7 +25,6 @@ func TestFormatOpencodeTablePreservesAlignmentWithANSI(t *testing.T) {
 		{
 			ID:              "sess2",
 			Status:          opencode.OpencodeSessionCompleted,
-			Prompt:          "Build app",
 			CreatedAt:       createdAt.Add(-time.Minute),
 			StartedAt:       createdAt.Add(-time.Minute),
 			UpdatedAt:       now,
@@ -55,195 +51,6 @@ func trimmedOpencodeTable(sessions []opencode.OpencodeSession, highlight func(st
 	return internalstrings.TrimSpace(formatOpencodeTable(sessions, highlight, now, nil))
 }
 
-func TestFormatOpencodeTableTruncatesPromptToViewport(t *testing.T) {
-	restore := ui.OverrideTableViewportWidth(func() int {
-		return 60
-	})
-	t.Cleanup(restore)
-
-	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	createdAt := now.Add(-time.Minute)
-
-	sessions := []opencode.OpencodeSession{
-		{
-			ID:        "sess-1",
-			Status:    opencode.OpencodeSessionActive,
-			Prompt:    strings.Repeat("a", 120),
-			CreatedAt: createdAt,
-			StartedAt: createdAt,
-			UpdatedAt: createdAt,
-		},
-	}
-
-	output := strings.TrimSuffix(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil), "\n")
-	lines := strings.Split(output, "\n")
-	if len(lines) != 2 {
-		t.Fatalf("expected header and row only, got %d lines in %q", len(lines), output)
-	}
-
-	if !strings.Contains(lines[1], "...") {
-		t.Fatalf("expected prompt to truncate with ellipsis, got %q", lines[1])
-	}
-
-	if width := ui.TableCellWidth(lines[1]); width != 60 {
-		t.Fatalf("expected row width 60, got %d in %q", width, lines[1])
-	}
-}
-
-func TestFormatOpencodeTableTruncatesPromptWithANSIToViewport(t *testing.T) {
-	restore := ui.OverrideTableViewportWidth(func() int {
-		return 60
-	})
-	t.Cleanup(restore)
-
-	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	createdAt := now.Add(-time.Minute)
-
-	sessions := []opencode.OpencodeSession{
-		{
-			ID:        "sess-ansi",
-			Status:    opencode.OpencodeSessionActive,
-			Prompt:    strings.Repeat("p", 120),
-			CreatedAt: createdAt,
-			StartedAt: createdAt,
-			UpdatedAt: createdAt,
-		},
-	}
-
-	output := strings.TrimSuffix(formatOpencodeTable(sessions, func(id string, prefix int) string {
-		return "\x1b[1m\x1b[36m" + id + "\x1b[0m"
-	}, now, nil), "\n")
-	lines := strings.Split(output, "\n")
-	if len(lines) != 2 {
-		t.Fatalf("expected header and row only, got %d lines in %q", len(lines), output)
-	}
-
-	for _, line := range lines {
-		if width := ui.TableCellWidth(line); width != 60 {
-			t.Fatalf("expected line width 60, got %d in %q", width, line)
-		}
-	}
-}
-
-func TestFormatOpencodeTableTruncatesWidePromptToViewport(t *testing.T) {
-	restore := ui.OverrideTableViewportWidth(func() int {
-		return 60
-	})
-	t.Cleanup(restore)
-
-	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	createdAt := now.Add(-time.Minute)
-
-	sessions := []opencode.OpencodeSession{
-		{
-			ID:        "sess-wide",
-			Status:    opencode.OpencodeSessionActive,
-			Prompt:    strings.Repeat("\u754c", 80),
-			CreatedAt: createdAt,
-			StartedAt: createdAt,
-			UpdatedAt: createdAt,
-		},
-	}
-
-	output := strings.TrimSuffix(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil), "\n")
-	lines := strings.Split(output, "\n")
-	if len(lines) != 2 {
-		t.Fatalf("expected header and row only, got %d lines in %q", len(lines), output)
-	}
-
-	if !strings.Contains(lines[1], "...") {
-		t.Fatalf("expected prompt to truncate with ellipsis, got %q", lines[1])
-	}
-
-	if width := lipgloss.Width(lines[1]); width != 60 {
-		t.Fatalf("expected row width 60, got %d in %q", width, lines[1])
-	}
-}
-
-func TestFormatOpencodeTableTruncatesPromptHeaderToViewport(t *testing.T) {
-	restore := ui.OverrideTableViewportWidth(func() int {
-		return 40
-	})
-	t.Cleanup(restore)
-
-	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	createdAt := now.Add(-time.Minute)
-
-	sessions := []opencode.OpencodeSession{
-		{
-			ID:        "sess-1",
-			Status:    opencode.OpencodeSessionActive,
-			Prompt:    strings.Repeat("b", 40),
-			CreatedAt: createdAt,
-			StartedAt: createdAt,
-			UpdatedAt: createdAt,
-		},
-	}
-
-	output := strings.TrimSuffix(formatOpencodeTable(sessions, func(id string, prefix int) string { return id }, now, nil), "\n")
-	lines := strings.Split(output, "\n")
-	if len(lines) != 2 {
-		t.Fatalf("expected header and row only, got %d lines in %q", len(lines), output)
-	}
-
-	if strings.Contains(lines[0], "PROMPT") {
-		t.Fatalf("expected prompt header to truncate, got %q", lines[0])
-	}
-
-	if width := ui.TableCellWidth(lines[0]); width != 40 {
-		t.Fatalf("expected header width 40, got %d in %q", width, lines[0])
-	}
-	if width := ui.TableCellWidth(lines[1]); width != 40 {
-		t.Fatalf("expected row width 40, got %d in %q", width, lines[1])
-	}
-}
-
-func TestOpencodePromptColumnWidthAccountsForPadding(t *testing.T) {
-	restore := ui.OverrideTableViewportWidth(func() int {
-		return 40
-	})
-	t.Cleanup(restore)
-
-	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	createdAt := now.Add(-time.Minute)
-
-	sessions := []opencode.OpencodeSession{
-		{
-			ID:        "sess-1",
-			Status:    opencode.OpencodeSessionActive,
-			Prompt:    "Prompt",
-			CreatedAt: createdAt,
-			StartedAt: createdAt,
-			UpdatedAt: createdAt,
-		},
-	}
-
-	padding := ui.TableColumnPaddingWidth()
-	expectedFixed := 5 * padding
-	maxSession := ui.TableCellWidth("SESSION")
-	maxStatus := ui.TableCellWidth("STATUS")
-	maxAge := ui.TableCellWidth("AGE")
-	maxDuration := ui.TableCellWidth("DURATION")
-	maxExit := ui.TableCellWidth("EXIT")
-	for _, session := range sessions {
-		maxSession = maxInt(maxSession, ui.TableCellWidth(session.ID))
-		maxStatus = maxInt(maxStatus, ui.TableCellWidth(string(session.Status)))
-		maxAge = maxInt(maxAge, ui.TableCellWidth(formatOpencodeAge(session, now)))
-		maxDuration = maxInt(maxDuration, ui.TableCellWidth(formatOpencodeDuration(session, now)))
-		maxExit = maxInt(maxExit, ui.TableCellWidth("-"))
-	}
-	expectedFixed += maxSession + maxStatus + maxAge + maxDuration + maxExit
-	expectedPrompt := 40 - expectedFixed
-	if expectedPrompt < 0 {
-		expectedPrompt = 0
-	}
-
-	width := opencodePromptColumnWidth(sessions, func(id string, prefix int) string { return id }, now, nil)
-	if width != expectedPrompt {
-		t.Fatalf("expected prompt width %d, got %d", expectedPrompt, width)
-	}
-}
-
 func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 
@@ -251,7 +58,6 @@ func TestFormatOpencodeTableIncludesSessionID(t *testing.T) {
 		{
 			ID:        "sess-123",
 			Status:    opencode.OpencodeSessionActive,
-			Prompt:    "Ship it",
 			CreatedAt: now.Add(-time.Minute),
 			StartedAt: now.Add(-time.Minute),
 			UpdatedAt: now.Add(-time.Minute),
@@ -285,7 +91,6 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 		{
 			ID:        "sess-001",
 			Status:    opencode.OpencodeSessionActive,
-			Prompt:    "Prompt",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
 			UpdatedAt: createdAt,
@@ -299,8 +104,8 @@ func TestFormatOpencodeTableUsesCompactAge(t *testing.T) {
 	}
 
 	fields := strings.Fields(lines[1])
-	if len(fields) < 5 {
-		t.Fatalf("expected at least 5 columns, got: %q", lines[1])
+	if len(fields) < 4 {
+		t.Fatalf("expected at least 4 columns, got: %q", lines[1])
 	}
 
 	if fields[2] != "2m" {
@@ -315,7 +120,6 @@ func TestFormatOpencodeTableShowsMissingAgeAsDash(t *testing.T) {
 		{
 			ID:     "sess-1",
 			Status: opencode.OpencodeSessionActive,
-			Prompt: "Do the thing",
 		},
 	}
 
@@ -342,7 +146,6 @@ func TestFormatOpencodeTableShowsAgeForCompletedSession(t *testing.T) {
 		{
 			ID:        "sess-complete",
 			Status:    opencode.OpencodeSessionCompleted,
-			Prompt:    "Done",
 			CreatedAt: now.Add(-5 * time.Minute),
 			StartedAt: now.Add(-5 * time.Minute),
 		},
@@ -373,7 +176,6 @@ func TestFormatOpencodeTableShowsDuration(t *testing.T) {
 		{
 			ID:        "sess-duration",
 			Status:    opencode.OpencodeSessionCompleted,
-			Prompt:    "Do it",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
 			UpdatedAt: updated,
@@ -396,13 +198,6 @@ func TestFormatOpencodeTableShowsDuration(t *testing.T) {
 	}
 }
 
-func TestOpencodePromptLineTreatsWhitespaceAsMissing(t *testing.T) {
-	prompt := "   \nsecond line"
-	if got := opencodePromptLine(prompt); got != "-" {
-		t.Fatalf("expected whitespace-only prompt to return '-', got %q", got)
-	}
-}
-
 func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	createdAt := now.Add(-5 * time.Minute)
@@ -411,7 +206,6 @@ func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 		{
 			ID:        "abc123",
 			Status:    opencode.OpencodeSessionActive,
-			Prompt:    "One",
 			CreatedAt: createdAt,
 			StartedAt: createdAt,
 			UpdatedAt: createdAt,
@@ -419,7 +213,6 @@ func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 		{
 			ID:          "abd999",
 			Status:      opencode.OpencodeSessionCompleted,
-			Prompt:      "Two",
 			CreatedAt:   createdAt,
 			StartedAt:   createdAt,
 			UpdatedAt:   now,
@@ -436,6 +229,36 @@ func TestFormatOpencodeTableUsesSessionPrefixLengths(t *testing.T) {
 	}
 	if !strings.Contains(output, "abd999:3") {
 		t.Fatalf("expected session prefix length 3, got: %q", output)
+	}
+}
+
+func TestFormatOpencodeTableShowsExitCode(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	createdAt := now.Add(-5 * time.Minute)
+
+	sessions := []opencode.OpencodeSession{
+		{
+			ID:          "sess-exit",
+			Status:      opencode.OpencodeSessionFailed,
+			CreatedAt:   createdAt,
+			StartedAt:   createdAt,
+			UpdatedAt:   now,
+			CompletedAt: now,
+			ExitCode:    intPtr(1),
+		},
+	}
+
+	output := trimmedOpencodeTable(sessions, func(id string, prefix int) string { return id }, now)
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected header and row, got: %q", output)
+	}
+
+	// Exit code should be the last column
+	fields := strings.Fields(lines[1])
+	lastField := fields[len(fields)-1]
+	if lastField != "1" {
+		t.Fatalf("expected exit code 1, got: %s", lastField)
 	}
 }
 

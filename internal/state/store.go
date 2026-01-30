@@ -46,6 +46,28 @@ func ensureStateMaps(st *State) {
 	}
 }
 
+// containsLegacyPromptFields checks if the raw JSON state data contains any
+// opencode_sessions with the deprecated "prompt" field.
+// This migration check can be removed after sufficient time has passed.
+func containsLegacyPromptFields(data []byte) bool {
+	var raw struct {
+		OpencodeSessions map[string]json.RawMessage `json:"opencode_sessions"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return false
+	}
+	for _, sessionData := range raw.OpencodeSessions {
+		var session map[string]json.RawMessage
+		if err := json.Unmarshal(sessionData, &session); err != nil {
+			continue
+		}
+		if _, hasPrompt := session["prompt"]; hasPrompt {
+			return true
+		}
+	}
+	return false
+}
+
 // NewStore creates a new state store using the given directory.
 func NewStore(dir string) *Store {
 	return &Store{dir: dir}
@@ -84,6 +106,16 @@ func (s *Store) Load() (*State, error) {
 	}
 
 	ensureStateMaps(&st)
+
+	// Migration: strip legacy prompt fields from opencode_sessions.
+	// The Prompt field was removed from OpencodeSession to reduce state file
+	// size. This migration check can be removed after sufficient time has
+	// passed for all users to have upgraded.
+	if containsLegacyPromptFields(data) {
+		if err := s.Save(&st); err != nil {
+			return nil, fmt.Errorf("migrate state (strip prompts): %w", err)
+		}
+	}
 
 	return &st, nil
 }

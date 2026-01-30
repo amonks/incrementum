@@ -17,8 +17,9 @@ The state file contains:
 - Status: `available` or `acquired`
 
 ### OpencodeSession
-- `id`, `repo`, `status`, `prompt`, `created_at`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`
+- `id`, `repo`, `status`, `created_at`, `started_at`, `updated_at`, `completed_at`, `exit_code`, `duration_seconds`
 - Status: `active`, `completed`, `failed`, or `killed`
+- Note: Prompts are not stored to keep the state file small; they can be reconstructed from job/todo context
 
 ### Job
 - `id`, `repo`, `todo_id`, `stage`, `feedback`, `agent`, `opencode_sessions`, `status`, `created_at`, `started_at`, `updated_at`, `completed_at`

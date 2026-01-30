@@ -79,7 +79,6 @@ type OpencodeSession struct {
 	ID              string                `json:"id"`
 	Repo            string                `json:"repo"`
 	Status          OpencodeSessionStatus `json:"status"`
-	Prompt          string                `json:"prompt"`
 	CreatedAt       time.Time             `json:"created_at,omitempty"`
 	StartedAt       time.Time             `json:"started_at"`
 	UpdatedAt       time.Time             `json:"updated_at"`

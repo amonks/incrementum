@@ -230,7 +230,7 @@ func (s *Store) ensureSession(repoPath, workDir string, startedAt time.Time, pro
 		return OpencodeSession{}, err
 	}
 
-	return s.CreateSession(repoPath, metadata.ID, prompt, sessionStartedAt)
+	return s.CreateSession(repoPath, metadata.ID, sessionStartedAt)
 }
 
 func formatCommand(name string, args ...string) string {

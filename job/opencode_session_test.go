@@ -115,7 +115,8 @@ func TestRunOpencodeSessionRecordsSession(t *testing.T) {
 		}
 		for i := range sessions {
 			session := sessions[i]
-			if !resultReady && session.Prompt == prompt && session.Status == opencode.OpencodeSessionActive {
+			// Look for any active session started after our start time
+			if !resultReady && session.Status == opencode.OpencodeSessionActive && !session.StartedAt.Before(startedAt) {
 				observedSession = session
 				observedActive = true
 				break

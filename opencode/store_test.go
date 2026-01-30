@@ -15,7 +15,7 @@ func TestStore_CreateSessionAndList(t *testing.T) {
 	start := time.Now().UTC()
 
 	sessionID := "ses_test"
-	session, err := store.CreateSession(repoPath, sessionID, "Test prompt", start)
+	session, err := store.CreateSession(repoPath, sessionID, start)
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}
@@ -28,9 +28,6 @@ func TestStore_CreateSessionAndList(t *testing.T) {
 	}
 	if session.Repo != statestore.SanitizeRepoName(repoPath) {
 		t.Fatalf("expected repo %q, got %q", statestore.SanitizeRepoName(repoPath), session.Repo)
-	}
-	if session.Prompt != "Test prompt" {
-		t.Fatalf("expected prompt Test prompt, got %q", session.Prompt)
 	}
 	if session.ExitCode != nil {
 		t.Fatalf("expected nil exit code, got %v", *session.ExitCode)
@@ -71,12 +68,12 @@ func TestStore_FindSessionMatchesPrefix(t *testing.T) {
 	repoPath := "/tmp/my-repo"
 	startedAt := time.Now().UTC()
 
-	session, err := store.CreateSession(repoPath, "alpha123", "First prompt", startedAt)
+	session, err := store.CreateSession(repoPath, "alpha123", startedAt)
 	if err != nil {
 		t.Fatalf("create first session: %v", err)
 	}
 
-	_, err = store.CreateSession(repoPath, "beta456", "Second prompt", startedAt.Add(time.Second))
+	_, err = store.CreateSession(repoPath, "beta456", startedAt.Add(time.Second))
 	if err != nil {
 		t.Fatalf("create second session: %v", err)
 	}
@@ -97,12 +94,12 @@ func TestStore_FindSessionRejectsAmbiguousPrefix(t *testing.T) {
 	repoPath := "/tmp/my-repo"
 	startedAt := time.Now().UTC()
 
-	first, err := store.CreateSession(repoPath, "alpha123", "First", startedAt)
+	first, err := store.CreateSession(repoPath, "alpha123", startedAt)
 	if err != nil {
 		t.Fatalf("create first session: %v", err)
 	}
 
-	second, err := store.CreateSession(repoPath, "alpha456", "Second", startedAt.Add(time.Second))
+	second, err := store.CreateSession(repoPath, "alpha456", startedAt.Add(time.Second))
 	if err != nil {
 		t.Fatalf("create second session: %v", err)
 	}
@@ -130,7 +127,7 @@ func TestStore_CompleteSession(t *testing.T) {
 	repoPath := "/tmp/my-repo"
 	start := time.Now().UTC()
 
-	session, err := store.CreateSession(repoPath, "ses_complete", "Test prompt", start)
+	session, err := store.CreateSession(repoPath, "ses_complete", start)
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}

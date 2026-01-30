@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/listflags"
-	internalstrings "github.com/amonks/incrementum/internal/strings"
 	"github.com/amonks/incrementum/internal/ui"
 	"github.com/amonks/incrementum/opencode"
 	"github.com/spf13/cobra"
@@ -88,17 +86,8 @@ func runOpencodeLogs(cmd *cobra.Command, args []string) error {
 func formatOpencodeTable(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) string {
 	rows := make([][]string, 0, len(sessions))
 	highlight, prefixLengths = normalizeOpencodeTableInputs(sessions, highlight, prefixLengths)
-	promptWidth := opencodePromptColumnWidthWithInputs(sessions, highlight, now, prefixLengths)
-	promptHeader := "PROMPT"
-	if promptWidth > 0 {
-		promptHeader = ui.TruncateTableCellToWidth(promptHeader, promptWidth)
-	} else {
-		promptHeader = ""
-	}
 
 	for _, session := range sessions {
-		prompt := opencodePromptLine(session.Prompt)
-		prompt = ui.TruncateTableCellToWidth(prompt, promptWidth)
 		age := formatOpencodeAge(session, now)
 		duration := formatOpencodeDuration(session, now)
 		exit := "-"
@@ -112,62 +101,11 @@ func formatOpencodeTable(sessions []opencode.OpencodeSession, highlight func(str
 			string(session.Status),
 			age,
 			duration,
-			prompt,
 			exit,
 		})
 	}
 
-	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", promptHeader, "EXIT"}, rows)
-}
-
-func opencodePromptColumnWidth(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
-	highlight, prefixLengths = normalizeOpencodeTableInputs(sessions, highlight, prefixLengths)
-	return opencodePromptColumnWidthWithInputs(sessions, highlight, now, prefixLengths)
-}
-
-func opencodePromptColumnWidthWithInputs(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
-	viewportWidth := ui.TableViewportWidth()
-	if viewportWidth <= 0 {
-		return ui.TableCellMaxWidth()
-	}
-
-	fixedWidth := opencodeFixedColumnsWidth(sessions, highlight, now, prefixLengths)
-	remaining := viewportWidth - fixedWidth
-	if remaining <= 0 {
-		return 0
-	}
-
-	if maxWidth := ui.TableCellMaxWidth(); maxWidth > 0 && remaining > maxWidth {
-		remaining = maxWidth
-	}
-	return remaining
-}
-
-func opencodeFixedColumnsWidth(sessions []opencode.OpencodeSession, highlight func(string, int) string, now time.Time, prefixLengths map[string]int) int {
-	maxSession := ui.TableCellWidth("SESSION")
-	maxStatus := ui.TableCellWidth("STATUS")
-	maxAge := ui.TableCellWidth("AGE")
-	maxDuration := ui.TableCellWidth("DURATION")
-	maxExit := ui.TableCellWidth("EXIT")
-
-	for _, session := range sessions {
-		age := formatOpencodeAge(session, now)
-		duration := formatOpencodeDuration(session, now)
-		exit := "-"
-		if session.ExitCode != nil {
-			exit = strconv.Itoa(*session.ExitCode)
-		}
-		prefixLen := ui.PrefixLength(prefixLengths, session.ID)
-
-		maxSession = maxInt(maxSession, ui.TableCellWidth(highlight(session.ID, prefixLen)))
-		maxStatus = maxInt(maxStatus, ui.TableCellWidth(string(session.Status)))
-		maxAge = maxInt(maxAge, ui.TableCellWidth(age))
-		maxDuration = maxInt(maxDuration, ui.TableCellWidth(duration))
-		maxExit = maxInt(maxExit, ui.TableCellWidth(exit))
-	}
-
-	padding := ui.TableColumnPaddingWidth()
-	return maxSession + maxStatus + maxAge + maxDuration + maxExit + padding*5
+	return ui.FormatTable([]string{"SESSION", "STATUS", "AGE", "DURATION", "EXIT"}, rows)
 }
 
 func opencodeSessionPrefixLengths(sessions []opencode.OpencodeSession) map[string]int {
@@ -186,15 +124,6 @@ func normalizeOpencodeTableInputs(sessions []opencode.OpencodeSession, highlight
 		prefixLengths = opencodeSessionPrefixLengths(sessions)
 	}
 	return highlight, prefixLengths
-}
-
-func opencodePromptLine(prompt string) string {
-	line := strings.SplitN(prompt, "\n", 2)[0]
-	line = internalstrings.TrimTrailingCarriageReturn(line)
-	if internalstrings.IsBlank(line) {
-		return "-"
-	}
-	return line
 }
 
 func formatOpencodeAge(session opencode.OpencodeSession, now time.Time) string {

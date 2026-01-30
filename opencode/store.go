@@ -84,7 +84,7 @@ func (s *Store) repoName(repoPath string) (string, error) {
 }
 
 // CreateSession creates a new active opencode session.
-func (s *Store) CreateSession(repoPath, sessionID, prompt string, startedAt time.Time) (OpencodeSession, error) {
+func (s *Store) CreateSession(repoPath, sessionID string, startedAt time.Time) (OpencodeSession, error) {
 	repoName, err := s.repoName(repoPath)
 	if err != nil {
 		return OpencodeSession{}, err
@@ -99,7 +99,6 @@ func (s *Store) CreateSession(repoPath, sessionID, prompt string, startedAt time
 			ID:        sessionID,
 			Repo:      repoName,
 			Status:    OpencodeSessionActive,
-			Prompt:    prompt,
 			CreatedAt: startedAt,
 			StartedAt: startedAt,
 			UpdatedAt: startedAt,

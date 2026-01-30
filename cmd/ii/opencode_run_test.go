@@ -102,16 +102,8 @@ func TestOpencodeRunShellsOutAndRecordsSession(t *testing.T) {
 	if len(sessions) == 0 {
 		t.Fatalf("expected at least 1 session, got 0")
 	}
-	var matched *opencode.OpencodeSession
-	for i := range sessions {
-		if sessions[i].Prompt == prompt {
-			matched = &sessions[i]
-			break
-		}
-	}
-	if matched == nil {
-		t.Fatalf("expected session prompt %q, got %+v", prompt, sessions)
-	}
+	// Get the most recent session (list is sorted by start time)
+	matched := &sessions[len(sessions)-1]
 	if matched.Status != opencode.OpencodeSessionCompleted {
 		t.Fatalf("expected status completed, got %q", matched.Status)
 	}
@@ -171,14 +163,12 @@ func TestOpencodeRunUsesStdinPrompt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list sessions: %v", err)
 	}
-	var matched *opencode.OpencodeSession
-	for i := range sessions {
-		if sessions[i].Prompt == prompt {
-			matched = &sessions[i]
-			break
-		}
+	if len(sessions) == 0 {
+		t.Fatalf("expected at least 1 session, got 0")
 	}
-	if matched == nil {
-		t.Fatalf("expected session prompt %q, got %+v", prompt, sessions)
+	// Get the most recent session (list is sorted by start time)
+	matched := &sessions[len(sessions)-1]
+	if matched.Status != opencode.OpencodeSessionCompleted {
+		t.Fatalf("expected status completed, got %q", matched.Status)
 	}
 }

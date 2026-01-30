@@ -41,13 +41,15 @@ Fields (JSON keys):
 - `id`: opencode session id (for example `ses_...`).
 - `repo`: repo slug.
 - `status`: `active`, `completed`, `failed`, or `killed`.
-- `prompt`: full prompt string that was provided to `run`.
 - `created_at`: timestamp.
 - `started_at`: timestamp.
 - `updated_at`: timestamp.
 - `completed_at`: timestamp (set when completed/failed/killed).
 - `exit_code`: integer exit code for `run`.
 - `duration_seconds`: duration in seconds.
+
+Note: Prompts are not stored in session state to keep the state file small.
+They can be reconstructed from the associated todo/job context when needed.
 
 ## Rules
 
@@ -108,12 +110,9 @@ Fields (JSON keys):
 - Default output is a table matching other list commands.
 - Default output includes only active sessions unless `--all` is provided.
 - When the list is empty but sessions exist, print a hint to use `--all`.
-- Suggested columns: `SESSION`, `STATUS`, `AGE`, `DURATION`, `PROMPT`, `EXIT`.
+- Columns: `SESSION`, `STATUS`, `AGE`, `DURATION`, `EXIT`.
 - `SESSION` highlights the shortest unique prefix across all sessions in the
   repo when ANSI output is enabled.
-- `PROMPT` shows only the first line of the prompt; full prompt remains in state.
-- `PROMPT` displays `-` when the first line is empty or whitespace-only.
-- `PROMPT` header and cells are truncated to the computed prompt column width to keep the table within the viewport.
 - `AGE` shows a compact duration in `s`, `m`, `h`, or `d` units.
 - `AGE` is `-` when the session is missing timing data.
 - `AGE` uses `now - created_at`.
