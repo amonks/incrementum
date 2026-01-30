@@ -131,3 +131,49 @@ Templates receive the same data as regular job templates, plus:
 | ABANDON meaning | Task impossible | Nothing worth doing now |
 | Parallel execution | One worker per todo | Multiple workers OK |
 | Artifact tracking | Status changes | Creates done todos |
+
+## CLI Mapping
+
+The CLI provides subcommands for managing habits:
+
+- `habit list` -> `habit.List`
+- `habit show <name>` -> `habit.Load`
+- `habit edit <name>` (`habit update`) -> opens `$EDITOR` on the habit file
+- `habit create <name>` -> creates a new habit file and opens `$EDITOR`
+
+### List
+
+```
+ii habit list
+```
+
+Lists all habit names in alphabetical order. Returns an empty list if no habits
+directory exists.
+
+### Show
+
+```
+ii habit show <name>
+```
+
+Displays the full content of a habit instruction document, including frontmatter
+and body.
+
+### Edit
+
+```
+ii habit edit <name>
+ii habit update <name>
+```
+
+Opens the habit file in `$EDITOR`. The file path is
+`.incrementum/habits/<name>.md`.
+
+### Create
+
+```
+ii habit create <name>
+```
+
+Creates a new habit file at `.incrementum/habits/<name>.md` with a template and
+opens it in `$EDITOR`. Returns an error if the habit already exists.

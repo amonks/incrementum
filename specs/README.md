@@ -47,6 +47,7 @@
 | ---------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | [workspace.md](./workspace.md)     | [workspace/](../workspace/) | Jujutsu workspace pool: acquire a workspace to do some isolated work, then release it                        |
 | [todo.md](./todo.md)               | [todo/](../todo/)           | Task tracking: command-line JIRA with TODOs stored in a special branch                                       |
+| [habit.md](./habit.md)             | [habit/](../habit/)         | Habit management: ongoing improvement practices stored as version-controlled instruction documents           |
 | [cli.md](./cli.md)                 | [cmd/ii/](../cmd/ii/)       | CLI conventions and behavior notes                                                                             |
 | [opencode.md](./opencode.md)       | [opencode/](../opencode/)   | Opencode integration: run opencode sessions and monitor their status                                         |
 | [job.md](./job.md)                 | [job/](../job/)             | Jobs system: workflow management for using opencode to complete todos (in sessions), with acceptance testing |
