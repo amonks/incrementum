@@ -488,41 +488,39 @@ func normalizeRunOptions(opts RunOptions) RunOptions {
 			return runOpencodeSession(store, runOpts)
 		}
 	}
+	var jjClient *jj.Client
+	getJJ := func() *jj.Client {
+		if jjClient == nil {
+			jjClient = jj.New()
+		}
+		return jjClient
+	}
 	if opts.CurrentCommitID == nil {
-		client := jj.New()
-		opts.CurrentCommitID = client.CurrentCommitID
+		opts.CurrentCommitID = getJJ().CurrentCommitID
 	}
 	if opts.CurrentChangeID == nil {
-		client := jj.New()
-		opts.CurrentChangeID = client.CurrentChangeID
+		opts.CurrentChangeID = getJJ().CurrentChangeID
 	}
 	if opts.CurrentChangeEmpty == nil {
-		client := jj.New()
-		opts.CurrentChangeEmpty = client.CurrentChangeEmpty
+		opts.CurrentChangeEmpty = getJJ().CurrentChangeEmpty
 	}
 	if opts.DiffStat == nil {
-		client := jj.New()
-		opts.DiffStat = client.DiffStat
+		opts.DiffStat = getJJ().DiffStat
 	}
 	if opts.CommitIDAt == nil {
-		client := jj.New()
-		opts.CommitIDAt = client.CommitIDAt
+		opts.CommitIDAt = getJJ().CommitIDAt
 	}
 	if opts.Commit == nil {
-		client := jj.New()
-		opts.Commit = client.Commit
+		opts.Commit = getJJ().Commit
 	}
 	if opts.RestoreWorkspace == nil {
-		client := jj.New()
-		opts.RestoreWorkspace = client.Edit
+		opts.RestoreWorkspace = getJJ().Edit
 	}
 	if opts.UpdateStale == nil {
-		client := jj.New()
-		opts.UpdateStale = client.WorkspaceUpdateStale
+		opts.UpdateStale = getJJ().WorkspaceUpdateStale
 	}
 	if opts.Snapshot == nil {
-		client := jj.New()
-		opts.Snapshot = client.Snapshot
+		opts.Snapshot = getJJ().Snapshot
 	}
 	if opts.OpencodeTranscripts == nil {
 		opts.OpencodeTranscripts = opencodeTranscripts
