@@ -1,11 +1,15 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/amonks/incrementum/habit"
 	"github.com/amonks/incrementum/internal/editor"
+	"github.com/amonks/incrementum/internal/ui"
+	"github.com/amonks/incrementum/job"
 	"github.com/spf13/cobra"
 )
 
@@ -60,15 +64,59 @@ func runHabitList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	names, err := habit.List(repoPath)
+	habits, err := habit.LoadAll(repoPath)
 	if err != nil {
 		return err
 	}
 
-	for _, name := range names {
-		fmt.Println(name)
+	if len(habits) == 0 {
+		fmt.Println("No habits found.")
+		return nil
 	}
+
+	// Get job counts per habit
+	manager, err := job.Open(repoPath, job.OpenOptions{})
+	if err != nil {
+		return fmt.Errorf("open job manager: %w", err)
+	}
+	jobCounts, err := manager.CountByHabit()
+	if err != nil {
+		return fmt.Errorf("count jobs by habit: %w", err)
+	}
+
+	prefixLengths := habit.PrefixLengths(habits)
+	printHabitTable(habits, prefixLengths, jobCounts)
 	return nil
+}
+
+func printHabitTable(habits []*habit.Habit, prefixLengths map[string]int, jobCounts map[string]int) {
+	builder := ui.NewTableBuilder([]string{"NAME", "IMPL MODEL", "REVIEW MODEL", "JOBS"}, len(habits))
+
+	for _, h := range habits {
+		prefixLen := ui.PrefixLength(prefixLengths, h.Name)
+		highlighted := ui.HighlightID(h.Name, prefixLen)
+
+		implModel := h.ImplementationModel
+		if implModel == "" {
+			implModel = "-"
+		}
+		reviewModel := h.ReviewModel
+		if reviewModel == "" {
+			reviewModel = "-"
+		}
+
+		jobCount := strconv.Itoa(jobCounts[h.Name])
+
+		row := []string{
+			highlighted,
+			implModel,
+			reviewModel,
+			jobCount,
+		}
+		builder.AddRow(row)
+	}
+
+	fmt.Print(builder.String())
 }
 
 func runHabitShow(cmd *cobra.Command, args []string) error {
@@ -77,17 +125,25 @@ func runHabitShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	name := args[0]
-	path, err := habit.Path(repoPath, name)
+	nameOrPrefix := args[0]
+	h, err := habit.Find(repoPath, nameOrPrefix)
+	if err != nil {
+		if errors.Is(err, habit.ErrHabitNotFound) {
+			return fmt.Errorf("habit not found: %s", nameOrPrefix)
+		}
+		if errors.Is(err, habit.ErrAmbiguousHabitPrefix) {
+			return fmt.Errorf("ambiguous habit prefix: %s", nameOrPrefix)
+		}
+		return err
+	}
+
+	path, err := habit.Path(repoPath, h.Name)
 	if err != nil {
 		return err
 	}
 
 	content, err := os.ReadFile(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("habit not found: %s", name)
-		}
 		return fmt.Errorf("read habit: %w", err)
 	}
 
@@ -101,16 +157,19 @@ func runHabitEdit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	name := args[0]
-	exists, err := habit.Exists(repoPath, name)
+	nameOrPrefix := args[0]
+	h, err := habit.Find(repoPath, nameOrPrefix)
 	if err != nil {
+		if errors.Is(err, habit.ErrHabitNotFound) {
+			return fmt.Errorf("habit not found: %s", nameOrPrefix)
+		}
+		if errors.Is(err, habit.ErrAmbiguousHabitPrefix) {
+			return fmt.Errorf("ambiguous habit prefix: %s", nameOrPrefix)
+		}
 		return err
 	}
-	if !exists {
-		return fmt.Errorf("habit not found: %s", name)
-	}
 
-	path, err := habit.Path(repoPath, name)
+	path, err := habit.Path(repoPath, h.Name)
 	if err != nil {
 		return err
 	}

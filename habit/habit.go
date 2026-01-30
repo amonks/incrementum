@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/amonks/incrementum/internal/ids"
 	internalstrings "github.com/amonks/incrementum/internal/strings"
 )
 
@@ -90,6 +91,63 @@ func First(repoPath string) (*Habit, error) {
 		return nil, nil
 	}
 	return Load(repoPath, names[0])
+}
+
+// ErrHabitNotFound is returned when a habit cannot be found.
+var ErrHabitNotFound = fmt.Errorf("habit not found")
+
+// ErrAmbiguousHabitPrefix is returned when a habit prefix matches multiple habits.
+var ErrAmbiguousHabitPrefix = fmt.Errorf("ambiguous habit prefix")
+
+// Find finds a habit by name or unique prefix.
+func Find(repoPath, nameOrPrefix string) (*Habit, error) {
+	nameOrPrefix = internalstrings.TrimSpace(nameOrPrefix)
+	if nameOrPrefix == "" {
+		return nil, ErrHabitNotFound
+	}
+
+	names, err := List(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	matchName, found, ambiguous := ids.MatchPrefix(names, nameOrPrefix)
+	if ambiguous {
+		return nil, fmt.Errorf("%w: %s", ErrAmbiguousHabitPrefix, nameOrPrefix)
+	}
+	if !found {
+		return nil, ErrHabitNotFound
+	}
+
+	return Load(repoPath, matchName)
+}
+
+// LoadAll loads all habits from the repo.
+func LoadAll(repoPath string) ([]*Habit, error) {
+	names, err := List(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	habits := make([]*Habit, 0, len(names))
+	for _, name := range names {
+		habit, err := Load(repoPath, name)
+		if err != nil {
+			return nil, err
+		}
+		habits = append(habits, habit)
+	}
+
+	return habits, nil
+}
+
+// PrefixLengths returns the unique prefix length for each habit name.
+func PrefixLengths(habits []*Habit) map[string]int {
+	names := make([]string, len(habits))
+	for i, h := range habits {
+		names[i] = h.Name
+	}
+	return ids.UniquePrefixLengths(names)
 }
 
 // Path returns the file path for a habit by name.

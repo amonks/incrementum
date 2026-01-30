@@ -3,6 +3,7 @@ package job
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/amonks/incrementum/internal/ids"
@@ -469,6 +470,35 @@ func IsJobStale(job Job, now time.Time) bool {
 	}
 	cutoff := now.Add(-StaleJobTimeout)
 	return !job.UpdatedAt.After(cutoff)
+}
+
+// CountByHabit returns a map of habit name to job count for all habits in the repo.
+// Jobs for habits have TodoID formatted as "habit:<name>".
+func (m *Manager) CountByHabit() (map[string]int, error) {
+	repoName, err := m.stateStore.GetOrCreateRepoName(m.repoPath)
+	if err != nil {
+		return nil, fmt.Errorf("get repo name: %w", err)
+	}
+
+	st, err := m.stateStore.Load()
+	if err != nil {
+		return nil, fmt.Errorf("load state: %w", err)
+	}
+
+	counts := make(map[string]int)
+	const habitPrefix = "habit:"
+	for _, job := range st.Jobs {
+		if job.Repo != repoName {
+			continue
+		}
+		if !strings.HasPrefix(job.TodoID, habitPrefix) {
+			continue
+		}
+		habitName := strings.TrimPrefix(job.TodoID, habitPrefix)
+		counts[habitName]++
+	}
+
+	return counts, nil
 }
 
 func resolveStateDir(opts OpenOptions) (string, error) {

@@ -5,7 +5,7 @@ exec jj git init
 
 # list habits when none exist
 exec $II habit list
-! stdout .
+stdout 'No habits found.'
 
 # create a habit
 env EDITOR=true
@@ -13,8 +13,12 @@ exec $II habit create cleanup
 stdout 'Created habit'
 stdout 'cleanup.md'
 
-# list habits
+# list habits shows table format
 exec $II habit list
+stdout 'NAME'
+stdout 'IMPL MODEL'
+stdout 'REVIEW MODEL'
+stdout 'JOBS'
 stdout 'cleanup'
 
 # show habit
@@ -48,3 +52,21 @@ exec $II habit edit cleanup
 
 # update alias works
 exec $II habit update cleanup
+
+# prefix addressing: show habit by unique prefix
+exec $II habit show cle
+stdout '# cleanup'
+stdout 'Guidelines'
+
+# prefix addressing: edit habit by unique prefix
+exec $II habit edit code
+# succeeds (editor is true)
+
+# prefix addressing: ambiguous prefix fails
+exec $II habit create clean-docs
+! exec $II habit show clea
+stderr 'ambiguous habit prefix'
+
+# prefix addressing: more specific prefix works
+exec $II habit show clean-d
+stdout '# clean docs'

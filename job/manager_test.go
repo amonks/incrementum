@@ -756,3 +756,128 @@ func TestIsJobStale(t *testing.T) {
 		})
 	}
 }
+
+func TestManager_CountByHabit(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/count-repo"
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	store := statestore.NewStore(tmpDir)
+	repoSlug, err := store.GetOrCreateRepoName(repoPath)
+	if err != nil {
+		t.Fatalf("repo slug: %v", err)
+	}
+	otherRepoPath := "/Users/test/other-repo"
+	otherSlug, err := store.GetOrCreateRepoName(otherRepoPath)
+	if err != nil {
+		t.Fatalf("other repo slug: %v", err)
+	}
+
+	now := time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC)
+
+	// Create habit jobs
+	habitJob1 := statestore.Job{
+		ID:        "habit-job-1",
+		Repo:      repoSlug,
+		TodoID:    "habit:cleanup",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusCompleted,
+		CreatedAt: now,
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	habitJob2 := statestore.Job{
+		ID:        "habit-job-2",
+		Repo:      repoSlug,
+		TodoID:    "habit:cleanup",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusActive,
+		CreatedAt: now,
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	habitJob3 := statestore.Job{
+		ID:        "habit-job-3",
+		Repo:      repoSlug,
+		TodoID:    "habit:docs",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusCompleted,
+		CreatedAt: now,
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	// Non-habit job
+	todoJob := statestore.Job{
+		ID:        "todo-job-1",
+		Repo:      repoSlug,
+		TodoID:    "todo-123",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusCompleted,
+		CreatedAt: now,
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	// Job in different repo
+	otherRepoJob := statestore.Job{
+		ID:        "other-habit-job",
+		Repo:      otherSlug,
+		TodoID:    "habit:cleanup",
+		Stage:     statestore.JobStageImplementing,
+		Status:    statestore.JobStatusCompleted,
+		CreatedAt: now,
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+
+	if err := insertJob(store, repoSlug, habitJob1); err != nil {
+		t.Fatalf("insert job: %v", err)
+	}
+	if err := insertJob(store, repoSlug, habitJob2); err != nil {
+		t.Fatalf("insert job: %v", err)
+	}
+	if err := insertJob(store, repoSlug, habitJob3); err != nil {
+		t.Fatalf("insert job: %v", err)
+	}
+	if err := insertJob(store, repoSlug, todoJob); err != nil {
+		t.Fatalf("insert job: %v", err)
+	}
+	if err := insertJob(store, otherSlug, otherRepoJob); err != nil {
+		t.Fatalf("insert job: %v", err)
+	}
+
+	counts, err := manager.CountByHabit()
+	if err != nil {
+		t.Fatalf("CountByHabit failed: %v", err)
+	}
+
+	if counts["cleanup"] != 2 {
+		t.Errorf("cleanup count = %d, want 2", counts["cleanup"])
+	}
+	if counts["docs"] != 1 {
+		t.Errorf("docs count = %d, want 1", counts["docs"])
+	}
+	if len(counts) != 2 {
+		t.Errorf("got %d habits, want 2", len(counts))
+	}
+}
+
+func TestManager_CountByHabit_EmptyRepo(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := "/Users/test/empty-repo"
+	manager, err := Open(repoPath, OpenOptions{StateDir: tmpDir})
+	if err != nil {
+		t.Fatalf("open manager: %v", err)
+	}
+
+	counts, err := manager.CountByHabit()
+	if err != nil {
+		t.Fatalf("CountByHabit failed: %v", err)
+	}
+
+	if len(counts) != 0 {
+		t.Errorf("got %d counts, want 0", len(counts))
+	}
+}

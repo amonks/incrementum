@@ -139,11 +139,14 @@ The `habit` package provides functions for managing habit files:
 | Function | Description |
 | -------- | ----------- |
 | `Load(repoPath, name)` | Load a habit by name, returns `*Habit` with parsed content |
+| `LoadAll(repoPath)` | Load all habits from the repo, sorted alphabetically |
 | `List(repoPath)` | List all habit names, sorted alphabetically |
 | `First(repoPath)` | Load the alphabetically first habit, or nil if none |
+| `Find(repoPath, nameOrPrefix)` | Find a habit by name or unique prefix |
 | `Path(repoPath, name)` | Return the file path for a habit (does not check existence) |
 | `Exists(repoPath, name)` | Check if a habit file exists |
 | `Create(repoPath, name)` | Create a new habit file with template, returns path |
+| `PrefixLengths(habits)` | Return unique prefix lengths for habit names |
 
 ### Habit Type
 
@@ -168,10 +171,14 @@ New habits are created with a template containing:
 
 The CLI provides subcommands for managing habits:
 
-- `habit list` -> `habit.List`
-- `habit show <name>` -> `habit.Path` + reads file directly (to show raw content including frontmatter)
-- `habit edit <name>` (`habit update`) -> `habit.Path` + opens `$EDITOR`
+- `habit list` -> `habit.LoadAll` + table display with job counts
+- `habit show <name>` -> `habit.Find` + reads file directly (to show raw content including frontmatter)
+- `habit edit <name>` (`habit update`) -> `habit.Find` + opens `$EDITOR`
 - `habit create <name>` -> `habit.Create` + opens `$EDITOR`
+
+Commands that accept `<name>` support prefix addressing: you can use the shortest
+unique prefix instead of the full habit name. For example, if you have habits
+"cleanup" and "docs", you can use `ii habit show c` to show the cleanup habit.
 
 ### List
 
@@ -179,8 +186,16 @@ The CLI provides subcommands for managing habits:
 ii habit list
 ```
 
-Lists all habit names in alphabetical order. Returns an empty list if no habits
-directory exists.
+Displays a table of all habits with columns:
+
+| Column | Description |
+| ------ | ----------- |
+| NAME | Habit name with unique prefix highlighted |
+| IMPL MODEL | Implementation model from frontmatter, or `-` |
+| REVIEW MODEL | Review model from frontmatter, or `-` |
+| JOBS | Count of jobs sourced from this habit |
+
+Returns "No habits found." if no habits exist.
 
 ### Show
 
@@ -189,7 +204,7 @@ ii habit show <name>
 ```
 
 Displays the full content of a habit instruction document, including frontmatter
-and body.
+and body. Accepts habit name or unique prefix.
 
 ### Edit
 
@@ -199,7 +214,7 @@ ii habit update <name>
 ```
 
 Opens the habit file in `$EDITOR`. The file path is
-`.incrementum/habits/<name>.md`.
+`.incrementum/habits/<name>.md`. Accepts habit name or unique prefix.
 
 ### Create
 

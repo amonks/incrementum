@@ -459,6 +459,166 @@ func TestFirst(t *testing.T) {
 	})
 }
 
+func TestFind(t *testing.T) {
+	t.Run("finds habit by exact name", func(t *testing.T) {
+		dir := t.TempDir()
+		habitsDir := filepath.Join(dir, HabitsDir)
+		if err := os.MkdirAll(habitsDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(habitsDir, "cleanup.md"), []byte("# Cleanup"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		habit, err := Find(dir, "cleanup")
+		if err != nil {
+			t.Fatalf("Find failed: %v", err)
+		}
+		if habit.Name != "cleanup" {
+			t.Errorf("Name = %q, want %q", habit.Name, "cleanup")
+		}
+	})
+
+	t.Run("finds habit by unique prefix", func(t *testing.T) {
+		dir := t.TempDir()
+		habitsDir := filepath.Join(dir, HabitsDir)
+		if err := os.MkdirAll(habitsDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(habitsDir, "cleanup.md"), []byte("# Cleanup"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(habitsDir, "docs.md"), []byte("# Docs"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		habit, err := Find(dir, "c")
+		if err != nil {
+			t.Fatalf("Find failed: %v", err)
+		}
+		if habit.Name != "cleanup" {
+			t.Errorf("Name = %q, want %q", habit.Name, "cleanup")
+		}
+	})
+
+	t.Run("returns error for ambiguous prefix", func(t *testing.T) {
+		dir := t.TempDir()
+		habitsDir := filepath.Join(dir, HabitsDir)
+		if err := os.MkdirAll(habitsDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(habitsDir, "cleanup.md"), []byte("# Cleanup"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(habitsDir, "clean-code.md"), []byte("# Clean Code"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := Find(dir, "clea")
+		if err == nil {
+			t.Error("expected error for ambiguous prefix")
+		}
+		if !strings.Contains(err.Error(), "ambiguous") {
+			t.Errorf("error should mention 'ambiguous': %v", err)
+		}
+	})
+
+	t.Run("returns error for not found", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Find(dir, "nonexistent")
+		if err == nil {
+			t.Error("expected error for nonexistent habit")
+		}
+		if err != ErrHabitNotFound {
+			t.Errorf("expected ErrHabitNotFound, got: %v", err)
+		}
+	})
+
+	t.Run("returns error for empty name", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Find(dir, "")
+		if err == nil {
+			t.Error("expected error for empty name")
+		}
+	})
+}
+
+func TestLoadAll(t *testing.T) {
+	t.Run("returns empty slice for no habits", func(t *testing.T) {
+		dir := t.TempDir()
+		habits, err := LoadAll(dir)
+		if err != nil {
+			t.Fatalf("LoadAll failed: %v", err)
+		}
+		if len(habits) != 0 {
+			t.Errorf("got %d habits, want 0", len(habits))
+		}
+	})
+
+	t.Run("loads all habits sorted", func(t *testing.T) {
+		dir := t.TempDir()
+		habitsDir := filepath.Join(dir, HabitsDir)
+		if err := os.MkdirAll(habitsDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+
+		for _, name := range []string{"zebra", "alpha", "mid"} {
+			if err := os.WriteFile(filepath.Join(habitsDir, name+".md"), []byte("# "+name), 0644); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		habits, err := LoadAll(dir)
+		if err != nil {
+			t.Fatalf("LoadAll failed: %v", err)
+		}
+
+		if len(habits) != 3 {
+			t.Fatalf("got %d habits, want 3", len(habits))
+		}
+
+		// Habits should be sorted alphabetically
+		expected := []string{"alpha", "mid", "zebra"}
+		for i, h := range habits {
+			if h.Name != expected[i] {
+				t.Errorf("habits[%d].Name = %q, want %q", i, h.Name, expected[i])
+			}
+		}
+	})
+}
+
+func TestPrefixLengths(t *testing.T) {
+	t.Run("returns unique prefix lengths", func(t *testing.T) {
+		habits := []*Habit{
+			{Name: "cleanup"},
+			{Name: "clean-code"},
+			{Name: "docs"},
+		}
+
+		lengths := PrefixLengths(habits)
+
+		// cleanup and clean-code share "clean", so need longer prefix
+		if lengths["cleanup"] < 6 {
+			t.Errorf("cleanup prefix length = %d, expected >= 6", lengths["cleanup"])
+		}
+		if lengths["clean-code"] < 6 {
+			t.Errorf("clean-code prefix length = %d, expected >= 6", lengths["clean-code"])
+		}
+		// docs is unique
+		if lengths["docs"] != 1 {
+			t.Errorf("docs prefix length = %d, expected 1", lengths["docs"])
+		}
+	})
+
+	t.Run("handles empty slice", func(t *testing.T) {
+		habits := []*Habit{}
+		lengths := PrefixLengths(habits)
+		if len(lengths) != 0 {
+			t.Errorf("got %d lengths, want 0", len(lengths))
+		}
+	})
+}
+
 func TestParseFrontmatter(t *testing.T) {
 	tests := []struct {
 		name       string
