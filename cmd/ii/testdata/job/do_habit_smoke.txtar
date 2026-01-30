@@ -30,11 +30,13 @@ stdout 'Review complete; committing changes:'
 stdout 'Created artifact todo:'
 stdout 'Title: Fix unused variable'
 
-# verify artifact todo was created with correct source
+# verify artifact todo was created with correct source and timestamps
 exec sh -c '$II todo list --status done --json > done.json'
 todoid done.json 'Fix unused variable' ARTIFACT_ID
 # Check source field in JSON output (using regex that handles whitespace)
 grep 'habit:cleanup' done.json
+# Verify started_at is set on the artifact (per spec, should be creation time)
+grep 'started_at' done.json
 
 -- cleanup.md --
 # Cleanup Habit

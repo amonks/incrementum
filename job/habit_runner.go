@@ -835,10 +835,15 @@ func createHabitArtifact(repoPath, habitName, commitMessage string) (*todo.Todo,
 		return nil, fmt.Errorf("finish returned no results")
 	}
 
-	// Set the source field via update
+	// Set the source and started_at fields via update.
+	// We explicitly set StartedAt because Create doesn't set it when creating
+	// with StatusInProgress (since there's no status transition). Per spec,
+	// artifact started_at should be set to creation time.
 	source := fmt.Sprintf("habit:%s", habitName)
+	startedAt := artifact.CreatedAt
 	_, err = store.Update([]string{artifact.ID}, todo.UpdateOptions{
-		Source: &source,
+		Source:    &source,
+		StartedAt: &startedAt,
 	})
 	if err != nil {
 		return nil, err
