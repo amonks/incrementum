@@ -3,6 +3,7 @@ package habit
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -236,6 +237,188 @@ func TestList(t *testing.T) {
 
 		if len(names) != 1 || names[0] != "valid" {
 			t.Errorf("got names %v, want [valid]", names)
+		}
+	})
+}
+
+func TestPath(t *testing.T) {
+	t.Run("returns path for valid name", func(t *testing.T) {
+		dir := t.TempDir()
+		path, err := Path(dir, "cleanup")
+		if err != nil {
+			t.Fatalf("Path failed: %v", err)
+		}
+		expected := filepath.Join(dir, HabitsDir, "cleanup.md")
+		if path != expected {
+			t.Errorf("path = %q, want %q", path, expected)
+		}
+	})
+
+	t.Run("trims whitespace from name", func(t *testing.T) {
+		dir := t.TempDir()
+		path, err := Path(dir, "  cleanup  ")
+		if err != nil {
+			t.Fatalf("Path failed: %v", err)
+		}
+		expected := filepath.Join(dir, HabitsDir, "cleanup.md")
+		if path != expected {
+			t.Errorf("path = %q, want %q", path, expected)
+		}
+	})
+
+	t.Run("returns error for empty name", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Path(dir, "")
+		if err == nil {
+			t.Error("expected error for empty name")
+		}
+	})
+
+	t.Run("returns error for whitespace-only name", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Path(dir, "   ")
+		if err == nil {
+			t.Error("expected error for whitespace-only name")
+		}
+	})
+}
+
+func TestExists(t *testing.T) {
+	t.Run("returns true for existing habit", func(t *testing.T) {
+		dir := t.TempDir()
+		habitsDir := filepath.Join(dir, HabitsDir)
+		if err := os.MkdirAll(habitsDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(habitsDir, "cleanup.md"), []byte("# Cleanup"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		exists, err := Exists(dir, "cleanup")
+		if err != nil {
+			t.Fatalf("Exists failed: %v", err)
+		}
+		if !exists {
+			t.Error("expected exists to be true")
+		}
+	})
+
+	t.Run("returns false for non-existing habit", func(t *testing.T) {
+		dir := t.TempDir()
+		exists, err := Exists(dir, "nonexistent")
+		if err != nil {
+			t.Fatalf("Exists failed: %v", err)
+		}
+		if exists {
+			t.Error("expected exists to be false")
+		}
+	})
+
+	t.Run("returns error for empty name", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Exists(dir, "")
+		if err == nil {
+			t.Error("expected error for empty name")
+		}
+	})
+}
+
+func TestCreate(t *testing.T) {
+	t.Run("creates habit file with template", func(t *testing.T) {
+		dir := t.TempDir()
+		path, err := Create(dir, "cleanup")
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		expectedPath := filepath.Join(dir, HabitsDir, "cleanup.md")
+		if path != expectedPath {
+			t.Errorf("path = %q, want %q", path, expectedPath)
+		}
+
+		// Verify file exists and contains template
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read created file: %v", err)
+		}
+		if !strings.Contains(string(content), "# cleanup") {
+			t.Errorf("content does not contain expected heading:\n%s", content)
+		}
+		if !strings.Contains(string(content), "Guidelines") {
+			t.Errorf("content does not contain Guidelines section:\n%s", content)
+		}
+	})
+
+	t.Run("converts dashes and underscores to spaces in title", func(t *testing.T) {
+		dir := t.TempDir()
+		path, err := Create(dir, "code-cleanup_task")
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read created file: %v", err)
+		}
+		if !strings.Contains(string(content), "# code cleanup task") {
+			t.Errorf("content does not contain expected heading with spaces:\n%s", content)
+		}
+	})
+
+	t.Run("creates habits directory if not exists", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Create(dir, "newhabit")
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Verify directory was created
+		info, err := os.Stat(filepath.Join(dir, HabitsDir))
+		if err != nil {
+			t.Fatalf("habits directory not created: %v", err)
+		}
+		if !info.IsDir() {
+			t.Error("habits path is not a directory")
+		}
+	})
+
+	t.Run("returns error if habit already exists", func(t *testing.T) {
+		dir := t.TempDir()
+		habitsDir := filepath.Join(dir, HabitsDir)
+		if err := os.MkdirAll(habitsDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(habitsDir, "existing.md"), []byte("# Existing"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := Create(dir, "existing")
+		if err == nil {
+			t.Error("expected error for existing habit")
+		}
+		if !strings.Contains(err.Error(), "already exists") {
+			t.Errorf("error should mention 'already exists': %v", err)
+		}
+	})
+
+	t.Run("returns error for empty name", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Create(dir, "")
+		if err == nil {
+			t.Error("expected error for empty name")
+		}
+	})
+
+	t.Run("trims whitespace from name", func(t *testing.T) {
+		dir := t.TempDir()
+		path, err := Create(dir, "  trimmed  ")
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		expectedPath := filepath.Join(dir, HabitsDir, "trimmed.md")
+		if path != expectedPath {
+			t.Errorf("path = %q, want %q", path, expectedPath)
 		}
 	})
 }

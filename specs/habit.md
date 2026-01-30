@@ -132,14 +132,46 @@ Templates receive the same data as regular job templates, plus:
 | Parallel execution | One worker per todo | Multiple workers OK |
 | Artifact tracking | Status changes | Creates done todos |
 
+## Package API
+
+The `habit` package provides functions for managing habit files:
+
+| Function | Description |
+| -------- | ----------- |
+| `Load(repoPath, name)` | Load a habit by name, returns `*Habit` with parsed content |
+| `List(repoPath)` | List all habit names, sorted alphabetically |
+| `First(repoPath)` | Load the alphabetically first habit, or nil if none |
+| `Path(repoPath, name)` | Return the file path for a habit (does not check existence) |
+| `Exists(repoPath, name)` | Check if a habit file exists |
+| `Create(repoPath, name)` | Create a new habit file with template, returns path |
+
+### Habit Type
+
+```go
+type Habit struct {
+    Name                string // filename without extension
+    Instructions        string // document body (after frontmatter)
+    ImplementationModel string // from frontmatter, if present
+    ReviewModel         string // from frontmatter, if present
+}
+```
+
+### Default Template
+
+New habits are created with a template containing:
+
+- A heading with the habit name (dashes/underscores converted to spaces)
+- Placeholder description text
+- A Guidelines section with placeholder items
+
 ## CLI Mapping
 
 The CLI provides subcommands for managing habits:
 
 - `habit list` -> `habit.List`
 - `habit show <name>` -> `habit.Load`
-- `habit edit <name>` (`habit update`) -> opens `$EDITOR` on the habit file
-- `habit create <name>` -> creates a new habit file and opens `$EDITOR`
+- `habit edit <name>` (`habit update`) -> `habit.Path` + opens `$EDITOR`
+- `habit create <name>` -> `habit.Create` + opens `$EDITOR`
 
 ### List
 

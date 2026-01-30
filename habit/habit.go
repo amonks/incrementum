@@ -92,6 +92,84 @@ func First(repoPath string) (*Habit, error) {
 	return Load(repoPath, names[0])
 }
 
+// Path returns the file path for a habit by name.
+// It does not check whether the file exists.
+func Path(repoPath, name string) (string, error) {
+	name = internalstrings.TrimSpace(name)
+	if name == "" {
+		return "", fmt.Errorf("habit name is required")
+	}
+	return filepath.Join(repoPath, HabitsDir, name+".md"), nil
+}
+
+// Exists returns true if a habit with the given name exists.
+func Exists(repoPath, name string) (bool, error) {
+	path, err := Path(repoPath, name)
+	if err != nil {
+		return false, err
+	}
+	_, err = os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+// DefaultTemplate is the template content for a new habit file.
+const DefaultTemplate = `# %s
+
+Describe the habit instructions here.
+
+## Guidelines
+
+- Guideline 1
+- Guideline 2
+`
+
+// Create creates a new habit file with a template.
+// Returns the file path and an error if the habit already exists or creation fails.
+func Create(repoPath, name string) (string, error) {
+	name = internalstrings.TrimSpace(name)
+	if name == "" {
+		return "", fmt.Errorf("habit name is required")
+	}
+
+	path, err := Path(repoPath, name)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if habit already exists
+	exists, err := Exists(repoPath, name)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return "", fmt.Errorf("habit already exists: %s", name)
+	}
+
+	// Ensure the habits directory exists
+	habitsDir := filepath.Join(repoPath, HabitsDir)
+	if err := os.MkdirAll(habitsDir, 0755); err != nil {
+		return "", fmt.Errorf("create habits directory: %w", err)
+	}
+
+	// Write template content
+	// Convert name to title case for the template heading
+	title := strings.ReplaceAll(name, "-", " ")
+	title = strings.ReplaceAll(title, "_", " ")
+	content := fmt.Sprintf(DefaultTemplate, title)
+
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return "", fmt.Errorf("write habit file: %w", err)
+	}
+
+	return path, nil
+}
+
 // parseHabit parses a habit document, extracting frontmatter and body.
 func parseHabit(name string, data []byte) (*Habit, error) {
 	content := string(data)
