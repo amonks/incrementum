@@ -1131,8 +1131,16 @@ func TestRunCommittingStageAppendsCommitLog(t *testing.T) {
 	if result.CommitLog[0].ID != "commit-456" {
 		t.Fatalf("expected commit id %q, got %q", "commit-456", result.CommitLog[0].ID)
 	}
-	if !strings.Contains(result.CommitLog[0].Message, "feat: log commit") {
-		t.Fatalf("expected commit log to include message, got %q", result.CommitLog[0].Message)
+	// Verify the stored message is exactly the draft commit message, not the
+	// formatted message with todo context and review comments.
+	if result.CommitLog[0].Message != "feat: log commit" {
+		t.Fatalf("expected commit log message to be exactly %q, got %q", "feat: log commit", result.CommitLog[0].Message)
+	}
+	if strings.Contains(result.CommitLog[0].Message, "This commit is a step towards implementing this todo:") {
+		t.Fatalf("commit log message should not contain todo context formatting")
+	}
+	if strings.Contains(result.CommitLog[0].Message, "Here is a generated commit message:") {
+		t.Fatalf("commit log message should not contain formatted message prefix")
 	}
 }
 

@@ -977,7 +977,7 @@ func runCommittingStage(opts CommittingStageOptions) (Job, error) {
 	if err != nil {
 		return Job{}, err
 	}
-	opts.Result.CommitLog = append(opts.Result.CommitLog, CommitLogEntry{ID: commitID, Message: finalMessage})
+	opts.Result.CommitLog = append(opts.Result.CommitLog, CommitLogEntry{ID: commitID, Message: message})
 
 	nextStage := StageImplementing
 	updated, err := opts.Manager.Update(opts.Current.ID, UpdateOptions{Stage: &nextStage}, opts.RunOptions.Now())

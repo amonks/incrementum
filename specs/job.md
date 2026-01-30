@@ -328,7 +328,9 @@ All prompt templates receive the same data:
 - `Feedback` (`string`)
 - `Message` (`string`)
 - `CommitLog` (`[]CommitLogEntry`): list of commits recorded so far with fields `ID`
-  and `Message`.
+  and `Message`. The `Message` field contains only the draft commit message (summary
+  and body) as written by opencode, not the fully formatted message with todo context
+  and review comments.
 - `OpencodeTranscripts` (`[]OpencodeTranscript`)
 - `WorkspacePath` (`string`): absolute path to the job's workspace root.
 - `ReviewInstructions` (`string`): standard review output instructions block.
