@@ -128,8 +128,15 @@ func runHabitJob(cmd *cobra.Command) error {
 			return fmt.Errorf("no habits found in %s", habit.HabitsDir)
 		}
 	} else {
-		h, err = habit.Load(repoPath, habitName)
+		// Use Find to support prefix matching, consistent with habit show/edit
+		h, err = habit.Find(repoPath, habitName)
 		if err != nil {
+			if errors.Is(err, habit.ErrHabitNotFound) {
+				return fmt.Errorf("habit not found: %s", habitName)
+			}
+			if errors.Is(err, habit.ErrAmbiguousHabitPrefix) {
+				return fmt.Errorf("ambiguous habit prefix: %s", habitName)
+			}
 			return err
 		}
 	}

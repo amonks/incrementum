@@ -372,6 +372,7 @@ Create and run a job to completion (blocking).
 - `--agent` selects the opencode agent and overrides `INCREMENTUM_OPENCODE_AGENT`
   and `job.agent`.
 - `--habit <name>` runs the named habit from `.incrementum/habits/<name>.md`.
+  Accepts habit name or unique prefix.
 - `--habit` (no name) runs the alphabetically first habit.
 - `--habit` cannot be combined with todo-ids or todo creation flags.
 - If no args and interactive: open $EDITOR to create todo.
