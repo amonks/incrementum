@@ -41,31 +41,19 @@ func Open() (*Store, error) {
 
 // OpenWithOptions creates a store with custom options.
 func OpenWithOptions(opts Options) (*Store, error) {
-	stateDir := opts.StateDir
-	if stateDir == "" {
-		var err error
-		stateDir, err = paths.DefaultStateDir()
-		if err != nil {
-			return nil, err
-		}
+	stateDir, err := paths.ResolveWithDefault(opts.StateDir, paths.DefaultStateDir)
+	if err != nil {
+		return nil, err
 	}
 
-	storageRoot := opts.StorageRoot
-	if storageRoot == "" {
-		var err error
-		storageRoot, err = internalopencode.DefaultRoot()
-		if err != nil {
-			return nil, err
-		}
+	storageRoot, err := paths.ResolveWithDefault(opts.StorageRoot, internalopencode.DefaultRoot)
+	if err != nil {
+		return nil, err
 	}
 
-	eventsDir := opts.EventsDir
-	if eventsDir == "" {
-		var err error
-		eventsDir, err = paths.DefaultOpencodeEventsDir()
-		if err != nil {
-			return nil, err
-		}
+	eventsDir, err := paths.ResolveWithDefault(opts.EventsDir, paths.DefaultOpencodeEventsDir)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Store{

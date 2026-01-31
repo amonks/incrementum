@@ -502,9 +502,5 @@ func (m *Manager) CountByHabit() (map[string]int, error) {
 }
 
 func resolveStateDir(opts OpenOptions) (string, error) {
-	if opts.StateDir != "" {
-		return opts.StateDir, nil
-	}
-
-	return paths.DefaultStateDir()
+	return paths.ResolveWithDefault(opts.StateDir, paths.DefaultStateDir)
 }

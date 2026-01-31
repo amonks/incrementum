@@ -113,13 +113,9 @@ func eventLogPath(jobID string, opts EventLogOptions) (string, error) {
 	if jobID == "" {
 		return "", fmt.Errorf("job id is required")
 	}
-	root := opts.EventsDir
-	if root == "" {
-		var err error
-		root, err = paths.DefaultJobEventsDir()
-		if err != nil {
-			return "", err
-		}
+	root, err := paths.ResolveWithDefault(opts.EventsDir, paths.DefaultJobEventsDir)
+	if err != nil {
+		return "", err
 	}
 	return filepath.Join(root, jobID+".jsonl"), nil
 }

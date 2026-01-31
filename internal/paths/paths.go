@@ -72,3 +72,12 @@ func defaultHomeDirPath(parts ...string) (string, error) {
 
 	return filepath.Join(append([]string{home}, parts...)...), nil
 }
+
+// ResolveWithDefault returns the override value if non-empty, otherwise calls
+// the default function to get a fallback value.
+func ResolveWithDefault(override string, defaultFn func() (string, error)) (string, error) {
+	if override != "" {
+		return override, nil
+	}
+	return defaultFn()
+}

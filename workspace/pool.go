@@ -46,22 +46,14 @@ func Open() (*Pool, error) {
 
 // OpenWithOptions creates a new Pool with custom options.
 func OpenWithOptions(opts Options) (*Pool, error) {
-	stateDir := opts.StateDir
-	if stateDir == "" {
-		var err error
-		stateDir, err = paths.DefaultStateDir()
-		if err != nil {
-			return nil, err
-		}
+	stateDir, err := paths.ResolveWithDefault(opts.StateDir, paths.DefaultStateDir)
+	if err != nil {
+		return nil, err
 	}
 
-	workspacesDir := opts.WorkspacesDir
-	if workspacesDir == "" {
-		var err error
-		workspacesDir, err = paths.DefaultWorkspacesDir()
-		if err != nil {
-			return nil, err
-		}
+	workspacesDir, err := paths.ResolveWithDefault(opts.WorkspacesDir, paths.DefaultWorkspacesDir)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Pool{

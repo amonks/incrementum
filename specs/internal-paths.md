@@ -16,3 +16,4 @@ The paths package centralizes default filesystem locations for incrementum state
 - `DefaultOpencodeEventsDir() (string, error)`: returns the default opencode events directory using `os.UserHomeDir`.
 - `DefaultJobEventsDir() (string, error)`: returns the default job events directory using `os.UserHomeDir`.
 - `WorkingDir() (string, error)`: returns the current working directory using `os.Getwd`, preferring a non-`/private` path when it resolves to the same location.
+- `ResolveWithDefault(override string, defaultFn func() (string, error)) (string, error)`: returns the override if non-empty, otherwise calls defaultFn. Used to consolidate the common pattern of "use provided path or fall back to default".
